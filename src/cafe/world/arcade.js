@@ -1,12 +1,11 @@
 // The outdoor area (戶外區, under the arcade): linked plastic chairs down both sides, the block-and-crate table down the middle, the Open stack,
 // the skateboard, the scooter seats and the kerb camping chair.
 import * as THREE from 'three';
-import { ctx, mat, box, cyl, canvasTex, plane, pixelArt } from '../engine.js';
+import { ctx, mat, box, cyl, canvasTex, plane } from '../engine.js';
 import { S } from '../state.js';
 import { pick, DOT } from '../util.js';
 import { STRIP } from '../layout.js';
-import { ART, PAL } from '../art.js';
-import { blackM, cinderM, CRATE_ORANGE, GLOSS_ORANGE, cinderBlock, cinderSeat, blockStack, crate, linkedChairs, campChair } from './props.js';
+import { blackM, cinderM, CRATE_ORANGE, GLOSS_ORANGE, cinderBlock, cinderSeat, blockStack, crate, linkedChairs, campChair, figurine } from './props.js';
 
 const potM = () => mat(0xb5643c), leafM = () => mat(0x3f6b3a);
 function pottedPlant(x, y, z) {
@@ -94,6 +93,72 @@ function ashtray(x, y, z) {
   [[0.012, 0.6], [-0.015, -0.4]].forEach(([dx, r]) => { const b = cyl(0.0045, 0.0045, 0.03, mat(0xd9a05a), dx, 0.022, dx, g, 6); b.rotation.set(Math.PI / 2, r, 0); });
 }
 
+// ---------------------------------------------------------------- the pictures on the grey wall behind the seats
+// hung on wires from a black rail up by the ceiling: a small dark frame, a big black-and-white lotus print,
+// a square white canvas with a kid in a space helmet, a small framed character, and a dark square with an astronaut
+const WALL_X = -3.0;   // just off the wall's face
+function art(w, h, draw) { return canvasTex(Math.round(w * 400), Math.round(h * 400), draw); }
+function helmetKid(g, cx, cy, r, face, bg) {
+  if (bg) { g.fillStyle = bg; g.fillRect(0, 0, cx * 2, cy * 2); }
+  g.fillStyle = '#f4f4f2'; g.beginPath(); g.arc(cx, cy, r, 0, Math.PI * 2); g.fill();                       // helmet
+  g.lineWidth = r * 0.12; g.strokeStyle = '#1f1c27'; g.beginPath(); g.arc(cx, cy, r * 0.97, 0, Math.PI * 2); g.stroke();
+  g.fillStyle = '#1f1c27'; g.beginPath(); g.arc(cx, cy + r * 0.08, r * 0.72, 0, Math.PI * 2); g.fill();     // visor ring
+  g.fillStyle = face; g.beginPath(); g.ellipse(cx + r * 0.08, cy + r * 0.18, r * 0.5, r * 0.55, 0, 0, Math.PI * 2); g.fill();   // face
+  g.fillStyle = '#2a3b4a'; g.beginPath(); g.ellipse(cx - r * 0.05, cy - r * 0.2, r * 0.55, r * 0.3, -0.2, 0, Math.PI * 2); g.fill();   // hair
+  g.fillStyle = '#111'; g.fillRect(cx + r * 0.2, cy + r * 0.1, r * 0.12, r * 0.05);                         // eye
+  g.fillStyle = '#9ad7ff'; g.beginPath(); g.ellipse(cx - r * 0.35, cy - r * 0.45, r * 0.12, r * 0.06, -0.6, 0, Math.PI * 2); g.fill();   // glint
+}
+function gallery() {
+  const black = mat(0x111111, { roughness: 0.5 });
+  const hang = (z, y, w, h, tex, frame) => {
+    if (frame) box(0.025, h + 0.05, w + 0.05, frame === true ? black : frame, WALL_X - 0.005, y, z);
+    plane(w, h, tex, WALL_X + 0.01, y, z, Math.PI / 2);
+    // two wires up to the rail
+    [-1, 1].forEach(s => { const top = y + h / 2 + 0.025, len = 2.62 - top; const wire = cyl(0.0015, 0.0015, len, mat(0x2a2a2a), WALL_X + 0.005, top + len / 2, z + s * w * 0.3, ctx.scene, 4); wire.castShadow = false; });
+  };
+  box(0.03, 0.03, 3.7, black, -3.03, 2.62, 6.0);                                                     // the picture rail
+  // left (toward the street): a small dark frame of little tiles
+  hang(7.0, 1.98, 0.24, 0.2, art(0.24, 0.2, (g, w, h) => {
+    g.fillStyle = '#2b2b2b'; g.fillRect(0, 0, w, h);
+    const cols = ['#c9c3b0', '#7a8f6a', '#3d5a3d', '#a8a08a', '#556b4f'];
+    for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) { g.fillStyle = cols[(r * 3 + c) % cols.length]; g.fillRect(8 + c * (w - 16) / 4 + 2, 8 + r * (h - 16) / 4 + 2, (w - 16) / 4 - 4, (h - 16) / 4 - 4); }
+  }), true);
+  // the big black-and-white print: lotus flowers in swirling clouds, a line of text along the bottom
+  hang(6.32, 1.98, 0.62, 0.42, art(0.62, 0.42, (g, w, h) => {
+    g.fillStyle = '#efe9da'; g.fillRect(0, 0, w, h);
+    g.strokeStyle = '#1b1b1b'; g.fillStyle = '#1b1b1b'; g.lineWidth = 3;
+    for (let i = 0; i < 7; i++) { const x = 40 + i * 36, y = 40 + (i % 3) * 30; g.beginPath(); g.arc(x, y, 14, 0, Math.PI * 1.6); g.stroke(); g.beginPath(); g.arc(x + 8, y + 2, 6, 0, Math.PI * 1.5); g.stroke(); }   // clouds
+    const lotus = (cx, cy, s) => {
+      for (let k = -2; k <= 2; k++) { g.beginPath(); g.ellipse(cx + k * 12 * s, cy - Math.abs(k) * -4 * s, 9 * s, 26 * s, k * 0.35, 0, Math.PI * 2); g.fill(); g.fillStyle = '#efe9da'; g.beginPath(); g.ellipse(cx + k * 12 * s, cy + 2 * s - Math.abs(k) * -4 * s, 5 * s, 19 * s, k * 0.35, 0, Math.PI * 2); g.fill(); g.fillStyle = '#1b1b1b'; }
+    };
+    lotus(70, 92, 1.3); lotus(185, 70, 1.0);
+    g.beginPath(); g.ellipse(160, 118, 30, 12, 0, 0, Math.PI * 2); g.fill();                         // a fish in the swirl
+    for (let i = 0; i < 22; i++) g.fillRect(16 + i * 10.5, h - 22, 7, 5);                              // the line of text, as marks
+    g.fillRect(16, h - 12, 90, 2);
+  }), true);
+  // the square white canvas, no frame: a kid in a space helmet
+  hang(5.72, 1.9, 0.4, 0.4, art(0.4, 0.4, (g, w, h) => { g.fillStyle = '#f2f0ea'; g.fillRect(0, 0, w, h); helmetKid(g, w / 2, h / 2, w * 0.36, '#4fb0b0'); }), mat(0xe8e6e0));
+  box(0.012, 0.1, 0.07, mat(0xc9a64a, { metalness: 0.7, roughness: 0.35 }), WALL_X, 1.55, 5.72);         // the brass light switch below it
+  // a small framed character, and lower down a dark square with an astronaut
+  hang(5.26, 2.0, 0.17, 0.24, art(0.17, 0.24, (g, w, h) => {
+    g.fillStyle = '#f4f2ec'; g.fillRect(0, 0, w, h);
+    g.fillStyle = '#e8c34a'; g.beginPath(); g.arc(w / 2, h * 0.35, w * 0.16, 0, Math.PI * 2); g.fill();
+    g.fillStyle = '#7a5bc0'; g.fillRect(w * 0.34, h * 0.45, w * 0.32, h * 0.3);
+    g.fillStyle = '#c0282d'; g.fillRect(w * 0.3, h * 0.75, w * 0.4, h * 0.06);
+  }), true);
+  hang(5.04, 1.66, 0.22, 0.22, art(0.22, 0.22, (g, w, h) => helmetKid(g, w / 2, h / 2, w * 0.36, '#5fbf6a', '#141414')), true);
+}
+
+// figurines and a katana by the Open sign, as next to the seats
+function openCorner() {
+  [[-2.97, 4.42, 1.4], [-2.8, 4.45, 1.2], [-2.96, 4.7, 1.3], [-2.82, 4.68, 1.5]].forEach(([x, z, s]) => figurine(x, 0.6, z, s));
+  const katana = new THREE.Group(); katana.position.set(-2.98, 0, 4.9); katana.rotation.z = 0.1; ctx.scene.add(katana);
+  cyl(0.013, 0.012, 0.72, mat(0x141414, { roughness: 0.35 }), 0, 0.36, 0, katana, 8);                // the scabbard
+  cyl(0.026, 0.026, 0.008, mat(0x8a7a4a, { metalness: 0.7 }), 0, 0.725, 0, katana, 12);             // the guard
+  const hilt = canvasTex(8, 32, (g) => { g.fillStyle = '#f2f0ea'; g.fillRect(0, 0, 8, 32); g.fillStyle = '#111'; for (let y = 0; y < 32; y += 6) { g.beginPath(); g.moveTo(4, y); g.lineTo(8, y + 3); g.lineTo(4, y + 6); g.lineTo(0, y + 3); g.fill(); } }, true);
+  cyl(0.014, 0.014, 0.24, new THREE.MeshStandardMaterial({ map: hilt, roughness: 0.6 }), 0, 0.85, 0, katana, 8);   // white-and-black wrapped hilt
+}
+
 export function buildArcade() {
   linkedChairs(-2.72, 6.0, Math.PI / 2, [GLOSS_ORANGE, GLOSS_ORANGE, GLOSS_ORANGE]);   // row along the grey wall
   linkedChairs(0.62, 6.6, -Math.PI / 2, [0xff8fb0, 0xffc21a, CRATE_ORANGE]);           // along the storage wall: orange, yellow, pink from the street in
@@ -102,11 +167,10 @@ export function buildArcade() {
   ashtray(0.04, 0.6, 7.66);                                 // the block table between the two seats by the scooter, clear of their cups
   ashtray(-0.45, 0.6, 9.12);                                // the camping chair's crates on the kerb
   openStackAndSkate();
+  openCorner();
   street();
-  // framed art on the arcade's grey wall
-  const PAL2 = ['#f4efe3', '#ffd23f', '#7ec8ff'];
-  [[4.7, 1.9, 0.5, 0.36], [5.6, 1.75, 0.34, 0.42], [6.2, 1.95, 0.26, 0.3], [6.8, 1.6, 0.22, 0.26]].forEach(([z, y, w, h], i) => {
-    box(0.04, h + 0.06, w + 0.06, mat(0x111111), -3.04, y, z);
-    plane(w, h, pixelArt(ART[['wave', 'eye', 'hoop', 'toys'][i]], PAL, PAL2[i % 3]), -3.015, y, z, Math.PI / 2);
-  });
+  gallery();
+  // a stack of blocks with a plant just past the street end of the seats, toys in its holes
+  cinderBlock(0.2, 0.2, 0.4, -2.88, 0.1, 6.98); cinderBlock(0.2, 0.2, 0.4, -2.88, 0.3, 6.98);
+  pottedPlant(-2.88, 0.4, 6.98);
 }
