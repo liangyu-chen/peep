@@ -116,6 +116,26 @@ function gripCup(person, tilt) {
   cup.position.copy(_p);
 }
 
+// a pixelated square that hides whatever's bare on the toilet; random skin-ish blocks, re-shuffled now and then
+function makeMosaic() {
+  const N = 6, c = document.createElement('canvas'); c.width = c.height = N;
+  const g = c.getContext('2d');
+  const tex = new THREE.CanvasTexture(c);
+  tex.magFilter = tex.minFilter = THREE.NearestFilter; tex.generateMipmaps = false; tex.encoding = THREE.sRGBEncoding;
+  tex.shuffle = () => {
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+      const l = 45 + Math.random() * 35, h = 18 + Math.random() * 14;
+      g.fillStyle = `hsl(${h},${25 + Math.random() * 30}%,${l}%)`; g.fillRect(x, y, 1, 1);
+    }
+    tex.needsUpdate = true;
+  };
+  tex.shuffle();
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex }));
+  sp.scale.set(0.34, 0.34, 1); sp.renderOrder = 5;
+  return sp;
+}
+const MOSAIC_AT = new THREE.Vector3(0, 0.5, 0.02), _cam = new THREE.Vector3();
+
 export class Person {
   constructor(profile, role) {
     this.p = profile; this.role = role;
@@ -143,6 +163,14 @@ export class Person {
   pickCup() { if (this.cup) this.hold(this.cup); }
   dropCup() { if (this.cup) { this.cup.parent.remove(this.cup); this.cup = null; } }
   gesture(a, t = 1.4) { this.act = a; this.actT = t; }
+  // pants down (thighs and hips show skin, the pants bunch round the shins) with a mosaic over the bits; or back up
+  pantsDown(down) {
+    const { bare, bunch, pants, skin } = this.strip;
+    bare.forEach(m => { m.material = down ? skin : pants; });
+    bunch.forEach(m => { m.visible = down; });
+    if (down && !this.mosaic) { this.mosaic = makeMosaic(); this.g.add(this.mosaic); this.mosaicT = 0; }
+    if (!down && this.mosaic) { this.g.remove(this.mosaic); this.mosaic.material.map.dispose(); this.mosaic.material.dispose(); this.mosaic = null; }
+  }
   // smoke for `dur` simulated seconds: light it, then hold / take a drag / blow it out / tap the ash, until it's burnt down.
   // The smoke itself (from the tip, and blown out after a drag) is drawn by updateSmoke in sim.js.
   lightUp(dur) {
@@ -196,11 +224,12 @@ export class Person {
     if (this.smk) this.smoking(dt);
 
     const [L, R] = this.legs, [aL, aR] = this.arms;
-    const sitting = this.pose === 'sit' || this.pose === 'game';
+    const sitting = this.pose === 'sit' || this.pose === 'game', squat = this.pose === 'squat' && !moving;
     this.walkPhase += dt * (moving ? 9 : 2);
     const s = Math.sin(this.walkPhase);
     let y = 0, hipL = 0, hipR = 0, kL = 0, kR = 0, armLx = 0, armLy = 0, armRx = 0, armRy = 0, armLz = 0.06, armRz = -0.06, bob = 0, elL = -0.12, elR = -0.12;
     if (moving) { hipL = s * 0.55; hipR = -s * 0.55; kL = Math.max(0, -s) * 0.6; kR = Math.max(0, s) * 0.6; armLx = -s * 0.45; armRx = s * 0.45; elL = -0.3 + Math.min(0, s) * 0.2; elR = -0.3 - Math.max(0, s) * 0.2; bob = Math.abs(Math.cos(this.walkPhase)) * 0.04; }
+    else if (squat) { y = -0.35; hipL = hipR = -1.9; kL = kR = 1.95; armLx = armRx = -0.55; elL = elR = -0.95; armLz = 0.12; armRz = -0.12; }   // squatting over the pan, forearms on the knees
     else if (sitting) { y = this.seat ? this.seat.sitY : -0.1; hipL = hipR = -Math.PI / 2; kL = kR = this.seat && this.seat.floor ? 0.25 : Math.PI / 2; armLx = armRx = -0.25; elL = elR = -0.7; }   // hands resting on the lap
     else { armLx = Math.sin(this.walkPhase * 0.7) * 0.04; armRx = -armLx; }
     if (this.cup && this.cup.parent === this.hand && !this.act) { const P = DRINK_POSE[moving ? 'walk' : 'carry']; armRx = P.x; armRz = P.z; elR = P.el; }   // cup carried in front
@@ -227,6 +256,7 @@ export class Person {
     }
     if (this.act === 'aim') { armRx = -0.7; elR = -1.4; armRz = -0.15; armLx = -0.5; elL = -1.2; }   // launcher pulled back, ready
     if (this.act === 'shoot') { armRx = -1.35; elR = -0.1; armRz = -0.05; }                          // and ripped forward
+    if (this.act === 'pull') { armLx = armRx = -0.12; elL = elR = -0.25; armLz = 0.32; armRz = -0.32; bob = -Math.abs(Math.sin(this.actT * 4)) * 0.03; }   // hands at the waistband, tugging
     if (this.act === 'carry') { armLx = armRx = -0.9; elL = elR = -0.7; armLz = 0.25; armRz = -0.25; }
     L.hip.rotation.x = hipL; R.hip.rotation.x = hipR; L.knee.rotation.x = kL; R.knee.rotation.x = kR;
     aL.rotation.set(armLx, armLy, armLz); aR.rotation.set(armRx, armRy, armRz);
@@ -235,6 +265,12 @@ export class Person {
     this.g.position.y = y + bob;
     this.head.rotation.y = this.pose === 'game' ? 0 : ph ? turn : Math.sin(this.walkPhase * 0.31) * 0.2;
     this.head.rotation.x = pitch;
+    if (this.mosaic) {   // kept between the hips and the camera, so it covers from any side
+      this.mosaicT -= dt; if (this.mosaicT <= 0) { this.mosaicT = 0.35; this.mosaic.material.map.shuffle(); }
+      this.g.worldToLocal(_cam.copy(ctx.camera.position));
+      const at = this.mosaic.position.copy(MOSAIC_AT); if (squat) at.y = 0.55;
+      _cam.sub(at); _cam.y = 0; if (_cam.lengthSq() > 1e-6) at.addScaledVector(_cam.normalize(), 0.2);
+    }
     if (this.exhaleT > 0 && !this.bubbleT) this.mouth.scale.set(0.55, 2.4, 1); else this.mouth.scale.x = 1;   // an O while blowing smoke
   }
 }

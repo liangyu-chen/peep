@@ -66,7 +66,8 @@ function openStackAndSkate() {
 
 function street() {
   // two seats with a cinder-block table between them, tucked up toward the camping chair
-  cinderSeat(-0.5, 7.75); cinderSeat(0.38, 7.75); blockStack(-0.06, 7.75);
+  const SX = -0.35;   // the set sits a little to the left as you look in from the street
+  cinderSeat(-0.5 + SX, 7.75); cinderSeat(0.38 + SX, 7.75); blockStack(-0.06 + SX, 7.75);
   // short umbrella stand in the corner at the street opening, behind the brick seat
   cyl(0.12, 0.11, 0.34, mat(0x9aa0a6, { metalness: 0.6, roughness: 0.4 }), 0.82, 0.17, 7.9, ctx.scene, 14);
   [[0.0, 0.0, 0x2a2a2a], [0.04, 0.03, 0x1c4fd6], [-0.04, 0.02, 0xc0282d]].forEach(([dx, dz, c]) => { const u = cyl(0.025, 0.04, 0.7, mat(c), 0.82 + dx, 0.45, 7.9 + dz, ctx.scene, 8); u.rotation.z = dx * 2; });
@@ -81,7 +82,7 @@ function street() {
   [-0.5, 0.55].forEach(z => { const w = cyl(0.2, 0.2, 0.1, blackM, 0, 0.2, z, scooter, 14); w.rotation.z = Math.PI / 2; });
   box(4.0, 0.3, 0.12, mat(0x2a4f8a), -1.05, 2.62, 8.2);                                  // blue lintel over the opening
   [[-3.0, 1.8], [0.95, 1.6]].forEach(([x, y]) => box(0.18, 0.22, 0.08, mat(0xd9d9d0), x, y, 8.22));   // electricity meters
-  campChair(-0.55, 8.55, 0, 0x2f4a3a);                                                    // one camping chair facing the street
+  campChair(-0.55, 8.55, 0, 0xc4a27e);                                                    // one milk-tea camping chair facing the street
   crate(-0.55, 0, 9.15, 'blue'); crate(-0.55, 0.3, 9.15, 'orange');                       // two stacked crates as its table
 }
 
@@ -164,7 +165,7 @@ export function buildArcade() {
   linkedChairs(0.62, 6.6, -Math.PI / 2, [0xff8fb0, 0xffc21a, CRATE_ORANGE]);           // along the storage wall: orange, yellow, pink from the street in
   middleStrip();
   ashtray(-1.0, 0.6, STRIP.at(STRIP.crates[2]));           // on the inner crates, between the cups (the tops stadium goes nearer the street)
-  ashtray(0.04, 0.6, 7.66);                                 // the block table between the two seats by the scooter, clear of their cups
+  ashtray(-0.31, 0.6, 7.66);                                // the block table between the two seats by the scooter, clear of their cups
   ashtray(-0.45, 0.6, 9.12);                                // the camping chair's crates on the kerb
   openStackAndSkate();
   openCorner();

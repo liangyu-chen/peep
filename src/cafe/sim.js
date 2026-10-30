@@ -193,8 +193,13 @@ async function doTable(c, zone, s) {
     if (s.porch && c.p.smokes && !c.cig && Math.random() < 0.1) { c.lightUp(rand(30, 50)); if (Math.random() < 0.5) sayLine(c, 'customer.smoke', { name: c.p.name }); }
     if (Math.random() < 0.025 && !S.toiletBusy && !c.tops) {
       S.toiletBusy = true; c.busy = true; c.status = '去廁所'; c.pose = 'stand';
-      await walk(c, route(s.path, TOILET)); await sleep(4);
-      await walk(c, route(TOILET, s.path)); S.toiletBusy = false; c.busy = false;
+      c.putOut();
+      await walk(c, route(s.path, TOILET)); await walk(c, [[1.7, -7.55]]);   // to the squat pan, facing the hood
+      c.face(Math.PI); await sleep(0.6);
+      c.gesture('pull', 0.8); await sleep(0.8); c.pantsDown(true); c.pose = 'squat'; c.status = '蹲廁所';
+      await sleep(rand(6, 10));
+      c.pose = 'stand'; c.gesture('pull', 0.8); await sleep(0.8); c.pantsDown(false); c.status = '去廁所';
+      await walk(c, [TOILET[0]]); await walk(c, route(TOILET, s.path)); S.toiletBusy = false; c.busy = false;
       c.face(s.face); c.pose = 'sit'; c.status = '坐著喝咖啡'; t += 8;
     }
     if (Math.random() < (vsCpu() ? 0.12 : c.p.regular && !S.tv.match ? 0.05 : 0) && canJoinTv(c)) { sayLine(c, 'customer.wantsTv'); c.invited = true; break; }

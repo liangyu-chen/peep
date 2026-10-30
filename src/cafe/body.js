@@ -104,11 +104,14 @@ export function buildBody(look, seed = '') {
   const mk = (geom, m, x, y, z, par = g, shadow = true) => { const me = new THREE.Mesh(geom, m); me.position.set(x, y, z); me.castShadow = shadow; me.receiveShadow = shadow; par.add(me); return me; };
 
   // ---------------------------------------------------------------- legs and hips
+  const bare = [];   // what shows skin when the pants come down (thighs, knees, hips)
+  const bunch = [];  // the pants bunched round the shins, only seen then
   const legs = [-0.105, 0.105].map(x => {
     const hip = new THREE.Group(); hip.position.set(x, 0.55, 0); g.add(hip);
-    mk(cy(0.085, 0.074, 0.28, 14), pants, 0, -0.13, 0, hip);                                   // thigh
+    bare.push(mk(cy(0.085, 0.074, 0.28, 14), pants, 0, -0.13, 0, hip));                        // thigh
     const knee = new THREE.Group(); knee.position.set(0, -0.27, 0); hip.add(knee);
-    mk(sp(0.074, 12, 8), pants, 0, 0, 0, knee);                                                // knee, so a bent leg stays joined
+    bare.push(mk(sp(0.074, 12, 8), pants, 0, 0, 0, knee));                                     // knee, so a bent leg stays joined
+    const b = mk(cy(0.088, 0.082, 0.09, 14), pants, 0, -0.03, 0, knee, false); b.visible = false; bunch.push(b);
     mk(cy(0.07, 0.062, 0.2, 14), pants, 0, -0.1, 0, knee);                                     // shin
     mk(cy(0.068, 0.068, 0.025, 14), pantsDark, 0, -0.195, 0, knee, false);                     // turned-up hem
     mk(bx(0.125, 0.06, 0.17), shoe, 0, -0.24, 0.015, knee);                                     // shoe, with a rounded toe
@@ -119,6 +122,7 @@ export function buildBody(look, seed = '') {
     return { hip, knee };
   });
   const seat = mk(cy(0.212, 0.2, 0.16, 20), pants, 0, 0.6, 0); seat.scale.z = 0.62;            // hips
+  bare.push(seat);
   const belt = mk(cy(0.214, 0.214, 0.035, 22), beltM, 0, 0.675, 0, g, false); belt.scale.z = 0.63;
   mk(bx(0.045, 0.03, 0.012), buckleM, 0, 0.675, 0.136, g, false);
 
@@ -261,7 +265,7 @@ export function buildBody(look, seed = '') {
   mk(bx(0.04, 0.012, 0.03), mat(0x3ddc97), 0.05, 0.026, 0, pad, false);
   [-1, 1].forEach(s => mk(cy(0.012, 0.012, 0.012, 8), mat(0x333333), s * 0.03, 0.026, 0.012, pad, false));         // sticks
   pad.position.set(0, 0.95, 0.43); pad.visible = false; g.add(pad);
-  return { g, legs, arms, elbows, head, hand, handL, pad, eyes, mouth, skinM: skin };
+  return { g, legs, arms, elbows, head, hand, handL, pad, eyes, mouth, skinM: skin, strip: { bare, bunch, pants, skin } };
 }
 
 function buildHair(style, shape, head, hairM, mk, at, look) {

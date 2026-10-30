@@ -50,8 +50,9 @@ export function createSeats() {
   [6.1, 6.6, 7.1].forEach(z => seat('table', 0.62, z, -Math.PI / 2, -0.1, crateCup(z, 1), [[0.62, z], [0.05, z], [0.05, 4.7]].concat(PORCH), { porch: true }));
   // the camping chair on the kerb, and the two seats by the scooter
   seat('table', -0.55, 8.55, 0, -0.17, [-0.55, 0.61, 9.12], [[-0.55, 8.55], [-1.3, 8.3], W].concat(PORCH), { porch: true, where: '門口' });
-  seat('table', -0.5, 7.75, Math.PI, -0.1, [-0.12, 0.61, 7.7], [[-0.5, 7.75], [-0.45, 7.3], [-0.45, 4.7]].concat(PORCH), { porch: true, where: '機車旁' });
-  seat('table', 0.38, 7.75, Math.PI, -0.1, [0.0, 0.61, 7.8], [[0.38, 7.75], [0.38, 7.3], [-0.45, 7.3], [-0.45, 4.7]].concat(PORCH), { porch: true, where: '機車旁' });
+  // (the pair and their block table sit 0.35 m left of where they were first drawn)
+  seat('table', -0.85, 7.75, Math.PI, -0.1, [-0.47, 0.61, 7.7], [[-0.85, 7.75], [-0.6, 7.3], [-0.45, 4.7]].concat(PORCH), { porch: true, where: '機車旁' });
+  seat('table', 0.03, 7.75, Math.PI, -0.1, [-0.35, 0.61, 7.8], [[0.03, 7.75], [0.03, 7.3], [-0.45, 7.3], [-0.45, 4.7]].concat(PORCH), { porch: true, where: '機車旁' });
   const tableSeats = seats.filter(s => s.type === 'table');
 
   // the two round stools in front of the TV, and two spots to stand and watch
