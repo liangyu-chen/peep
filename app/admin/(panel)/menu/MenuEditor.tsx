@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { saveMenu } from '../../actions';
+import SaveBar, { notify } from '../SaveBar';
 
 export type MenuRow = { id: number | null; name: string; en: string; section: string; hot: string; ice: string; active: boolean };
 type Row = MenuRow & { key: string };
@@ -12,18 +13,8 @@ const withKey = (r: MenuRow): Row => ({ ...r, key: `k${nextKey++}` });
 // the whole menu as one table: edit anything, add, remove or reorder rows, then save it all at once
 export default function MenuEditor({ initial, sections, readOnly }: { initial: MenuRow[]; sections: string[]; readOnly: boolean }) {
   const [rows, setRows] = useState<Row[]>(() => initial.map(withKey));
-  const [dirty, setDirty] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const saved = useRef(false);
-
-  // warn before leaving with unsaved changes
-  useEffect(() => {
-    const warn = (e: BeforeUnloadEvent) => { if (dirty && !saved.current) { e.preventDefault(); e.returnValue = ''; } };
-    window.addEventListener('beforeunload', warn);
-    return () => window.removeEventListener('beforeunload', warn);
-  }, [dirty]);
-
-  const change = (next: Row[]) => { setRows(next); setDirty(true); };
+  const root = useRef<HTMLDivElement>(null);
+  const change = (next: Row[]) => { setRows(next); notify(root.current, 'dirty'); };
   const set = (key: string, field: keyof MenuRow, value: string | boolean) => change(rows.map(r => (r.key === key ? { ...r, [field]: value } : r)));
   // swap with the neighbouring row of the same section
   const move = (i: number, d: number) => {
@@ -44,9 +35,12 @@ export default function MenuEditor({ initial, sections, readOnly }: { initial: M
   const dupes = new Set(names.filter((n, i) => n && names.indexOf(n) !== i));
   const blank = rows.some(r => !r.name.trim());
   const sectionList = [...sections, ...new Set(rows.map(r => r.section).filter(s => !sections.includes(s)))];
+  const problem = blank ? '有品項還沒填中文名' : dupes.size ? `品名重複：${[...dupes].join('、')}` : '';
+  useEffect(() => { notify(root.current, 'problem', problem); }, [problem]);
 
   return (
-    <form action={saveMenu} onSubmit={() => { saved.current = true; setSaving(true); }} className="menu-editor">
+    <form action={saveMenu} className="menu-editor">
+      <div ref={root} />
       <input type="hidden" name="payload" value={JSON.stringify(rows.map(({ key, ...r }) => r))} />
       {sectionList.map(section => {
         const inSection = rows.map((r, i) => ({ r, i })).filter(({ r }) => r.section === section);
@@ -63,8 +57,8 @@ export default function MenuEditor({ initial, sections, readOnly }: { initial: M
                 <input value={r.name} onChange={e => set(r.key, 'name', e.target.value)} aria-label="中文名" placeholder="中文名" disabled={readOnly}
                   className={!r.name.trim() || dupes.has(r.name.trim()) ? 'invalid' : ''} />
                 <input value={r.en} onChange={e => set(r.key, 'en', e.target.value)} aria-label="英文名" placeholder="English" disabled={readOnly} />
-                <input value={r.hot} onChange={e => set(r.key, 'hot', e.target.value)} aria-label="熱的價格" placeholder="—" maxLength={6} disabled={readOnly} />
-                <input value={r.ice} onChange={e => set(r.key, 'ice', e.target.value)} aria-label="冰的價格" placeholder="—" maxLength={6} disabled={readOnly} />
+                <label className="cell"><span className="cell-label">熱</span><input value={r.hot} onChange={e => set(r.key, 'hot', e.target.value)} aria-label="熱的價格" placeholder="—" maxLength={6} disabled={readOnly} /></label>
+                <label className="cell"><span className="cell-label">冰</span><input value={r.ice} onChange={e => set(r.key, 'ice', e.target.value)} aria-label="冰的價格" placeholder="—" maxLength={6} disabled={readOnly} /></label>
                 <select value={r.section} onChange={e => set(r.key, 'section', e.target.value)} aria-label="分類" disabled={readOnly}>
                   {sectionList.map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
@@ -77,13 +71,7 @@ export default function MenuEditor({ initial, sections, readOnly }: { initial: M
         );
       })}
 
-      <div className="save-bar">
-        <span className={dirty ? 'unsaved' : 'muted'}>
-          {blank ? '有品項還沒填中文名' : dupes.size ? `品名重複：${[...dupes].join('、')}` : dirty ? '有尚未儲存的修改' : '所有修改都已儲存'}
-        </span>
-        {dirty && <button type="button" onClick={() => { setRows(initial.map(withKey)); setDirty(false); }} disabled={saving}>復原</button>}
-        <button className="primary" disabled={readOnly || !dirty || blank || dupes.size > 0 || saving}>{saving ? '儲存中…' : '儲存菜單'}</button>
-      </div>
+      <SaveBar label="儲存菜單" readOnly={readOnly} />
     </form>
   );
 }

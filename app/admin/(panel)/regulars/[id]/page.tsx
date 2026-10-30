@@ -7,6 +7,7 @@ import { FIGHTER_NAMES, TEAM_NAMES, type Look } from '@/src/content/catalog';
 import { addRegular, updateRegular, deleteRegular } from '../../../actions';
 import LookPreview from '../../LookPreview';
 import LookFields from '../../LookFields';
+import SaveBar from '../../SaveBar';
 
 const NEW_LOOK: Look = { skin: 0xe0ac80, hair: 0x1b1410, hairStyle: 'short', shirt: 0x7fae8b, pants: 0x2b2b2b, faceShape: 'round', eyes: 'round', brows: 'thin', nose: 'small', mouth: 'smile', facialHair: 'none', glasses: 'none' };
 
@@ -81,10 +82,9 @@ export default async function RegularEditor({ params, searchParams }: { params: 
 
           <LookFields look={look} seed={row?.name ?? ''} />
 
-          <div className="actions sticky">
+          <SaveBar label={isNew ? '新增熟客' : '儲存'}>
             {row && <button formAction={deleteRegular} className="danger" formNoValidate>刪除這位熟客</button>}
-            <button className="primary">{isNew ? '新增' : '儲存'}</button>
-          </div>
+          </SaveBar>
         </div>
       </form>
     </>

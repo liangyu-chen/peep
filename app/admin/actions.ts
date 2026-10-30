@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation';
 import { eq, inArray } from 'drizzle-orm';
 import { getDb, schema } from '@/src/lib/db';
 import { checkPassword, createSession, destroySession, requireAdmin } from '@/src/lib/auth';
-import { LINE_KEYS, POOL_KEYS, TEAM_NAMES, DEFAULT_OWNER, MENU_SECTIONS, linesPageFor, parseLook, type Look } from '@/src/content/catalog';
+import { LINE_KEYS, LINE_GROUPS, POOL_KEYS, TEAM_NAMES, DEFAULT_OWNER, MENU_SECTIONS, parseLook, type Look } from '@/src/content/catalog';
 
 // ---------------------------------------------------------------- login
 export async function login(formData: FormData) {
@@ -68,42 +68,45 @@ export async function saveMenu(f: FormData) {
 }
 
 // ---------------------------------------------------------------- dialogue
-function checkCategory(category: string) {
-  if (!LINE_KEYS.includes(category)) throw new Error(`unknown category ${category}`);
+// the editor sends { category: [{ id, text, active }, …] } for every category on its page, in order;
+// these queries make the database match: rows left out are deleted, the rest updated or added
+type LinesPayload = Record<string, { id: number | null; text: string; active: boolean }[]>;
+function parseLines(f: FormData): LinesPayload | null {
+  const raw = f.get('lines');
+  if (raw == null) return null;
+  try { return JSON.parse(String(raw)); } catch { return null; }
 }
-// back to the page the category is edited on
-function doneLines(category: string, msg: string) {
-  const page = linesPageFor(category);
-  revalidatePath(page); revalidatePath('/');
-  redirect(`${page}?msg=${encodeURIComponent(msg)}#${category}`);
+async function lineQueries(payload: LinesPayload) {
+  const d = db(), now = new Date();
+  const cats = Object.keys(payload).filter(k => LINE_KEYS.includes(k));
+  if (!cats.length) return { queries: [], count: 0 };
+  const existing = await d.select({ id: schema.dialogueLines.id, category: schema.dialogueLines.category }).from(schema.dialogueLines).where(inArray(schema.dialogueLines.category, cats));
+  const queries = [];
+  let count = 0;
+  for (const category of cats) {
+    const rows = (payload[category] || []).map((r, i) => ({ id: typeof r.id === 'number' ? r.id : null, text: String(r.text ?? '').trim().slice(0, 200), active: !!r.active, sort: i })).filter(r => r.text);
+    const mine = new Set(existing.filter(e => e.category === category).map(e => e.id));
+    const keep = new Set(rows.filter(r => r.id != null && mine.has(r.id)).map(r => r.id as number));
+    const gone = [...mine].filter(id => !keep.has(id));
+    if (gone.length) queries.push(d.delete(schema.dialogueLines).where(inArray(schema.dialogueLines.id, gone)));
+    for (const { id, ...r } of rows) {
+      queries.push(id != null && mine.has(id)
+        ? d.update(schema.dialogueLines).set({ ...r, updatedAt: now }).where(eq(schema.dialogueLines.id, id))
+        : d.insert(schema.dialogueLines).values({ category, ...r }));
+    }
+    count += rows.length;
+  }
+  return { queries, count };
 }
-
-export async function addLine(f: FormData) {
+// one dialogue page's lines, all at once
+export async function saveLines(f: FormData) {
   await requireAdmin();
-  const category = str(f, 'category'), text = str(f, 'text');
-  checkCategory(category);
-  if (!text) doneLines(category, '台詞不能空白');
-  const d = db();
-  const count = (await d.select({ id: schema.dialogueLines.id }).from(schema.dialogueLines).where(eq(schema.dialogueLines.category, category))).length;
-  await d.insert(schema.dialogueLines).values({ category, text, sort: count });
-  doneLines(category, '已新增台詞');
-}
-
-export async function updateLine(f: FormData) {
-  await requireAdmin();
-  const id = Number(f.get('id')), category = str(f, 'category'), text = str(f, 'text');
-  checkCategory(category);
-  if (!text) doneLines(category, '台詞不能空白');
-  await db().update(schema.dialogueLines).set({ text, active: bool(f, 'active'), updatedAt: new Date() }).where(eq(schema.dialogueLines.id, id));
-  doneLines(category, '已儲存');
-}
-
-export async function deleteLine(f: FormData) {
-  await requireAdmin();
-  const category = str(f, 'category');
-  checkCategory(category);
-  await db().delete(schema.dialogueLines).where(eq(schema.dialogueLines.id, Number(f.get('id'))));
-  doneLines(category, '已刪除');
+  const back = LINE_GROUPS.map(g => `/admin/lines/${g.slug}`).find(p => p === str(f, 'back')) ?? '/admin/lines';
+  const payload = parseLines(f);
+  if (!payload) done(back, '資料格式錯誤，請重新整理再試一次');
+  const { queries, count } = await lineQueries(payload!);
+  if (queries.length) await db().batch(queries as [typeof queries[number], ...typeof queries]);
+  done(back, `台詞已儲存，共 ${count} 句`);
 }
 
 // ---------------------------------------------------------------- regulars
@@ -157,50 +160,36 @@ export async function deleteRegular(f: FormData) {
 }
 
 // ---------------------------------------------------------------- first-timers' random values
-function checkPool(pool: string) {
-  if (!(POOL_KEYS as string[]).includes(pool)) throw new Error(`unknown pool ${pool}`);
-}
-function donePool(pool: string, msg: string) {
-  revalidatePath('/admin/random'); revalidatePath('/');
-  redirect(`/admin/random?msg=${encodeURIComponent(msg)}#${pool}`);
-}
-
-export async function addValue(f: FormData) {
+// every pool at once: { pool: [{ id, value, active }, …] }; values left out are deleted
+export async function saveRandomValues(f: FormData) {
   await requireAdmin();
-  const pool = str(f, 'pool'), value = str(f, 'value');
-  checkPool(pool);
-  if (!value) donePool(pool, '內容不能空白');
-  const d = db();
-  const count = (await d.select({ id: schema.randomValues.id }).from(schema.randomValues).where(eq(schema.randomValues.pool, pool))).length;
-  try {
-    await d.insert(schema.randomValues).values({ pool, value, sort: count });
-  } catch (e) {
-    if (isUniqueViolation(e)) donePool(pool, `「${value}」已經在清單裡`);
-    throw e;
+  let payload: Record<string, { id: number | null; value: string; active: boolean }[]>;
+  try { payload = JSON.parse(String(f.get('values') ?? '{}')); } catch { done('/admin/random', '資料格式錯誤，請重新整理再試一次'); }
+  const d = db(), now = new Date();
+  const pools = Object.keys(payload!).filter(k => (POOL_KEYS as string[]).includes(k));
+  const existing = pools.length ? await d.select({ id: schema.randomValues.id, pool: schema.randomValues.pool }).from(schema.randomValues).where(inArray(schema.randomValues.pool, pools)) : [];
+  const renames = [], writes = [], deletes = [];
+  let count = 0;
+  for (const pool of pools) {
+    const rows = payload![pool].map((r, i) => ({ id: typeof r.id === 'number' ? r.id : null, value: String(r.value ?? '').trim().slice(0, 20), active: !!r.active, sort: i })).filter(r => r.value);
+    const vals = rows.map(r => r.value), dup = vals.find((v, i) => vals.indexOf(v) !== i);
+    if (dup) done('/admin/random', `「${dup}」重複了，沒有儲存`);
+    const mine = new Set(existing.filter(e => e.pool === pool).map(e => e.id));
+    const keep = new Set(rows.filter(r => r.id != null && mine.has(r.id)).map(r => r.id as number));
+    const gone = [...mine].filter(id => !keep.has(id));
+    if (gone.length) deletes.push(d.delete(schema.randomValues).where(inArray(schema.randomValues.id, gone)));
+    for (const { id, ...r } of rows) {
+      if (id != null && mine.has(id)) {
+        // (pool, value) is unique: park kept values on a placeholder first, so swaps and renames can't collide mid-save
+        renames.push(d.update(schema.randomValues).set({ value: `~saving~${id}` }).where(eq(schema.randomValues.id, id)));
+        writes.push(d.update(schema.randomValues).set({ ...r, updatedAt: now }).where(eq(schema.randomValues.id, id)));
+      } else writes.push(d.insert(schema.randomValues).values({ pool, ...r }));
+    }
+    count += rows.length;
   }
-  donePool(pool, `已新增「${value}」`);
-}
-
-export async function updateValue(f: FormData) {
-  await requireAdmin();
-  const id = Number(f.get('id')), pool = str(f, 'pool'), value = str(f, 'value');
-  checkPool(pool);
-  if (!value) donePool(pool, '內容不能空白');
-  try {
-    await db().update(schema.randomValues).set({ value, active: bool(f, 'active'), updatedAt: new Date() }).where(eq(schema.randomValues.id, id));
-  } catch (e) {
-    if (isUniqueViolation(e)) donePool(pool, `「${value}」已經在清單裡`);
-    throw e;
-  }
-  donePool(pool, `已儲存「${value}」`);
-}
-
-export async function deleteValue(f: FormData) {
-  await requireAdmin();
-  const pool = str(f, 'pool');
-  checkPool(pool);
-  await db().delete(schema.randomValues).where(eq(schema.randomValues.id, Number(f.get('id'))));
-  donePool(pool, '已刪除');
+  const queries = [...deletes, ...renames, ...writes];
+  if (queries.length) await d.batch(queries as [typeof queries[number], ...typeof queries]);
+  done('/admin/random', `新客隨機值已儲存，共 ${count} 個`);
 }
 
 // ---------------------------------------------------------------- the owner
@@ -211,6 +200,12 @@ export async function updateOwner(f: FormData) {
   const d = db();
   const [prev] = await d.select().from(schema.settings).where(eq(schema.settings.key, 'owner'));
   const value = { name, job: str(f, 'job'), look: lookFrom(f, (prev?.value ?? DEFAULT_OWNER).look) };
-  await d.insert(schema.settings).values({ key: 'owner', value }).onConflictDoUpdate({ target: schema.settings.key, set: { value, updatedAt: new Date() } });
-  done('/admin/owner', `已儲存老闆「${name}」`);
+  // the owner's dialogue on the same page is saved with it, in one batch
+  const lines = parseLines(f);
+  const { queries } = lines ? await lineQueries(Object.fromEntries(Object.entries(lines).filter(([k]) => k.startsWith('owner.')))) : { queries: [] };
+  await d.batch([
+    d.insert(schema.settings).values({ key: 'owner', value }).onConflictDoUpdate({ target: schema.settings.key, set: { value, updatedAt: new Date() } }),
+    ...queries,
+  ]);
+  done('/admin/owner', `已儲存老闆「${name}」和老闆的台詞`);
 }
