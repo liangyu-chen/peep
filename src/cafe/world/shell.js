@@ -59,7 +59,7 @@ export function buildShell() {
   floorPlane(6.2, 12.85, 0, -1.925, new THREE.MeshStandardMaterial({ map: floorTex, roughness: 0.45 }));
   // toilet floor: plain concrete painted orange, no tiles or seams
   const orangeFloor = canvasTex(256, 256, (g, w, h) => concreteWall(g, w, h, '#d8692a'));
-  floorPlane(3.9, 1.35, 1.15, -8.675, new THREE.MeshStandardMaterial({ map: orangeFloor, roughness: 0.55 }), 0.012);
+  floorPlane(3.9, 2.0, 1.15, -8.35, new THREE.MeshStandardMaterial({ map: orangeFloor, roughness: 0.55 }), 0.012);
   floorPlane(6.2, 4.0, 0, 6, new THREE.MeshStandardMaterial({ map: floorTex, roughness: 0.6 }), 0.01);   // the arcade is the same grey concrete
   floorPlane(40, 2, 0, 9, mat(0x7a7570, { roughness: 1 }), -0.01);
   floorPlane(40, 12, 0, 16, mat(0x2b2b30, { roughness: 1 }), -0.02);
@@ -94,7 +94,7 @@ export function buildShell() {
   wall(-0.8, -6.4, -0.8, -5.5, WH, blueM);
   box(0.16, WH - 2.05, 1.0, blueM, -0.8, 2.05 + (WH - 2.05) / 2, -8.7);   // wall over the toilet door, no gap above it
   box(0.16, WH - 2.1, 0.8, blueM, -0.8, 2.1 + (WH - 2.1) / 2, -6.8);       // and over the storage doorway
-  wall(-0.8, -8.0, 3.1, -8.0, WH, greyM);                  // toilet | storage
+  wall(-0.8, -7.35, 3.1, -7.35, WH, greyM);                // toilet | storage (a small storeroom, a roomier toilet)
   S.toiletDoor = box(0.05, 2.05, 1.02, mat(0xd9d2c6, { roughness: 0.6 }), -0.86, 1.025, -8.7);   // sliding toilet door (the storeroom has no door)
   // shop front: cement grey like the rest of the arcade, a plain door, and the melting-face peep window
   wall(-3.1, 4, -2.3, 4, WH, greyM);

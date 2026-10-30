@@ -47,14 +47,14 @@ function toilet() {
   box(0.42, 0.15, 0.32, porcelain, 0.1, 0.85, -9.1);
   box(0.36, 0.45, 0.03, mat(0xbfe6ff, { roughness: 0.05, metalness: 0.6 }), 0.1, 1.45, -9.26);
   // posters taped up in the toilet
-  [[0.9, 1.7, -9.26, 0, 'eye', 0.36, 0.27, '#ff4f7b'], [2.55, 1.55, -9.26, 0, 'wave', 0.4, 0.3, '#f4efe3'], [1.4, 1.75, -8.09, Math.PI, 'toys', 0.38, 0.38, '#ffd23f'],
-    [2.5, 1.6, -8.09, Math.PI, 'hoop', 0.3, 0.3, '#c0282d'], [-0.71, 1.7, -9.27, Math.PI / 2, 'hoop', 0.12, 0.12, '#7ec8ff']]
+  [[0.9, 1.7, -9.26, 0, 'eye', 0.36, 0.27, '#ff4f7b'], [2.55, 1.55, -9.26, 0, 'wave', 0.4, 0.3, '#f4efe3'], [1.4, 1.75, -7.44, Math.PI, 'toys', 0.38, 0.38, '#ffd23f'],
+    [2.5, 1.6, -7.44, Math.PI, 'hoop', 0.3, 0.3, '#c0282d'], [-0.71, 1.7, -9.27, Math.PI / 2, 'hoop', 0.12, 0.12, '#7ec8ff']]
     .forEach(([x, y, z, ry, key, w, h, bg]) => plane(w, h, pixelArt(ART[key], PAL, bg), x, y, z, ry));
 }
 
 function storage() {
   // steel shelving full of boxes, in the storeroom and along the back corridor
-  [[1.8, -7.75], [1.25, -5.78]].forEach(([x, z]) => {
+  [[1.4, -7.05], [1.25, -5.78]].forEach(([x, z]) => {
     const s = new THREE.Group(); s.position.set(x, 0, z); ctx.scene.add(s);
     [0.3, 0.9, 1.5, 2.1].forEach(y => box(1.8, 0.04, 0.4, steel, 0, y, 0, s));
     [-0.88, 0.88].forEach(xx => box(0.04, 2.2, 0.4, steel, xx, 1.1, 0, s));
