@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation';
 import { eq } from 'drizzle-orm';
 import { getDb, schema } from '@/src/lib/db';
 import { checkPassword, createSession, destroySession, requireAdmin } from '@/src/lib/auth';
-import { LINE_KEYS, DEFAULT_LINES } from '@/src/content/catalog';
+import { LINE_KEYS, DEFAULT_LINES, POOL_KEYS, TEAM_NAMES, HAIR_STYLES, type Look } from '@/src/content/catalog';
 
 // ---------------------------------------------------------------- login
 export async function login(formData: FormData) {
@@ -122,39 +122,113 @@ export async function importDefaults(f: FormData) {
   doneLines(category, '已匯入預設台詞，可以逐句修改');
 }
 
-// ---------------------------------------------------------------- customer names (first-timers)
-const gender = (f: FormData) => { const g = str(f, 'gender'); return g === 'f' || g === 'm' ? g : 'any'; };
-
-export async function addName(f: FormData) {
-  await requireAdmin();
-  const name = str(f, 'name');
-  if (!name) done('/admin/names', '名字不能空白');
-  try {
-    await db().insert(schema.customerNames).values({ name, gender: gender(f), sort: int(f, 'sort') ?? 0 });
-  } catch (e) {
-    if (isUniqueViolation(e)) done('/admin/names', `「${name}」已經在名單上`);
-    throw e;
-  }
-  done('/admin/names', `已新增「${name}」`);
+// ---------------------------------------------------------------- regulars
+const hex = (f: FormData, k: string, fallback: number) => { const v = str(f, k); return /^#[0-9a-f]{6}$/i.test(v) ? parseInt(v.slice(1), 16) : fallback; };
+// the look fields the form edits; anything else in the stored look (cap colour, long sleeves…) is kept
+function lookFrom(f: FormData, prev?: Look): Look {
+  const base: Look = prev ?? { skin: 0xe0ac80, hair: 0x111111, hairStyle: 'short', shirt: 0x7fae8b, pants: 0x2b2b2b };
+  const hairStyle = str(f, 'hairStyle');
+  const number = str(f, 'number').slice(0, 2);
+  const look: Look = {
+    ...base,
+    skin: Number(str(f, 'skin')) || base.skin,
+    hair: hex(f, 'hair', base.hair),
+    hairStyle: HAIR_STYLES.some(h => h.value === hairStyle) ? hairStyle : base.hairStyle,
+    shirt: hex(f, 'shirt', base.shirt),
+    pants: hex(f, 'pants', base.pants),
+    glasses: bool(f, 'glasses'),
+  };
+  if (number) look.number = number; else delete look.number;
+  return look;
+}
+function regularFields(f: FormData) {
+  const team = str(f, 'team');
+  return {
+    name: str(f, 'name'), job: str(f, 'job'), drink: str(f, 'drink'), quirk: str(f, 'quirk'),
+    team: TEAM_NAMES.includes(team) ? team : TEAM_NAMES[0],
+    visits: int(f, 'visits') ?? 1, sort: int(f, 'sort') ?? 0,
+  };
 }
 
-export async function updateName(f: FormData) {
+export async function addRegular(f: FormData) {
   await requireAdmin();
-  const id = Number(f.get('id')), name = str(f, 'name');
-  if (!name) done('/admin/names', '名字不能空白');
+  const fields = regularFields(f);
+  if (!fields.name) done('/admin/regulars', '名字不能空白');
   try {
-    await db().update(schema.customerNames)
-      .set({ name, gender: gender(f), active: bool(f, 'active'), sort: int(f, 'sort') ?? 0, updatedAt: new Date() })
-      .where(eq(schema.customerNames.id, id));
+    await db().insert(schema.regulars).values({ ...fields, look: lookFrom(f) });
   } catch (e) {
-    if (isUniqueViolation(e)) done('/admin/names', `「${name}」已經在名單上`);
+    if (isUniqueViolation(e)) done('/admin/regulars', `「${fields.name}」已經是熟客了`);
     throw e;
   }
-  done('/admin/names', `已儲存「${name}」`);
+  done('/admin/regulars', `已新增熟客「${fields.name}」`);
 }
 
-export async function deleteName(f: FormData) {
+export async function updateRegular(f: FormData) {
   await requireAdmin();
-  await db().delete(schema.customerNames).where(eq(schema.customerNames.id, Number(f.get('id'))));
-  done('/admin/names', '已刪除');
+  const id = Number(f.get('id')), fields = regularFields(f);
+  if (!fields.name) done('/admin/regulars', '名字不能空白');
+  const d = db();
+  const [prev] = await d.select({ look: schema.regulars.look }).from(schema.regulars).where(eq(schema.regulars.id, id));
+  try {
+    await d.update(schema.regulars)
+      .set({ ...fields, look: lookFrom(f, prev?.look), active: bool(f, 'active'), updatedAt: new Date() })
+      .where(eq(schema.regulars.id, id));
+  } catch (e) {
+    if (isUniqueViolation(e)) done('/admin/regulars', `「${fields.name}」已經是熟客了`);
+    throw e;
+  }
+  done('/admin/regulars', `已儲存「${fields.name}」`);
+}
+
+export async function deleteRegular(f: FormData) {
+  await requireAdmin();
+  await db().delete(schema.regulars).where(eq(schema.regulars.id, Number(f.get('id'))));
+  done('/admin/regulars', '已刪除');
+}
+
+// ---------------------------------------------------------------- first-timers' random values
+function checkPool(pool: string) {
+  if (!(POOL_KEYS as string[]).includes(pool)) throw new Error(`unknown pool ${pool}`);
+}
+function donePool(pool: string, msg: string) {
+  revalidatePath('/admin/random'); revalidatePath('/');
+  redirect(`/admin/random?msg=${encodeURIComponent(msg)}#${pool}`);
+}
+
+export async function addValue(f: FormData) {
+  await requireAdmin();
+  const pool = str(f, 'pool'), value = str(f, 'value');
+  checkPool(pool);
+  if (!value) donePool(pool, '內容不能空白');
+  const d = db();
+  const count = (await d.select({ id: schema.randomValues.id }).from(schema.randomValues).where(eq(schema.randomValues.pool, pool))).length;
+  try {
+    await d.insert(schema.randomValues).values({ pool, value, sort: count });
+  } catch (e) {
+    if (isUniqueViolation(e)) donePool(pool, `「${value}」已經在清單裡`);
+    throw e;
+  }
+  donePool(pool, `已新增「${value}」`);
+}
+
+export async function updateValue(f: FormData) {
+  await requireAdmin();
+  const id = Number(f.get('id')), pool = str(f, 'pool'), value = str(f, 'value');
+  checkPool(pool);
+  if (!value) donePool(pool, '內容不能空白');
+  try {
+    await db().update(schema.randomValues).set({ value, active: bool(f, 'active'), updatedAt: new Date() }).where(eq(schema.randomValues.id, id));
+  } catch (e) {
+    if (isUniqueViolation(e)) donePool(pool, `「${value}」已經在清單裡`);
+    throw e;
+  }
+  donePool(pool, `已儲存「${value}」`);
+}
+
+export async function deleteValue(f: FormData) {
+  await requireAdmin();
+  const pool = str(f, 'pool');
+  checkPool(pool);
+  await db().delete(schema.randomValues).where(eq(schema.randomValues.id, Number(f.get('id'))));
+  donePool(pool, '已刪除');
 }

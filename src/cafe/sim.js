@@ -228,7 +228,9 @@ function seedCustomer(prof, s) {
   })();
 }
 export function seedOpeningScene() {
-  const reg = n => S.regulars.find(r => r.name === n);
+  // the usual crowd if they're still on the list, otherwise whichever regulars are
+  const used = new Set();
+  const reg = n => { const r = S.regulars.find(x => x.name === n && !used.has(x)) || S.regulars.find(x => !used.has(x)); if (r) used.add(r); return r; };
   const { gameSeats, tableSeats } = S.seats;
   seedCustomer(reg('阿凱'), gameSeats[0]);
   seedCustomer(reg('美美'), gameSeats[1]);

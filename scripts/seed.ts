@@ -1,13 +1,13 @@
-// Fills Neon with the built-in menu, dialogue and customer names.
+// Fills Neon with the built-in menu, dialogue, regulars and first-timers' random values.
 //   npm run db:seed    only fills tables that are empty
-//   npm run db:reset   wipes all three tables and fills them again
+//   npm run db:reset   wipes all four tables and fills them again
 import { config } from 'dotenv';
 config({ path: '.env.local' });
 
 import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
 import * as schema from '../src/db/schema';
-import { DEFAULT_LINES, DEFAULT_MENU, DEFAULT_NAMES, LINE_KEYS } from '../src/content/catalog';
+import { DEFAULT_LINES, DEFAULT_MENU, DEFAULT_POOLS, DEFAULT_REGULARS, LINE_KEYS, POOL_KEYS } from '../src/content/catalog';
 
 async function main() {
   const url = process.env.DATABASE_URL;
@@ -18,8 +18,9 @@ async function main() {
   if (reset) {
     await db.delete(schema.menuItems);
     await db.delete(schema.dialogueLines);
-    await db.delete(schema.customerNames);
-    console.log('cleared menu_items, dialogue_lines and customer_names');
+    await db.delete(schema.regulars);
+    await db.delete(schema.randomValues);
+    console.log('cleared menu_items, dialogue_lines, regulars and random_values');
   }
 
   if ((await db.select({ id: schema.menuItems.id }).from(schema.menuItems).limit(1)).length === 0) {
@@ -33,10 +34,16 @@ async function main() {
     console.log(`dialogue_lines: ${rows.length} rows`);
   } else console.log('dialogue_lines already has rows, left alone');
 
-  if ((await db.select({ id: schema.customerNames.id }).from(schema.customerNames).limit(1)).length === 0) {
-    await db.insert(schema.customerNames).values(DEFAULT_NAMES.map((n, i) => ({ ...n, sort: i })));
-    console.log(`customer_names: ${DEFAULT_NAMES.length} rows`);
-  } else console.log('customer_names already has rows, left alone');
+  if ((await db.select({ id: schema.regulars.id }).from(schema.regulars).limit(1)).length === 0) {
+    await db.insert(schema.regulars).values(DEFAULT_REGULARS.map((r, i) => ({ ...r, sort: i })));
+    console.log(`regulars: ${DEFAULT_REGULARS.length} rows`);
+  } else console.log('regulars already has rows, left alone');
+
+  if ((await db.select({ id: schema.randomValues.id }).from(schema.randomValues).limit(1)).length === 0) {
+    const rows = POOL_KEYS.flatMap(pool => DEFAULT_POOLS[pool].map((value, i) => ({ pool, value, sort: i })));
+    await db.insert(schema.randomValues).values(rows);
+    console.log(`random_values: ${rows.length} rows`);
+  } else console.log('random_values already has rows, left alone');
 }
 
 main().catch(err => { console.error(err); process.exit(1); });

@@ -7,14 +7,22 @@ export type MenuItem = {
   iced: boolean;          // iced drinks come in a tall glass, hot ones in a Taiwanese tea cup
 };
 
-// a first-time customer's name; gender decides their hair and the look of their clothes ('any' picks at random)
-export type Gender = 'f' | 'm' | 'any';
-export type CustomerName = { name: string; gender: Gender };
+// how a regular looks; colours are 0xRRGGBB numbers. Anything not listed (cap colour, long sleeves…) is kept as it is.
+export type Look = {
+  skin: number; hair: number; hairStyle: string; shirt: number; pants: number;
+  glasses?: boolean; number?: string; cap?: number; longSleeve?: boolean; [k: string]: unknown;
+};
+export type Regular = { name: string; job: string; drink: string; team: string; visits: number; quirk: string; look: Look };
+
+// the values first-time customers are made from: name = surname + title (the title decides their look), plus a job
+export type RandomPools = { surname: string[]; titleF: string[]; titleM: string[]; job: string[] };
+export type PoolKey = keyof RandomPools;
 
 export type CafeContent = {
   menu: MenuItem[];
   lines: Record<string, string[]>;
-  names: CustomerName[];
+  regulars: Regular[];
+  pools: RandomPools;
 };
 
 export type LineCategory = { key: string; label: string; vars?: string[] };
@@ -132,16 +140,45 @@ export const DEFAULT_LINES: Record<string, string[]> = {
   'game.tired': ['打累了，坐一下'],
 };
 
-export const GENDERS: { value: Gender; label: string }[] = [
-  { value: 'f', label: '女' },
-  { value: 'm', label: '男' },
-  { value: 'any', label: '不限' },
+// ---------------------------------------------------------------- regulars
+export const TEAM_NAMES = ['湖人', '勇士', '塞爾提克', '公牛', '熱火', '獨行俠', '金塊', '公鹿', '太陽', '尼克'];
+export const HAIR_STYLES = [
+  { value: 'short', label: '短髮' }, { value: 'long', label: '長髮' }, { value: 'bun', label: '包頭' },
+  { value: 'cap', label: '棒球帽' }, { value: 'bucket', label: '漁夫帽' }, { value: 'bald', label: '光頭' },
+];
+export const SKIN_TONES = [
+  { value: 0xf6d7bd, label: '白皙' }, { value: 0xf1c9a5, label: '偏白' }, { value: 0xe0ac80, label: '自然' },
+  { value: 0xd9a27c, label: '小麥' }, { value: 0xc68a5e, label: '黝黑' }, { value: 0x8d5a3b, label: '深色' },
+];
+const look = (skin: number, hair: number, hairStyle: string, shirt: number, pants: number, extra: Partial<Look> = {}): Look => ({ skin, hair, hairStyle, shirt, pants, ...extra });
+export const DEFAULT_REGULARS: Regular[] = [
+  { name: '阿凱', job: '軟體工程師', drink: '奧利多美式', team: '勇士', visits: 214, look: look(0xe0ac80, 0x111111, 'short', 0x1D428A, 0x2b2b2b, { glasses: true, number: '30' }), quirk: '每天下班一定來打一場' },
+  { name: '美美', job: '平面設計師', drink: '夏一布', team: '湖人', visits: 167, look: look(0xf6d7bd, 0x3b2618, 'long', 0xf1d27a, 0x3a3f5c), quirk: '自稱店內 2K 女王' },
+  { name: '大頭', job: '大學生', drink: '花生拿鐵', team: '公牛', visits: 98, look: look(0xf1c9a5, 0x1b1410, 'cap', 0xCE1141, 0x222222, { cap: 0x111111, number: '23' }), quirk: '翹課來打電動' },
+  { name: '阿嘉', job: '外送員', drink: '林美如', team: '塞爾提克', visits: 131, look: look(0xc68a5e, 0x111111, 'short', 0x2e8b57, 0x334455), quirk: '送單空檔會在騎樓坐一下' },
+  { name: '小胖', job: '研究生', drink: '奶昔', team: '熱火', visits: 76, look: look(0xf1c9a5, 0x3b2618, 'short', 0x98002E, 0x555555, { glasses: true }), quirk: '論文寫不出來就來這' },
+  { name: 'Jason', job: '隔壁五金行少東', drink: '別害羞', team: '獨行俠', visits: 120, look: look(0xe0ac80, 0x6b4423, 'short', 0xf2f2f2, 0x1f2a44, { longSleeve: true }), quirk: '顧店空檔溜過來' },
+  { name: '阿翔', job: '健身教練', drink: '冰維也納', team: '金塊', visits: 88, look: look(0x8d5a3b, 0x111111, 'bald', 0x0E2240, 0x111111), quirk: '輸了會去騎樓做伏地挺身' },
+  { name: '小雨', job: '插畫家', drink: '拿鐵', team: '公鹿', visits: 143, look: look(0xf6d7bd, 0x111111, 'bun', 0x7fae8b, 0xd9c7a4), quirk: '最愛台式茶杯裡的拉花' },
+  { name: '老陳', job: '退休老師', drink: '拿鐵', team: '塞爾提克', visits: 302, look: look(0xe0ac80, 0x8a8a8a, 'short', 0x8b6b4a, 0x4a4a4a, { glasses: true, longSleeve: true }), quirk: '從萬華店就跟過來的元老' },
+  { name: '阿德', job: '廚師', drink: '一起搖擺', team: '太陽', visits: 65, look: look(0xd9a27c, 0x1b1410, 'cap', 0xE56020, 0x2b2b2b, { cap: 0x1D1160 }), quirk: '休假日整天泡在這' },
+  { name: '欣欣', job: '護理師', drink: '花生拿鐵', team: '尼克', visits: 91, look: look(0xf6d7bd, 0x6b4423, 'long', 0x006BB6, 0x2b2b2b), quirk: '大夜班下班來放鬆' },
+  { name: '球哥', job: '前校隊後衛', drink: '林美如', team: '公牛', visits: 188, look: look(0xc68a5e, 0x111111, 'short', 0x111111, 0xCE1141, { number: '1' }), quirk: '嘴上說不玩，坐下就不走' },
 ];
 
-const SURNAMES = ['陳', '林', '黃', '張', '李', '王', '吳', '劉', '蔡', '楊'];
-export const DEFAULT_NAMES: CustomerName[] = SURNAMES.flatMap(s => [
-  { name: `${s}小姐`, gender: 'f' as const },
-  { name: `${s}先生`, gender: 'm' as const },
-]);
+// ---------------------------------------------------------------- first-timers' random values
+export const POOLS: { key: PoolKey; label: string; hint: string }[] = [
+  { key: 'surname', label: '姓氏', hint: '名字 = 姓氏 + 稱呼，例如「陳」+「小姐」' },
+  { key: 'titleF', label: '女性稱呼', hint: '用這些稱呼的客人是女生的打扮' },
+  { key: 'titleM', label: '男性稱呼', hint: '用這些稱呼的客人是男生的打扮' },
+  { key: 'job', label: '身分', hint: '新客資料卡上的「職業」' },
+];
+export const POOL_KEYS = POOLS.map(p => p.key);
+export const DEFAULT_POOLS: RandomPools = {
+  surname: ['陳', '林', '黃', '張', '李', '王', '吳', '劉', '蔡', '楊'],
+  titleF: ['小姐'],
+  titleM: ['先生'],
+  job: ['路過的上班族', '觀光客', '附近的學生', '看 IG 找來的', '朋友推薦來的', '來買五金順便的'],
+};
 
-export const DEFAULT_CONTENT: CafeContent = { menu: DEFAULT_MENU, lines: DEFAULT_LINES, names: DEFAULT_NAMES };
+export const DEFAULT_CONTENT: CafeContent = { menu: DEFAULT_MENU, lines: DEFAULT_LINES, regulars: DEFAULT_REGULARS, pools: DEFAULT_POOLS };
