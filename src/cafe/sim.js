@@ -295,28 +295,63 @@ export function tickShop(sdt) {
   }
 }
 
-// ---------------------------------------------------------------- cigarette smoke: grey cubes drifting up from lit cigarettes
+// ---------------------------------------------------------------- cigarette smoke
+// soft puffs: a thin stream curling up from every lit tip, a thick cloud blown out after each drag, and ash flicked off
 const smoke = [];
-const tip = new THREE.Vector3();
+const tmpV = new THREE.Vector3();
+let puffTex = null;
+const puffTexture = () => puffTex || (puffTex = (() => {
+  const c = document.createElement('canvas'); c.width = c.height = 64;
+  const g = c.getContext('2d'), grd = g.createRadialGradient(32, 32, 2, 32, 32, 31);
+  grd.addColorStop(0, 'rgba(255,255,255,1)'); grd.addColorStop(0.45, 'rgba(255,255,255,.55)'); grd.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = grd; g.fillRect(0, 0, 64, 64);
+  return new THREE.CanvasTexture(c);
+})());
 export function createSmoke() {
   smoke.length = 0;
-  const geo = new THREE.BoxGeometry(0.03, 0.03, 0.03);
-  for (let i = 0; i < 40; i++) { const m = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: 0xcfd2d6, transparent: true, opacity: 0.4, depthWrite: false })); m.visible = false; ctx.scene.add(m); smoke.push({ m, life: 0, vx: 0, vz: 0 }); }
+  for (let i = 0; i < 160; i++) {
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: puffTexture(), color: 0xe4e7ea, transparent: true, opacity: 0, depthWrite: false }));
+    sp.visible = false; ctx.scene.add(sp);
+    smoke.push({ sp, life: 0, max: 1, v: new THREE.Vector3(), s0: 0.04, s1: 0.2, op: 0.5, fall: false });
+  }
+}
+function emit(pos, v, life, s0, s1, op, color, fall = false) {
+  const p = smoke.find(q => q.life <= 0); if (!p) return;
+  Object.assign(p, { life, max: life, s0, s1, op, fall });
+  p.v.copy(v); p.sp.position.copy(pos); p.sp.material.color.setHex(color); p.sp.visible = true;
 }
 export function updateSmoke(dt) {
-  const lit = S.people.filter(p => p.cig);
-  smoke.forEach(s => {
-    if (s.life > 0) {
-      s.life -= dt; s.m.position.y += dt * 0.25; s.m.position.x += s.vx * dt; s.m.position.z += s.vz * dt;
-      s.m.scale.setScalar(1 + (2.2 - s.life) * 0.9); s.m.material.opacity = Math.max(0, s.life / 2.2) * 0.4;
-      if (s.life <= 0) s.m.visible = false;
-    } else if (lit.length && Math.random() < dt * 3 * lit.length) {
-      const p = pick(lit);
-      p.cig.userData.ember.getWorldPosition(tip);
-      s.life = 2.2; s.m.visible = true; s.m.position.copy(tip); s.m.scale.setScalar(1);
-      s.vx = rand(-0.05, 0.05); s.vz = rand(-0.05, 0.05);
+  for (const p of S.people) {
+    if (!p.cig) continue;
+    const fwd = tmpV.set(Math.sin(p.heading), 0, Math.cos(p.heading));
+    // the stream off the tip
+    if (Math.random() < dt * 7) {
+      const at = p.cig.userData.ember.getWorldPosition(new THREE.Vector3());
+      emit(at, new THREE.Vector3(rand(-0.03, 0.03), rand(0.18, 0.26), rand(-0.03, 0.03) + 0.02), rand(2.4, 3.2), 0.03, 0.22, 0.42, 0xdfe2e6);
     }
-  });
+    // blown out after a drag: a cloud pushed forward and up from the mouth
+    if (p.exhaleT > 0 && Math.random() < dt * 26) {
+      const at = p.mouth.getWorldPosition(new THREE.Vector3()).addScaledVector(fwd, 0.04);
+      const v = fwd.clone().multiplyScalar(rand(0.25, 0.45)).add(new THREE.Vector3(rand(-0.05, 0.05), rand(0.05, 0.14), rand(-0.05, 0.05)));
+      emit(at, v, rand(1.6, 2.4), 0.06, rand(0.32, 0.45), 0.62, 0xf2f3f5);
+    }
+    // ash flicked off, dropping
+    if (p.ashT > 0 && Math.random() < dt * 30) {
+      const at = p.cig.userData.ember.getWorldPosition(new THREE.Vector3());
+      emit(at, new THREE.Vector3(rand(-0.04, 0.04), -0.1, rand(-0.04, 0.04)), 0.5, 0.012, 0.012, 0.9, 0x6a6a68, true);
+    }
+  }
+  for (const p of smoke) {
+    if (p.life <= 0) continue;
+    p.life -= dt;
+    if (p.life <= 0) { p.sp.visible = false; continue; }
+    const k = 1 - p.life / p.max;                       // 0 at birth -> 1 when gone
+    if (p.fall) p.v.y -= dt * 1.5;
+    else { p.v.multiplyScalar(1 - dt * 0.9); p.v.y += dt * 0.08; p.v.z += dt * 0.03; }   // slows, keeps rising, drifts toward the street
+    p.sp.position.addScaledVector(p.v, dt);
+    p.sp.scale.setScalar(p.s0 + (p.s1 - p.s0) * Math.sqrt(k));
+    p.sp.material.opacity = p.op * Math.min(1, k * 6) * (1 - k);   // fades in fast, out slowly
+  }
 }
 
 // ---------------------------------------------------------------- steam over the machine (cubes, for the 8-bit feel)

@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { requireAdmin } from '@/src/lib/auth';
 import { getDb } from '@/src/lib/db';
 import { logout } from '../actions';
+import { LINE_GROUPS } from '@/src/content/catalog';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,7 +17,7 @@ export default async function PanelLayout({ children }: { children: React.ReactN
           <Link href="/admin/owner">老闆</Link>
           <Link href="/admin/regulars">熟客</Link>
           <Link href="/admin/random">新客隨機值</Link>
-          <Link href="/admin/lines">台詞</Link>
+          {LINE_GROUPS.map(g => <Link key={g.slug} href={`/admin/lines/${g.slug}`}>{g.group}台詞</Link>)}
           <a href="/" target="_blank" rel="noreferrer">回咖啡廳 ↗</a>
         </nav>
         <form action={logout}><button>登出</button></form>

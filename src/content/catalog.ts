@@ -39,7 +39,7 @@ export type CafeContent = {
 };
 
 export type LineCategory = { key: string; label: string; vars?: string[] };
-export type LineGroup = { group: string; items: LineCategory[] };
+export type LineGroup = { group: string; slug: string; items: LineCategory[] };   // each group is its own page, /admin/lines/<slug>
 
 // placeholders: {owner} the owner's name · {name} the customer · {drink} their drink · {team} an NBA team
 // {fighter} a 快打旋風 character · {opponent} the other player
@@ -60,7 +60,7 @@ export const OWNER_LINES: LineCategory[] = [
 ];
 export const LINE_GROUPS: LineGroup[] = [
   {
-    group: '客人',
+    group: '客人', slug: 'customer',
     items: [
       { key: 'customer.arriveRegular', label: '熟客進門', vars: ['owner'] },
       { key: 'customer.arriveNew', label: '新客進門', vars: ['owner'] },
@@ -78,7 +78,7 @@ export const LINE_GROUPS: LineGroup[] = [
     ],
   },
   {
-    group: '2K',
+    group: '2K', slug: '2k',
     items: [
       { key: 'game.sitDown', label: '坐下準備開打', vars: ['team'] },
       { key: 'game.sitWaiting', label: '等下一場' },
@@ -96,7 +96,7 @@ export const LINE_GROUPS: LineGroup[] = [
     ],
   },
   {
-    group: '快打旋風',
+    group: '快打旋風', slug: 'fight',
     items: [
       { key: 'fight.sitDown', label: '坐下準備開打', vars: ['fighter'] },
       { key: 'fight.challenge', label: '向對手喊話', vars: ['opponent'] },
@@ -111,6 +111,13 @@ export const LINE_GROUPS: LineGroup[] = [
     ],
   },
 ];
+
+// the dialogue page a category is edited on (the owner's are on the owner's page)
+export const linesPageFor = (key: string) => {
+  if (key.startsWith('owner.')) return '/admin/owner';
+  const g = LINE_GROUPS.find(gr => gr.items.some(i => i.key === key));
+  return `/admin/lines/${g ? g.slug : LINE_GROUPS[0].slug}`;
+};
 
 export const LINE_KEYS = [...OWNER_LINES.map(i => i.key), ...LINE_GROUPS.flatMap(g => g.items.map(i => i.key))];
 

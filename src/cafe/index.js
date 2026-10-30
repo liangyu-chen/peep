@@ -77,7 +77,7 @@ export function startCafe(root, content) {
   raf = requestAnimationFrame(frame);
   // development only: step the simulation from the console without rendering, e.g. await __cafe.step(60)
   if (process.env.NODE_ENV !== 'production') window.__cafe = {
-    S, step: async (secs, dt = 0.05) => {
+    S, ctx, step: async (secs, dt = 0.05) => {
       for (let t = 0; t < secs && !S.stopped; t += dt) { simulate(dt, dt); for (let k = 0; k < 12; k++) await null; }
       drawTV(); updateHUD();
     },

@@ -10,18 +10,39 @@ const teaCupM = mat(0xf2f0ea, { roughness: 0.3 });
 const coffeeM = mat(0x5a3220, { roughness: 0.3 });
 const glassM = mat(0xe8f4ff, { roughness: 0.05, transparent: true, opacity: 0.5 });
 
-// a lit cigarette, held between the fingers of the left hand
-const cigM = mat(0xf4f1ea, { roughness: 0.7 }), filterM = mat(0xd9a05a, { roughness: 0.8 });
-const emberM = new THREE.MeshBasicMaterial({ color: 0xff5a1a });
+// a lit cigarette, held between the fingers of the left hand: filter, paper that burns down, grey ash and the ember
+const cigM = mat(0xf4f1ea, { roughness: 0.7 }), filterM = mat(0xd9a05a, { roughness: 0.8 }), ashM = mat(0x9a9894, { roughness: 1 });
+const PAPER = 0.05;
 function makeCigarette() {
   const g = new THREE.Group();
-  const body = cyl(0.0045, 0.0045, 0.05, cigM, 0, 0.012, 0, g, 6);
-  cyl(0.0047, 0.0047, 0.016, filterM, 0, -0.02, 0, g, 6);
-  const ember = new THREE.Mesh(new THREE.SphereGeometry(0.0055, 6, 4), emberM); ember.position.y = 0.038; g.add(ember);
+  cyl(0.0047, 0.0047, 0.016, filterM, 0, -0.012, 0, g, 8);
+  const paper = cyl(0.0045, 0.0045, PAPER, cigM, 0, -0.004 + PAPER / 2, 0, g, 8);
+  const ash = cyl(0.0043, 0.0045, 0.006, ashM, 0, 0, 0, g, 8);
+  const emberM = new THREE.MeshBasicMaterial({ color: 0xff4a12 });
+  const ember = new THREE.Mesh(new THREE.SphereGeometry(0.005, 8, 6), emberM); g.add(ember);
   g.rotation.set(Math.PI / 2, 0, 0.3);
   g.traverse(o => { o.castShadow = false; });
-  body.castShadow = false;
-  g.userData.ember = ember;
+  g.userData = { paper, ash, ember, emberM };
+  burn(g, 1);
+  return g;
+}
+// k: how much is left (1 = fresh); glow: 0 at rest, 1 while someone takes a drag
+function burn(cig, k, glow = 0) {
+  const { paper, ash, ember, emberM } = cig.userData, len = PAPER * k, top = -0.004 + len;
+  paper.scale.y = k; paper.position.y = -0.004 + len / 2;
+  ash.position.y = top + 0.003; ember.position.y = top + 0.006;
+  ember.scale.setScalar(1 + glow * 0.6);
+  emberM.color.setHex(glow > 0.5 ? 0xffb02a : 0xff4a12);
+}
+// the lighter that comes out of the right hand to light up
+const lighterM = mat(0xc0282d, { roughness: 0.4 });
+const flameM = new THREE.MeshBasicMaterial({ color: 0xffb02a, transparent: true, opacity: 0.85 });
+function makeLighter() {
+  const g = new THREE.Group();
+  cyl(0.012, 0.012, 0.045, lighterM, 0, 0, 0, g, 8).scale.z = 0.6;
+  const flame = new THREE.Mesh(new THREE.ConeGeometry(0.006, 0.022, 6), flameM); flame.position.y = 0.035; g.add(flame);
+  g.rotation.x = -0.6;
+  g.traverse(o => { o.castShadow = false; });
   return g;
 }
 
@@ -66,9 +87,33 @@ export class Person {
   pickCup() { if (this.cup) this.hold(this.cup); }
   dropCup() { if (this.cup) { this.cup.parent.remove(this.cup); this.cup = null; } }
   gesture(a, t = 1.4) { this.act = a; this.actT = t; }
-  // smoke for `dur` simulated seconds; puffs now and then, smoke rises from the tip (see updateSmoke in sim.js)
-  lightUp(dur) { if (this.cig) return; this.cig = makeCigarette(); this.handL.add(this.cig); this.cigT = dur; this.puffT = 1.5; }
-  putOut() { if (!this.cig) return; this.cig.parent.remove(this.cig); this.cig = null; this.cigT = 0; }
+  // smoke for `dur` simulated seconds: light it, then hold / take a drag / blow it out / tap the ash, until it's burnt down.
+  // The smoke itself (from the tip, and blown out after a drag) is drawn by updateSmoke in sim.js.
+  lightUp(dur) {
+    if (this.cig) return;
+    this.cig = makeCigarette(); this.handL.add(this.cig);
+    this.lighter = makeLighter(); this.hand.add(this.lighter);
+    this.smk = { phase: 'light', t: 1.8, dur, life: dur };
+  }
+  putOut() {
+    if (this.lighter) { this.lighter.parent.remove(this.lighter); this.lighter = null; }
+    if (!this.cig) return;
+    this.cig.parent.remove(this.cig); this.cig = null; this.smk = null; this.exhaleT = 0;
+  }
+  smoking(dt) {
+    const k = this.smk;
+    k.life -= dt; k.t -= dt;
+    if (k.life <= 0) { this.putOut(); return; }
+    if (k.t <= 0) {
+      if (k.phase === 'light') { this.hand.remove(this.lighter); this.lighter = null; k.phase = 'drag'; k.t = 1.2; }
+      else if (k.phase === 'hold') { if (Math.random() < 0.3) { k.phase = 'tap'; k.t = 0.9; } else { k.phase = 'drag'; k.t = 1.2; } }
+      else if (k.phase === 'drag') { k.phase = 'exhale'; k.t = 1.6; this.exhaleT = 1.4; }
+      else { if (k.phase === 'tap') this.ashT = 0.25; k.phase = 'hold'; k.t = 2.5 + Math.random() * 3.5; }
+    }
+    if (this.exhaleT > 0) this.exhaleT -= dt;
+    if (this.ashT > 0) this.ashT -= dt;
+    burn(this.cig, Math.max(0.12, k.life / k.dur), k.phase === 'drag' || k.phase === 'light' ? Math.min(1, (1.2 - k.t) * 2) : 0);
+  }
   remove() {
     this.gone = true; ctx.scene.remove(this.g); this.dropCup(); this.putOut(); this.tag.remove(); this.bubble.remove();
     S.people.splice(S.people.indexOf(this), 1);
@@ -91,11 +136,7 @@ export class Person {
     if (this.actT > 0) { this.actT -= dt; if (this.actT <= 0) this.act = null; }
     if (this.bubbleT > 0) { this.bubbleT -= dt; if (this.bubbleT <= 0) this.bubble.style.opacity = 0; }
     tickFace(this, this.faceAnim, dt, this.bubbleT > 0);
-    if (this.cig) {
-      this.cigT -= dt; this.puffT -= dt;
-      if (this.puffT <= 0 && !this.act) { this.gesture('puff', 1.3); this.puffT = 3 + Math.random() * 4; }
-      if (this.cigT <= 0) this.putOut();
-    }
+    if (this.smk) this.smoking(dt);
 
     const [L, R] = this.legs, [aL, aR] = this.arms;
     const sitting = this.pose === 'sit' || this.pose === 'game';
@@ -115,8 +156,13 @@ export class Person {
     if (this.act === 'brew') { armLx = armRx = -0.8; elL = elR = -0.8; armLz = 0.3; armRz = -0.3; }
     if (this.act === 'pour') { armLx = -0.7; armRx = -0.9 + Math.sin(this.walkPhase * 5) * 0.15; elL = -0.8; elR = -0.9; armLz = 0.35; armRz = -0.35; }
     if (this.act === 'facepalm') { armRx = -0.9; elR = -2.0; armRz = -0.45; }
-    if (this.cig && this.act !== 'puff' && !moving) { armLx = sitting ? -0.35 : -0.2; elL = -1.5; armLz = 0.2; }   // cigarette held up by the shoulder
-    if (this.act === 'puff') { armLx = -0.45; elL = -2.45; armLz = 0.35; }                                          // a drag
+    let pitch = 0;
+    const ph = !moving && !this.act && this.smk ? this.smk.phase : null;
+    if (ph === 'hold' || ph === 'exhale') { armLx = sitting ? -0.35 : -0.2; elL = -1.5; armLz = 0.2; }   // cigarette held up by the shoulder
+    if (ph === 'exhale') pitch = -0.2;                                                                    // chin up, blowing it out
+    if (ph === 'drag') { armLx = -0.45; elL = -2.45; armLz = 0.35; pitch = -0.06; }                        // to the lips
+    if (ph === 'tap') { armLx = -0.55; elL = -1.05 + Math.sin(this.walkPhase * 28) * 0.18; armLz = 0.28; }   // flicking the ash off
+    if (ph === 'light') { armLx = -0.45; elL = -2.45; armLz = 0.35; armRx = -0.45; elR = -2.35; armRz = -0.5; pitch = 0.08; }   // lighter cupped to it
     if (this.act === 'aim') { armRx = -0.7; elR = -1.4; armRz = -0.15; armLx = -0.5; elL = -1.2; }   // launcher pulled back, ready
     if (this.act === 'shoot') { armRx = -1.35; elR = -0.1; armRz = -0.05; }                          // and ripped forward
     if (this.act === 'carry') { armLx = armRx = -0.9; elL = elR = -0.7; armLz = 0.25; armRz = -0.25; }
@@ -124,7 +170,8 @@ export class Person {
     aL.rotation.set(armLx, 0, armLz); aR.rotation.set(armRx, 0, armRz);
     this.elbows[0].rotation.x = elL; this.elbows[1].rotation.x = elR;
     this.g.position.y = y + bob;
-    this.head.rotation.y = this.pose === 'game' ? 0 : Math.sin(this.walkPhase * 0.31) * 0.2;
+    this.head.rotation.y = this.pose === 'game' || ph ? 0 : Math.sin(this.walkPhase * 0.31) * 0.2;
+    this.head.rotation.x = pitch;
   }
 }
 

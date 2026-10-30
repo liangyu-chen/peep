@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation';
 import { eq } from 'drizzle-orm';
 import { getDb, schema } from '@/src/lib/db';
 import { checkPassword, createSession, destroySession, requireAdmin } from '@/src/lib/auth';
-import { LINE_KEYS, POOL_KEYS, TEAM_NAMES, DEFAULT_OWNER, parseLook, type Look } from '@/src/content/catalog';
+import { LINE_KEYS, POOL_KEYS, TEAM_NAMES, DEFAULT_OWNER, linesPageFor, parseLook, type Look } from '@/src/content/catalog';
 
 // ---------------------------------------------------------------- login
 export async function login(formData: FormData) {
@@ -71,9 +71,9 @@ export async function deleteMenuItem(f: FormData) {
 function checkCategory(category: string) {
   if (!LINE_KEYS.includes(category)) throw new Error(`unknown category ${category}`);
 }
-// the owner's lines live on the owner's page, the rest on the dialogue page
+// back to the page the category is edited on
 function doneLines(category: string, msg: string) {
-  const page = category.startsWith('owner.') ? '/admin/owner' : '/admin/lines';
+  const page = linesPageFor(category);
   revalidatePath(page); revalidatePath('/');
   redirect(`${page}?msg=${encodeURIComponent(msg)}#${category}`);
 }
