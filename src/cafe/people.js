@@ -4,7 +4,6 @@ import { ctx, mat, cyl } from './engine.js';
 import { buildBody, tickFace } from './body.js';
 import { S } from './state.js';
 import { K } from './util.js';
-import { isIced } from './content.js';
 
 const teaCupM = mat(0xf2f0ea, { roughness: 0.3 });
 const coffeeM = mat(0x5a3220, { roughness: 0.3 });
@@ -46,9 +45,10 @@ function makeLighter() {
   return g;
 }
 
-export function makeCup(drink) {
+// iced drinks in a tall glass, hot ones in a Taiwanese tea cup
+export function makeCup(drink, variant) {
   const g = new THREE.Group();
-  if (isIced(drink)) {
+  if (variant === 'ice') {
     cyl(0.055, 0.045, 0.22, glassM, 0, 0.11, 0, g, 12);
     cyl(0.05, 0.042, 0.12, coffeeM, 0, 0.065, 0, g, 12);
     cyl(0.05, 0.05, 0.06, mat(drink === '林美如' ? 0xe6a23c : 0xe8dcc8), 0, 0.15, 0, g, 12);

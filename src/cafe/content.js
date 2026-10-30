@@ -4,8 +4,20 @@ import { pick, fill, randi } from './util.js';
 
 export const menuNames = () => S.content.menu.map(m => m.name);
 export const menuItem = name => S.content.menu.find(m => m.name === name);
-export const isIced = name => menuItem(name)?.iced ?? /冰|林美如|奶昔/.test(name);
-export const priceOf = name => menuItem(name)?.price ?? randi(12, 18) * 10;   // a blank price ($???) still tallies a believable amount
+// 'hot' or 'ice': whichever the menu serves it as; when it's both, iced a bit more often
+export function pickVariant(name) {
+  const m = menuItem(name);
+  if (!m) return 'ice';
+  if (m.hot && m.ice) return Math.random() < 0.6 ? 'ice' : 'hot';
+  return m.ice ? 'ice' : 'hot';
+}
+// what the customer says they're having: 冰拿鐵 / 熱拿鐵 when it comes both ways, just the name otherwise
+export function orderName(name, variant) {
+  const m = menuItem(name);
+  return m && m.hot && m.ice ? (variant === 'ice' ? '冰' : '熱') + name : name;
+}
+// the price in that column; a column that isn't a number (∞, ???) still tallies a believable amount
+export const priceOf = (name, variant) => parseInt(menuItem(name)?.[variant], 10) || randi(12, 18) * 10;
 
 // a regular's usual drink may have been taken off the menu; then they pick something else
 export const drinkFor = wanted => (menuItem(wanted) ? wanted : pick(menuNames()));

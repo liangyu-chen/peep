@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation';
 import { eq } from 'drizzle-orm';
 import { getDb, schema } from '@/src/lib/db';
 import { checkPassword, createSession, destroySession, requireAdmin } from '@/src/lib/auth';
-import { LINE_KEYS, POOL_KEYS, TEAM_NAMES, DEFAULT_OWNER, linesPageFor, parseLook, type Look } from '@/src/content/catalog';
+import { LINE_KEYS, POOL_KEYS, TEAM_NAMES, DEFAULT_OWNER, MENU_SECTIONS, linesPageFor, parseLook, type Look } from '@/src/content/catalog';
 
 // ---------------------------------------------------------------- login
 export async function login(formData: FormData) {
@@ -33,12 +33,14 @@ const done = (path: string, msg: string) => { revalidatePath(path); revalidatePa
 const isUniqueViolation = (e: unknown) => String((e as { cause?: { code?: string } })?.cause?.code ?? (e as { code?: string })?.code) === '23505';
 
 // ---------------------------------------------------------------- menu
+// what's printed in each column, kept as written (a price, ∞, ???); empty = not served that way
+const menuFields = (f: FormData) => ({ en: str(f, 'en'), section: str(f, 'section') || MENU_SECTIONS[0], hot: str(f, 'hot').slice(0, 6), ice: str(f, 'ice').slice(0, 6) });
 export async function addMenuItem(f: FormData) {
   await requireAdmin();
   const name = str(f, 'name');
   if (!name) done('/admin/menu', '品名不能空白');
   try {
-    await db().insert(schema.menuItems).values({ name, price: int(f, 'price'), iced: bool(f, 'iced'), sort: int(f, 'sort') ?? 0 });
+    await db().insert(schema.menuItems).values({ name, ...menuFields(f), sort: int(f, 'sort') ?? 0 });
   } catch (e) {
     if (isUniqueViolation(e)) done('/admin/menu', `「${name}」已經在菜單上`);
     throw e;
@@ -52,7 +54,7 @@ export async function updateMenuItem(f: FormData) {
   if (!name) done('/admin/menu', '品名不能空白');
   try {
     await db().update(schema.menuItems)
-      .set({ name, price: int(f, 'price'), iced: bool(f, 'iced'), active: bool(f, 'active'), sort: int(f, 'sort') ?? 0, updatedAt: new Date() })
+      .set({ name, ...menuFields(f), active: bool(f, 'active'), sort: int(f, 'sort') ?? 0, updatedAt: new Date() })
       .where(eq(schema.menuItems.id, id));
   } catch (e) {
     if (isUniqueViolation(e)) done('/admin/menu', `「${name}」已經在菜單上`);

@@ -7,7 +7,7 @@ import { DOOR, TOILET, zoneSpot, route, LANE, MACHINE } from './layout.js';
 import { Person, makeCup, walk } from './people.js';
 import { newProfile, tvGames, GAME_LABEL } from './profiles.js';
 import { doTops } from './tops.js';
-import { sayLine, isIced, priceOf, drinkFor } from './content.js';
+import { sayLine, priceOf, drinkFor, pickVariant, orderName } from './content.js';
 import { log, floatText } from './feed.js';
 import { closeCard } from './hud.js';
 
@@ -49,8 +49,10 @@ async function ownerLoop(owner) {
     }
     const c = S.orderQueue.shift();
     if (c.gone) continue;
-    const drink = c.drink = drinkFor(c.p.drink);   // a regular's usual may have come off the menu
-    const vars = { name: c.p.name, drink };
+    const drink = drinkFor(c.p.drink);   // a regular's usual may have come off the menu
+    const variant = pickVariant(drink);
+    c.drink = orderName(drink, variant);
+    const vars = { name: c.p.name, drink: c.drink };
     owner.status = `幫${c.p.name}點餐`;
     await walk(owner, [[1.55, c.spot.z]]);
     owner.face(-Math.PI / 2);
@@ -58,21 +60,21 @@ async function ownerLoop(owner) {
     await sleep(1.6);
     sayLine(c, c.p.regular ? 'customer.orderRegular' : 'customer.orderNew', vars);
     await sleep(1.4);
-    owner.status = `做${drink}`;
+    owner.status = `做${c.drink}`;
     await walk(owner, [MACHINE]);
     owner.face(-Math.PI / 2); owner.gesture('brew', 2.2); S.brewing = true;
     await sleep(2.2);
     owner.gesture('pour', 1.6); await sleep(1.6);
     S.brewing = false;
-    const cup = makeCup(drink); owner.hold(cup);
+    const cup = makeCup(drink, variant); owner.hold(cup);
     await walk(owner, [[1.55, c.spot.z]]);
     owner.face(-Math.PI / 2);
     if (c.gone) { owner.dropCup(); continue; }
-    sayLine(owner, isIced(drink) ? 'owner.serveIced' : 'owner.serveHot', vars);
+    sayLine(owner, variant === 'ice' ? 'owner.serveIced' : 'owner.serveHot', vars);
     owner.putCup(0.85, 1.07, c.spot.z);   // clear of the clipboard and the toys
     await sleep(0.6);
     c.hold(cup); owner.cup = null;
-    const price = priceOf(drink);
+    const price = priceOf(drink, variant);
     S.revenue += price; S.cupsSold++;
     floatText('coin', `+$${price}`, new THREE.Vector3(0.6, 1.5, c.spot.z));
     c.resolveServed();
@@ -247,7 +249,7 @@ function seedCustomer(prof, s) {
   if (!prof || !s) return;
   const c = new Person(prof, 'customer'); S.customers.push(c);
   c.setPos(s.x, s.z); c.heading = s.face;
-  c.hold(makeCup(drinkFor(prof.drink)));
+  const d = drinkFor(prof.drink); c.hold(makeCup(d, pickVariant(d)));
   (async () => {
     let zone = s.type === 'game' ? await doGame(c, s.path, s) : await doTable(c, s.path, s);
     zone = await stayAWhile(c, zone, 1);

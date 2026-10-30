@@ -4,8 +4,12 @@ import type { Look, Owner } from '../content/catalog';
 export const menuItems = pgTable('menu_items', {
   id: serial('id').primaryKey(),
   name: text('name').notNull().unique(),
-  price: integer('price'),                                  // null shows as $??? on the paper menu
-  iced: boolean('iced').notNull().default(true),
+  price: integer('price'),                                  // legacy: before the real menu had Hot/Ice columns; unused
+  iced: boolean('iced').notNull().default(true),            // legacy, unused
+  en: text('en').notNull().default(''),                     // English name, printed beside the Chinese one
+  section: text('section').notNull().default('Original'),   // one of MENU_SECTIONS
+  hot: text('hot').notNull().default(''),                   // what the Hot column says ('' = not served hot)
+  ice: text('ice').notNull().default(''),                   // what the Ice column says ('' = not served iced)
   sort: integer('sort').notNull().default(0),
   active: boolean('active').notNull().default(true),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),

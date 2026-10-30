@@ -25,7 +25,7 @@ export async function getContent(): Promise<CafeContent & { source: 'db' | 'defa
       optional(db.select().from(schema.randomValues).orderBy(asc(schema.randomValues.sort), asc(schema.randomValues.id)), 'random_values'),
       optional(db.select().from(schema.settings).where(eq(schema.settings.key, 'owner')), 'settings'),
     ]);
-    const menu = menuRows.filter(r => r.active).map(r => ({ name: r.name, price: r.price, iced: r.iced }));
+    const menu = menuRows.filter(r => r.active && (r.hot || r.ice)).map(({ name, en, section, hot, ice }) => ({ name, en, section, hot, ice }));
     const lines: Record<string, string[]> = {};
     for (const key of LINE_KEYS) {
       lines[key] = lineRows.filter(r => r.category === key && r.active).map(r => r.text);

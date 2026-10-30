@@ -4,6 +4,7 @@ import { ctx, mat, box, cyl, canvasTex, plane } from '../engine.js';
 import { S } from '../state.js';
 import { rand, randi, pick, DOT } from '../util.js';
 import { TVX, TVZ, TVY, LW, LSEATS } from '../layout.js';
+import { buildMenuClipboard } from './menu.js';
 import { woodM, steel, blackM, cinderSeat, crate, crateTable, stump, highStool, figurine, framed } from './props.js';
 
 function ledgeAndTv() {
@@ -62,31 +63,6 @@ function purpleWall() {
   box(0.16, rand(0.2, 0.32), 0.24, mat(pick([0x2a2f6b, 0x8a1d1d, 0x1d1d1d, 0xe6c34a])), -2.9, 0.15, -2.25);   // a toy box on the floor along the wall
 }
 
-// charred paper menu on a clipboard, every price $??? unless the back office set one
-function menuClipboard() {
-  const menuTex = canvasTex(512, 720, (g) => {
-    g.setTransform(2, 0, 0, 2, 0, 0);   // drawn at 256x360, twice the pixels so it reads from the 菜單 camera
-    const w = 256, h = 360;
-    g.fillStyle = '#e8d6b0'; g.fillRect(0, 0, w, h);
-    const grd = g.createRadialGradient(w / 2, h / 2, h * 0.25, w / 2, h / 2, h * 0.62);
-    grd.addColorStop(0, 'rgba(0,0,0,0)'); grd.addColorStop(0.8, 'rgba(90,50,20,.55)'); grd.addColorStop(1, 'rgba(20,10,5,.95)');
-    g.fillStyle = grd; g.fillRect(0, 0, w, h);
-    g.fillStyle = '#2a1a10'; g.font = `30px ${DOT}`; g.textAlign = 'center'; g.fillText('窺視珈琲', w / 2, 50);
-    const menu = S.content.menu, step = Math.min(28, 240 / Math.max(1, menu.length));
-    g.font = `${Math.min(20, Math.round(step * 0.72))}px ${DOT}`;
-    menu.forEach((m, i) => {
-      const y = 95 + i * step;
-      g.textAlign = 'left'; g.fillText(m.name, 30, y);
-      g.textAlign = 'right'; g.fillText(m.price == null ? '$???' : `$${m.price}`, w - 28, y);
-    });
-  });
-  S.fontTex.push(menuTex);
-  const clip = new THREE.Group(); clip.position.set(0.6, 1.065, 2.3); clip.rotation.y = -Math.PI / 2 + 0.12; ctx.scene.add(clip);   // lying flat at the outer end, beside the machine
-  box(0.26, 0.012, 0.36, mat(0x7a5232, { roughness: 0.8 }), 0, 0.006, 0, clip);
-  const menuSheet = new THREE.Mesh(new THREE.PlaneGeometry(0.23, 0.32), new THREE.MeshStandardMaterial({ map: menuTex, roughness: 0.95 }));
-  menuSheet.rotation.x = -Math.PI / 2; menuSheet.position.set(0, 0.014, 0.01); clip.add(menuSheet);
-  box(0.1, 0.02, 0.035, mat(0xc9c9c9, { metalness: 0.8, roughness: 0.3 }), 0, 0.02, -0.165, clip);
-}
 
 function bar() {
   // 吧台: island bar, white top, wood front with taped posters; the espresso machine sits on it
@@ -107,7 +83,7 @@ function bar() {
   }
   for (let i = 0; i < 6; i++) cyl(0.04, 0.035, 0.12, mat(0xe8f4ff, { roughness: 0.05, transparent: true, opacity: 0.5 }), -0.3 + (i % 3) * 0.1, 0.6, -0.1 + Math.floor(i / 3) * 0.1, machine, 10);
   cyl(0.08, 0.05, 0.07, mat(0xc0282d), 0.2, 0.575, 0.05, machine, 14); cyl(0.08, 0.05, 0.07, mat(0xf0c419), 0.32, 0.575, 0.05, machine, 14); // Taiwanese flower bowls
-  menuClipboard();
+  buildMenuClipboard();
   // sink set into the inner end of the bar
   box(0.72, 0.012, 0.62, mat(0x8f969c, { metalness: 0.8, roughness: 0.25 }), 0.5, 1.067, -1.55);
   box(0.62, 0.012, 0.52, mat(0x3a3f44, { metalness: 0.6, roughness: 0.3 }), 0.5, 1.07, -1.55);

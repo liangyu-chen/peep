@@ -43,7 +43,7 @@ body:has(.admin){margin:0;background:#141218}
 .admin .bar nav a:hover{text-decoration:underline}
 
 /* menu table */
-.admin .menu-row{display:grid;grid-template-columns:64px minmax(0,1fr) 100px 64px 72px 136px;gap:8px;align-items:center;padding:6px 0;border-bottom:2px dashed var(--line)}
+.admin .menu-row{display:grid;grid-template-columns:56px 150px minmax(0,0.8fr) minmax(0,1.2fr) 64px 64px 72px 136px;gap:8px;align-items:center;padding:6px 0;border-bottom:2px dashed var(--line)}
 .admin .th{color:var(--muted);font-size:13px;border-bottom:2px solid var(--line)}
 .admin .menu-row.off input:not([type=checkbox]){color:var(--muted);text-decoration:line-through}
 .admin .menu-row.add{border:0}
