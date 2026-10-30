@@ -18,7 +18,10 @@ export function resetState(content) {
     labelsEl: null,
 
     // the game on the TV
-    tv: { match: null, startDelay: 1.5, results: [], attract: 0, flash: null },
+    tv: { match: null, game: null, startDelay: 1.5, results: [], attract: 0, flash: null },   // game: 'nba' | 'fight' while someone sits at it
+
+    // spinning tops in the arcade
+    topsSession: null, topsCooldown: 25,
 
     // filled in by the world builders and createSeats()
     seats: null,

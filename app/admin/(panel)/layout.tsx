@@ -13,9 +13,10 @@ export default async function PanelLayout({ children }: { children: React.ReactN
         <strong>窺視珈琲 後台</strong>
         <nav>
           <Link href="/admin/menu">菜單</Link>
-          <Link href="/admin/lines">台詞</Link>
+          <Link href="/admin/owner">老闆</Link>
           <Link href="/admin/regulars">熟客</Link>
           <Link href="/admin/random">新客隨機值</Link>
+          <Link href="/admin/lines">台詞</Link>
           <a href="/" target="_blank" rel="noreferrer">回咖啡廳 ↗</a>
         </nav>
         <form action={logout}><button>登出</button></form>

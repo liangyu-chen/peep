@@ -1,4 +1,4 @@
-// The arcade (騎樓): linked plastic chairs down both sides, the block-and-crate strip, the Open stack,
+// The outdoor area (戶外區, under the arcade): linked plastic chairs down both sides, the block-and-crate strip, the Open stack,
 // the skateboard, the scooter seats, the kerb camping chair and the street lightbox.
 import * as THREE from 'three';
 import { ctx, mat, box, cyl, canvasTex, plane, pixelArt } from '../engine.js';
@@ -87,10 +87,21 @@ function street() {
   crate(-0.55, 0, 9.15, 'blue'); crate(-0.55, 0.3, 9.15, 'orange');                       // two stacked crates as its table
 }
 
+// smoking is allowed outside: an ashtray (a couple of butts in it) on some of the tables
+function ashtray(x, y, z) {
+  const g = new THREE.Group(); g.position.set(x, y, z); g.rotation.y = Math.random() * 3; ctx.scene.add(g);
+  cyl(0.05, 0.045, 0.018, mat(0x8f969c, { metalness: 0.7, roughness: 0.35 }), 0, 0.009, 0, g, 16);
+  cyl(0.04, 0.04, 0.004, mat(0x3a3a3c, { roughness: 1 }), 0, 0.017, 0, g, 16);
+  [[0.012, 0.6], [-0.015, -0.4]].forEach(([dx, r]) => { const b = cyl(0.0045, 0.0045, 0.03, mat(0xd9a05a), dx, 0.022, dx, g, 6); b.rotation.set(Math.PI / 2, r, 0); });
+}
+
 export function buildArcade() {
   linkedChairs(-2.72, 6.0, Math.PI / 2, [GLOSS_ORANGE, GLOSS_ORANGE, GLOSS_ORANGE]);   // row along the grey wall
   linkedChairs(0.62, 6.6, -Math.PI / 2, [0xff8fb0, 0xffc21a, CRATE_ORANGE]);           // along the storage wall: orange, yellow, pink from the street in
   middleStrip();
+  ashtray(-1.0, 0.6, STRIP.at(STRIP.crates[1]));           // middle of the inner crates, between the cups (the street-side pair is where the tops stadium goes)
+  ashtray(0.04, 0.6, 7.66);                                 // the block table between the two seats by the scooter, clear of their cups
+  ashtray(-0.45, 0.6, 9.12);                                // the camping chair's crates on the kerb
   openStackAndSkate();
   street();
   // framed art on the arcade's grey wall

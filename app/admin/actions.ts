@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation';
 import { eq } from 'drizzle-orm';
 import { getDb, schema } from '@/src/lib/db';
 import { checkPassword, createSession, destroySession, requireAdmin } from '@/src/lib/auth';
-import { LINE_KEYS, DEFAULT_LINES, POOL_KEYS, TEAM_NAMES, parseLook, type Look } from '@/src/content/catalog';
+import { LINE_KEYS, POOL_KEYS, TEAM_NAMES, DEFAULT_OWNER, parseLook, type Look } from '@/src/content/catalog';
 
 // ---------------------------------------------------------------- login
 export async function login(formData: FormData) {
@@ -71,19 +71,11 @@ export async function deleteMenuItem(f: FormData) {
 function checkCategory(category: string) {
   if (!LINE_KEYS.includes(category)) throw new Error(`unknown category ${category}`);
 }
-// a category with no rows runs on its built-in lines; write them out first so they can be edited
-// (and so adding one line doesn't silently replace the rest). Returns how many rows the category has.
-async function writeOutDefaults(category: string) {
-  const d = db();
-  const existing = await d.select({ id: schema.dialogueLines.id }).from(schema.dialogueLines).where(eq(schema.dialogueLines.category, category));
-  if (existing.length) return existing.length;
-  const defaults = DEFAULT_LINES[category] ?? [];
-  if (defaults.length) await d.insert(schema.dialogueLines).values(defaults.map((t, i) => ({ category, text: t, sort: i })));
-  return defaults.length;
-}
+// the owner's lines live on the owner's page, the rest on the dialogue page
 function doneLines(category: string, msg: string) {
-  revalidatePath('/admin/lines'); revalidatePath('/');
-  redirect(`/admin/lines?msg=${encodeURIComponent(msg)}#${category}`);
+  const page = category.startsWith('owner.') ? '/admin/owner' : '/admin/lines';
+  revalidatePath(page); revalidatePath('/');
+  redirect(`${page}?msg=${encodeURIComponent(msg)}#${category}`);
 }
 
 export async function addLine(f: FormData) {
@@ -91,8 +83,9 @@ export async function addLine(f: FormData) {
   const category = str(f, 'category'), text = str(f, 'text');
   checkCategory(category);
   if (!text) doneLines(category, '台詞不能空白');
-  const count = await writeOutDefaults(category);
-  await db().insert(schema.dialogueLines).values({ category, text, sort: count });
+  const d = db();
+  const count = (await d.select({ id: schema.dialogueLines.id }).from(schema.dialogueLines).where(eq(schema.dialogueLines.category, category))).length;
+  await d.insert(schema.dialogueLines).values({ category, text, sort: count });
   doneLines(category, '已新增台詞');
 }
 
@@ -113,23 +106,16 @@ export async function deleteLine(f: FormData) {
   doneLines(category, '已刪除');
 }
 
-// copies a category's built-in lines into the database so they can be edited one by one
-export async function importDefaults(f: FormData) {
-  await requireAdmin();
-  const category = str(f, 'category');
-  checkCategory(category);
-  await writeOutDefaults(category);
-  doneLines(category, '已匯入預設台詞，可以逐句修改');
-}
-
 // ---------------------------------------------------------------- regulars
 const lookFrom = (f: FormData, prev?: Look) => parseLook(k => { const v = f.get(k); return v == null ? null : String(v); }, prev);
 function regularFields(f: FormData) {
   const team = str(f, 'team');
   return {
     name: str(f, 'name'), job: str(f, 'job'), drink: str(f, 'drink'), quirk: str(f, 'quirk'),
-    team: TEAM_NAMES.includes(team) ? team : TEAM_NAMES[0],
     visits: int(f, 'visits') ?? 1, sort: int(f, 'sort') ?? 0,
+    plays2k: bool(f, 'plays2k'), team: TEAM_NAMES.includes(team) ? team : '',   // '' = random each visit
+    playsFight: bool(f, 'playsFight'), fighter: str(f, 'fighter'),
+    playsTops: bool(f, 'playsTops'), smokes: bool(f, 'smokes'),
   };
 }
 
@@ -215,4 +201,16 @@ export async function deleteValue(f: FormData) {
   checkPool(pool);
   await db().delete(schema.randomValues).where(eq(schema.randomValues.id, Number(f.get('id'))));
   donePool(pool, '已刪除');
+}
+
+// ---------------------------------------------------------------- the owner
+export async function updateOwner(f: FormData) {
+  await requireAdmin();
+  const name = str(f, 'name');
+  if (!name) done('/admin/owner', '名字不能空白');
+  const d = db();
+  const [prev] = await d.select().from(schema.settings).where(eq(schema.settings.key, 'owner'));
+  const value = { name, job: str(f, 'job'), look: lookFrom(f, (prev?.value ?? DEFAULT_OWNER).look) };
+  await d.insert(schema.settings).values({ key: 'owner', value }).onConflictDoUpdate({ target: schema.settings.key, set: { value, updatedAt: new Date() } });
+  done('/admin/owner', `已儲存老闆「${name}」`);
 }

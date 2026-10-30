@@ -7,14 +7,16 @@ import { $, K } from './util.js';
 import { sayLine } from './content.js';
 import { fmtTime } from './feed.js';
 import { matchClock } from './tv.js';
-import { DAYS, freeSeat, trySpawn } from './sim.js';
+import { DAYS, canJoinTv, trySpawn } from './sim.js';
+import { tvGames, GAME_LABEL } from './profiles.js';
 
 export function updateHUD() {
   $('clock').textContent = fmtTime(S.minutes); $('day').textContent = DAYS[S.dow];
   const isOpen = S.open && !S.closing;
   $('openPill').textContent = isOpen ? '營業中' : '打烊中'; $('openPill').classList.toggle('closed', !isOpen);
   $('sRev').textContent = S.revenue; $('sCups').textContent = S.cupsSold; $('sPeople').textContent = S.customers.length;
-  const m = S.tv.match;
+  const m = S.tv.match, game = m ? m.kind : S.tv.game;
+  $('tvTitle').textContent = game ? `TV · ${GAME_LABEL[game]}` : 'TV';
   $('tvLive').hidden = !m; $('tvIdle').hidden = !!m;
   if (m) {
     $('hName').textContent = m.home.name; $('aName').textContent = m.away.name;
@@ -36,11 +38,14 @@ export function fillCard() {
   kind.textContent = s.role === 'owner' ? '老闆 · 一人顧店' : p.regular ? '熟客' : '新客';
   const rows = s.role === 'owner'
     ? [['身分', p.job], ['今日出杯', S.cupsSold + ' 杯'], ['待做訂單', S.orderQueue.length + ' 張'], ['營業時間', '15:00 起']]
-    : [['職業', p.job], ['來店次數', p.visits + ' 次'], ['常點', s.drink || p.drink], ['2K 主隊', p.team], ['2K 戰績', `${p.wins} 勝 ${p.losses} 敗`], ['小檔案', p.quirk]];
+    : [['職業', p.job], ['來店次數', p.visits + ' 次'], ['常點', s.drink || p.drink],
+      ...(p.plays2k ? [['2K 主隊', p.team]] : []), ...(p.playsFight ? [['格鬥角色', p.fighter]] : []),
+      ...(tvGames(p).length ? [['電動戰績', `${p.wins} 勝 ${p.losses} 敗`]] : []), ...(p.playsTops ? [['戰鬥陀螺', '會玩']] : []), ...(p.smokes ? [['抽菸', '會，喜歡坐戶外區']] : []),
+      ['小檔案', p.quirk]];
   const dl = $('cInfo'); dl.innerHTML = '';
   rows.forEach(([k, v]) => { const dt = document.createElement('dt'); dt.textContent = k; const dd = document.createElement('dd'); dd.textContent = v; dl.append(dt, dd); });
   $('cStatus').textContent = '現在：' + s.status;
-  $('cInvite').hidden = !(s.role === 'customer' && s.seat && s.seat.type === 'table' && !s.invited && !S.closing);
+  $('cInvite').hidden = !(s.role === 'customer' && tvGames(p).length && s.seat && s.seat.type === 'table' && !s.invited && !s.tops && !S.closing);
 }
 
 // ---------------------------------------------------------------- camera presets
@@ -76,7 +81,7 @@ export function bindHUD(root, stage) {
   on($('closeCard'), 'click', closeCard);
   on($('cInvite'), 'click', () => {
     const sel = S.selected; if (!sel) return;
-    if (!freeSeat(S.seats.gameSeats)) { sayLine(sel, 'customer.inviteFull'); return; }
+    if (!canJoinTv(sel)) { sayLine(sel, 'customer.inviteFull'); return; }
     sel.invited = true; sayLine(sel, 'customer.inviteAccept'); sayLine(S.owner, 'owner.invite', { name: sel.p.name });
     fillCard();
   });

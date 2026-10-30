@@ -252,13 +252,14 @@ export function buildBody(look, seed = '') {
     return sh;
   });
   const hand = new THREE.Object3D(); hand.position.set(0, -0.3, 0.05); elbows[1].add(hand);
+  const handL = new THREE.Object3D(); handL.position.set(0.01, -0.3, 0.04); elbows[0].add(handL);   // holds a cigarette
   const pad = new THREE.Group();
   mk(bx(0.2, 0.045, 0.1), mat(0x1b1b1b, { roughness: 0.4 }), 0, 0, 0, pad);
   [-1, 1].forEach(s => mk(sp(0.035, 10, 8), mat(0x1b1b1b, { roughness: 0.4 }), s * 0.085, -0.015, -0.022, pad, false));   // grips
   mk(bx(0.04, 0.012, 0.03), mat(0x3ddc97), 0.05, 0.026, 0, pad, false);
   [-1, 1].forEach(s => mk(cy(0.012, 0.012, 0.012, 8), mat(0x333333), s * 0.03, 0.026, 0.012, pad, false));         // sticks
   pad.position.set(0, 0.95, 0.43); pad.visible = false; g.add(pad);
-  return { g, legs, arms, elbows, head, hand, pad, eyes, mouth };
+  return { g, legs, arms, elbows, head, hand, handL, pad, eyes, mouth };
 }
 
 function buildHair(style, shape, head, hairM, mk, at, look) {

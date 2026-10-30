@@ -12,9 +12,9 @@ export const drinkFor = wanted => (menuItem(wanted) ? wanted : pick(menuNames())
 
 export function line(key, vars) {
   const options = S.content.lines[key];
-  return options && options.length ? fill(pick(options), vars) : null;
+  return options && options.length ? fill(pick(options), { owner: S.content.owner?.name ?? '老闆', ...vars }) : null;
 }
-// says a random line from a category; a category with no lines just stays quiet
+// says a random line from a category; a category with no lines just stays quiet. {owner} is always available.
 export function sayLine(person, key, vars, dur) {
   const text = line(key, vars);
   if (text) person.say(text, dur);

@@ -5,7 +5,8 @@ import { S, sleep } from './state.js';
 import { rand, randi, pick, K } from './util.js';
 import { DOOR, TOILET, zoneSpot, route, LANE, MACHINE } from './layout.js';
 import { Person, makeCup, walk } from './people.js';
-import { OWNER, newProfile } from './profiles.js';
+import { newProfile, tvGames, GAME_LABEL } from './profiles.js';
+import { doTops } from './tops.js';
 import { sayLine, isIced, priceOf, drinkFor } from './content.js';
 import { log, floatText } from './feed.js';
 import { closeCard } from './hud.js';
@@ -16,7 +17,8 @@ export const closeHour = () => (S.dow === 5 || S.dow === 6) ? 22 : 20;
 
 // ---------------------------------------------------------------- owner (the one and only staff)
 export function createOwner() {
-  const owner = new Person(OWNER, 'owner');
+  const o = S.content.owner;
+  const owner = new Person({ name: o.name, job: o.job, look: o.look }, 'owner');
   owner.setPos(1.9, 0.3); owner.heading = owner.targetHeading = -Math.PI / 2;
   owner.speed = 1.6;
   S.owner = owner;
@@ -137,78 +139,103 @@ async function customerLife(c) {
   const spot = c.spot; c.spot = null;
   await sleep(0.5);
   spot.occ = null;
+  zone = await stayAWhile(c, zone, 0);
+  await leave(c, zone);
+}
 
+// ---------------------------------------------------------------- the TV: who may sit down, and at which game
+// not everyone plays: only people with a TV game, and not on every visit
+const wantsToPlay = c => tvGames(c.p).length > 0 && Math.random() < (c.p.regular ? 0.45 : 0.2);
+// the TV runs one game at a time: whoever sits down first picks it, and only someone who plays that game joins them
+export const canJoinTv = c => {
+  const games = tvGames(c.p);
+  return games.length > 0 && !!freeSeat(S.seats.gameSeats) && (!S.tv.game || games.includes(S.tv.game));
+};
+
+// someone is on the TV alone against the computer: anyone who plays that game is welcome to take the other controller
+const vsCpu = () => !!S.tv.match && !S.tv.match.away.person;
+
+// a few things to do before leaving: the TV, watching, a table, or spinning tops if two regulars get it going
+async function stayAWhile(c, zone, hops) {
   const { gameSeats, specSpots } = S.seats;
-  const wantsPlay = p.regular ? Math.random() < 0.6 : Math.random() < 0.25;
-  let hops = 0;
+  const wantsPlay = wantsToPlay(c);
   while (!S.closing && hops < 3) {
     hops++;
     let s = null;
-    if ((wantsPlay || c.invited) && (s = freeSeat(gameSeats))) zone = await doGame(c, zone, s);
+    if (c.tops) { zone = await doTops(c, zone); c.nextGoal = true; }
+    else if ((wantsPlay || c.invited || (vsCpu() && Math.random() < 0.7)) && canJoinTv(c) && (s = freeSeat(gameSeats))) zone = await doGame(c, zone, s);
     else if (wantsPlay && S.tv.match && hops === 1 && (s = freeSeat(specSpots))) zone = await doSpectate(c, zone, s);
-    else if ((s = freeTableSeat(Math.random() < 0.3))) zone = await doTable(c, zone, s);
+    else if ((s = freeTableSeat(Math.random() < (c.p.smokes ? 0.85 : 0.3)))) zone = await doTable(c, zone, s);   // smokers head outside
     else { c.status = '外帶'; sayLine(c, 'customer.takeaway'); break; }
-    if (!c.invited && !c.nextGoal) break;
+    if (!c.invited && !c.nextGoal && !c.tops) break;
     c.nextGoal = false;
   }
-  await leave(c, zone);
+  return zone;
 }
 
 async function doTable(c, zone, s) {
   s.occ = c; c.seat = s;
-  c.status = s.porch ? '去騎樓坐啤酒箱' : '找位子坐';
+  c.status = s.porch ? '去戶外區坐' : '找位子坐';
   if (zone !== s.path) await walk(c, route(zone, s.path));
   c.face(s.face); c.pose = 'sit';
   c.putCup(...s.cup);
-  c.status = s.porch ? '在騎樓喝咖啡看街景' : '坐著喝咖啡';
+  c.status = s.porch ? '在戶外區喝咖啡看街景' : '坐著喝咖啡';
   const stay = rand(45, 100);
   let t = 0;
-  while (t < stay && !S.closing) {
+  while (t < stay && !S.closing && !c.tops) {
     await sleep(2); t += 2;
+    if (c.tops) break;
     if (Math.random() < 0.25) { c.pickCup(); c.gesture('sip', 1.4); await sleep(1.4); t += 1.4; c.putCup(...s.cup); }
     if (Math.random() < 0.08) sayLine(c, s.porch ? 'customer.chatPorch' : 'customer.chatTable', { name: c.p.name });
-    if (Math.random() < 0.025 && !S.toiletBusy) {
-      S.toiletBusy = true; c.status = '去廁所'; c.pose = 'stand';
+    // smoking is allowed outside only
+    if (s.porch && c.p.smokes && !c.cig && Math.random() < 0.1) { c.lightUp(rand(30, 50)); if (Math.random() < 0.5) sayLine(c, 'customer.smoke', { name: c.p.name }); }
+    if (Math.random() < 0.025 && !S.toiletBusy && !c.tops) {
+      S.toiletBusy = true; c.busy = true; c.status = '去廁所'; c.pose = 'stand';
       await walk(c, route(s.path, TOILET)); await sleep(4);
-      await walk(c, route(TOILET, s.path)); S.toiletBusy = false;
+      await walk(c, route(TOILET, s.path)); S.toiletBusy = false; c.busy = false;
       c.face(s.face); c.pose = 'sit'; c.status = '坐著喝咖啡'; t += 8;
     }
-    if (c.p.regular && Math.random() < 0.06 && !S.tv.match && freeSeat(S.seats.gameSeats)) { sayLine(c, 'customer.wantsTv'); c.invited = true; break; }
-    if (c.invited && freeSeat(S.seats.gameSeats)) break;
+    if (Math.random() < (vsCpu() ? 0.12 : c.p.regular && !S.tv.match ? 0.05 : 0) && canJoinTv(c)) { sayLine(c, 'customer.wantsTv'); c.invited = true; break; }
+    if (c.invited && canJoinTv(c)) break;
   }
-  c.pickCup(); c.pose = 'stand'; s.occ = null; c.seat = null;
-  if (c.invited) c.nextGoal = true;
+  c.pickCup(); c.putOut(); c.pose = 'stand'; s.occ = null; c.seat = null;   // stubbed out in the ashtray before getting up
+  if (c.invited || c.tops) c.nextGoal = true;
   return s.path;
 }
 
 async function doGame(c, zone, s) {
   s.occ = c; c.seat = s; c.invited = false;
+  const games = tvGames(c.p);
+  if (!S.tv.game) S.tv.game = pick(games);   // first to sit down picks the game
+  const game = S.tv.game;
   c.status = '走去電視前';
   if (zone !== s.path) await walk(c, route(zone, s.path));
   c.face(s.face); c.pose = 'game';
   c.dropCup();   // no drinks by the TV: finish it before picking up the controller
   c.matchesLeft = S.closing ? 1 : randi(1, 3);
-  c.status = '在打 NBA 2K';
-  sayLine(c, S.tv.match ? 'game.sitWaiting' : 'game.sitDown');
+  c.status = `在打${GAME_LABEL[game]}`;
+  if (game === 'fight') sayLine(c, 'fight.sitDown', { fighter: c.p.fighter });
+  else sayLine(c, S.tv.match ? 'game.sitWaiting' : 'game.sitDown', { team: c.p.team });
   const done = new Promise(r => { c.resolveDone = r; });
   c.ready = true;
   await done;
   c.ready = false;
   c.pickCup(); c.pose = 'stand'; s.occ = null; c.seat = null;
-  if (!S.closing && Math.random() < 0.35 && freeTableSeat(false)) { c.nextGoal = true; sayLine(c, 'game.tired'); }
+  if (!S.seats.gameSeats.some(g => g.occ)) S.tv.game = null;   // the TV is free for any game again
+  if (!S.closing && Math.random() < 0.35 && freeTableSeat(false)) { c.nextGoal = true; if (game === 'nba') sayLine(c, 'game.tired'); }
   return s.path;
 }
 
 async function doSpectate(c, zone, s) {
   s.occ = c; c.seat = s;
-  c.status = '站在旁邊看別人打 2K';
+  c.status = '站在旁邊看別人打電動';
   await walk(c, route(zone, s.path));
   c.face(s.face);
   const stay = rand(25, 50);
   let t = 0;
   while (t < stay && !S.closing) {
     await sleep(1); t += 1;
-    if (freeSeat(S.seats.gameSeats) && Math.random() < 0.4) { c.invited = true; break; }
+    if (canJoinTv(c) && Math.random() < 0.4) { c.invited = true; break; }
   }
   s.occ = null; c.seat = null;
   c.nextGoal = true;
@@ -223,21 +250,27 @@ function seedCustomer(prof, s) {
   c.hold(makeCup(drinkFor(prof.drink)));
   (async () => {
     let zone = s.type === 'game' ? await doGame(c, s.path, s) : await doTable(c, s.path, s);
-    if (c.nextGoal && !S.closing) { const t = freeTableSeat(false); if (t) { c.nextGoal = false; zone = await doTable(c, zone, t); } }
+    zone = await stayAWhile(c, zone, 1);
     await leave(c, zone);
   })();
 }
 export function seedOpeningScene() {
-  // the usual crowd if they're still on the list, otherwise whichever regulars are
-  const used = new Set();
-  const reg = n => { const r = S.regulars.find(x => x.name === n && !used.has(x)) || S.regulars.find(x => !used.has(x)); if (r) used.add(r); return r; };
+  const pool = S.regulars.slice().sort(() => Math.random() - 0.5);
+  const take = test => { const i = pool.findIndex(test); return i < 0 ? null : pool.splice(i, 1)[0]; };
   const { gameSeats, tableSeats } = S.seats;
-  seedCustomer(reg('阿凱'), gameSeats[0]);
-  seedCustomer(reg('美美'), gameSeats[1]);
-  seedCustomer(reg('老陳'), tableSeats[4]);
-  seedCustomer(reg('小雨'), tableSeats[1]);
-  seedCustomer(reg('阿嘉'), tableSeats.find(s => s.porch));
-  S.tv.startDelay = 0.2;
+  // sometimes someone's already on the TV, sometimes it's sitting idle
+  const first = Math.random() < 0.55 ? take(r => tvGames(r).length) : null;
+  if (first) {
+    const game = pick(tvGames(first));
+    S.tv.game = game;
+    seedCustomer(first, gameSeats[0]);
+    if (Math.random() < 0.6) seedCustomer(take(r => tvGames(r).includes(game)), gameSeats[1]);
+    S.tv.startDelay = 0.2;
+  }
+  const free = tableSeats.slice().sort(() => Math.random() - 0.5);
+  seedCustomer(take(() => true), free.find(s => !s.porch));
+  seedCustomer(take(() => true), free.find(s => !s.porch && !s.occ));
+  seedCustomer(take(() => true), free.find(s => s.porch && !s.occ));
   log('週五下午四點，窺視珈琲照常營業');
 }
 
@@ -245,7 +278,7 @@ export function seedOpeningScene() {
 export function tickShop(sdt) {
   S.minutes += sdt;
   if (S.open && !S.closing && S.minutes >= closeHour() * 60) {
-    S.closing = true; log(`${closeHour()} 點，小鬍子準備打烊`); sayLine(S.owner, 'owner.closing', {}, 3.5);
+    S.closing = true; log(`${closeHour()} 點，${S.owner.p.name}準備打烊`); sayLine(S.owner, 'owner.closing', {}, 3.5);
   }
   if (S.closing && S.customers.length === 0 && S.orderQueue.length === 0) {
     S.closing = false; S.dow = (S.dow + 1) % 7; S.minutes = 15 * 60; S.revenue = 0; S.cupsSold = 0;
@@ -260,6 +293,30 @@ export function tickShop(sdt) {
       S.spawnCooldown = rand(8, 18) / ((h >= 17.5 && h < 20.5) ? 1.6 : 1);
     }
   }
+}
+
+// ---------------------------------------------------------------- cigarette smoke: grey cubes drifting up from lit cigarettes
+const smoke = [];
+const tip = new THREE.Vector3();
+export function createSmoke() {
+  smoke.length = 0;
+  const geo = new THREE.BoxGeometry(0.03, 0.03, 0.03);
+  for (let i = 0; i < 40; i++) { const m = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: 0xcfd2d6, transparent: true, opacity: 0.4, depthWrite: false })); m.visible = false; ctx.scene.add(m); smoke.push({ m, life: 0, vx: 0, vz: 0 }); }
+}
+export function updateSmoke(dt) {
+  const lit = S.people.filter(p => p.cig);
+  smoke.forEach(s => {
+    if (s.life > 0) {
+      s.life -= dt; s.m.position.y += dt * 0.25; s.m.position.x += s.vx * dt; s.m.position.z += s.vz * dt;
+      s.m.scale.setScalar(1 + (2.2 - s.life) * 0.9); s.m.material.opacity = Math.max(0, s.life / 2.2) * 0.4;
+      if (s.life <= 0) s.m.visible = false;
+    } else if (lit.length && Math.random() < dt * 3 * lit.length) {
+      const p = pick(lit);
+      p.cig.userData.ember.getWorldPosition(tip);
+      s.life = 2.2; s.m.visible = true; s.m.position.copy(tip); s.m.scale.setScalar(1);
+      s.vx = rand(-0.05, 0.05); s.vz = rand(-0.05, 0.05);
+    }
+  });
 }
 
 // ---------------------------------------------------------------- steam over the machine (cubes, for the 8-bit feel)

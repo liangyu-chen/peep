@@ -38,7 +38,7 @@ export default function Cafe({ content }: { content: CafeContent }) {
           <button data-cam="counter">吧台</button>
           <button data-cam="menu">菜單</button>
           <button data-cam="tv">電視</button>
-          <button data-cam="porch">騎樓</button>
+          <button data-cam="porch">戶外區</button>
           <button data-cam="back">後場</button>
         </div>
         <div className="row"><span>時間</span>
@@ -56,7 +56,7 @@ export default function Cafe({ content }: { content: CafeContent }) {
       </section>
 
       <section id="tvCard" className="win" aria-label="電視" title="點一下切到電視視角">
-        <h2>TV · NBA 2K</h2>
+        <h2 id="tvTitle">TV</h2>
         <div id="tvLive" hidden>
           <div className="score">
             <div className="side"><span className="who" id="hName">-</span><span className="team" id="hTeam">-</span></div>
@@ -72,7 +72,7 @@ export default function Cafe({ content }: { content: CafeContent }) {
         <div className="head"><div><h3 id="cName">-</h3><span id="cKind" className="kind">-</span></div><button id="closeCard" aria-label="關閉">✕</button></div>
         <dl id="cInfo"></dl>
         <div className="status" id="cStatus">-</div>
-        <button id="cInvite" className="primary" hidden>▶ 邀去打 2K</button>
+        <button id="cInvite" className="primary" hidden>▶ 邀去打電動</button>
       </aside>
 
       <div id="hint">拖曳旋轉 · 滾輪縮放 · 點人物看資料 · 點電視看比賽</div>

@@ -21,5 +21,5 @@ export function floatText(cls, text, pos, life = 1.4) {
 export function renderResults() {
   const ul = $('results'); if (!ul) return;
   ul.innerHTML = '';
-  S.tv.results.forEach(r => { const li = document.createElement('li'); li.innerHTML = '<b></b> '; li.querySelector('b').textContent = `${r.w.name}（${r.w.team}）勝`; li.append(`${r.w.score}:${r.l.score} ${r.l.name}`); ul.append(li); });
+  S.tv.results.forEach(r => { const li = document.createElement('li'); li.innerHTML = '<b></b> '; li.querySelector('b').textContent = `${r.kind === 'fight' ? '格鬥' : '2K'}｜${r.w.name}（${r.w.team}）勝`; li.append(`${r.w.score}:${r.l.score} ${r.l.name}`); ul.append(li); });
 }

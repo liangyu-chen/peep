@@ -8,9 +8,10 @@ import { createRegulars } from './profiles.js';
 import { buildWorld } from './world/index.js';
 import { updateLighting } from './world/lights.js';
 import { updateTV, drawTV } from './tv.js';
-import { createOwner, createSteam, seedOpeningScene, tickShop, updateSteam } from './sim.js';
+import { createOwner, createSteam, createSmoke, seedOpeningScene, tickShop, updateSteam, updateSmoke } from './sim.js';
 import { bindHUD, updateHUD, fillCard, updateCamera, updateLabels } from './hud.js';
 import { renderResults } from './feed.js';
+import { createStadium, updateTops } from './tops.js';
 
 export function startCafe(root, content) {
   resetState(content);
@@ -21,7 +22,9 @@ export function startCafe(root, content) {
 
   createEngine(stage);
   buildWorld();
+  createStadium();
   createSteam();
+  createSmoke();
   createOwner();
   seedOpeningScene();
   const unbind = bindHUD(root, stage);
@@ -29,16 +32,15 @@ export function startCafe(root, content) {
 
   let last = performance.now(), tvFrameN = 0, raf = 0;
   const near = (x, z, r) => S.people.some(p => Math.hypot(p.g.position.x - x * K, p.g.position.z - z) < r);
-  function frame(now) {
-    if (S.stopped) return;
-    const dt = Math.min(0.05, (now - last) / 1000); last = now;
-    const sdt = dt * S.speed;
-
+  // everything that moves, for dt real seconds (sdt simulated seconds)
+  function simulate(dt, sdt) {
     tickShop(sdt);
     for (let i = S.timers.length - 1; i >= 0; i--) { const tm = S.timers[i]; tm.t -= sdt; if (tm.t <= 0) { S.timers.splice(i, 1); tm.r(); } }
     S.people.slice().forEach(p => p.update(sdt));
     updateTV(sdt);
     updateSteam(sdt);
+    updateSmoke(sdt);
+    updateTops(sdt);
     S.acFan.rotation.x += dt * 12;
     S.fanBlades.rotation.y += dt * 4;
     // doors open when someone comes close
@@ -54,6 +56,11 @@ export function startCafe(root, content) {
       w.me.material.depthWrite = w.me.material.opacity > 0.9;
       w.me.castShadow = !behind;
     });
+  }
+  function frame(now) {
+    if (S.stopped) return;
+    const dt = Math.min(0.05, (now - last) / 1000); last = now;
+    simulate(dt, dt * S.speed);
     if ((tvFrameN = (tvFrameN + 1) % 2) === 0) drawTV();
 
     updateCamera(dt);
@@ -68,6 +75,13 @@ export function startCafe(root, content) {
   if (document.fonts) Promise.all([document.fonts.load(`20px ${PIX}`), document.fonts.load('20px "DotGothic16"', '窺視珈琲五金')])
     .then(() => { if (!S.stopped) S.fontTex.forEach(t => t.redraw()); }).catch(() => {});
   raf = requestAnimationFrame(frame);
+  // development only: step the simulation from the console without rendering, e.g. await __cafe.step(60)
+  if (process.env.NODE_ENV !== 'production') window.__cafe = {
+    S, step: async (secs, dt = 0.05) => {
+      for (let t = 0; t < secs && !S.stopped; t += dt) { simulate(dt, dt); for (let k = 0; k < 12; k++) await null; }
+      drawTV(); updateHUD();
+    },
+  };
 
   return function stopCafe() {
     S.stopped = true;

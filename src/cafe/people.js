@@ -10,6 +10,21 @@ const teaCupM = mat(0xf2f0ea, { roughness: 0.3 });
 const coffeeM = mat(0x5a3220, { roughness: 0.3 });
 const glassM = mat(0xe8f4ff, { roughness: 0.05, transparent: true, opacity: 0.5 });
 
+// a lit cigarette, held between the fingers of the left hand
+const cigM = mat(0xf4f1ea, { roughness: 0.7 }), filterM = mat(0xd9a05a, { roughness: 0.8 });
+const emberM = new THREE.MeshBasicMaterial({ color: 0xff5a1a });
+function makeCigarette() {
+  const g = new THREE.Group();
+  const body = cyl(0.0045, 0.0045, 0.05, cigM, 0, 0.012, 0, g, 6);
+  cyl(0.0047, 0.0047, 0.016, filterM, 0, -0.02, 0, g, 6);
+  const ember = new THREE.Mesh(new THREE.SphereGeometry(0.0055, 6, 4), emberM); ember.position.y = 0.038; g.add(ember);
+  g.rotation.set(Math.PI / 2, 0, 0.3);
+  g.traverse(o => { o.castShadow = false; });
+  body.castShadow = false;
+  g.userData.ember = ember;
+  return g;
+}
+
 export function makeCup(drink) {
   const g = new THREE.Group();
   if (isIced(drink)) {
@@ -51,8 +66,11 @@ export class Person {
   pickCup() { if (this.cup) this.hold(this.cup); }
   dropCup() { if (this.cup) { this.cup.parent.remove(this.cup); this.cup = null; } }
   gesture(a, t = 1.4) { this.act = a; this.actT = t; }
+  // smoke for `dur` simulated seconds; puffs now and then, smoke rises from the tip (see updateSmoke in sim.js)
+  lightUp(dur) { if (this.cig) return; this.cig = makeCigarette(); this.handL.add(this.cig); this.cigT = dur; this.puffT = 1.5; }
+  putOut() { if (!this.cig) return; this.cig.parent.remove(this.cig); this.cig = null; this.cigT = 0; }
   remove() {
-    this.gone = true; ctx.scene.remove(this.g); this.dropCup(); this.tag.remove(); this.bubble.remove();
+    this.gone = true; ctx.scene.remove(this.g); this.dropCup(); this.putOut(); this.tag.remove(); this.bubble.remove();
     S.people.splice(S.people.indexOf(this), 1);
   }
   update(dt) {
@@ -73,6 +91,11 @@ export class Person {
     if (this.actT > 0) { this.actT -= dt; if (this.actT <= 0) this.act = null; }
     if (this.bubbleT > 0) { this.bubbleT -= dt; if (this.bubbleT <= 0) this.bubble.style.opacity = 0; }
     tickFace(this, this.faceAnim, dt, this.bubbleT > 0);
+    if (this.cig) {
+      this.cigT -= dt; this.puffT -= dt;
+      if (this.puffT <= 0 && !this.act) { this.gesture('puff', 1.3); this.puffT = 3 + Math.random() * 4; }
+      if (this.cigT <= 0) this.putOut();
+    }
 
     const [L, R] = this.legs, [aL, aR] = this.arms;
     const sitting = this.pose === 'sit' || this.pose === 'game';
@@ -92,6 +115,10 @@ export class Person {
     if (this.act === 'brew') { armLx = armRx = -0.8; elL = elR = -0.8; armLz = 0.3; armRz = -0.3; }
     if (this.act === 'pour') { armLx = -0.7; armRx = -0.9 + Math.sin(this.walkPhase * 5) * 0.15; elL = -0.8; elR = -0.9; armLz = 0.35; armRz = -0.35; }
     if (this.act === 'facepalm') { armRx = -0.9; elR = -2.0; armRz = -0.45; }
+    if (this.cig && this.act !== 'puff' && !moving) { armLx = sitting ? -0.35 : -0.2; elL = -1.5; armLz = 0.2; }   // cigarette held up by the shoulder
+    if (this.act === 'puff') { armLx = -0.45; elL = -2.45; armLz = 0.35; }                                          // a drag
+    if (this.act === 'aim') { armRx = -0.7; elR = -1.4; armRz = -0.15; armLx = -0.5; elL = -1.2; }   // launcher pulled back, ready
+    if (this.act === 'shoot') { armRx = -1.35; elR = -0.1; armRz = -0.05; }                          // and ripped forward
     if (this.act === 'carry') { armLx = armRx = -0.9; elL = elR = -0.7; armLz = 0.25; armRz = -0.25; }
     L.hip.rotation.x = hipL; R.hip.rotation.x = hipR; L.knee.rotation.x = kL; R.knee.rotation.x = kR;
     aL.rotation.set(armLx, 0, armLz); aR.rotation.set(armRx, 0, armRz);

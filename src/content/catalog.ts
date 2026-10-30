@@ -17,15 +17,24 @@ export type Look = {
   facialHair?: string; blush?: boolean;
   [k: string]: unknown;
 };
-export type Regular = { name: string; job: string; drink: string; team: string; visits: number; quirk: string; look: Look };
+// the games a regular plays: NBA 2K and the fighting game on the TV, spinning tops in the arcade.
+// An empty team or fighter means a random one each visit.
+export type Regular = {
+  name: string; job: string; drink: string; visits: number; quirk: string; look: Look;
+  plays2k: boolean; team: string; playsFight: boolean; fighter: string; playsTops: boolean;
+  smokes: boolean;   // smokers like sitting outside, where smoking is allowed
+};
+export type Owner = { name: string; job: string; look: Look };
 
-// the values first-time customers are made from: name = surname + title (the title decides their look), plus a job
-export type RandomPools = { surname: string[]; titleF: string[]; titleM: string[]; job: string[] };
+// the values first-time customers are made from: name = surname + title (the title decides their look), plus a job.
+// fighter is the fighting game's roster, which regulars pick their favourite from too.
+export type RandomPools = { surname: string[]; titleF: string[]; titleM: string[]; job: string[]; fighter: string[] };
 export type PoolKey = keyof RandomPools;
 
 export type CafeContent = {
   menu: MenuItem[];
   lines: Record<string, string[]>;
+  owner: Owner;
   regulars: Regular[];
   pools: RandomPools;
 };
@@ -33,46 +42,46 @@ export type CafeContent = {
 export type LineCategory = { key: string; label: string; vars?: string[] };
 export type LineGroup = { group: string; items: LineCategory[] };
 
-// {name} customer's name · {drink} their drink · {team} an NBA team · {opponent} the other player
+// placeholders: {owner} the owner's name · {name} the customer · {drink} their drink · {team} an NBA team
+// {fighter} a fighting-game character · {opponent} the other player
+// the owner's lines are edited on the owner's page; the rest on the dialogue page, in these groups
+export const OWNER_LINES: LineCategory[] = [
+  { key: 'owner.greetRegular', label: '招呼熟客', vars: ['name', 'drink'] },
+  { key: 'owner.greetNew', label: '招呼新客' },
+  { key: 'owner.serveHot', label: '出熱飲（有拉花）', vars: ['drink'] },
+  { key: 'owner.serveIced', label: '出冰飲', vars: ['drink'] },
+  { key: 'owner.idle', label: '閒著沒事時' },
+  { key: 'owner.beansDone', label: '從倉庫補完豆子' },
+  { key: 'owner.byeRegular', label: '送走熟客', vars: ['name'] },
+  { key: 'owner.byeNew', label: '送走新客' },
+  { key: 'owner.gameReact', label: '看到電視上打得精彩' },
+  { key: 'owner.invite', label: '客人被邀去打電動', vars: ['name'] },
+  { key: 'owner.closing', label: '準備打烊' },
+  { key: 'owner.opening', label: '開店' },
+];
 export const LINE_GROUPS: LineGroup[] = [
-  {
-    group: '老闆',
-    items: [
-      { key: 'owner.greetRegular', label: '招呼熟客', vars: ['name', 'drink'] },
-      { key: 'owner.greetNew', label: '招呼新客' },
-      { key: 'owner.serveHot', label: '出熱飲（有拉花）', vars: ['drink'] },
-      { key: 'owner.serveIced', label: '出冰飲', vars: ['drink'] },
-      { key: 'owner.idle', label: '閒著沒事時' },
-      { key: 'owner.beansDone', label: '從倉庫補完豆子' },
-      { key: 'owner.byeRegular', label: '送走熟客', vars: ['name'] },
-      { key: 'owner.byeNew', label: '送走新客' },
-      { key: 'owner.gameReact', label: '看到 2K 進球' },
-      { key: 'owner.invite', label: '客人被邀去打 2K', vars: ['name'] },
-      { key: 'owner.closing', label: '準備打烊' },
-      { key: 'owner.opening', label: '開店' },
-    ],
-  },
   {
     group: '客人',
     items: [
-      { key: 'customer.arriveRegular', label: '熟客進門' },
-      { key: 'customer.arriveNew', label: '新客進門' },
+      { key: 'customer.arriveRegular', label: '熟客進門', vars: ['owner'] },
+      { key: 'customer.arriveNew', label: '新客進門', vars: ['owner'] },
       { key: 'customer.orderRegular', label: '熟客點餐', vars: ['drink'] },
       { key: 'customer.orderNew', label: '新客點餐', vars: ['drink'] },
       { key: 'customer.takeaway', label: '沒位子改外帶' },
-      { key: 'customer.chatTable', label: '室內座位閒聊' },
-      { key: 'customer.chatPorch', label: '騎樓座位閒聊' },
+      { key: 'customer.chatTable', label: '室內座位閒聊', vars: ['owner'] },
+      { key: 'customer.chatPorch', label: '戶外區座位閒聊', vars: ['owner'] },
+      { key: 'customer.smoke', label: '在戶外區點菸', vars: ['owner'] },
       { key: 'customer.wantsTv', label: '看到電視空了' },
-      { key: 'customer.inviteAccept', label: '答應去打 2K' },
+      { key: 'customer.inviteAccept', label: '答應去打電動' },
       { key: 'customer.inviteFull', label: '電視前沒位子' },
-      { key: 'customer.leaveRegular', label: '熟客離開' },
-      { key: 'customer.leaveNew', label: '新客離開' },
+      { key: 'customer.leaveRegular', label: '熟客離開', vars: ['owner'] },
+      { key: 'customer.leaveNew', label: '新客離開', vars: ['owner'] },
     ],
   },
   {
-    group: '打 2K',
+    group: '2K',
     items: [
-      { key: 'game.sitDown', label: '坐下準備開打' },
+      { key: 'game.sitDown', label: '坐下準備開打', vars: ['team'] },
       { key: 'game.sitWaiting', label: '等下一場' },
       { key: 'game.challenge', label: '向對手喊話', vars: ['opponent'] },
       { key: 'game.vsCpu', label: '一個人打電腦' },
@@ -87,9 +96,24 @@ export const LINE_GROUPS: LineGroup[] = [
       { key: 'game.tired', label: '打累了去坐' },
     ],
   },
+  {
+    group: '格鬥',
+    items: [
+      { key: 'fight.sitDown', label: '坐下準備開打', vars: ['fighter'] },
+      { key: 'fight.challenge', label: '向對手喊話', vars: ['opponent'] },
+      { key: 'fight.vsCpu', label: '一個人打電腦', vars: ['fighter'] },
+      { key: 'fight.hit', label: '打中對手' },
+      { key: 'fight.special', label: '使出必殺技', vars: ['fighter'] },
+      { key: 'fight.hurt', label: '被打中' },
+      { key: 'fight.spectator', label: '旁觀的人加油' },
+      { key: 'fight.ko', label: '把對手 K.O.' },
+      { key: 'fight.lose', label: '被 K.O.' },
+      { key: 'fight.rematch', label: '還要再一場' },
+    ],
+  },
 ];
 
-export const LINE_KEYS = LINE_GROUPS.flatMap(g => g.items.map(i => i.key));
+export const LINE_KEYS = [...OWNER_LINES.map(i => i.key), ...LINE_GROUPS.flatMap(g => g.items.map(i => i.key))];
 
 export const DEFAULT_MENU: MenuItem[] = [
   { name: '林美如', price: null, iced: true },
@@ -103,6 +127,7 @@ export const DEFAULT_MENU: MenuItem[] = [
   { name: '奶昔', price: null, iced: true },
 ];
 
+// the starting dialogue, written into the database by `npm run db:seed`; the café itself only says what's in the database
 export const DEFAULT_LINES: Record<string, string[]> = {
   'owner.greetRegular': ['{name}來啦！一樣{drink}？', '{name}～今天也要打一場嗎？', '嘿 {name}，老樣子？'],
   'owner.greetNew': ['歡迎～第一次來嗎？', '要喝什麼？不知道的話我幫你配'],
@@ -117,17 +142,18 @@ export const DEFAULT_LINES: Record<string, string[]> = {
   'owner.closing': ['今天辛苦啦，準備打烊囉～'],
   'owner.opening': ['開店囉！'],
 
-  'customer.arriveRegular': ['小鬍子！', '嗨老闆～', '我又來啦'],
+  'customer.arriveRegular': ['{owner}！', '嗨老闆～', '我又來啦'],
   'customer.arriveNew': ['菜單怎麼都是 $???', '哇，這裡可以打 2K？'],
   'customer.orderRegular': ['老樣子，{drink}！', '對，{drink}，謝啦', '一樣一樣～'],
   'customer.orderNew': ['那我要{drink}', '{drink}是什麼？來一杯！'],
   'customer.takeaway': ['那我外帶好了'],
   'customer.chatTable': ['等等換我打 2K', '吧台公仔又變多了', '漫畫借我看', '這杯真的好喝', '（滑手機）'],
-  'customer.chatPorch': ['騎樓吹風好舒服', '隔壁五金行好熱鬧', '這盆栽是新的嗎', '機車停好近'],
+  'customer.chatPorch': ['外面吹風好舒服', '隔壁五金行好熱鬧', '這盆栽是新的嗎', '機車停好近'],
+  'customer.smoke': ['來一根', '外面抽比較舒服', '{owner}，菸灰缸借一下'],
   'customer.wantsTv': ['電視空了！我去打一場'],
   'customer.inviteAccept': ['好啊！來一場'],
   'customer.inviteFull': ['電視前滿了啦，等下一輪'],
-  'customer.leaveRegular': ['掰掰，明天見！', '走啦，下次再戰', '小鬍子掰～'],
+  'customer.leaveRegular': ['掰掰，明天見！', '走啦，下次再戰', '{owner}掰～'],
   'customer.leaveNew': ['謝謝，下次再來！', '拉花好漂亮～'],
 
   'game.sitDown': ['來來來，開一場', '今天手感很好', '誰要來被我電'],
@@ -143,7 +169,25 @@ export const DEFAULT_LINES: Record<string, string[]> = {
   'game.lose': ['再一場！', '網路延遲啦', '我讓你的'],
   'game.rematch': ['再一場！', '不服，再來', '這場算熱身'],
   'game.tired': ['打累了，坐一下'],
+
+  'fight.sitDown': ['來打一場格鬥！', '今天用{fighter}', '手指熱好了'],
+  'fight.challenge': ['{opponent}，來單挑！', '選好角色了嗎'],
+  'fight.vsCpu': ['先打電腦練連段'],
+  'fight.hit': ['中！', '連段來了', '吃我一拳'],
+  'fight.special': ['必殺技！', '{fighter}的大絕！', '看招！'],
+  'fight.hurt': ['痛痛痛', '防禦啦我', '蛤？'],
+  'fight.spectator': ['好連段！', '哇，必殺！', '血快沒了'],
+  'fight.ko': ['K.O.！', '完美勝利', '再練練吧'],
+  'fight.lose': ['可惡…', '角色相剋啦', '再一場！'],
+  'fight.rematch': ['再一場！', '換角色再來'],
 };
+// texts the first seed wrote before {owner} existed; `db:seed` rewrites these exact rows to the new wording
+export const RENAMED_LINES: [string, string, string][] = [
+  ['customer.arriveRegular', '小鬍子！', '{owner}！'],
+  ['customer.leaveRegular', '小鬍子掰～', '{owner}掰～'],
+  ['customer.chatPorch', '騎樓吹風好舒服', '外面吹風好舒服'],
+];
+
 
 // ---------------------------------------------------------------- regulars
 export const TEAM_NAMES = ['湖人', '勇士', '塞爾提克', '公牛', '熱火', '獨行俠', '金塊', '公鹿', '太陽', '尼克'];
@@ -209,28 +253,53 @@ export function parseLook(get: (k: string) => string | null, prev?: Look): Look 
     glasses: opt('glasses', face.glasses), eyeColor: hex('eyeColor', face.eyeColor), blush: get('blush') === 'on',
   };
   delete look.mustache; delete look.goatee;   // superseded by facialHair
+  if (get('beanie') === 'on') look.beanie = hex('beanieColor', typeof base.beanie === 'number' ? base.beanie : 0xd08a1e); else delete look.beanie;
   if (number) look.number = number; else delete look.number;
   return look;
 }
 export const SKIN_TONES = [
-  { value: 0xf6d7bd, label: '白皙' }, { value: 0xf1c9a5, label: '偏白' }, { value: 0xe0ac80, label: '自然' },
-  { value: 0xd9a27c, label: '小麥' }, { value: 0xc68a5e, label: '黝黑' }, { value: 0x8d5a3b, label: '深色' },
+  { value: 0xfbe3cf, label: '粉白' }, { value: 0xf6d7bd, label: '白皙' }, { value: 0xf1c9a5, label: '偏白' }, { value: 0xe0ac80, label: '自然' },
+  { value: 0xd9a27c, label: '小麥' }, { value: 0xc68a5e, label: '黝黑' }, { value: 0x8d5a3b, label: '深色' }, { value: 0x6b4430, label: '深棕' },
 ];
+// swatches next to each colour field in the editor
+export const COLOR_PRESETS: Record<'skin' | 'hair' | 'eyes' | 'clothes', { value: number; label: string }[]> = {
+  skin: SKIN_TONES,
+  hair: [
+    { value: 0x111111, label: '黑' }, { value: 0x2b1d14, label: '深棕' }, { value: 0x5a3a22, label: '棕' }, { value: 0x8a5a2b, label: '栗色' },
+    { value: 0xc9a25a, label: '金' }, { value: 0x8a8a8a, label: '灰' }, { value: 0xe8e4dc, label: '白' }, { value: 0xa8323a, label: '紅' },
+    { value: 0x2f5fb3, label: '藍' }, { value: 0xe87aa8, label: '粉紅' },
+  ],
+  eyes: [
+    { value: 0x2a1a10, label: '深棕' }, { value: 0x5a3a20, label: '棕' }, { value: 0x7a6030, label: '琥珀' },
+    { value: 0x3a6ea8, label: '藍' }, { value: 0x3f7a4a, label: '綠' }, { value: 0x6a6f78, label: '灰' },
+  ],
+  clothes: [
+    { value: 0xf2f2f2, label: '白' }, { value: 0x1e1e22, label: '黑' }, { value: 0x7a7d82, label: '灰' }, { value: 0x334455, label: '深藍灰' },
+    { value: 0x1d428a, label: '寶藍' }, { value: 0x7ec8ff, label: '天藍' }, { value: 0xce1141, label: '紅' }, { value: 0xe56020, label: '橘' },
+    { value: 0xf1d27a, label: '鵝黃' }, { value: 0x2e8b57, label: '綠' }, { value: 0x7fae8b, label: '薄荷' }, { value: 0x8b6b4a, label: '咖啡' },
+    { value: 0xd9c7a4, label: '卡其' }, { value: 0x9b6bff, label: '紫' }, { value: 0xff8fb0, label: '粉紅' },
+  ],
+};
 const look = (skin: number, hair: number, hairStyle: string, shirt: number, pants: number, extra: Partial<Look> = {}): Look => ({ skin, hair, hairStyle, shirt, pants, ...extra });
 export const DEFAULT_REGULARS: Regular[] = [
-  { name: '阿凱', job: '軟體工程師', drink: '奧利多美式', team: '勇士', visits: 214, look: look(0xe0ac80, 0x111111, 'short', 0x1D428A, 0x2b2b2b, { glasses: true, number: '30' }), quirk: '每天下班一定來打一場' },
-  { name: '美美', job: '平面設計師', drink: '夏一布', team: '湖人', visits: 167, look: look(0xf6d7bd, 0x3b2618, 'long', 0xf1d27a, 0x3a3f5c), quirk: '自稱店內 2K 女王' },
-  { name: '大頭', job: '大學生', drink: '花生拿鐵', team: '公牛', visits: 98, look: look(0xf1c9a5, 0x1b1410, 'cap', 0xCE1141, 0x222222, { cap: 0x111111, number: '23' }), quirk: '翹課來打電動' },
-  { name: '阿嘉', job: '外送員', drink: '林美如', team: '塞爾提克', visits: 131, look: look(0xc68a5e, 0x111111, 'short', 0x2e8b57, 0x334455), quirk: '送單空檔會在騎樓坐一下' },
-  { name: '小胖', job: '研究生', drink: '奶昔', team: '熱火', visits: 76, look: look(0xf1c9a5, 0x3b2618, 'short', 0x98002E, 0x555555, { glasses: true }), quirk: '論文寫不出來就來這' },
-  { name: 'Jason', job: '隔壁五金行少東', drink: '別害羞', team: '獨行俠', visits: 120, look: look(0xe0ac80, 0x6b4423, 'short', 0xf2f2f2, 0x1f2a44, { longSleeve: true }), quirk: '顧店空檔溜過來' },
-  { name: '阿翔', job: '健身教練', drink: '冰維也納', team: '金塊', visits: 88, look: look(0x8d5a3b, 0x111111, 'bald', 0x0E2240, 0x111111), quirk: '輸了會去騎樓做伏地挺身' },
-  { name: '小雨', job: '插畫家', drink: '拿鐵', team: '公鹿', visits: 143, look: look(0xf6d7bd, 0x111111, 'bun', 0x7fae8b, 0xd9c7a4), quirk: '最愛台式茶杯裡的拉花' },
-  { name: '老陳', job: '退休老師', drink: '拿鐵', team: '塞爾提克', visits: 302, look: look(0xe0ac80, 0x8a8a8a, 'short', 0x8b6b4a, 0x4a4a4a, { glasses: true, longSleeve: true }), quirk: '從萬華店就跟過來的元老' },
-  { name: '阿德', job: '廚師', drink: '一起搖擺', team: '太陽', visits: 65, look: look(0xd9a27c, 0x1b1410, 'cap', 0xE56020, 0x2b2b2b, { cap: 0x1D1160 }), quirk: '休假日整天泡在這' },
-  { name: '欣欣', job: '護理師', drink: '花生拿鐵', team: '尼克', visits: 91, look: look(0xf6d7bd, 0x6b4423, 'long', 0x006BB6, 0x2b2b2b), quirk: '大夜班下班來放鬆' },
-  { name: '球哥', job: '前校隊後衛', drink: '林美如', team: '公牛', visits: 188, look: look(0xc68a5e, 0x111111, 'short', 0x111111, 0xCE1141, { number: '1' }), quirk: '嘴上說不玩，坐下就不走' },
+  { name: '阿凱', job: '軟體工程師', drink: '奧利多美式', team: '勇士', visits: 214, look: look(0xe0ac80, 0x111111, 'short', 0x1D428A, 0x2b2b2b, { glasses: true, number: '30' }), plays2k: true, playsFight: false, fighter: '', playsTops: false, smokes: false, quirk: '每天下班一定來打一場' },
+  { name: '美美', job: '平面設計師', drink: '夏一布', team: '湖人', visits: 167, look: look(0xf6d7bd, 0x3b2618, 'long', 0xf1d27a, 0x3a3f5c), plays2k: true, playsFight: true, fighter: '飛燕', playsTops: false, smokes: false, quirk: '自稱店內 2K 女王' },
+  { name: '大頭', job: '大學生', drink: '花生拿鐵', team: '公牛', visits: 98, look: look(0xf1c9a5, 0x1b1410, 'cap', 0xCE1141, 0x222222, { cap: 0x111111, number: '23' }), plays2k: true, playsFight: true, fighter: '阿龍', playsTops: true, smokes: false, quirk: '翹課來打電動' },
+  { name: '阿嘉', job: '外送員', drink: '林美如', team: '塞爾提克', visits: 131, look: look(0xc68a5e, 0x111111, 'short', 0x2e8b57, 0x334455), plays2k: false, playsFight: false, fighter: '', playsTops: true, smokes: true, quirk: '送單空檔會在戶外區坐一下' },
+  { name: '小胖', job: '研究生', drink: '奶昔', team: '熱火', visits: 76, look: look(0xf1c9a5, 0x3b2618, 'short', 0x98002E, 0x555555, { glasses: true }), plays2k: true, playsFight: true, fighter: '巨熊', playsTops: true, smokes: false, quirk: '論文寫不出來就來這' },
+  { name: 'Jason', job: '隔壁五金行少東', drink: '別害羞', team: '獨行俠', visits: 120, look: look(0xe0ac80, 0x6b4423, 'short', 0xf2f2f2, 0x1f2a44, { longSleeve: true }), plays2k: true, playsFight: false, fighter: '', playsTops: true, smokes: true, quirk: '顧店空檔溜過來' },
+  { name: '阿翔', job: '健身教練', drink: '冰維也納', team: '金塊', visits: 88, look: look(0x8d5a3b, 0x111111, 'bald', 0x0E2240, 0x111111), plays2k: true, playsFight: true, fighter: '鐵拳', playsTops: false, smokes: false, quirk: '輸了會去戶外區做伏地挺身' },
+  { name: '小雨', job: '插畫家', drink: '拿鐵', team: '公鹿', visits: 143, look: look(0xf6d7bd, 0x111111, 'bun', 0x7fae8b, 0xd9c7a4), plays2k: false, playsFight: false, fighter: '', playsTops: false, smokes: false, quirk: '最愛台式茶杯裡的拉花' },
+  { name: '老陳', job: '退休老師', drink: '拿鐵', team: '塞爾提克', visits: 302, look: look(0xe0ac80, 0x8a8a8a, 'short', 0x8b6b4a, 0x4a4a4a, { glasses: true, longSleeve: true }), plays2k: true, playsFight: false, fighter: '', playsTops: false, smokes: false, quirk: '從萬華店就跟過來的元老' },
+  { name: '阿德', job: '廚師', drink: '一起搖擺', team: '太陽', visits: 65, look: look(0xd9a27c, 0x1b1410, 'cap', 0xE56020, 0x2b2b2b, { cap: 0x1D1160 }), plays2k: false, playsFight: true, fighter: '火鳳', playsTops: true, smokes: true, quirk: '休假日整天泡在這' },
+  { name: '欣欣', job: '護理師', drink: '花生拿鐵', team: '尼克', visits: 91, look: look(0xf6d7bd, 0x6b4423, 'long', 0x006BB6, 0x2b2b2b), plays2k: true, playsFight: false, fighter: '', playsTops: false, smokes: false, quirk: '大夜班下班來放鬆' },
+  { name: '球哥', job: '前校隊後衛', drink: '林美如', team: '公牛', visits: 188, look: look(0xc68a5e, 0x111111, 'short', 0x111111, 0xCE1141, { number: '1' }), plays2k: true, playsFight: true, fighter: '雷電', playsTops: true, smokes: true, quirk: '嘴上說不玩，坐下就不走' },
 ];
+
+export const DEFAULT_OWNER: Owner = {
+  name: '小鬍子', job: '老闆兼咖啡師，拉花和雕花是招牌',
+  look: look(0xe0ac80, 0x1b1410, 'long', 0x1e1e22, 0x1f1f1f, { facialHair: 'both', beanie: 0xd08a1e, glasses: 'square', longSleeve: true }),
+};
 
 // ---------------------------------------------------------------- first-timers' random values
 export const POOLS: { key: PoolKey; label: string; hint: string }[] = [
@@ -238,6 +307,7 @@ export const POOLS: { key: PoolKey; label: string; hint: string }[] = [
   { key: 'titleF', label: '女性稱呼', hint: '用這些稱呼的客人是女生的打扮' },
   { key: 'titleM', label: '男性稱呼', hint: '用這些稱呼的客人是男生的打扮' },
   { key: 'job', label: '身分', hint: '新客資料卡上的「職業」' },
+  { key: 'fighter', label: '格鬥角色', hint: '電視上格鬥遊戲的角色名單；熟客的常用角色也從這裡選，新客隨機挑' },
 ];
 export const POOL_KEYS = POOLS.map(p => p.key);
 export const DEFAULT_POOLS: RandomPools = {
@@ -245,6 +315,7 @@ export const DEFAULT_POOLS: RandomPools = {
   titleF: ['小姐'],
   titleM: ['先生'],
   job: ['路過的上班族', '觀光客', '附近的學生', '看 IG 找來的', '朋友推薦來的', '來買五金順便的'],
+  fighter: ['阿龍', '鐵拳', '飛燕', '雷電', '巨熊', '影丸', '火鳳', '山貓'],
 };
 
-export const DEFAULT_CONTENT: CafeContent = { menu: DEFAULT_MENU, lines: DEFAULT_LINES, regulars: DEFAULT_REGULARS, pools: DEFAULT_POOLS };
+export const DEFAULT_CONTENT: CafeContent = { menu: DEFAULT_MENU, lines: DEFAULT_LINES, owner: DEFAULT_OWNER, regulars: DEFAULT_REGULARS, pools: DEFAULT_POOLS };

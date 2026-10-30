@@ -1,4 +1,4 @@
-// The NBA 2K match on the TV: a tiny simulation, drawn at 320x180 for the 8-bit look.
+// The TV: an NBA 2K match or the fighting game (fight.js), each a tiny simulation drawn at 320x180 for the 8-bit look.
 import * as THREE from 'three';
 import { ctx } from './engine.js';
 import { S } from './state.js';
@@ -7,6 +7,7 @@ import { TVX, TVY, TVZ } from './layout.js';
 import { TEAMS, TEAM_NAMES } from './profiles.js';
 import { sayLine } from './content.js';
 import { log, renderResults } from './feed.js';
+import { startFight, stepFight, drawFight, fightClock } from './fight.js';
 
 export const QLEN = 30;   // simulated seconds per quarter
 const TVW = 320, TVH = 180;
@@ -30,12 +31,13 @@ function startMatch() {
   const ready = S.seats.gameSeats.map(s => s.occ).filter(o => o && o.ready);
   if (!ready.length) return;
   const h = ready[0], a = ready[1] || null;
+  if (S.tv.game === 'fight') { tv.match = startFight(h, a); return; }
   const ht = h.p.team;
   let at = a ? a.p.team : pick(TEAM_NAMES.filter(t => t !== ht));
   if (a && at === ht) { at = pick(TEAM_NAMES.filter(t => t !== ht)); sayLine(a, 'game.teamClash', { team: at }); }
   const dots = [];
   for (let side = 0; side < 2; side++) for (let i = 0; i < 5; i++) dots.push({ side, i, x: side ? 0.6 : 0.4, y: 0.2 + i * 0.15, num: randi(0, 35) });
-  tv.match = { home: makeSide(h, ht), away: makeSide(a, at), q: 1, t: QLEN, poss: 0, holder: 0, flight: null, next: 1, passes: randi(1, 3), dots, final: 0, jit: 0 };
+  tv.match = { kind: 'nba', home: makeSide(h, ht), away: makeSide(a, at), q: 1, t: QLEN, poss: 0, holder: 0, flight: null, next: 1, passes: randi(1, 3), dots, final: 0, jit: 0 };
   if (a) sayLine(h, 'game.challenge', { opponent: a.p.name, name: h.p.name }); else sayLine(h, 'game.vsCpu', { name: h.p.name });
   log(a ? `${h.p.name}（${ht}）對上 ${a.p.name}（${at}）` : `${h.p.name} 用${ht}打電腦`);
 }
@@ -106,25 +108,31 @@ function stepMatch(dt) {
 function endMatch() {
   const tv = S.tv, m = tv.match; tv.match = null; tv.startDelay = 2;
   const win = m.home.score > m.away.score ? m.home : m.away, lose = win === m.home ? m.away : m.home;
-  tv.results.unshift({ w: win, l: lose });
+  tv.results.unshift({ w: win, l: lose, kind: m.kind });
   tv.results.length = Math.min(tv.results.length, 4);
-  log(`2K 結果：${win.name}（${win.team}）${win.score} : ${lose.score} ${lose.name}`);
+  log(`${m.kind === 'fight' ? '格鬥' : '2K'} 結果：${win.name}（${win.team}）${win.score} : ${lose.score} ${lose.name}`);
   [m.home.person, m.away.person].forEach(p => {
     if (!p || !p.resolveDone) return;
     p.matchesLeft--;
     if (p.matchesLeft <= 0 || S.closing) { const r = p.resolveDone; p.resolveDone = null; r(); }
-    else if (Math.random() < 0.6) sayLine(p, 'game.rematch');
+    else if (Math.random() < 0.6) sayLine(p, m.kind === 'fight' ? 'fight.rematch' : 'game.rematch');
   });
   renderResults();
 }
 export function updateTV(dt) {
   const tv = S.tv;
-  if (tv.match) stepMatch(dt);
+  // someone playing the computer drops that game as soon as a second player sits down: straight into a two-player match
+  if (tv.match && !tv.match.away.person && S.seats.gameSeats.some(g => g.occ && g.occ.ready && g.occ !== tv.match.home.person)) {
+    log(`${tv.match.home.name} 不打電腦了，改成雙人對戰`);
+    tv.match = null; tv.startDelay = 0.6; tv.flash = null;
+  }
+  if (tv.match) { if (tv.match.kind === 'fight') stepFight(tv.match, dt, endMatch); else stepMatch(dt); }
   else { tv.startDelay -= dt; if (tv.startDelay <= 0 && S.seats.gameSeats.some(s => s.occ && s.occ.ready)) startMatch(); }
   if (tv.flash) { tv.flash.t -= dt; if (tv.flash.t <= 0) tv.flash = null; }
   tv.attract += dt;
 }
 export const matchClock = m => {
+  if (m.kind === 'fight') return fightClock(m);
   const secs = Math.max(0, m.t / QLEN * 300);
   return m.final > 0 ? 'FINAL' : `${m.q > 4 ? 'OT' : 'Q' + m.q} ${Math.floor(secs / 60)}:${String(Math.floor(secs % 60)).padStart(2, '0')}`;
 };
@@ -140,13 +148,15 @@ export function drawTV() {
   if (!m) {
     g.fillStyle = '#1f1c27'; g.fillRect(0, 0, W, H);
     for (let i = 0; i < 40; i++) { g.fillStyle = i % 2 ? '#2c2838' : '#1f1c27'; g.fillRect(0, i * 9 + (tv.attract * 20) % 18 - 18, W, 9); }
-    g.fillStyle = '#ff4f7b'; g.textAlign = 'center'; g.font = `44px ${PIX}`; g.fillText('NBA 2K', W / 2, 150);
+    const title = S.tv.game === 'fight' ? 'FIGHT!' : S.tv.game === 'nba' ? 'NBA 2K' : 'GAME';
+    g.fillStyle = '#ff4f7b'; g.textAlign = 'center'; g.font = `44px ${PIX}`; g.fillText(title, W / 2, 150);
     g.fillStyle = '#ffd23f';
     if (Math.floor(tv.attract * 1.6) % 2 === 0) { g.font = `20px ${PIX}`; g.fillText('PRESS START', W / 2, 220); }
     g.fillStyle = '#f4efe3'; g.font = `24px ${DOT}`;
     g.fillText(S.seats.gameSeats.some(s => s.occ) ? '玩家入座中…' : '搖桿放著，等人來開一場', W / 2, 300);
     tvTex.needsUpdate = true; return;
   }
+  if (m.kind === 'fight') { drawFight(g, m, tv.attract); tvTex.needsUpdate = true; return; }
   g.fillStyle = '#120d12'; g.fillRect(0, 0, W, H);
   crowd.forEach(c => { g.fillStyle = c.c; g.fillRect(Math.floor(c.x * 80) * 8, 44 + Math.floor(c.y * 5) * 9 + (Math.sin(tv.attract * 6 + c.x * 30) > 0.6 && m.final > 0 ? -4 : 0), 6, 6); });
   const tc = TEAMS[m.home.team], ta = TEAMS[m.away.team];

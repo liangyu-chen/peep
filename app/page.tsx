@@ -5,6 +5,6 @@ import { getContent } from '@/src/lib/content';
 export const dynamic = 'force-dynamic';
 
 export default async function Home() {
-  const { menu, lines, regulars, pools } = await getContent();
-  return <Cafe content={{ menu, lines, regulars, pools }} />;
+  const { source: _source, ...content } = await getContent();
+  return <Cafe content={content} />;
 }

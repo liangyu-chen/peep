@@ -1,5 +1,5 @@
 import { pgTable, serial, text, integer, boolean, timestamp, index, uniqueIndex, jsonb } from 'drizzle-orm/pg-core';
-import type { Look } from '../content/catalog';
+import type { Look, Owner } from '../content/catalog';
 
 export const menuItems = pgTable('menu_items', {
   id: serial('id').primaryKey(),
@@ -26,10 +26,15 @@ export const regulars = pgTable('regulars', {
   name: text('name').notNull().unique(),
   job: text('job').notNull().default(''),
   drink: text('drink').notNull().default(''),
-  team: text('team').notNull().default('湖人'),
+  team: text('team').notNull().default(''),                 // '' = a random team each visit
   visits: integer('visits').notNull().default(1),
   quirk: text('quirk').notNull().default(''),
   look: jsonb('look').$type<Look>().notNull(),
+  plays2k: boolean('plays_2k').notNull().default(true),
+  playsFight: boolean('plays_fight').notNull().default(false),
+  fighter: text('fighter').notNull().default(''),           // '' = a random character each visit
+  playsTops: boolean('plays_tops').notNull().default(false),
+  smokes: boolean('smokes').notNull().default(false),
   sort: integer('sort').notNull().default(0),
   active: boolean('active').notNull().default(true),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
@@ -38,9 +43,16 @@ export const regulars = pgTable('regulars', {
 // values first-time customers are randomly made from, one row per value
 export const randomValues = pgTable('random_values', {
   id: serial('id').primaryKey(),
-  pool: text('pool').notNull(),                             // one of POOL_KEYS: surname, titleF, titleM, job
+  pool: text('pool').notNull(),                             // one of POOL_KEYS: surname, titleF, titleM, job, fighter
   value: text('value').notNull(),
   sort: integer('sort').notNull().default(0),
   active: boolean('active').notNull().default(true),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 }, t => [uniqueIndex('random_values_pool_value_idx').on(t.pool, t.value)]);
+
+// single records keyed by name; 'owner' holds the owner's name, job and look
+export const settings = pgTable('settings', {
+  key: text('key').primaryKey(),
+  value: jsonb('value').$type<Owner>().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
