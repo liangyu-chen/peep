@@ -18,3 +18,12 @@ export const dialogueLines = pgTable('dialogue_lines', {
   active: boolean('active').notNull().default(true),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 }, t => [index('dialogue_lines_category_idx').on(t.category)]);
+
+export const customerNames = pgTable('customer_names', {
+  id: serial('id').primaryKey(),
+  name: text('name').notNull().unique(),
+  gender: text('gender').notNull().default('any'),          // 'f' | 'm' | 'any'
+  sort: integer('sort').notNull().default(0),
+  active: boolean('active').notNull().default(true),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});

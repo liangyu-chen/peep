@@ -7,9 +7,14 @@ export type MenuItem = {
   iced: boolean;          // iced drinks come in a tall glass, hot ones in a Taiwanese tea cup
 };
 
+// a first-time customer's name; gender decides their hair and the look of their clothes ('any' picks at random)
+export type Gender = 'f' | 'm' | 'any';
+export type CustomerName = { name: string; gender: Gender };
+
 export type CafeContent = {
   menu: MenuItem[];
   lines: Record<string, string[]>;
+  names: CustomerName[];
 };
 
 export type LineCategory = { key: string; label: string; vars?: string[] };
@@ -127,4 +132,16 @@ export const DEFAULT_LINES: Record<string, string[]> = {
   'game.tired': ['打累了，坐一下'],
 };
 
-export const DEFAULT_CONTENT: CafeContent = { menu: DEFAULT_MENU, lines: DEFAULT_LINES };
+export const GENDERS: { value: Gender; label: string }[] = [
+  { value: 'f', label: '女' },
+  { value: 'm', label: '男' },
+  { value: 'any', label: '不限' },
+];
+
+const SURNAMES = ['陳', '林', '黃', '張', '李', '王', '吳', '劉', '蔡', '楊'];
+export const DEFAULT_NAMES: CustomerName[] = SURNAMES.flatMap(s => [
+  { name: `${s}小姐`, gender: 'f' as const },
+  { name: `${s}先生`, gender: 'm' as const },
+]);
+
+export const DEFAULT_CONTENT: CafeContent = { menu: DEFAULT_MENU, lines: DEFAULT_LINES, names: DEFAULT_NAMES };

@@ -2,6 +2,7 @@
 import * as THREE from 'three';
 import { rand, randi, pick } from './util.js';
 import { menuNames } from './content.js';
+import { S } from './state.js';
 
 export const TEAMS = {
   '湖人': { ab: 'LAL', c1: '#552583', c2: '#FDB927' }, '勇士': { ab: 'GSW', c1: '#1D428A', c2: '#FFC72C' },
@@ -33,12 +34,15 @@ export const createRegulars = () => [
   { name: '球哥', job: '前校隊後衛', drink: '林美如', team: '公牛', visits: 188, look: L(0xc68a5e, 0x111111, 'short', 0x111111, 0xCE1141, { number: '1' }), quirk: '嘴上說不玩，坐下就不走' }
 ].map(r => Object.assign(r, { regular: true, wins: randi(10, 60), losses: randi(10, 60) }));
 
-const SURNAMES = ['陳', '林', '黃', '張', '李', '王', '吳', '劉', '蔡', '楊'];
 const NEW_JOBS = ['路過的上班族', '觀光客', '附近的學生', '看 IG 找來的', '朋友推薦來的', '來買五金順便的'];
+// a first-timer's name comes from the back office's name list, preferring one nobody in the shop is using
 export function newProfile() {
-  const female = Math.random() < 0.5;
+  const all = S.content.names;
+  const free = all.filter(n => !S.customers.some(c => c.p.name === n.name));
+  const { name, gender } = pick(free.length ? free : all);
+  const female = gender === 'any' ? Math.random() < 0.5 : gender === 'f';
   return {
-    name: pick(SURNAMES) + (female ? '小姐' : '先生'), regular: false, visits: 1, job: pick(NEW_JOBS),
+    name, regular: false, visits: 1, job: pick(NEW_JOBS),
     drink: pick(menuNames()), team: pick(TEAM_NAMES), wins: 0, losses: 0, quirk: '第一次來',
     look: L(pick(SKINS), pick(HAIRS), female ? pick(['long', 'bun', 'short']) : pick(['short', 'short', 'cap', 'bald']),
       new THREE.Color().setHSL(Math.random(), rand(0.3, 0.6), rand(0.35, 0.6)).getHex(), pick([0x2b2b2b, 0x334455, 0x5a4a3a, 0x1f2a44]),

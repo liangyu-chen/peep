@@ -1,13 +1,13 @@
-// Fills Neon with the built-in menu and dialogue.
+// Fills Neon with the built-in menu, dialogue and customer names.
 //   npm run db:seed    only fills tables that are empty
-//   npm run db:reset   wipes both tables and fills them again
+//   npm run db:reset   wipes all three tables and fills them again
 import { config } from 'dotenv';
 config({ path: '.env.local' });
 
 import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
 import * as schema from '../src/db/schema';
-import { DEFAULT_LINES, DEFAULT_MENU, LINE_KEYS } from '../src/content/catalog';
+import { DEFAULT_LINES, DEFAULT_MENU, DEFAULT_NAMES, LINE_KEYS } from '../src/content/catalog';
 
 async function main() {
   const url = process.env.DATABASE_URL;
@@ -18,7 +18,8 @@ async function main() {
   if (reset) {
     await db.delete(schema.menuItems);
     await db.delete(schema.dialogueLines);
-    console.log('cleared menu_items and dialogue_lines');
+    await db.delete(schema.customerNames);
+    console.log('cleared menu_items, dialogue_lines and customer_names');
   }
 
   if ((await db.select({ id: schema.menuItems.id }).from(schema.menuItems).limit(1)).length === 0) {
@@ -31,6 +32,11 @@ async function main() {
     await db.insert(schema.dialogueLines).values(rows);
     console.log(`dialogue_lines: ${rows.length} rows`);
   } else console.log('dialogue_lines already has rows, left alone');
+
+  if ((await db.select({ id: schema.customerNames.id }).from(schema.customerNames).limit(1)).length === 0) {
+    await db.insert(schema.customerNames).values(DEFAULT_NAMES.map((n, i) => ({ ...n, sort: i })));
+    console.log(`customer_names: ${DEFAULT_NAMES.length} rows`);
+  } else console.log('customer_names already has rows, left alone');
 }
 
 main().catch(err => { console.error(err); process.exit(1); });

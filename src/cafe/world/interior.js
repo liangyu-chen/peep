@@ -64,7 +64,9 @@ function purpleWall() {
 
 // charred paper menu on a clipboard, every price $??? unless the back office set one
 function menuClipboard() {
-  const menuTex = canvasTex(256, 360, (g, w, h) => {
+  const menuTex = canvasTex(512, 720, (g) => {
+    g.setTransform(2, 0, 0, 2, 0, 0);   // drawn at 256x360, twice the pixels so it reads from the 菜單 camera
+    const w = 256, h = 360;
     g.fillStyle = '#e8d6b0'; g.fillRect(0, 0, w, h);
     const grd = g.createRadialGradient(w / 2, h / 2, h * 0.25, w / 2, h / 2, h * 0.62);
     grd.addColorStop(0, 'rgba(0,0,0,0)'); grd.addColorStop(0.8, 'rgba(90,50,20,.55)'); grd.addColorStop(1, 'rgba(20,10,5,.95)');

@@ -121,3 +121,40 @@ export async function importDefaults(f: FormData) {
   await writeOutDefaults(category);
   doneLines(category, '已匯入預設台詞，可以逐句修改');
 }
+
+// ---------------------------------------------------------------- customer names (first-timers)
+const gender = (f: FormData) => { const g = str(f, 'gender'); return g === 'f' || g === 'm' ? g : 'any'; };
+
+export async function addName(f: FormData) {
+  await requireAdmin();
+  const name = str(f, 'name');
+  if (!name) done('/admin/names', '名字不能空白');
+  try {
+    await db().insert(schema.customerNames).values({ name, gender: gender(f), sort: int(f, 'sort') ?? 0 });
+  } catch (e) {
+    if (isUniqueViolation(e)) done('/admin/names', `「${name}」已經在名單上`);
+    throw e;
+  }
+  done('/admin/names', `已新增「${name}」`);
+}
+
+export async function updateName(f: FormData) {
+  await requireAdmin();
+  const id = Number(f.get('id')), name = str(f, 'name');
+  if (!name) done('/admin/names', '名字不能空白');
+  try {
+    await db().update(schema.customerNames)
+      .set({ name, gender: gender(f), active: bool(f, 'active'), sort: int(f, 'sort') ?? 0, updatedAt: new Date() })
+      .where(eq(schema.customerNames.id, id));
+  } catch (e) {
+    if (isUniqueViolation(e)) done('/admin/names', `「${name}」已經在名單上`);
+    throw e;
+  }
+  done('/admin/names', `已儲存「${name}」`);
+}
+
+export async function deleteName(f: FormData) {
+  await requireAdmin();
+  await db().delete(schema.customerNames).where(eq(schema.customerNames.id, Number(f.get('id'))));
+  done('/admin/names', '已刪除');
+}

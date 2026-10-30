@@ -56,6 +56,9 @@ body:has(.cafe-root){margin:0;overflow:hidden;background:#141218}
 .cafe-root button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 .cafe-root button.on{background:var(--gold);color:#1f1c27;box-shadow:inset -3px -3px 0 0 #b08d10,inset 3px 3px 0 0 #fff2a8}
 .cafe-root button.primary{background:var(--neon);color:#2a0a14;box-shadow:inset -3px -3px 0 0 #a8264b,inset 3px 3px 0 0 #ff9ab3}
+.cafe-root .adminLink{margin-left:auto;font-size:12px;color:var(--muted);padding:4px 2px;text-decoration:underline;text-underline-offset:3px}
+.cafe-root .adminLink:hover{color:var(--gold)}
+.cafe-root .adminLink:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 .cafe-root #log{left:calc(16px + env(safe-area-inset-left,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));width:310px;padding:10px 12px}
 .cafe-root #logList{list-style:none;margin:0;padding:0;display:grid;gap:4px;font-size:13px;line-height:1.35}
 .cafe-root #logList time{font-family:var(--f-pixel);color:var(--muted);margin-right:6px;font-size:8px}

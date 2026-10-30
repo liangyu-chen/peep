@@ -23,7 +23,7 @@ export function createEngine(stage) {
   controls.target.set(0, 0.5, -1.5);
   controls.enableDamping = true;
   controls.maxPolarAngle = Math.PI / 2.1;
-  controls.minDistance = 2;
+  controls.minDistance = 0.4;   // close enough to read the menu clipboard
   controls.maxDistance = 45;
 
   Object.assign(ctx, { scene, camera, renderer, controls });

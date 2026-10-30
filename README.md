@@ -3,8 +3,8 @@
 3D 的窺視珈琲小店（Next.js + three.js），加上可以編輯菜單和台詞的後台，資料存在 Neon。
 
 - `/`：咖啡廳本體，每次載入都讀最新的菜單和台詞
-- `/admin`：後台（菜單、台詞），用 `ADMIN_PASSWORD` 登入
-- `/api/content`：目前的菜單和台詞（JSON），`source` 會顯示資料來自 `db` 還是 `defaults`
+- `/admin`：後台（菜單、台詞、新客姓名），用 `ADMIN_PASSWORD` 登入；前台右上角有「後台登入」連結
+- `/api/content`：目前的菜單、台詞和新客姓名（JSON），`source` 會顯示資料來自 `db` 還是 `defaults`
 
 沒設定資料庫時，網站照樣能跑，用的是 `src/content/catalog.ts` 裡的預設內容。
 
@@ -18,7 +18,7 @@ npm run db:seed              # 匯入預設菜單和台詞（只填空的表）
 npm run dev
 ```
 
-`npm run db:reset` 會清空兩張表再重新匯入預設值，後台改過的內容會全部消失。
+`npm run db:reset` 會清空三張表再重新匯入預設值，後台改過的內容會全部消失。
 
 ## 部署到 Vercel
 
@@ -27,7 +27,7 @@ npm run dev
    - `DATABASE_URL`：Neon 的連線字串（建議用 pooled 那條）
    - `ADMIN_PASSWORD`：後台密碼，跟本機的不要一樣
    - `SESSION_SECRET`：至少 16 個字元的隨機字串，例如 `openssl rand -hex 32` 的結果
-3. 部署前在本機對正式資料庫跑一次 `npm run db:push` 和 `npm run db:seed`。
+3. 部署前在本機對正式資料庫跑一次 `npm run db:push` 和 `npm run db:seed`。之後如果資料表有新增（例如新客姓名），再跑一次這兩個指令即可，既有資料不會被動到。
 
 ## 內容的規則
 
@@ -36,6 +36,7 @@ npm run dev
 - 菜單沒有任何上架品項 → 用預設菜單
 - 價格留白 → 紙菜單上顯示 `$???`，模擬營收用隨機金額
 - 熟客的「常點」被下架了 → 改點菜單上的其他飲料
+- 新客姓名沒有任何啟用的 → 用預設名單（陳小姐、陳先生⋯）；性別決定髮型，「不限」隨機
 
 台詞可用的變數（每個情境可用哪些，後台會標出來）：`{name}` 客人名字、`{drink}` 飲料、`{team}` 球隊、`{opponent}` 對手名字。
 

@@ -36,6 +36,7 @@ export default function Cafe({ content }: { content: CafeContent }) {
         <div className="row"><span>視角</span>
           <button data-cam="overview" className="on">全景</button>
           <button data-cam="counter">吧台</button>
+          <button data-cam="menu">菜單</button>
           <button data-cam="tv">電視</button>
           <button data-cam="porch">騎樓</button>
           <button data-cam="back">後場</button>
@@ -46,7 +47,7 @@ export default function Cafe({ content }: { content: CafeContent }) {
           <button data-speed="4">4x</button>
           <button id="tagToggle" className="on">名牌</button>
         </div>
-        <div className="row"><span></span><button id="spawnBtn" className="primary">▶ 叫一位客人進門</button></div>
+        <div className="row"><span></span><button id="spawnBtn" className="primary">▶ 叫一位客人進門</button><a href="/admin" className="adminLink">後台登入</a></div>
       </section>
 
       <section id="log" className="win" aria-label="店內動態">

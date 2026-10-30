@@ -47,6 +47,7 @@ export function fillCard() {
 const CAMS = {
   overview: { pos: [9, 13, 11], target: [0, 0.5, -1.5] },
   counter: { pos: [-1.9, 2.3, 2.9], target: [1.2, 1.1, -0.9] },
+  menu: { pos: [0.22, 1.5, 2.3], target: [0.6, 1.06, 2.3] },   // leaning over the bar from the customer side, reading the clipboard
   tv: { pos: [1.0, 1.7, -1.8], target: [-2.5, 0.9, -3.5] },
   porch: { pos: [-1.0, 3.3, 4.3], target: [-1.0, 0.3, 7.6] },   // from above the door, looking out over both chair rows to the kerb
   back: { pos: [5, 7, -1.5], target: [0.2, 0.5, -6.6] }

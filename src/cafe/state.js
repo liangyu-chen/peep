@@ -4,7 +4,7 @@ export const S = {};
 export function resetState(content) {
   for (const k of Object.keys(S)) delete S[k];
   Object.assign(S, {
-    content,            // { menu, lines } from the back office (or the built-in defaults)
+    content,            // { menu, lines, names } from the back office (or the built-in defaults)
     stopped: false,
 
     // clock and shop
