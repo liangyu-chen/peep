@@ -43,10 +43,21 @@ body:has(.admin){margin:0;background:#141218}
 .admin .bar nav a:hover{text-decoration:underline}
 
 /* menu table */
-.admin .menu-row{display:grid;grid-template-columns:56px 150px minmax(0,0.8fr) minmax(0,1.2fr) 64px 64px 72px 136px;gap:8px;align-items:center;padding:6px 0;border-bottom:2px dashed var(--line)}
+.admin .menu-row{display:grid;grid-template-columns:52px minmax(0,0.8fr) minmax(0,1.2fr) 60px 60px 150px 64px 64px;gap:8px;align-items:center;padding:6px 0;border-bottom:2px dashed var(--line)}
 .admin .th{color:var(--muted);font-size:13px;border-bottom:2px solid var(--line)}
 .admin .menu-row.off input:not([type=checkbox]){color:var(--muted);text-decoration:line-through}
 .admin .menu-row.add{border:0}
+.admin .menu-row.new{background:rgba(255,210,63,.06)}
+.admin .menu-row .order{display:flex;flex-direction:column;gap:2px}
+.admin .menu-row .order button{padding:0 8px;font-size:10px;line-height:16px}
+.admin input.invalid{border-color:var(--neon)}
+.admin .menu-section{margin:0 0 18px}
+.admin .menu-section header{display:flex;align-items:baseline;gap:10px}
+.admin .menu-section h2{margin:18px 0 6px}
+.admin .add-row{margin-top:8px;background:transparent;color:var(--gold);box-shadow:inset 0 0 0 2px var(--line)}
+.admin .save-bar{position:sticky;bottom:0;z-index:1;display:flex;align-items:center;justify-content:flex-end;gap:10px;padding:12px 0;background:var(--bg);border-top:2px solid var(--line)}
+.admin .save-bar span{margin-right:auto;font-size:14px}
+.admin .save-bar .unsaved{color:var(--gold)}
 
 .admin select{font:inherit;color:var(--ink);background:#15131c;border:2px solid var(--line);padding:6px 8px;width:100%}
 .admin select:focus{outline:none;border-color:var(--gold)}
@@ -141,8 +152,8 @@ body:has(.admin){margin:0;background:#141218}
 .admin .panel .back{font-size:14px}
 
 @media (max-width:640px){
-  .admin .menu-row{grid-template-columns:56px minmax(0,1fr) 84px;row-gap:6px}
-  .admin .menu-row .actions{grid-column:1 / -1}
+  .admin .menu-row{grid-template-columns:40px minmax(0,1fr) minmax(0,1fr);row-gap:6px}
+  .admin .menu-row .order{grid-row:span 3}
   .admin .th{display:none}
   .admin .line-row{grid-template-columns:minmax(0,1fr) auto}
   .admin .line-row .actions{grid-column:1 / -1}
