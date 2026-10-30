@@ -1,4 +1,4 @@
-// The TV: an NBA 2K match or the fighting game (fight.js), each a tiny simulation drawn at 320x180 for the 8-bit look.
+// The TV: an NBA 2K match or 快打旋風 (fight.js), each a tiny simulation drawn at 320x180 for the 8-bit look.
 import * as THREE from 'three';
 import { ctx } from './engine.js';
 import { S } from './state.js';
@@ -110,7 +110,7 @@ function endMatch() {
   const win = m.home.score > m.away.score ? m.home : m.away, lose = win === m.home ? m.away : m.home;
   tv.results.unshift({ w: win, l: lose, kind: m.kind });
   tv.results.length = Math.min(tv.results.length, 4);
-  log(`${m.kind === 'fight' ? '格鬥' : '2K'} 結果：${win.name}（${win.team}）${win.score} : ${lose.score} ${lose.name}`);
+  log(`${m.kind === 'fight' ? '快打旋風' : '2K'} 結果：${win.name}（${win.team}）${win.score} : ${lose.score} ${lose.name}`);
   [m.home.person, m.away.person].forEach(p => {
     if (!p || !p.resolveDone) return;
     p.matchesLeft--;
@@ -148,8 +148,8 @@ export function drawTV() {
   if (!m) {
     g.fillStyle = '#1f1c27'; g.fillRect(0, 0, W, H);
     for (let i = 0; i < 40; i++) { g.fillStyle = i % 2 ? '#2c2838' : '#1f1c27'; g.fillRect(0, i * 9 + (tv.attract * 20) % 18 - 18, W, 9); }
-    const title = S.tv.game === 'fight' ? 'FIGHT!' : S.tv.game === 'nba' ? 'NBA 2K' : 'GAME';
-    g.fillStyle = '#ff4f7b'; g.textAlign = 'center'; g.font = `44px ${PIX}`; g.fillText(title, W / 2, 150);
+    const fight = S.tv.game === 'fight', title = fight ? '快打旋風' : S.tv.game === 'nba' ? 'NBA 2K' : 'GAME';
+    g.fillStyle = '#ff4f7b'; g.textAlign = 'center'; g.font = fight ? `64px ${DOT}` : `44px ${PIX}`; g.fillText(title, W / 2, fight ? 160 : 150);
     g.fillStyle = '#ffd23f';
     if (Math.floor(tv.attract * 1.6) % 2 === 0) { g.font = `20px ${PIX}`; g.fillText('PRESS START', W / 2, 220); }
     g.fillStyle = '#f4efe3'; g.font = `24px ${DOT}`;

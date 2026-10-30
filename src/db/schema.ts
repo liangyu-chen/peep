@@ -43,7 +43,7 @@ export const regulars = pgTable('regulars', {
 // values first-time customers are randomly made from, one row per value
 export const randomValues = pgTable('random_values', {
   id: serial('id').primaryKey(),
-  pool: text('pool').notNull(),                             // one of POOL_KEYS: surname, titleF, titleM, job, fighter
+  pool: text('pool').notNull(),                             // one of POOL_KEYS: surname, titleF, titleM, job
   value: text('value').notNull(),
   sort: integer('sort').notNull().default(0),
   active: boolean('active').notNull().default(true),

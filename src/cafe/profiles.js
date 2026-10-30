@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { rand, randi, pick } from './util.js';
 import { menuNames } from './content.js';
 import { S } from './state.js';
-import { FACE } from '../content/catalog';
+import { FACE, FIGHTER_NAMES } from '../content/catalog';
 
 // any face option except 'none' (a first-timer always has brows and a nose)
 const pickFace = key => pick(FACE[key].filter(o => o.value !== 'none')).value;
@@ -27,13 +27,13 @@ export const L = (skin, hair, hairStyle, shirt, pants, extra = {}) => Object.ass
 export const createRegulars = () => S.content.regulars.map(r => ({
   ...r, look: { ...r.look },
   team: TEAMS[r.team] ? r.team : pick(TEAM_NAMES),
-  fighter: r.fighter && S.content.pools.fighter.includes(r.fighter) ? r.fighter : pick(S.content.pools.fighter),
+  fighter: FIGHTER_NAMES.includes(r.fighter) ? r.fighter : pick(FIGHTER_NAMES),
   regular: true, wins: randi(10, 60), losses: randi(10, 60),
 }));
 
-// the TV games someone plays: 'nba' (NBA 2K) and 'fight' (the fighting game)
+// the TV games someone plays: 'nba' (NBA 2K) and 'fight' (快打旋風)
 export const tvGames = p => [p.plays2k && 'nba', p.playsFight && 'fight'].filter(Boolean);
-export const GAME_LABEL = { nba: 'NBA 2K', fight: '格鬥' };
+export const GAME_LABEL = { nba: 'NBA 2K', fight: '快打旋風' };
 
 // a first-timer is surname + title (a female or male title decides the look) and a job, all from the back office's pools;
 // a name already in the shop is avoided when another is possible
@@ -48,7 +48,7 @@ export function newProfile() {
   }
   return {
     name, regular: false, visits: 1, job: pick(job),
-    drink: pick(menuNames()), team: pick(TEAM_NAMES), fighter: pick(S.content.pools.fighter), wins: 0, losses: 0, quirk: '第一次來',
+    drink: pick(menuNames()), team: pick(TEAM_NAMES), fighter: pick(FIGHTER_NAMES), wins: 0, losses: 0, quirk: '第一次來',
     plays2k: Math.random() < 0.35, playsFight: Math.random() < 0.2, playsTops: false, smokes: Math.random() < 0.2,
     look: L(pick(SKINS), pick(HAIRS), female ? pick(['long', 'bun', 'ponytail', 'short', 'curly']) : pick(['short', 'short', 'buzz', 'side', 'spiky', 'cap', 'bald']),
       new THREE.Color().setHSL(Math.random(), rand(0.3, 0.6), rand(0.35, 0.6)).getHex(), pick([0x2b2b2b, 0x334455, 0x5a4a3a, 0x1f2a44]),

@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { asc, eq } from 'drizzle-orm';
 import { requireAdmin } from '@/src/lib/auth';
 import { getDb, schema } from '@/src/lib/db';
-import { DEFAULT_POOLS, TEAM_NAMES, type Look } from '@/src/content/catalog';
+import { FIGHTER_NAMES, TEAM_NAMES, type Look } from '@/src/content/catalog';
 import { addRegular, updateRegular, deleteRegular } from '../../../actions';
 import LookPreview from '../../LookPreview';
 import LookFields from '../../LookFields';
@@ -18,15 +18,9 @@ export default async function RegularEditor({ params, searchParams }: { params: 
   const isNew = id === 'new';
   const row = isNew ? null : (await db.select().from(schema.regulars).where(eq(schema.regulars.id, Number(id))))[0];
   if (!isNew && !row) notFound();
-  const [menu, fighterRows] = await Promise.all([
-    db.select({ name: schema.menuItems.name, active: schema.menuItems.active }).from(schema.menuItems).orderBy(asc(schema.menuItems.sort)),
-    db.select().from(schema.randomValues).where(eq(schema.randomValues.pool, 'fighter')).orderBy(asc(schema.randomValues.sort)),
-  ]);
+  const menu = await db.select({ name: schema.menuItems.name, active: schema.menuItems.active }).from(schema.menuItems).orderBy(asc(schema.menuItems.sort));
   const drinks = menu.filter(m => m.active).map(m => m.name);
   const drinkOptions = row?.drink && !drinks.includes(row.drink) ? [...drinks, row.drink] : drinks;
-  const roster = fighterRows.filter(r => r.active).map(r => r.value);
-  const fighters = roster.length ? roster : DEFAULT_POOLS.fighter;
-  const fighterOptions = row?.fighter && !fighters.includes(row.fighter) ? [...fighters, row.fighter] : fighters;
   const look = row?.look ?? NEW_LOOK;
 
   return (
@@ -71,11 +65,11 @@ export default async function RegularEditor({ params, searchParams }: { params: 
               </label>
             </div>
             <div className="game-row">
-              <label className="check"><input type="checkbox" name="playsFight" defaultChecked={row?.playsFight ?? false} /><span>會打格鬥遊戲</span></label>
+              <label className="check"><input type="checkbox" name="playsFight" defaultChecked={row?.playsFight ?? false} /><span>會打快打旋風</span></label>
               <label>常用角色
                 <select name="fighter" defaultValue={row?.fighter ?? ''}>
                   <option value="">隨機</option>
-                  {fighterOptions.map(c => <option key={c} value={c}>{fighters.includes(c) ? c : `${c}（已不在角色名單上）`}</option>)}
+                  {FIGHTER_NAMES.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
               </label>
             </div>
@@ -83,7 +77,6 @@ export default async function RegularEditor({ params, searchParams }: { params: 
               <label className="check"><input type="checkbox" name="playsTops" defaultChecked={row?.playsTops ?? false} /><span>會玩戰鬥陀螺</span></label>
               <span className="hint">店裡同時有兩位會玩的熟客坐著時，偶爾會去後面搬戰鬥盤到戶外區開打。</span>
             </div>
-            <p className="hint">角色名單在 <Link href="/admin/random#fighter">新客隨機值 → 格鬥角色</Link> 維護。</p>
           </section>
 
           <LookFields look={look} seed={row?.name ?? ''} />

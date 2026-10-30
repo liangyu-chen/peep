@@ -1,9 +1,9 @@
-// The fighting game on the TV: an original 8-bit one-on-one brawler, best of three rounds.
-// Characters come from the back office's roster; each gets its own colours from its name.
+// 快打旋風 on the TV, as a tiny 8-bit one-on-one match, best of three rounds; each fighter is drawn in its own colours.
 import { S } from './state.js';
 import { rand, pick, DOT, PIX } from './util.js';
 import { sayLine } from './content.js';
 import { log } from './feed.js';
+import { SF_FIGHTERS, FIGHTER_NAMES } from '../content/catalog';
 
 const ROUND = 25;   // simulated seconds per round
 // gi, trim (belt, gloves, energy), hair; picked by the character's name
@@ -15,21 +15,22 @@ const hashOf = s => { let h = 7; for (const ch of s) h = (h * 31 + ch.codePointA
 const paletteOf = name => PALETTES[hashOf(name) % PALETTES.length];
 const SKINS = ['#f1c9a5', '#e0ac80', '#c68a5e', '#8d5a3b'];
 
+const LOOKS = Object.fromEntries(SF_FIGHTERS.map(f => [f.name, { col: f.col, skin: f.skin }]));
 function side(person, fighter, x, dir) {
   return {
     person, name: person ? person.p.name : 'CPU', team: fighter, fighter, score: 0,
     hp: 100, x, dir, act: 'idle', actT: 0, cool: rand(0.5, 1), walk: 0,
-    col: paletteOf(fighter), skin: SKINS[hashOf(fighter + '*') % SKINS.length],
+    ...(LOOKS[fighter] || { col: paletteOf(fighter), skin: SKINS[hashOf(fighter + '*') % SKINS.length] }),
   };
 }
 
 export function startFight(h, a) {
-  const roster = S.content.pools.fighter;
+  const roster = FIGHTER_NAMES;
   const hf = h.p.fighter || pick(roster);
   let af = a ? a.p.fighter || pick(roster) : pick(roster.filter(f => f !== hf).concat(roster.length < 2 ? [hf] : []));
   const m = { kind: 'fight', home: side(h, hf, 0.3, 1), away: side(a, af, 0.7, -1), round: 1, t: ROUND, intro: 1.8, ko: 0, koText: '', final: 0, shots: [], sparks: [], clock: 0 };
   if (a) sayLine(h, 'fight.challenge', { opponent: a.p.name, fighter: hf }); else sayLine(h, 'fight.vsCpu', { fighter: hf });
-  log(a ? `格鬥：${h.p.name}（${hf}）對上 ${a.p.name}（${af}）` : `格鬥：${h.p.name} 用${hf}打電腦`);
+  log(a ? `快打旋風：${h.p.name}（${hf}）對上 ${a.p.name}（${af}）` : `快打旋風：${h.p.name} 用${hf}打電腦`);
   return m;
 }
 

@@ -1,7 +1,7 @@
 import type { LineCategory } from '@/src/content/catalog';
 import { addLine, updateLine, deleteLine } from '../actions';
 
-const VAR_LABEL: Record<string, string> = { owner: '老闆名字', name: '客人名字', drink: '飲料', team: '球隊', fighter: '格鬥角色', opponent: '對手名字' };
+const VAR_LABEL: Record<string, string> = { owner: '老闆名字', name: '客人名字', drink: '飲料', team: '球隊', fighter: '快打旋風角色', opponent: '對手名字' };
 type Row = { id: number; category: string; text: string; active: boolean };
 
 // one dialogue situation: its lines (edit, switch off, delete) and a box to add one

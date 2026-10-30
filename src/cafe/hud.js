@@ -39,7 +39,7 @@ export function fillCard() {
   const rows = s.role === 'owner'
     ? [['身分', p.job], ['今日出杯', S.cupsSold + ' 杯'], ['待做訂單', S.orderQueue.length + ' 張'], ['營業時間', '15:00 起']]
     : [['職業', p.job], ['來店次數', p.visits + ' 次'], ['常點', s.drink || p.drink],
-      ...(p.plays2k ? [['2K 主隊', p.team]] : []), ...(p.playsFight ? [['格鬥角色', p.fighter]] : []),
+      ...(p.plays2k ? [['2K 主隊', p.team]] : []), ...(p.playsFight ? [['快打旋風角色', p.fighter]] : []),
       ...(tvGames(p).length ? [['電動戰績', `${p.wins} 勝 ${p.losses} 敗`]] : []), ...(p.playsTops ? [['戰鬥陀螺', '會玩']] : []), ...(p.smokes ? [['抽菸', '會，喜歡坐戶外區']] : []),
       ['小檔案', p.quirk]];
   const dl = $('cInfo'); dl.innerHTML = '';
