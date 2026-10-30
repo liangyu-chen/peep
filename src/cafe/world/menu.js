@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import { ctx, mat, box, cyl, canvasTex } from '../engine.js';
 import { S } from '../state.js';
 import { MENU_SECTIONS, MENU_FOOTER } from '../../content/catalog';
-import { logoPath, logoLines } from './logo.js';
+import { logoPath, logoLines, LOGO_W } from './logo.js';
 
 const W = 640, H = 1000;            // the sheet, in canvas units (drawn at 1.2x for sharpness)
 const ZH = '"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif';
@@ -37,8 +37,8 @@ function doodles(g) {
   g.bezierCurveTo(344, 34, 372, 40, 362, 70); g.bezierCurveTo(390, 46, 420, 52, 404, 78); g.moveTo(258, 80); g.quadraticCurveTo(330, 96, 410, 74); g.stroke();
   g.beginPath(); g.moveTo(268, 92); g.lineTo(256, 112); g.lineTo(276, 104); g.stroke();
   g.restore();
-  // the shop's melting face, faint, behind the Coffee late prices (the same drawing as the window)
-  g.save(); g.translate(292, 196); g.scale(0.74, 0.74); g.strokeStyle = 'rgba(35,35,35,.55)';
+  // the shop's melting face, faint, in the middle of the sheet (the same drawing as the window)
+  g.save(); g.translate((W - LOGO_W * 0.74) / 2, 196); g.scale(0.74, 0.74); g.strokeStyle = 'rgba(35,35,35,.55)';
   logoLines(g, { lw: 4.5, band: false }); logoPath(g); g.lineWidth = 4.5; g.stroke();
   g.restore();
 }
