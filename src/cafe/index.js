@@ -1,0 +1,85 @@
+// Entry point: startCafe(root, content) builds the café inside root and returns a function that tears it down.
+// root must contain the HUD markup (see app/Cafe.tsx); content is { menu, lines } from the back office.
+import { ctx, createEngine, disposeEngine } from './engine.js';
+import { S, resetState } from './state.js';
+import { K, PIX } from './util.js';
+import { createSeats } from './layout.js';
+import { createRegulars } from './profiles.js';
+import { buildWorld } from './world/index.js';
+import { updateLighting } from './world/lights.js';
+import { updateTV, drawTV } from './tv.js';
+import { createOwner, createSteam, seedOpeningScene, tickShop, updateSteam } from './sim.js';
+import { bindHUD, updateHUD, fillCard, updateCamera, updateLabels } from './hud.js';
+import { renderResults } from './feed.js';
+
+export function startCafe(root, content) {
+  resetState(content);
+  const stage = root.querySelector('#stage');
+  S.labelsEl = root.querySelector('#labels');
+  S.regulars = createRegulars();
+  S.seats = createSeats();
+
+  createEngine(stage);
+  buildWorld();
+  createSteam();
+  createOwner();
+  seedOpeningScene();
+  const unbind = bindHUD(root, stage);
+  renderResults();
+
+  let last = performance.now(), tvFrameN = 0, raf = 0;
+  const near = (x, z, r) => S.people.some(p => Math.hypot(p.g.position.x - x * K, p.g.position.z - z) < r);
+  function frame(now) {
+    if (S.stopped) return;
+    const dt = Math.min(0.05, (now - last) / 1000); last = now;
+    const sdt = dt * S.speed;
+
+    tickShop(sdt);
+    for (let i = S.timers.length - 1; i >= 0; i--) { const tm = S.timers[i]; tm.t -= sdt; if (tm.t <= 0) { S.timers.splice(i, 1); tm.r(); } }
+    S.people.slice().forEach(p => p.update(sdt));
+    updateTV(sdt);
+    updateSteam(sdt);
+    S.acFan.rotation.x += dt * 12;
+    S.fanBlades.rotation.y += dt * 4;
+    // doors open when someone comes close
+    S.slide.open += ((near(-1.5, -4.5, 1.3) ? 1 : 0) - S.slide.open) * Math.min(1, dt * 5);
+    S.slideDoor.position.x = -1.5 - S.slide.open * 1.05;
+    S.toiletDoor.position.z = -7.7 + (near(-0.8, -7.7, 1.1) ? 1.0 : 0);   // slides toward the front, into the wall beside it
+    S.frontDoor.rotation.y += ((near(-1.7, 4.0, 1.3) ? 1.45 : 0) - S.frontDoor.rotation.y) * Math.min(1, dt * 5);
+    // fade the outer walls the camera is behind
+    const cp = ctx.camera.position;
+    S.fadeWalls.forEach(w => {
+      const behind = (w.side === 'L' && cp.x < -3.1 * K) || (w.side === 'R' && cp.x > 3.1 * K) || (w.side === 'B' && cp.z < -8.35);
+      w.me.material.opacity += ((behind ? 0.12 : 1) - w.me.material.opacity) * Math.min(1, dt * 8);
+      w.me.material.depthWrite = w.me.material.opacity > 0.9;
+      w.me.castShadow = !behind;
+    });
+    if ((tvFrameN = (tvFrameN + 1) % 2) === 0) drawTV();
+
+    updateCamera(dt);
+    ctx.controls.update();
+    ctx.renderer.render(ctx.scene, ctx.camera);
+    updateLabels(dt, stage.clientWidth || window.innerWidth, stage.clientHeight || window.innerHeight);
+    raf = requestAnimationFrame(frame);
+  }
+
+  const hudTimer = setInterval(() => { updateHUD(); updateLighting(); if (S.selected) fillCard(); }, 100);
+  drawTV(); updateHUD(); updateLighting();
+  if (document.fonts) Promise.all([document.fonts.load(`20px ${PIX}`), document.fonts.load('20px "DotGothic16"', '窺視珈琲五金')])
+    .then(() => { if (!S.stopped) S.fontTex.forEach(t => t.redraw()); }).catch(() => {});
+  raf = requestAnimationFrame(frame);
+
+  return function stopCafe() {
+    S.stopped = true;
+    cancelAnimationFrame(raf);
+    clearInterval(hudTimer);
+    unbind();
+    S.people.slice().forEach(p => p.remove());
+    S.floaters.forEach(f => f.el.remove());
+    ctx.scene.traverse(o => {
+      if (o.geometry) o.geometry.dispose();
+      (Array.isArray(o.material) ? o.material : o.material ? [o.material] : []).forEach(m => { if (m.map) m.map.dispose(); m.dispose(); });
+    });
+    disposeEngine();
+  };
+}
