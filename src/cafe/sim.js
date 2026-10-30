@@ -278,7 +278,7 @@ export function seedOpeningScene() {
 export function tickShop(sdt) {
   S.minutes += sdt;
   if (S.open && !S.closing && S.minutes >= closeHour() * 60) {
-    S.closing = true; log(`${closeHour()} 點，${S.owner.p.name}準備打烊`); sayLine(S.owner, 'owner.closing', {}, 3.5);
+    S.closing = true; log(`${closeHour()} 點，${S.owner.p.name}準備打烊`); sayLine(S.owner, 'owner.closing', { name: S.customers.length ? pick(S.customers).p.name : '大家' }, 3.5);
   }
   if (S.closing && S.customers.length === 0 && S.orderQueue.length === 0) {
     S.closing = false; S.dow = (S.dow + 1) % 7; S.minutes = 15 * 60; S.revenue = 0; S.cupsSold = 0;

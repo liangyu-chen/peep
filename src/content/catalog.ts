@@ -48,15 +48,15 @@ export type LineGroup = { group: string; items: LineCategory[] };
 export const OWNER_LINES: LineCategory[] = [
   { key: 'owner.greetRegular', label: '招呼熟客', vars: ['name', 'drink'] },
   { key: 'owner.greetNew', label: '招呼新客' },
-  { key: 'owner.serveHot', label: '出熱飲（有拉花）', vars: ['drink'] },
-  { key: 'owner.serveIced', label: '出冰飲', vars: ['drink'] },
+  { key: 'owner.serveHot', label: '出熱飲（有拉花）', vars: ['name', 'drink'] },
+  { key: 'owner.serveIced', label: '出冰飲', vars: ['name', 'drink'] },
   { key: 'owner.idle', label: '閒著沒事時' },
   { key: 'owner.beansDone', label: '從倉庫補完豆子' },
   { key: 'owner.byeRegular', label: '送走熟客', vars: ['name'] },
   { key: 'owner.byeNew', label: '送走新客' },
   { key: 'owner.gameReact', label: '看到電視上打得精彩' },
   { key: 'owner.invite', label: '客人被邀去打電動', vars: ['name'] },
-  { key: 'owner.closing', label: '準備打烊' },
+  { key: 'owner.closing', label: '準備打烊（{name} 是還在店裡的一位客人，沒人時是「大家」）', vars: ['name'] },
   { key: 'owner.opening', label: '開店' },
 ];
 export const LINE_GROUPS: LineGroup[] = [
