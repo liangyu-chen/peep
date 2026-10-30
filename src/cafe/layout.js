@@ -12,8 +12,8 @@ export const LW = -2.78;                          // seats along the purple wall
 export const LSEATS = [2.0, 0.9, -0.2, -1.3];     // from the door inwards
 const LCUP = { '2.0': 1.62, '0.9': 1.28, '-0.2': 0.3, '-1.3': -0.92 };   // which table each purple-wall seat puts its cup on
 
-// the middle strip in the arcade, street side first: blocks, crates, blocks, crates, blocks (built small, then scaled up)
-export const STRIP = { blocks: [6.42, 5.86, 5.30], crates: [6.14, 5.58], scale: 1.35, from: 5.86, to: 6.0 };
+// the middle table outside: five stacks of two crates end to end, street side first (built small, then scaled up)
+export const STRIP = { crates: [6.46, 6.16, 5.86, 5.56, 5.26], scale: 1.35, from: 5.86, to: 6.0 };
 STRIP.at = z => (z - STRIP.from) * STRIP.scale + STRIP.to;   // plan z -> where it ends up
 
 export const LANE = 1.9;                 // the owner's lane behind the bar
@@ -45,7 +45,7 @@ export function createSeats() {
   const PORCH = [[-1.6, 4.5], [HUBX, 3.6]];
   const pc = (x, z) => [x, 0.61, z];
   const W = [-1.75, 4.75];   // the arcade walkway runs between the left row and the strip
-  const crateCup = (z, side) => { const cs = STRIP.crates.map(STRIP.at); const cz = Math.abs(z - cs[0]) < Math.abs(z - cs[1]) ? cs[0] : cs[1]; return pc(-1.0 + side * 0.13, cz + (z - cz) * 0.2); };
+  const crateCup = (z, side) => { const cz = STRIP.crates.map(STRIP.at).reduce((a, b) => (Math.abs(z - b) < Math.abs(z - a) ? b : a)); return pc(-1.0 + side * 0.13, cz + (z - cz) * 0.2); };
   [5.5, 6.0, 6.5].forEach(z => seat('table', -2.72, z, Math.PI / 2, -0.1, crateCup(z, -1), [[-2.72, z], [-2.05, z], [-1.9, 4.75]].concat(PORCH), { porch: true }));
   [6.1, 6.6, 7.1].forEach(z => seat('table', 0.62, z, -Math.PI / 2, -0.1, crateCup(z, 1), [[0.62, z], [0.05, z], [0.05, 4.7]].concat(PORCH), { porch: true }));
   // the camping chair on the kerb, and the two seats by the scooter

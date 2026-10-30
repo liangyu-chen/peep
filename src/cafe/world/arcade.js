@@ -1,5 +1,5 @@
-// The outdoor area (戶外區, under the arcade): linked plastic chairs down both sides, the block-and-crate strip, the Open stack,
-// the skateboard, the scooter seats, the kerb camping chair and the street lightbox.
+// The outdoor area (戶外區, under the arcade): linked plastic chairs down both sides, the crate table down the middle, the Open stack,
+// the skateboard, the scooter seats and the kerb camping chair.
 import * as THREE from 'three';
 import { ctx, mat, box, cyl, canvasTex, plane, pixelArt } from '../engine.js';
 import { S } from '../state.js';
@@ -14,17 +14,13 @@ function pottedPlant(x, y, z) {
   const l = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 6), leafM()); l.position.set(x, y + 0.16, z); ctx.scene.add(l);
 }
 
-// the middle strip, from the street inwards: cinder blocks, crates, cinder blocks, crates, blocks
+// the middle table, from the street inwards: five stacks of two crates, end to end
+const STRIP_TOPS = ['orange', 'blue', 'green', 'orange', 'blue'];
 function middleStrip() {
   const scene = ctx.scene;
   const stripStart = scene.children.length;
-  STRIP.blocks.forEach(z => {
-    const h = 0.215;                      // three single blocks lying crosswise, a touch taller than the crates
-    for (let c = 0; c < 3; c++) cinderBlock(0.4, h, 0.2, -1.0, h * (c + 0.5), z);
-    pottedPlant(-1.0, h * 3, z);
-  });
-  STRIP.crates.forEach((z, i) => { crate(-1.0, 0, z, i ? 'blue' : 'orange', 0, 1); crate(-1.0, 0.3, z, 'blue', 0, 1); });
-  // the real crates and blocks read bigger than the plan pieces: scale the strip up in footprint, keep its height
+  STRIP.crates.forEach((z, i) => { crate(-1.0, 0, z, i % 2 ? 'orange' : 'blue', 0, 0.94); crate(-1.0, 0.3, z, STRIP_TOPS[i], 0, 0.94); });
+  // the real crates read bigger than the plan pieces: scale the strip up in footprint, keep its height
   const stripGroup = new THREE.Group(); stripGroup.position.set(-1.0, 0, STRIP.from); scene.add(stripGroup);
   scene.children.slice(stripStart, -1).forEach(o => stripGroup.attach(o));
   stripGroup.scale.set(STRIP.scale, 1, STRIP.scale); stripGroup.position.z = STRIP.to;
@@ -78,10 +74,7 @@ function street() {
   box(0.4, 0.7, 0.18, creamM, 0, 0.75, 0.55, scooter);
   box(0.6, 0.04, 0.04, blackM, 0, 1.12, 0.6, scooter);
   [-0.5, 0.55].forEach(z => { const w = cyl(0.2, 0.2, 0.1, blackM, 0, 0.2, z, scooter, 14); w.rotation.z = Math.PI / 2; });
-  // the street lightbox
   box(4.0, 0.3, 0.12, mat(0x2a4f8a), -1.05, 2.62, 8.2);                                  // blue lintel over the opening
-  const yellowSign = canvasTex(24, 72, (g) => { g.fillStyle = '#f2e27a'; g.fillRect(0, 0, 24, 72); g.fillStyle = '#c9b84a'; g.fillRect(0, 0, 24, 3); g.fillRect(0, 69, 24, 3); }, true);
-  box(0.3, 0.85, 0.12, new THREE.MeshStandardMaterial({ map: yellowSign, emissive: 0x6a6020, roughness: 0.5 }), -1.8, 2.2, 8.45);
   [[-3.0, 1.8], [0.95, 1.6]].forEach(([x, y]) => box(0.18, 0.22, 0.08, mat(0xd9d9d0), x, y, 8.22));   // electricity meters
   campChair(-0.55, 8.55, 0, 0x2f4a3a);                                                    // one camping chair facing the street
   crate(-0.55, 0, 9.15, 'blue'); crate(-0.55, 0.3, 9.15, 'orange');                       // two stacked crates as its table
@@ -99,7 +92,7 @@ export function buildArcade() {
   linkedChairs(-2.72, 6.0, Math.PI / 2, [GLOSS_ORANGE, GLOSS_ORANGE, GLOSS_ORANGE]);   // row along the grey wall
   linkedChairs(0.62, 6.6, -Math.PI / 2, [0xff8fb0, 0xffc21a, CRATE_ORANGE]);           // along the storage wall: orange, yellow, pink from the street in
   middleStrip();
-  ashtray(-1.0, 0.6, STRIP.at(STRIP.crates[1]));           // middle of the inner crates, between the cups (the street-side pair is where the tops stadium goes)
+  ashtray(-1.0, 0.6, STRIP.at(STRIP.crates[3]));           // on the inner crates, between the cups (the tops stadium goes nearer the street)
   ashtray(0.04, 0.6, 7.66);                                 // the block table between the two seats by the scooter, clear of their cups
   ashtray(-0.45, 0.6, 9.12);                                // the camping chair's crates on the kerb
   openStackAndSkate();

@@ -8,7 +8,7 @@ import { HUBX, STRIP, route } from './layout.js';
 import { walk } from './people.js';
 import { log } from './feed.js';
 
-const TABLE = { x: -1.0, z: STRIP.at(STRIP.crates[0]), y: 0.6 };   // top of the street-side pair of crates
+const TABLE = { x: -1.0, z: STRIP.at(STRIP.crates[1]), y: 0.6 };   // on the crates second from the street
 const PORCH = [[-1.6, 4.5], [HUBX, 3.6]];
 // where the two players stand, either side of the crates (paths run spot -> hub, like every seat's)
 const SPOTS = [

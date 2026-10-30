@@ -86,7 +86,34 @@ export function makeCup(drink, variant) {
     cyl(0.056, 0.056, 0.006, mat(0xc89b6c), 0, 0.058, 0, g, 14);
   }
   g.traverse(o => { o.castShadow = false; });
+  g.userData.h = variant === 'ice' ? 0.22 : 0.06;   // height, for gripping it and lifting the rim to the lips
   return g;
+}
+
+// the right arm with a drink: carrying it in front, and lifting it for a sip (fitted in the scene so the rim meets the lips;
+// the tall glass is tipped more, the low tea cup lifted higher)
+export const DRINK_POSE = {
+  carry: { x: -0.35, z: -0.06, el: -1.05 },
+  walk: { x: -0.25, z: -0.06, el: -1.05 },
+  sip: { x: -1.071, y: -0.779, z: -0.595, el: -1.61, tilt: 0.548 },
+  sipHot: { x: -1.371, y: -0.709, z: -1.053, el: -1.878, tilt: 0.3 },
+};
+const sipPose = cup => DRINK_POSE[cup && cup.userData.h < 0.1 ? 'sipHot' : 'sip'];
+// the cup stays upright in the hand (tipped toward the mouth for a sip), held in front of the palm, gripped round its middle
+const _qh = new THREE.Quaternion(), _qg = new THREE.Quaternion(), _qt = new THREE.Quaternion(), _p = new THREE.Vector3(), _f = new THREE.Vector3();
+const X_AXIS = new THREE.Vector3(1, 0, 0);
+function gripCup(person, tilt) {
+  const cup = person.cup, h = cup.userData.h || 0.1;
+  person.g.updateMatrixWorld(true);
+  person.hand.getWorldQuaternion(_qh); person.g.getWorldQuaternion(_qg);
+  _qt.setFromAxisAngle(X_AXIS, -tilt);                                   // tip the top toward the face
+  cup.quaternion.copy(_qh).invert().multiply(_qg).multiply(_qt);
+  person.hand.getWorldPosition(_p);
+  _f.set(0, 0, 1).applyQuaternion(_qg);
+  _p.addScaledVector(_f, 0.035);
+  _p.y -= h * 0.45 * Math.cos(tilt);
+  person.hand.worldToLocal(_p);
+  cup.position.copy(_p);
 }
 
 export class Person {
@@ -172,14 +199,14 @@ export class Person {
     const sitting = this.pose === 'sit' || this.pose === 'game';
     this.walkPhase += dt * (moving ? 9 : 2);
     const s = Math.sin(this.walkPhase);
-    let y = 0, hipL = 0, hipR = 0, kL = 0, kR = 0, armLx = 0, armLy = 0, armRx = 0, armLz = 0.06, armRz = -0.06, bob = 0, elL = -0.12, elR = -0.12;
+    let y = 0, hipL = 0, hipR = 0, kL = 0, kR = 0, armLx = 0, armLy = 0, armRx = 0, armRy = 0, armLz = 0.06, armRz = -0.06, bob = 0, elL = -0.12, elR = -0.12;
     if (moving) { hipL = s * 0.55; hipR = -s * 0.55; kL = Math.max(0, -s) * 0.6; kR = Math.max(0, s) * 0.6; armLx = -s * 0.45; armRx = s * 0.45; elL = -0.3 + Math.min(0, s) * 0.2; elR = -0.3 - Math.max(0, s) * 0.2; bob = Math.abs(Math.cos(this.walkPhase)) * 0.04; }
     else if (sitting) { y = this.seat ? this.seat.sitY : -0.1; hipL = hipR = -Math.PI / 2; kL = kR = this.seat && this.seat.floor ? 0.25 : Math.PI / 2; armLx = armRx = -0.25; elL = elR = -0.7; }   // hands resting on the lap
     else { armLx = Math.sin(this.walkPhase * 0.7) * 0.04; armRx = -armLx; }
-    if (this.cup && this.cup.parent === this.hand && !this.act) { armRx = moving ? -0.25 : -0.35; elR = -1.0; }   // forearm up, cup in front
+    if (this.cup && this.cup.parent === this.hand && !this.act) { const P = DRINK_POSE[moving ? 'walk' : 'carry']; armRx = P.x; armRz = P.z; elR = P.el; }   // cup carried in front
     this.pad.visible = this.pose === 'game';
     if (this.pose === 'game' && !moving) { armLx = armRx = -0.55 + Math.sin(this.walkPhase * 6) * 0.04; elL = elR = -1.0; armLz = 0.3; armRz = -0.3; bob = Math.sin(this.walkPhase * 3) * 0.01; }
-    if (this.act === 'sip') { armRx = -0.5; elR = -2.4; armRz = -0.3; }
+    if (this.act === 'sip') { const P = sipPose(this.cup); armRx = P.x; armRy = P.y || 0; armRz = P.z; elR = P.el; }
     if (this.act === 'cheer') { armLx = armRx = -2.9 + Math.sin(this.walkPhase * 10) * 0.2; elL = elR = -0.2; armLz = 0.2; armRz = -0.2; bob += Math.abs(Math.sin(this.walkPhase * 8)) * 0.05; }
     if (this.act === 'wave') { armRx = -2.4; elR = -0.5; armRz = -0.4 + Math.sin(this.walkPhase * 12) * 0.35; }
     if (this.act === 'wipe') { armRx = -0.8; elR = -0.7; armRz = Math.sin(this.walkPhase * 8) * 0.5; }
@@ -202,8 +229,9 @@ export class Person {
     if (this.act === 'shoot') { armRx = -1.35; elR = -0.1; armRz = -0.05; }                          // and ripped forward
     if (this.act === 'carry') { armLx = armRx = -0.9; elL = elR = -0.7; armLz = 0.25; armRz = -0.25; }
     L.hip.rotation.x = hipL; R.hip.rotation.x = hipR; L.knee.rotation.x = kL; R.knee.rotation.x = kR;
-    aL.rotation.set(armLx, armLy, armLz); aR.rotation.set(armRx, 0, armRz);
+    aL.rotation.set(armLx, armLy, armLz); aR.rotation.set(armRx, armRy, armRz);
     this.elbows[0].rotation.x = elL; this.elbows[1].rotation.x = elR;
+    if (this.cup && this.cup.parent === this.hand) gripCup(this, this.act === 'sip' ? sipPose(this.cup).tilt * Math.min(1, (1.4 - this.actT) * 3) : 0);
     this.g.position.y = y + bob;
     this.head.rotation.y = this.pose === 'game' ? 0 : ph ? turn : Math.sin(this.walkPhase * 0.31) * 0.2;
     this.head.rotation.x = pitch;

@@ -12,7 +12,7 @@ import { createOwner, createSteam, createSmoke, seedOpeningScene, tickShop, upda
 import { bindHUD, updateHUD, fillCard, updateCamera, updateLabels } from './hud.js';
 import { renderResults } from './feed.js';
 import { createStadium, updateTops } from './tops.js';
-import { SMOKE_POSE } from './people.js';
+import { SMOKE_POSE, DRINK_POSE } from './people.js';
 
 export function startCafe(root, content) {
   resetState(content);
@@ -78,7 +78,7 @@ export function startCafe(root, content) {
   raf = requestAnimationFrame(frame);
   // development only: step the simulation from the console without rendering, e.g. await __cafe.step(60)
   if (process.env.NODE_ENV !== 'production') window.__cafe = {
-    S, ctx, SMOKE_POSE, step: async (secs, dt = 0.05) => {
+    S, ctx, SMOKE_POSE, DRINK_POSE, step: async (secs, dt = 0.05) => {
       for (let t = 0; t < secs && !S.stopped; t += dt) { simulate(dt, dt); for (let k = 0; k < 12; k++) await null; }
       drawTV(); updateHUD();
     },
