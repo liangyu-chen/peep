@@ -2,40 +2,33 @@
 import * as THREE from 'three';
 import { ctx, mat, box, wall, canvasTex, plane, floorPlane } from '../engine.js';
 import { S } from '../state.js';
-import { DOT } from '../util.js';
+import { DOT, K } from '../util.js';
 import { WH } from '../layout.js';
 import { concreteWall, wallMat, makeFloorTex } from './textures.js';
+import { logoPath, logoLines, fit } from './logo.js';
 
 export let greyM, blueM;
 
-// the window: solid wall with only the drippy-face logo cut through it, the white logo lines drawn round and inside it
-const logoBlob = g => {
-  g.beginPath(); g.moveTo(160, 18);
-  g.bezierCurveTo(250, 14, 300, 80, 290, 150);
-  g.bezierCurveTo(282, 205, 230, 215, 210, 250);
-  g.bezierCurveTo(200, 272, 212, 300, 190, 312);
-  g.bezierCurveTo(168, 322, 152, 300, 160, 270);
-  g.bezierCurveTo(166, 245, 130, 232, 92, 225);
-  g.bezierCurveTo(30, 212, 18, 140, 34, 98);
-  g.bezierCurveTo(52, 46, 100, 20, 160, 18); g.closePath();
-};
-
+// the window: solid wall with only the melting-face logo cut through it (glass in the cut, a grey rim round its edge)
+// and the logo's white lines drawn on the glass
 function peepWindow() {
-  const peepTex = canvasTex(320, 320, (g) => {
-    g.strokeStyle = '#ffffff'; g.lineWidth = 7; logoBlob(g); g.stroke();
-    g.lineWidth = 5;
-    [[118, 120, 34, 26], [196, 104, 30, 30]].forEach(([x, y, rx, ry]) => { g.beginPath(); g.ellipse(x, y, rx, ry, -0.3, 0, Math.PI * 2); g.stroke(); g.beginPath(); g.arc(x + 6, y + 6, 6, 0, Math.PI * 2); g.stroke(); });
-    g.beginPath(); g.ellipse(132, 60, 26, 12, 0.2, 0, Math.PI * 2); g.stroke();
-    g.beginPath(); g.moveTo(232, 168); g.bezierCurveTo(250, 200, 214, 230, 200, 200); g.stroke();
-    g.beginPath(); g.arc(178, 290, 8, 0.2, Math.PI - 0.2); g.stroke();
+  const SIZE = 560, LOGO = SIZE * 0.95;   // the opening is square; the tall logo fills most of its height
+  const SX = 1 / K;                        // the whole set is squeezed sideways by K; stretch the drawing so the logo keeps its shape
+  const linesTex = canvasTex(SIZE, SIZE, (g, w, h) => {
+    g.save(); fit(g, w, LOGO, h, SX); g.strokeStyle = '#ffffff'; logoLines(g, { lw: 8, inset: 5 }); g.restore();
   });
   // concrete and cut-out live in one image, so the hole can never drift from the logo lines
-  const panelTex = canvasTex(560, 560, (g, w, h) => {
+  const panelTex = canvasTex(SIZE, SIZE, (g, w, h) => {
     concreteWall(g, w, h, '#9a9a97');
-    g.save(); g.scale(w / 320, h / 320); g.globalCompositeOperation = 'destination-out'; g.fillStyle = '#000'; logoBlob(g); g.fill(); g.restore();   // opaque fill so the cut is clean
+    g.save(); fit(g, w, LOGO, h, SX);
+    g.globalCompositeOperation = 'destination-out'; g.fillStyle = '#000'; logoPath(g); g.fill();   // opaque fill so the cut is clean
+    g.globalCompositeOperation = 'source-over';
+    g.lineWidth = 5; g.strokeStyle = '#c2bfbb'; logoPath(g); g.stroke();                       // the rounded rim of the cut
+    g.lineWidth = 1.2; g.strokeStyle = 'rgba(70,68,66,.8)'; logoPath(g); g.stroke();
+    g.restore();
   });
   const panelM = new THREE.MeshStandardMaterial({ map: panelTex, alphaTest: 0.5, roughness: 0.95 });
-  const linesM = new THREE.MeshStandardMaterial({ map: peepTex, transparent: true, alphaTest: 0.05, roughness: 0.6 });
+  const linesM = new THREE.MeshStandardMaterial({ map: linesTex, transparent: true, alphaTest: 0.05, roughness: 0.5 });
   // a skin on each face of the wall so the opening's edges never show; the inner skin is the same plane seen from behind,
   // so both cut-outs line up exactly (a rotated copy would mirror the shape and only the overlap would be see-through)
   [[3.919, THREE.BackSide, -0.002], [4.081, THREE.FrontSide, 0.002]].forEach(([z, side, dz]) => {
@@ -43,6 +36,11 @@ function peepWindow() {
     const p = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 1.6), pm); p.position.set(0.1, 1.55, z); p.receiveShadow = true; ctx.scene.add(p);
     const l = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 1.6), lm); l.position.set(0.1, 1.55, z + dz); ctx.scene.add(l);
   });
+  // the glass in the cut: faintly tinted and shiny, so it reads as a pane and not an empty hole
+  const glass = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 1.6), new THREE.MeshStandardMaterial({
+    color: 0xb9c4ca, metalness: 0.6, roughness: 0.08, transparent: true, opacity: 0.22, side: THREE.DoubleSide, depthWrite: false,
+  }));
+  glass.position.set(0.1, 1.55, 4.0); ctx.scene.add(glass);
 }
 
 function neighbour(x0, x1, sign, color, h) {

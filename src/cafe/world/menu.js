@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { ctx, mat, box, cyl, canvasTex } from '../engine.js';
 import { S } from '../state.js';
 import { MENU_SECTIONS, MENU_FOOTER } from '../../content/catalog';
+import { logoPath, logoLines } from './logo.js';
 
 const W = 640, H = 1000;            // the sheet, in canvas units (drawn at 1.2x for sharpness)
 const ZH = '"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif';
@@ -35,13 +36,10 @@ function doodles(g) {
   g.beginPath(); g.moveTo(250, 62); g.bezierCurveTo(262, 30, 290, 36, 286, 64); g.bezierCurveTo(300, 30, 330, 34, 326, 66);
   g.bezierCurveTo(344, 34, 372, 40, 362, 70); g.bezierCurveTo(390, 46, 420, 52, 404, 78); g.moveTo(258, 80); g.quadraticCurveTo(330, 96, 410, 74); g.stroke();
   g.beginPath(); g.moveTo(268, 92); g.lineTo(256, 112); g.lineTo(276, 104); g.stroke();
-  // the melting face, faint, behind the Coffee late prices
-  g.strokeStyle = 'rgba(40,40,40,.35)'; g.lineWidth = 2.2;
-  g.beginPath(); g.moveTo(362, 268); g.bezierCurveTo(420, 250, 452, 300, 440, 352); g.bezierCurveTo(432, 392, 404, 398, 398, 420);
-  g.bezierCurveTo(394, 470, 392, 520, 384, 560); g.bezierCurveTo(378, 586, 360, 580, 362, 556); g.bezierCurveTo(366, 500, 368, 440, 352, 412);
-  g.bezierCurveTo(320, 380, 318, 300, 362, 268); g.stroke();
-  [[372, 318, 14], [410, 312, 13]].forEach(([x, y, r]) => { g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.stroke(); g.beginPath(); g.arc(x + 3, y + 3, 3, 0, Math.PI * 2); g.stroke(); });
-  g.beginPath(); g.moveTo(380, 352); g.quadraticCurveTo(398, 366, 418, 350); g.stroke();
+  g.restore();
+  // the shop's melting face, faint, behind the Coffee late prices (the same drawing as the window)
+  g.save(); g.translate(292, 196); g.scale(0.74, 0.74); g.strokeStyle = 'rgba(35,35,35,.55)';
+  logoLines(g, { lw: 4.5, band: false }); logoPath(g); g.lineWidth = 4.5; g.stroke();
   g.restore();
 }
 

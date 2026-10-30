@@ -25,7 +25,7 @@ const lensM = mat(0xdff2ff, { roughness: 0.05, metalness: 0.2, transparent: true
 const sunLensM = mat(0x0d0d10, { roughness: 0.08, metalness: 0.6 });
 const beltM = mat(0x2a2420, { roughness: 0.6 });
 const buckleM = mat(0xc9b26a, { roughness: 0.3, metalness: 0.8 });
-const soleM = mat(0xece7dc, { roughness: 0.8 });
+const soleM = mat(0x2b2724, { roughness: 0.9 });   // dark rubber, so it never reads as a white patch under the foot
 
 // fine streaks multiplied over the hair colour, so hair reads as strands rather than plastic
 let strandTex = null;
@@ -113,7 +113,9 @@ export function buildBody(look, seed = '') {
     mk(cy(0.068, 0.068, 0.025, 14), pantsDark, 0, -0.195, 0, knee, false);                     // turned-up hem
     mk(bx(0.125, 0.06, 0.17), shoe, 0, -0.24, 0.015, knee);                                     // shoe, with a rounded toe
     mk(sp(0.064, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2), shoe, 0, -0.27, 0.1, knee).scale.set(0.98, 0.95, 1.05);
-    mk(bx(0.135, 0.02, 0.25), soleM, 0, -0.27, 0.045, knee, false);
+    // the sole follows the shoe's outline exactly (a block under the heel, a disc under the rounded toe), so nothing pokes out
+    mk(bx(0.123, 0.016, 0.17), soleM, 0, -0.279, 0.015, knee, false);
+    mk(cy(0.062, 0.062, 0.016, 16), soleM, 0, -0.279, 0.1, knee, false).scale.z = 1.05;
     return { hip, knee };
   });
   const seat = mk(cy(0.212, 0.2, 0.16, 20), pants, 0, 0.6, 0); seat.scale.z = 0.62;            // hips
