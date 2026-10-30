@@ -3,6 +3,10 @@ import * as THREE from 'three';
 import { rand, randi, pick } from './util.js';
 import { menuNames } from './content.js';
 import { S } from './state.js';
+import { FACE } from '../content/catalog';
+
+// any face option except 'none' (a first-timer always has brows and a nose)
+const pickFace = key => pick(FACE[key].filter(o => o.value !== 'none')).value;
 
 export const TEAMS = {
   '湖人': { ab: 'LAL', c1: '#552583', c2: '#FDB927' }, '勇士': { ab: 'GSW', c1: '#1D428A', c2: '#FFC72C' },
@@ -39,8 +43,14 @@ export function newProfile() {
   return {
     name, regular: false, visits: 1, job: pick(job),
     drink: pick(menuNames()), team: pick(TEAM_NAMES), wins: 0, losses: 0, quirk: '第一次來',
-    look: L(pick(SKINS), pick(HAIRS), female ? pick(['long', 'bun', 'short']) : pick(['short', 'short', 'cap', 'bald']),
+    look: L(pick(SKINS), pick(HAIRS), female ? pick(['long', 'bun', 'ponytail', 'short', 'curly']) : pick(['short', 'short', 'buzz', 'side', 'spiky', 'cap', 'bald']),
       new THREE.Color().setHSL(Math.random(), rand(0.3, 0.6), rand(0.35, 0.6)).getHex(), pick([0x2b2b2b, 0x334455, 0x5a4a3a, 0x1f2a44]),
-      { cap: new THREE.Color().setHSL(Math.random(), 0.5, 0.45).getHex(), longSleeve: Math.random() < 0.4 })
+      {
+        cap: new THREE.Color().setHSL(Math.random(), 0.5, 0.45).getHex(), longSleeve: Math.random() < 0.4,
+        faceShape: pickFace('faceShape'), eyes: pickFace('eyes'), brows: pickFace('brows'), nose: pickFace('nose'), mouth: pickFace('mouth'),
+        glasses: Math.random() < 0.15 ? pick(['round', 'square']) : 'none',
+        facialHair: !female && Math.random() < 0.25 ? pick(['stubble', 'mustache', 'goatee', 'full']) : 'none',
+        blush: female && Math.random() < 0.3,
+      })
   };
 }

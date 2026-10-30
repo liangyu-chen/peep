@@ -52,18 +52,54 @@ body:has(.admin){margin:0;background:#141218}
 .admin select:focus{outline:none;border-color:var(--gold)}
 .admin .muted{color:var(--muted);font-size:13px}
 
-/* regulars: one card per person */
-.admin .regular{background:var(--panel);padding:14px 16px;margin:0 0 14px;display:grid;gap:10px}
-.admin .regular.off{opacity:.6}
-.admin .regular header{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.admin .regular .push{margin-left:auto}
-.admin .swatch{width:14px;height:14px;box-shadow:0 0 0 2px #000}
-.admin .regular .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px 12px}
-.admin .regular .grid.look{padding-top:8px;border-top:2px dashed var(--line);align-items:end}
-.admin .regular .grid label:not(.check){display:grid;gap:4px;font-size:12px;color:var(--muted)}
-.admin .regular .grid .wide{grid-column:1 / -1}
-.admin .regular .check{padding-bottom:8px}
+.admin .button{display:inline-block;font-size:14px;padding:6px 12px;text-decoration:none;color:var(--ink);background:#2c2838;box-shadow:inset -3px -3px 0 0 #15131c,inset 3px 3px 0 0 #3d3850}
+.admin .button.primary{background:var(--neon);color:#2a0a14;box-shadow:inset -3px -3px 0 0 #a8264b,inset 3px 3px 0 0 #ff9ab3}
+.admin .crumbs{margin:20px 0 0;font-size:14px}
+.admin .crumbs + h1{margin-top:4px}
+
+/* regulars list */
+.admin .reg-list{display:grid;gap:8px;margin:12px 0 16px}
+.admin .reg-item{display:flex;align-items:center;gap:14px;background:var(--panel);padding:10px 14px;color:var(--ink);text-decoration:none}
+.admin .reg-item:hover{background:#2a2636}
+.admin .reg-item:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.admin .reg-item.off{opacity:.55}
+.admin .reg-item .who{display:grid;gap:2px;flex:1;min-width:0}
+.admin .reg-item .who b{font-weight:500;font-size:16px;display:flex;gap:8px;align-items:center}
+.admin .reg-item .go{color:var(--gold);font-size:14px;white-space:nowrap}
+.admin .swatch{width:14px;height:14px;box-shadow:0 0 0 2px #000;flex:none}
+.admin .swatch.big{width:34px;height:40px;position:relative}
+.admin .swatch.big i{position:absolute;left:8px;top:-8px;width:18px;height:16px;box-shadow:0 0 0 2px #000}
+
+/* regular editor: preview on the left (sticky), fields on the right */
+.admin .editor{display:grid;grid-template-columns:minmax(280px,380px) minmax(0,1fr);gap:20px;align-items:start;margin-top:12px}
+.admin .editor-preview{position:sticky;top:72px}
+.admin .look-preview{background:var(--panel);padding:8px}
+.admin .look-preview .stage{height:420px;cursor:grab}
+.admin .look-preview .stage:active{cursor:grabbing}
+.admin .look-preview .stage canvas{display:block;width:100%;height:100%}
+.admin .look-preview .views{display:flex;gap:6px;align-items:center;padding-top:8px}
+.admin .look-preview .views .muted{margin-left:auto;font-size:12px}
+.admin button.on{background:var(--gold);color:#1f1c27;box-shadow:inset -3px -3px 0 0 #b08d10,inset 3px 3px 0 0 #fff2a8}
+.admin .editor-fields{display:grid;gap:14px;min-width:0}
+.admin .panel-block{background:var(--panel);padding:14px 16px;display:grid;gap:12px}
+.admin .panel-block h2{margin:0}
+.admin .panel-block .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px 12px;align-items:end}
+.admin .panel-block label:not(.check){display:grid;gap:4px;font-size:12px;color:var(--muted)}
+.admin .panel-block .wide{grid-column:1 / -1}
+.admin .panel-block .check{padding-bottom:8px}
+.admin .colors{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:end}
+.admin .colors label:not(.check){width:96px}
 .admin input[type=color]{height:38px;padding:2px 4px;cursor:pointer}
+/* option chips: radio buttons that look like 8-bit buttons */
+.admin .pick{border:0;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.admin .pick legend{float:left;width:52px;font-size:12px;color:var(--muted);padding:0}
+.admin .pick label{cursor:pointer}
+.admin .pick input{position:absolute;opacity:0;width:1px;height:1px}
+.admin .pick span{display:inline-block;font-size:13px;padding:4px 10px;background:#2c2838;box-shadow:inset -2px -2px 0 0 #15131c,inset 2px 2px 0 0 #3d3850}
+.admin .pick label:hover span{background:#373245}
+.admin .pick input:checked + span{background:var(--gold);color:#1f1c27;box-shadow:inset -2px -2px 0 0 #b08d10,inset 2px 2px 0 0 #fff2a8}
+.admin .pick input:focus-visible + span{outline:3px solid var(--gold);outline-offset:2px}
+.admin .actions.sticky{position:sticky;bottom:0;background:var(--bg);padding:10px 0;justify-content:flex-end;gap:10px}
 
 /* random values: one chip per value */
 .admin .chips{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 10px}
@@ -101,4 +137,10 @@ body:has(.admin){margin:0;background:#141218}
   .admin .line-row{grid-template-columns:minmax(0,1fr) auto}
   .admin .line-row .actions{grid-column:1 / -1}
   .admin .bar{flex-wrap:wrap;gap:10px}
+}
+@media (max-width:760px){
+  .admin .editor{grid-template-columns:minmax(0,1fr)}
+  .admin .editor-preview{position:static}
+  .admin .look-preview .stage{height:300px}
+  .admin .reg-item .go{display:none}
 }

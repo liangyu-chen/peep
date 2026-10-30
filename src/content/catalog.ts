@@ -7,10 +7,15 @@ export type MenuItem = {
   iced: boolean;          // iced drinks come in a tall glass, hot ones in a Taiwanese tea cup
 };
 
-// how a regular looks; colours are 0xRRGGBB numbers. Anything not listed (cap colour, long sleeves…) is kept as it is.
+// how a person looks; colours are 0xRRGGBB numbers. Face fields left out are filled in by faceOf().
+// Anything the editor doesn't know (cap colour, long sleeves…) is kept as it is.
 export type Look = {
   skin: number; hair: number; hairStyle: string; shirt: number; pants: number;
-  glasses?: boolean; number?: string; cap?: number; longSleeve?: boolean; [k: string]: unknown;
+  number?: string; cap?: number; longSleeve?: boolean;
+  glasses?: boolean | string;                  // older looks stored true for square frames
+  faceShape?: string; eyes?: string; eyeColor?: number; brows?: string; nose?: string; mouth?: string;
+  facialHair?: string; blush?: boolean;
+  [k: string]: unknown;
 };
 export type Regular = { name: string; job: string; drink: string; team: string; visits: number; quirk: string; look: Look };
 
@@ -142,10 +147,71 @@ export const DEFAULT_LINES: Record<string, string[]> = {
 
 // ---------------------------------------------------------------- regulars
 export const TEAM_NAMES = ['湖人', '勇士', '塞爾提克', '公牛', '熱火', '獨行俠', '金塊', '公鹿', '太陽', '尼克'];
-export const HAIR_STYLES = [
-  { value: 'short', label: '短髮' }, { value: 'long', label: '長髮' }, { value: 'bun', label: '包頭' },
+type Option = { value: string; label: string };
+export const HAIR_STYLES: Option[] = [
+  { value: 'short', label: '短髮' }, { value: 'buzz', label: '平頭' }, { value: 'side', label: '旁分' },
+  { value: 'spiky', label: '刺蝟頭' }, { value: 'curly', label: '捲髮' }, { value: 'long', label: '長髮' },
+  { value: 'ponytail', label: '馬尾' }, { value: 'bun', label: '包頭' },
   { value: 'cap', label: '棒球帽' }, { value: 'bucket', label: '漁夫帽' }, { value: 'bald', label: '光頭' },
 ];
+
+// ---------------------------------------------------------------- faces (捏臉)
+export const FACE: Record<'faceShape' | 'eyes' | 'brows' | 'nose' | 'mouth' | 'facialHair' | 'glasses', Option[]> = {
+  faceShape: [{ value: 'round', label: '圓臉' }, { value: 'oval', label: '鵝蛋臉' }, { value: 'square', label: '方臉' }, { value: 'long', label: '長臉' }],
+  eyes: [{ value: 'round', label: '圓眼' }, { value: 'big', label: '大眼' }, { value: 'dot', label: '豆豆眼' }, { value: 'sleepy', label: '睏睏眼' }, { value: 'smile', label: '笑眼' }, { value: 'narrow', label: '瞇瞇眼' }],
+  brows: [{ value: 'thin', label: '細眉' }, { value: 'thick', label: '粗眉' }, { value: 'angry', label: '劍眉' }, { value: 'worried', label: '八字眉' }, { value: 'none', label: '無' }],
+  nose: [{ value: 'small', label: '小鼻子' }, { value: 'normal', label: '一般' }, { value: 'big', label: '大鼻子' }, { value: 'button', label: '圓鼻頭' }, { value: 'none', label: '無' }],
+  mouth: [{ value: 'smile', label: '微笑' }, { value: 'grin', label: '露齒笑' }, { value: 'smirk', label: '壞笑' }, { value: 'flat', label: '面無表情' }, { value: 'open', label: '張嘴' }],
+  facialHair: [{ value: 'none', label: '無' }, { value: 'stubble', label: '鬍渣' }, { value: 'mustache', label: '八字鬍' }, { value: 'goatee', label: '山羊鬍' }, { value: 'both', label: '八字鬍＋山羊鬍' }, { value: 'full', label: '落腮鬍' }],
+  glasses: [{ value: 'none', label: '無' }, { value: 'round', label: '圓框' }, { value: 'square', label: '方框' }, { value: 'sun', label: '墨鏡' }],
+};
+export type Face = { faceShape: string; eyes: string; brows: string; nose: string; mouth: string; facialHair: string; glasses: string; blush: boolean; eyeColor: number };
+
+// a stable pick per person, so someone whose face was never edited still looks the same every visit
+function seeded<T>(seed: string, salt: number, list: T[]) {
+  let h = 2166136261 ^ salt;
+  for (const ch of seed) h = Math.imul(h ^ ch.codePointAt(0)!, 16777619);
+  return list[(h >>> 0) % list.length];
+}
+const valid = (key: keyof typeof FACE, v: unknown) => typeof v === 'string' && FACE[key].some(o => o.value === v);
+
+// the full face for a look: what's stored, or a stable default from the person's name
+export function faceOf(look: Look, seed = ''): Face {
+  const oldHair = look.mustache && look.goatee ? 'both' : look.mustache ? 'mustache' : look.goatee ? 'goatee' : 'none';
+  const pickOr = (key: keyof typeof FACE, salt: number, natural: string[]) => (valid(key, look[key]) ? (look[key] as string) : seeded(seed, salt, natural));
+  return {
+    faceShape: pickOr('faceShape', 1, ['round', 'oval', 'round', 'square', 'long']),
+    eyes: pickOr('eyes', 2, ['round', 'round', 'big', 'dot', 'sleepy', 'smile']),
+    brows: pickOr('brows', 3, ['thin', 'thick', 'thin', 'worried', 'angry']),
+    nose: pickOr('nose', 4, ['small', 'normal', 'small', 'button']),
+    mouth: pickOr('mouth', 5, ['smile', 'smile', 'grin', 'smirk', 'flat']),
+    facialHair: valid('facialHair', look.facialHair) ? (look.facialHair as string) : oldHair,
+    glasses: valid('glasses', look.glasses) ? (look.glasses as string) : look.glasses === true ? 'square' : 'none',
+    blush: !!look.blush,
+    eyeColor: typeof look.eyeColor === 'number' ? look.eyeColor : 0x2a1a10,
+  };
+}
+
+// a look from the editor's form fields (get returns a field's value); fields it doesn't cover are kept from prev
+export function parseLook(get: (k: string) => string | null, prev?: Look): Look {
+  const base: Look = prev ?? { skin: 0xe0ac80, hair: 0x111111, hairStyle: 'short', shirt: 0x7fae8b, pants: 0x2b2b2b };
+  const hex = (k: string, fallback: number) => { const v = get(k) ?? ''; return /^#[0-9a-f]{6}$/i.test(v) ? parseInt(v.slice(1), 16) : fallback; };
+  const opt = (k: keyof typeof FACE, fallback: string) => { const v = get(k); return valid(k, v) ? (v as string) : fallback; };
+  const face = faceOf(base, String(get('name') ?? ''));
+  const hairStyle = get('hairStyle') ?? '';
+  const number = (get('number') ?? '').trim().slice(0, 2);
+  const look: Look = {
+    ...base,
+    skin: hex('skin', base.skin), hair: hex('hair', base.hair), shirt: hex('shirt', base.shirt), pants: hex('pants', base.pants),
+    hairStyle: HAIR_STYLES.some(h => h.value === hairStyle) ? hairStyle : base.hairStyle,
+    faceShape: opt('faceShape', face.faceShape), eyes: opt('eyes', face.eyes), brows: opt('brows', face.brows),
+    nose: opt('nose', face.nose), mouth: opt('mouth', face.mouth), facialHair: opt('facialHair', face.facialHair),
+    glasses: opt('glasses', face.glasses), eyeColor: hex('eyeColor', face.eyeColor), blush: get('blush') === 'on',
+  };
+  delete look.mustache; delete look.goatee;   // superseded by facialHair
+  if (number) look.number = number; else delete look.number;
+  return look;
+}
 export const SKIN_TONES = [
   { value: 0xf6d7bd, label: '白皙' }, { value: 0xf1c9a5, label: '偏白' }, { value: 0xe0ac80, label: '自然' },
   { value: 0xd9a27c, label: '小麥' }, { value: 0xc68a5e, label: '黝黑' }, { value: 0x8d5a3b, label: '深色' },

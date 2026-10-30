@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation';
 import { eq } from 'drizzle-orm';
 import { getDb, schema } from '@/src/lib/db';
 import { checkPassword, createSession, destroySession, requireAdmin } from '@/src/lib/auth';
-import { LINE_KEYS, DEFAULT_LINES, POOL_KEYS, TEAM_NAMES, HAIR_STYLES, type Look } from '@/src/content/catalog';
+import { LINE_KEYS, DEFAULT_LINES, POOL_KEYS, TEAM_NAMES, parseLook, type Look } from '@/src/content/catalog';
 
 // ---------------------------------------------------------------- login
 export async function login(formData: FormData) {
@@ -123,24 +123,7 @@ export async function importDefaults(f: FormData) {
 }
 
 // ---------------------------------------------------------------- regulars
-const hex = (f: FormData, k: string, fallback: number) => { const v = str(f, k); return /^#[0-9a-f]{6}$/i.test(v) ? parseInt(v.slice(1), 16) : fallback; };
-// the look fields the form edits; anything else in the stored look (cap colour, long sleeves…) is kept
-function lookFrom(f: FormData, prev?: Look): Look {
-  const base: Look = prev ?? { skin: 0xe0ac80, hair: 0x111111, hairStyle: 'short', shirt: 0x7fae8b, pants: 0x2b2b2b };
-  const hairStyle = str(f, 'hairStyle');
-  const number = str(f, 'number').slice(0, 2);
-  const look: Look = {
-    ...base,
-    skin: Number(str(f, 'skin')) || base.skin,
-    hair: hex(f, 'hair', base.hair),
-    hairStyle: HAIR_STYLES.some(h => h.value === hairStyle) ? hairStyle : base.hairStyle,
-    shirt: hex(f, 'shirt', base.shirt),
-    pants: hex(f, 'pants', base.pants),
-    glasses: bool(f, 'glasses'),
-  };
-  if (number) look.number = number; else delete look.number;
-  return look;
-}
+const lookFrom = (f: FormData, prev?: Look) => parseLook(k => { const v = f.get(k); return v == null ? null : String(v); }, prev);
 function regularFields(f: FormData) {
   const team = str(f, 'team');
   return {
@@ -153,11 +136,11 @@ function regularFields(f: FormData) {
 export async function addRegular(f: FormData) {
   await requireAdmin();
   const fields = regularFields(f);
-  if (!fields.name) done('/admin/regulars', '名字不能空白');
+  if (!fields.name) done('/admin/regulars/new', '名字不能空白');
   try {
     await db().insert(schema.regulars).values({ ...fields, look: lookFrom(f) });
   } catch (e) {
-    if (isUniqueViolation(e)) done('/admin/regulars', `「${fields.name}」已經是熟客了`);
+    if (isUniqueViolation(e)) done('/admin/regulars/new', `「${fields.name}」已經是熟客了`);
     throw e;
   }
   done('/admin/regulars', `已新增熟客「${fields.name}」`);
@@ -166,7 +149,7 @@ export async function addRegular(f: FormData) {
 export async function updateRegular(f: FormData) {
   await requireAdmin();
   const id = Number(f.get('id')), fields = regularFields(f);
-  if (!fields.name) done('/admin/regulars', '名字不能空白');
+  if (!fields.name) done(`/admin/regulars/${id}`, '名字不能空白');
   const d = db();
   const [prev] = await d.select({ look: schema.regulars.look }).from(schema.regulars).where(eq(schema.regulars.id, id));
   try {
@@ -174,10 +157,11 @@ export async function updateRegular(f: FormData) {
       .set({ ...fields, look: lookFrom(f, prev?.look), active: bool(f, 'active'), updatedAt: new Date() })
       .where(eq(schema.regulars.id, id));
   } catch (e) {
-    if (isUniqueViolation(e)) done('/admin/regulars', `「${fields.name}」已經是熟客了`);
+    if (isUniqueViolation(e)) done(`/admin/regulars/${id}`, `「${fields.name}」已經是熟客了`);
     throw e;
   }
-  done('/admin/regulars', `已儲存「${fields.name}」`);
+  revalidatePath('/admin/regulars');
+  done(`/admin/regulars/${id}`, `已儲存「${fields.name}」`);
 }
 
 export async function deleteRegular(f: FormData) {
