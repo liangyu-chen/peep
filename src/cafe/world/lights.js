@@ -5,7 +5,7 @@ import { S } from '../state.js';
 // sky and the sun, created first so the world builders can skip them when shifting and squeezing the set
 export function buildSky() {
   const scene = ctx.scene;
-  S.hemi = new THREE.HemisphereLight(0xffe9cf, 0x2a2420, 0.45); scene.add(S.hemi);
+  S.hemi = new THREE.HemisphereLight(0xffe9cf, 0x4a423a, 0.45); scene.add(S.hemi);
   const sun = new THREE.DirectionalLight(0xfff0dc, 0.7);
   sun.position.set(9, 16, 10); sun.castShadow = true;
   sun.shadow.mapSize.set(2048, 2048);
@@ -41,7 +41,8 @@ export function buildRoomLights() {
 }
 
 // ---------------------------------------------------------------- day/night
-const SKY = [[14, 0xbfe3ff], [16, 0xffe1a8], [18, 0xff9a5c], [19.5, 0x3a3366], [21, 0x141a33], [24, 0x0b0f22]];
+// soft and pale: a milky blue afternoon, a peach-gold evening, lavender dusk, a deep indigo night (never black)
+const SKY = [[14, 0xdce9f0], [16, 0xf3e7d2], [18, 0xf6c9a2], [19.5, 0x8d7fae], [21, 0x343a66], [24, 0x1f2547]];
 const tmpC = new THREE.Color(), tmpC2 = new THREE.Color();
 function skyAt(h) {
   for (let i = 0; i < SKY.length - 1; i++) if (h >= SKY[i][0] && h < SKY[i + 1][0]) return tmpC.set(SKY[i][1]).lerp(tmpC2.set(SKY[i + 1][1]), (h - SKY[i][0]) / (SKY[i + 1][0] - SKY[i][0]));
@@ -55,5 +56,9 @@ export function updateLighting() {
   S.sun.color.copy(sky).lerp(tmpC2.set(0xffffff), 0.5);
   S.hemi.intensity = 0.3 + daylight * 0.25;
   S.bulbs.forEach(b => { b.pl.intensity = b.base * (1 + (1 - daylight) * 0.8); if (b.bm) b.bm.emissiveIntensity = 1.5 + (1 - daylight) * 1.5; });
-  ctx.scene.background.copy(sky).multiplyScalar(0.22).lerp(tmpC2.set(0x141218), 0.55);
+  ctx.scene.background.copy(sky);
+  if (ctx.scene.fog) ctx.scene.fog.color.copy(sky).lerp(tmpC2.set(0xeee9e0), daylight * 0.35);
+  if (S.hillsM) S.hillsM.color.setScalar(0.45 + daylight * 0.55);
+  (S.envWindows || []).forEach(m => { m.emissiveIntensity = 0.25 + (1 - daylight) * 1.3; });
+  if (S.motes) S.motes.m.opacity = 0.35 + (1 - daylight) * 0.55;
 }

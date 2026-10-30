@@ -43,16 +43,6 @@ function peepWindow() {
   glass.position.set(0.1, 1.55, 4.0); ctx.scene.add(glass);
 }
 
-function neighbour(x0, x1, sign, color, h) {
-  const w = x1 - x0, cx = (x0 + x1) / 2;
-  box(w, h, 4.2, mat(0x5b5752, { roughness: 1 }), cx, h / 2, 6);
-  const shutter = canvasTex(64, 64, (g) => { g.fillStyle = '#3f7ea6'; g.fillRect(0, 0, 64, 64); g.fillStyle = '#2f6588'; for (let y = 0; y < 64; y += 4) g.fillRect(0, y, 64, 2); }, true);
-  plane(w - 0.6, 2.0, shutter, cx, 1.0, 8.11);
-  const st = canvasTex(160, 48, (g) => { g.fillStyle = color; g.fillRect(0, 0, 160, 48); g.fillStyle = '#fff'; g.font = `32px ${DOT}`; g.textAlign = 'center'; g.fillText(sign, 80, 36); }, true);
-  plane(Math.min(w - 0.4, 3), 0.8, st, cx, h - 0.6, 8.12);
-  return st;
-}
-
 export function buildShell() {
   // floor plan (x: -3.1..3.1 wide, z: -11 back .. 8 street)
   const floorTex = makeFloorTex();
@@ -61,10 +51,13 @@ export function buildShell() {
   const orangeFloor = canvasTex(256, 256, (g, w, h) => concreteWall(g, w, h, '#d8692a'));
   floorPlane(3.1, 2.0, 0.75, -8.35, new THREE.MeshStandardMaterial({ map: orangeFloor, roughness: 0.55 }), 0.012);
   floorPlane(6.2, 4.0, 0, 6, new THREE.MeshStandardMaterial({ map: floorTex, roughness: 0.6 }), 0.01);   // the arcade is the same grey concrete
-  floorPlane(40, 2, 0, 9, mat(0x7a7570, { roughness: 1 }), -0.01);
-  floorPlane(40, 12, 0, 16, mat(0x2b2b30, { roughness: 1 }), -0.02);
-  floorPlane(80, 48.35, 0, 15.825, mat(0x18161c, { roughness: 1 }), -0.04);   // ground stops at the back wall
-  for (let i = -6; i <= 6; i++) floorPlane(1.2, 0.15, i * 3, 15, new THREE.MeshBasicMaterial({ color: 0xd9d2a0 }), -0.01);
+  floorPlane(60, 2, 0, 9, mat(new THREE.Color(0xb3ab9c).convertSRGBToLinear(), { roughness: 1 }), -0.01);                     // pavement
+  const flags = canvasTex(256, 128, (g, w, h) => {                                          // a quiet lane of pale flagstones
+    g.fillStyle = '#bdb5a6'; g.fillRect(0, 0, w, h);
+    for (let r = 0; r < 4; r++) for (let c = -1; c < 6; c++) { const x = c * 48 + (r % 2) * 24; g.fillStyle = `hsl(38,${8 + Math.random() * 6}%,${74 + Math.random() * 7}%)`; g.fillRect(x + 2, r * 32 + 2, 44, 28); }
+  });
+  flags.wrapS = flags.wrapT = THREE.RepeatWrapping; flags.repeat.set(30, 3);
+  floorPlane(60, 6.5, 0, 13.25, new THREE.MeshStandardMaterial({ map: flags, roughness: 0.95 }), -0.02);
 
   greyM = wallMat('#9a9a97');
   const purpleM = wallMat('#5d4f92', [4, 1]);
@@ -124,5 +117,4 @@ export function buildShell() {
   box(6.4, 0.35, 0.3, greyM, 0, 2.95, 8.0);
   box(0.35, WH, 0.35, greyM, -2.95, WH / 2, 7.9);
 
-  S.fontTex.push(neighbour(-9, -3.3, '永興五金', '#b0292f', 3.4));
 }

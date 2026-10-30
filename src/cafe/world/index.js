@@ -10,6 +10,7 @@ import { buildShell } from './shell.js';
 import { buildInterior } from './interior.js';
 import { buildArcade } from './arcade.js';
 import { buildBack } from './back.js';
+import { buildSurroundings } from './surroundings.js';
 
 export function buildWorld() {
   const scene = ctx.scene;
@@ -33,4 +34,5 @@ export function buildWorld() {
   const world = new THREE.Group(); world.scale.x = K;
   scene.children.slice().forEach(o => { if (!skip(o)) world.add(o); });
   scene.add(world);
+  buildSurroundings();   // in world metres, not squeezed, so the trees and the moon gate stay round
 }

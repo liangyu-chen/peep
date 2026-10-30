@@ -13,6 +13,7 @@ import { bindHUD, updateHUD, fillCard, updateCamera, updateLabels } from './hud.
 import { renderResults } from './feed.js';
 import { createStadium, updateTops } from './tops.js';
 import { SMOKE_POSE, DRINK_POSE } from './people.js';
+import { updateSurroundings } from './world/surroundings.js';
 
 export function startCafe(root, content) {
   resetState(content);
@@ -42,6 +43,7 @@ export function startCafe(root, content) {
     updateSteam(sdt);
     updateSmoke(sdt);
     updateTops(sdt);
+    updateSurroundings(dt);
     S.acFan.rotation.x += dt * 12;
     S.fanBlades.rotation.y += dt * 4;
     // doors open when someone comes close
