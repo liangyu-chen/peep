@@ -259,7 +259,7 @@ export function buildBody(look, seed = '') {
   mk(bx(0.04, 0.012, 0.03), mat(0x3ddc97), 0.05, 0.026, 0, pad, false);
   [-1, 1].forEach(s => mk(cy(0.012, 0.012, 0.012, 8), mat(0x333333), s * 0.03, 0.026, 0.012, pad, false));         // sticks
   pad.position.set(0, 0.95, 0.43); pad.visible = false; g.add(pad);
-  return { g, legs, arms, elbows, head, hand, handL, pad, eyes, mouth };
+  return { g, legs, arms, elbows, head, hand, handL, pad, eyes, mouth, skinM: skin };
 }
 
 function buildHair(style, shape, head, hairM, mk, at, look) {

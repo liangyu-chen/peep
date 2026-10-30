@@ -298,48 +298,56 @@ export function tickShop(sdt) {
 }
 
 // ---------------------------------------------------------------- cigarette smoke
-// soft puffs: a thin stream curling up from every lit tip, a thick cloud blown out after each drag, and ash flicked off
+// soft, lumpy puffs: a stream curling up off every lit tip, a thick cloud blown out after each drag that hangs about
+// and spreads, and ash flicked off. Each puff turns slowly and sways as it rises.
 const smoke = [];
-const tmpV = new THREE.Vector3();
 let puffTex = null;
 const puffTexture = () => puffTex || (puffTex = (() => {
-  const c = document.createElement('canvas'); c.width = c.height = 64;
-  const g = c.getContext('2d'), grd = g.createRadialGradient(32, 32, 2, 32, 32, 31);
-  grd.addColorStop(0, 'rgba(255,255,255,1)'); grd.addColorStop(0.45, 'rgba(255,255,255,.55)'); grd.addColorStop(1, 'rgba(255,255,255,0)');
-  g.fillStyle = grd; g.fillRect(0, 0, 64, 64);
+  const c = document.createElement('canvas'); c.width = c.height = 96;
+  const g = c.getContext('2d');
+  for (let i = 0; i < 9; i++) {   // a few overlapping soft blobs, so it reads as a cloud, not a disc
+    const x = 48 + rand(-16, 16), y = 48 + rand(-16, 16), r = rand(18, 30);
+    const grd = g.createRadialGradient(x, y, 0, x, y, r);
+    grd.addColorStop(0, 'rgba(255,255,255,.55)'); grd.addColorStop(0.6, 'rgba(255,255,255,.22)'); grd.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = grd; g.fillRect(0, 0, 96, 96);
+  }
   return new THREE.CanvasTexture(c);
 })());
 export function createSmoke() {
   smoke.length = 0;
-  for (let i = 0; i < 160; i++) {
-    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: puffTexture(), color: 0xe4e7ea, transparent: true, opacity: 0, depthWrite: false }));
+  for (let i = 0; i < 320; i++) {
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: puffTexture(), color: 0xd8dde2, transparent: true, opacity: 0, depthWrite: false }));
     sp.visible = false; ctx.scene.add(sp);
-    smoke.push({ sp, life: 0, max: 1, v: new THREE.Vector3(), s0: 0.04, s1: 0.2, op: 0.5, fall: false });
+    smoke.push({ sp, life: 0, max: 1, v: new THREE.Vector3(), s0: 0.04, s1: 0.2, op: 0.5, fall: false, phase: 0, spin: 0 });
   }
 }
 function emit(pos, v, life, s0, s1, op, color, fall = false) {
   const p = smoke.find(q => q.life <= 0); if (!p) return;
-  Object.assign(p, { life, max: life, s0, s1, op, fall });
-  p.v.copy(v); p.sp.position.copy(pos); p.sp.material.color.setHex(color); p.sp.visible = true;
+  Object.assign(p, { life, max: life, s0, s1, op, fall, phase: rand(0, 6.3), spin: rand(-0.6, 0.6) });
+  p.v.copy(v); p.sp.position.copy(pos); p.sp.material.color.setHex(color); p.sp.material.rotation = rand(0, 6.3); p.sp.visible = true;
 }
+const at = new THREE.Vector3(), fwd = new THREE.Vector3();
 export function updateSmoke(dt) {
   for (const p of S.people) {
     if (!p.cig) continue;
-    const fwd = tmpV.set(Math.sin(p.heading), 0, Math.cos(p.heading));
-    // the stream off the tip
-    if (Math.random() < dt * 7) {
-      const at = p.cig.userData.ember.getWorldPosition(new THREE.Vector3());
-      emit(at, new THREE.Vector3(rand(-0.03, 0.03), rand(0.18, 0.26), rand(-0.03, 0.03) + 0.02), rand(2.4, 3.2), 0.03, 0.22, 0.42, 0xdfe2e6);
+    const ember = p.cig.userData.ember;
+    // the stream off the tip: thicker while it's being drawn on
+    const drawing = p.smk && p.smk.phase === 'drag';
+    if (Math.random() < dt * (drawing ? 4 : 14)) {
+      ember.getWorldPosition(at);
+      emit(at, new THREE.Vector3(rand(-0.02, 0.02), rand(0.16, 0.24), rand(-0.02, 0.02)), rand(3, 4.2), 0.035, rand(0.28, 0.4), 0.6, 0xc9cfd6);
     }
-    // blown out after a drag: a cloud pushed forward and up from the mouth
-    if (p.exhaleT > 0 && Math.random() < dt * 26) {
-      const at = p.mouth.getWorldPosition(new THREE.Vector3()).addScaledVector(fwd, 0.04);
-      const v = fwd.clone().multiplyScalar(rand(0.25, 0.45)).add(new THREE.Vector3(rand(-0.05, 0.05), rand(0.05, 0.14), rand(-0.05, 0.05)));
-      emit(at, v, rand(1.6, 2.4), 0.06, rand(0.32, 0.45), 0.62, 0xf2f3f5);
+    // blown out after a drag: a cloud from the mouth, the way the head is facing, up and out
+    if (p.exhaleT > 0 && Math.random() < dt * 48) {
+      p.mouth.getWorldPosition(at);
+      fwd.set(0, 0, 1).transformDirection(p.head.matrixWorld);
+      at.addScaledVector(fwd, 0.035);
+      const v = fwd.clone().multiplyScalar(rand(0.35, 0.6) * (p.exhaleT / 1.4 + 0.3)).add(new THREE.Vector3(rand(-0.06, 0.06), rand(0.08, 0.18), rand(-0.06, 0.06)));
+      emit(at, v, rand(2.6, 3.6), 0.07, rand(0.5, 0.75), 0.75, 0xeef0f2);
     }
     // ash flicked off, dropping
     if (p.ashT > 0 && Math.random() < dt * 30) {
-      const at = p.cig.userData.ember.getWorldPosition(new THREE.Vector3());
+      ember.getWorldPosition(at);
       emit(at, new THREE.Vector3(rand(-0.04, 0.04), -0.1, rand(-0.04, 0.04)), 0.5, 0.012, 0.012, 0.9, 0x6a6a68, true);
     }
   }
@@ -349,10 +357,15 @@ export function updateSmoke(dt) {
     if (p.life <= 0) { p.sp.visible = false; continue; }
     const k = 1 - p.life / p.max;                       // 0 at birth -> 1 when gone
     if (p.fall) p.v.y -= dt * 1.5;
-    else { p.v.multiplyScalar(1 - dt * 0.9); p.v.y += dt * 0.08; p.v.z += dt * 0.03; }   // slows, keeps rising, drifts toward the street
+    else {
+      p.v.multiplyScalar(1 - dt * 1.1); p.v.y += dt * 0.1; p.v.z += dt * 0.025;   // slows, keeps rising, drifts toward the street
+      p.phase += dt * 2.2;
+      p.v.x += Math.sin(p.phase) * dt * 0.06; p.v.z += Math.cos(p.phase * 0.8) * dt * 0.05;   // curling
+      p.sp.material.rotation += p.spin * dt;
+    }
     p.sp.position.addScaledVector(p.v, dt);
     p.sp.scale.setScalar(p.s0 + (p.s1 - p.s0) * Math.sqrt(k));
-    p.sp.material.opacity = p.op * Math.min(1, k * 6) * (1 - k);   // fades in fast, out slowly
+    p.sp.material.opacity = p.op * Math.min(1, k * 8) * Math.pow(1 - k, 1.3);   // fades in fast, out slowly
   }
 }
 
