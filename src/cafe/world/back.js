@@ -54,7 +54,7 @@ function toilet() {
 
 function storage() {
   // one steel shelf against the toilet wall, boxes lined up neatly: same size per shelf, labels facing out
-  const s = new THREE.Group(); s.position.set(1.3, 0, -7.05); ctx.scene.add(s);
+  const s = new THREE.Group(); s.position.set(1.05, 0, -7.05); ctx.scene.add(s);
   [0.3, 0.9, 1.5, 2.1].forEach(y => box(1.8, 0.04, 0.4, steel, 0, y, 0, s));
   [-0.88, 0.88].forEach(xx => box(0.04, 2.2, 0.4, steel, xx, 1.1, 0, s));
   [[0.3, 0.32, 0xb8915e], [0.9, 0.28, 0xa47c4c], [1.5, 0.24, 0xd2b48c]].forEach(([y, h, c]) => {
@@ -63,8 +63,8 @@ function storage() {
       box(0.14, 0.07, 0.005, mat(0xf4efe3), -0.63 + k * 0.42, y + 0.02 + h * 0.6, 0.162, s);   // label
     }
   });
-  // a small fridge against the far wall, straight across from the doorway, door facing it
-  const fridge = new THREE.Group(); fridge.position.set(2.75, 0, -6.8); fridge.rotation.y = -Math.PI / 2; ctx.scene.add(fridge);
+  // a small fridge tucked in the back corner beside the shelf, door facing the doorway
+  const fridge = new THREE.Group(); fridge.position.set(2.78, 0, -7.0); fridge.rotation.y = -Math.PI / 2; ctx.scene.add(fridge);
   box(0.56, 1.35, 0.56, mat(new THREE.Color(0xa9d4ea).convertSRGBToLinear(), { roughness: 0.35, metalness: 0.1 }), 0, 0.675, 0, fridge);   // pale blue
   box(0.54, 0.012, 0.01, mat(0x9aa0a6), 0, 0.98, 0.285, fridge);                                    // freezer seam
   [[0.23, 1.15, 0.26], [0.23, 0.6, 0.44]].forEach(([x, y, h]) => box(0.022, h, 0.03, mat(0x9aa0a6, { metalness: 0.8 }), x, y, 0.3, fridge));   // handles
