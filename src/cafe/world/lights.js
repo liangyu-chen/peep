@@ -29,7 +29,9 @@ function bareBulb(x, z, y = 2.15, power = 0.7, dist = 6) {
 // red neon wash, bar track spots, bare bulbs in the arcade and back of house
 export function buildRoomLights() {
   const scene = ctx.scene;
-  const neonLight = new THREE.PointLight(0xff3020, 1.6, 6, 2); neonLight.position.set(1.0, 1.9, -4.9); scene.add(neonLight);
+  // a wide spot pointing into the shop, so the red never leaks through the wall into the storeroom behind it
+  const neonLight = new THREE.SpotLight(0xff3020, 1.6, 6, Math.PI * 0.45, 0.6, 2); neonLight.position.set(1.0, 1.9, -4.9);
+  neonLight.target.position.set(1.0, 1.2, -2.0); scene.add(neonLight, neonLight.target);
   bareBulb(-2.3, 3.2, 2.2, 0.6);
   [[-1.0, -1.2, 0.7], [-1.0, 1.8, 0.6], [0.8, -0.4, 0.8], [0.8, 1.8, 0.6], [2.2, 0.5, 0.4], [-1.6, -3.4, 0.35]].forEach(([x, z, p]) => {
     const l = new THREE.PointLight(0xffe2b8, p, 5.5, 2); l.position.set(x, 2.5, z); scene.add(l); S.bulbs.push({ pl: l, bm: null, base: p });

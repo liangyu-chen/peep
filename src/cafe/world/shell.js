@@ -59,7 +59,7 @@ export function buildShell() {
   floorPlane(6.2, 12.85, 0, -1.925, new THREE.MeshStandardMaterial({ map: floorTex, roughness: 0.45 }));
   // toilet floor: plain concrete painted orange, no tiles or seams
   const orangeFloor = canvasTex(256, 256, (g, w, h) => concreteWall(g, w, h, '#d8692a'));
-  floorPlane(3.9, 2.0, 1.15, -8.35, new THREE.MeshStandardMaterial({ map: orangeFloor, roughness: 0.55 }), 0.012);
+  floorPlane(3.1, 2.0, 0.75, -8.35, new THREE.MeshStandardMaterial({ map: orangeFloor, roughness: 0.55 }), 0.012);
   floorPlane(6.2, 4.0, 0, 6, new THREE.MeshStandardMaterial({ map: floorTex, roughness: 0.6 }), 0.01);   // the arcade is the same grey concrete
   floorPlane(40, 2, 0, 9, mat(0x7a7570, { roughness: 1 }), -0.01);
   floorPlane(40, 12, 0, 16, mat(0x2b2b30, { roughness: 1 }), -0.02);
@@ -73,7 +73,7 @@ export function buildShell() {
   // outer walls fade out when the camera swings behind them, so the room is always visible
   S.fadeWalls = [];
   const outerWall = (side, x1, z1, x2, z2, m) => { const me = wall(x1, z1, x2, z2, WH, m.clone()); S.fadeWalls.push({ me, side }); return me; };
-  outerWall('L', -3.1, -9.35, -3.1, -5.5, blueM);    // back corridor
+  outerWall('L', -3.1, -9.35, -3.1, -5.5, greyM);    // back corridor: all of back of house is plain grey
   outerWall('L', -3.1, -4.5, -3.1, 4, purpleM);      // purple poster wall, the whole room
   outerWall('L', -3.1, 4, -3.1, 8, greyM);
   outerWall('R', 3.1, -9.35, 3.1, -5.5, greyM);
@@ -89,12 +89,13 @@ export function buildShell() {
   box(0.04, 0.3, 0.06, mat(0xcccccc, { metalness: 0.8 }), 0.55, 0, 0.04, S.slideDoor).position.set(-0.52, 0, 0.04);
   S.slide = { open: 0 };
   // back of house partitions
-  wall(-0.8, -9.35, -0.8, -9.2, WH, blueM);
-  wall(-0.8, -8.2, -0.8, -7.2, WH, blueM);
-  wall(-0.8, -6.4, -0.8, -5.5, WH, blueM);
-  box(0.16, WH - 2.05, 1.0, blueM, -0.8, 2.05 + (WH - 2.05) / 2, -8.7);   // wall over the toilet door, no gap above it
-  box(0.16, WH - 2.1, 0.8, blueM, -0.8, 2.1 + (WH - 2.1) / 2, -6.8);       // and over the storage doorway
-  wall(-0.8, -7.35, 3.1, -7.35, WH, greyM);                // toilet | storage (a small storeroom, a roomier toilet)
+  wall(-0.8, -9.35, -0.8, -9.2, WH, greyM);
+  wall(-0.8, -8.2, -0.8, -7.2, WH, greyM);
+  wall(-0.8, -6.4, -0.8, -5.5, WH, greyM);
+  box(0.16, WH - 2.05, 1.0, greyM, -0.8, 2.05 + (WH - 2.05) / 2, -8.7);   // wall over the toilet door, no gap above it
+  box(0.16, WH - 2.1, 0.8, greyM, -0.8, 2.1 + (WH - 2.1) / 2, -6.8);       // and over the storage doorway
+  wall(-0.8, -7.35, 3.1, -7.35, WH, greyM);                // toilet | storage (a small storeroom)
+  wall(2.3, -9.35, 2.3, -7.35, WH, greyM);                 // the toilet stops short of the right wall (a closed-off pipe space behind)
   S.toiletDoor = box(0.05, 2.05, 1.02, mat(0xd9d2c6, { roughness: 0.6 }), -0.86, 1.025, -8.7);   // sliding toilet door (the storeroom has no door)
   // shop front: cement grey like the rest of the arcade, a plain door, and the melting-face peep window
   wall(-3.1, 4, -2.3, 4, WH, greyM);

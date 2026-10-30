@@ -43,12 +43,12 @@ function toilet() {
   const hole = cyl(0.17, 0.12, 0.01, mat(0x8fa3ad, { roughness: 0.1 }), 1.7, 0.032, -8.66, ctx.scene, 20); hole.scale.z = 1.6;
   box(0.2, 0.05, 0.18, porcelain, 1.7, 0.05, -9.08);                                                           // hood at the back end
   box(0.42, 0.32, 0.18, porcelain, 1.7, 1.75, -9.18); cyl(0.02, 0.02, 1.5, steel, 1.7, 0.95, -9.24, ctx.scene, 6);  // high tank + pipe on the back wall
-  cyl(0.12, 0.1, 0.24, mat(0x3a7bd5), 2.55, 0.12, -8.35, ctx.scene, 14); cyl(0.05, 0.05, 0.05, mat(0xff7a12), 2.55, 0.27, -8.35, ctx.scene, 10);     // bucket + scoop
+  cyl(0.12, 0.1, 0.24, mat(0x3a7bd5), 2.08, 0.12, -8.0, ctx.scene, 14); cyl(0.05, 0.05, 0.05, mat(0xff7a12), 2.08, 0.27, -8.0, ctx.scene, 10);     // bucket + scoop
   box(0.42, 0.15, 0.32, porcelain, 0.1, 0.85, -9.1);
   box(0.36, 0.45, 0.03, mat(0xbfe6ff, { roughness: 0.05, metalness: 0.6 }), 0.1, 1.45, -9.26);
   // posters taped up in the toilet
-  [[0.9, 1.7, -9.26, 0, 'eye', 0.36, 0.27, '#ff4f7b'], [2.55, 1.55, -9.26, 0, 'wave', 0.4, 0.3, '#f4efe3'], [1.4, 1.75, -7.44, Math.PI, 'toys', 0.38, 0.38, '#ffd23f'],
-    [2.5, 1.6, -7.44, Math.PI, 'hoop', 0.3, 0.3, '#c0282d'], [-0.71, 1.7, -9.27, Math.PI / 2, 'hoop', 0.12, 0.12, '#7ec8ff']]
+  [[0.9, 1.7, -9.26, 0, 'eye', 0.36, 0.27, '#ff4f7b'], [2.21, 1.55, -8.6, -Math.PI / 2, 'wave', 0.4, 0.3, '#f4efe3'], [1.4, 1.75, -7.44, Math.PI, 'toys', 0.38, 0.38, '#ffd23f'],
+    [0.6, 1.6, -7.44, Math.PI, 'hoop', 0.3, 0.3, '#c0282d'], [-0.71, 1.7, -9.27, Math.PI / 2, 'hoop', 0.12, 0.12, '#7ec8ff']]
     .forEach(([x, y, z, ry, key, w, h, bg]) => plane(w, h, pixelArt(ART[key], PAL, bg), x, y, z, ry));
 }
 
@@ -68,14 +68,21 @@ function storage() {
   box(0.54, 0.012, 0.01, mat(0x9aa0a6), 0, 0.98, 0.285, fridge);                                    // freezer seam
   [[0.23, 1.15, 0.26], [0.23, 0.6, 0.44]].forEach(([x, y, h]) => box(0.022, h, 0.03, mat(0x9aa0a6, { metalness: 0.8 }), x, y, 0.3, fridge));   // handles
   [[-0.12, 1.12, 0xffd23f], [0.04, 1.22, 0xff4f7b], [-0.05, 0.72, 0x7ec8ff]].forEach(([x, y, c]) => box(0.07, 0.07, 0.005, mat(c), x, y, 0.283, fridge));   // magnets
-  const cabM = mat(0xe9e5dc, { roughness: 0.6 }), knobM = mat(0x6b6f73, { metalness: 0.7, roughness: 0.3 });
-  [-7.0, -6.45, -5.9].forEach((z, i) => {                // three cupboards hung on the wall, above head height
-    box(0.34, 0.6, 0.54, cabM, 2.93, 2.05, z);
-    box(0.012, 0.56, 0.003, mat(0xb5b0a6), 2.759, 2.05, z);                                        // the seam between its two doors
-    [-1, 1].forEach(k => box(0.03, 0.1, 0.02, knobM, 2.75, 1.93, z + k * 0.045));                   // handles
-    if (i !== 1) box(0.005, 0.08, 0.12, mat(0xf4efe3), 2.758, 2.24, z + 0.14);                     // a taped label
-  });
-  box(0.36, 0.03, 1.66, mat(0xcfc9bd, { roughness: 0.7 }), 2.92, 2.365, -6.45);                       // their top
+  // open wooden cubbies on the wall above them: a back board, top, bottom, ends and dividers, no doors
+  const plyM = mat(0x9a6b42, { roughness: 0.75 }), plyEdge = mat(0x7a5232, { roughness: 0.8 });
+  const C = { x: 2.93, y0: 1.75, y1: 2.35, z0: -7.27, z1: -5.63, d: 0.34 };
+  const cz = (C.z0 + C.z1) / 2, len = C.z1 - C.z0, fx = C.x - C.d / 2;
+  box(0.02, C.y1 - C.y0, len, plyEdge, C.x + C.d / 2 - 0.01, (C.y0 + C.y1) / 2, cz);                 // back board on the wall
+  [C.y0, (C.y0 + C.y1) / 2, C.y1].forEach(y => box(C.d, 0.025, len, plyM, C.x, y, cz));             // bottom, middle shelf, top
+  [0, 1, 2, 3].forEach(i => box(C.d, C.y1 - C.y0, 0.025, plyM, C.x, (C.y0 + C.y1) / 2, C.z0 + i * len / 3));   // ends and two dividers
+  // what's in them: jars of beans, stacked paper cups, a few boxes, a coil of cable
+  const lo = C.y0 + 0.013, hi = (C.y0 + C.y1) / 2 + 0.013;
+  [-7.2, -7.08, -6.96].forEach(z => { cyl(0.05, 0.05, 0.16, mat(0xe8f4ff, { roughness: 0.05, transparent: true, opacity: 0.55 }), fx + 0.12, lo + 0.08, z, ctx.scene, 12); cyl(0.045, 0.045, 0.1, mat(0x3b2214), fx + 0.12, lo + 0.05, z, ctx.scene, 10); });
+  [-6.62, -6.5].forEach(z => cyl(0.045, 0.035, 0.24, mat(0xf2f0ea, { roughness: 0.4 }), fx + 0.13, lo + 0.12, z, ctx.scene, 12));   // stacks of paper cups
+  box(0.24, 0.18, 0.3, mat(0xb8915e), fx + 0.15, lo + 0.09, -6.05); box(0.2, 0.12, 0.22, mat(0xd2b48c), fx + 0.15, lo + 0.06, -5.78);
+  box(0.22, 0.2, 0.36, mat(0xa47c4c), fx + 0.15, hi + 0.1, -7.0);
+  const coil = new THREE.Mesh(new THREE.TorusGeometry(0.09, 0.02, 6, 16), mat(0x1d1d1d)); coil.position.set(fx + 0.15, hi + 0.02, -6.45); coil.rotation.x = Math.PI / 2; ctx.scene.add(coil);
+  [[-5.95, 0xc0282d], [-5.82, 0xffd23f]].forEach(([z, c]) => box(0.18, 0.24, 0.08, mat(c), fx + 0.14, hi + 0.12, z));   // a couple of binders
   // the other back corner, against the toilet wall: crates and odds and ends, clear of the doorway
   crate(-0.25, 0, -7.1, 'blue'); crate(-0.25, 0.3, -7.1, 'green'); crate(-0.25, 0.6, -7.1, 'orange', 0.1);
   crate(0.4, 0, -7.1, 'orange'); crate(0.4, 0.3, -7.1, 'blue', -0.08);
