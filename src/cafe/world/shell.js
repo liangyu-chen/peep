@@ -51,13 +51,7 @@ export function buildShell() {
   const orangeFloor = canvasTex(256, 256, (g, w, h) => concreteWall(g, w, h, '#d8692a'));
   floorPlane(3.1, 2.0, 0.75, -8.35, new THREE.MeshStandardMaterial({ map: orangeFloor, roughness: 0.55 }), 0.012);
   floorPlane(6.2, 4.0, 0, 6, new THREE.MeshStandardMaterial({ map: floorTex, roughness: 0.6 }), 0.01);   // the arcade is the same grey concrete
-  floorPlane(60, 2, 0, 9, mat(new THREE.Color(0xb3ab9c).convertSRGBToLinear(), { roughness: 1 }), -0.01);                     // pavement
-  const flags = canvasTex(256, 128, (g, w, h) => {                                          // a quiet lane of pale flagstones
-    g.fillStyle = '#bdb5a6'; g.fillRect(0, 0, w, h);
-    for (let r = 0; r < 4; r++) for (let c = -1; c < 6; c++) { const x = c * 48 + (r % 2) * 24; g.fillStyle = `hsl(38,${8 + Math.random() * 6}%,${74 + Math.random() * 7}%)`; g.fillRect(x + 2, r * 32 + 2, 44, 28); }
-  });
-  flags.wrapS = flags.wrapT = THREE.RepeatWrapping; flags.repeat.set(30, 3);
-  floorPlane(60, 6.5, 0, 13.25, new THREE.MeshStandardMaterial({ map: flags, roughness: 0.95 }), -0.02);
+  // the lane outside, its buildings and its traffic are built in surroundings.js
 
   greyM = wallMat('#9a9a97');
   const purpleM = wallMat('#5d4f92', [4, 1]);
