@@ -1,4 +1,4 @@
-// The outdoor area (戶外區, under the arcade): linked plastic chairs down both sides, the crate table down the middle, the Open stack,
+// The outdoor area (戶外區, under the arcade): linked plastic chairs down both sides, the block-and-crate table down the middle, the Open stack,
 // the skateboard, the scooter seats and the kerb camping chair.
 import * as THREE from 'three';
 import { ctx, mat, box, cyl, canvasTex, plane, pixelArt } from '../engine.js';
@@ -14,13 +14,19 @@ function pottedPlant(x, y, z) {
   const l = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 6), leafM()); l.position.set(x, y + 0.16, z); ctx.scene.add(l);
 }
 
-// the middle table, from the street inwards: five stacks of two crates, end to end
-const STRIP_TOPS = ['orange', 'blue', 'green', 'orange', 'blue'];
+// the middle table, from the street inwards: cinder blocks with a plant, three stacks of crates, cinder blocks with a plant
+const STRIP_TOPS = ['orange', 'green', 'blue'];
 function middleStrip() {
   const scene = ctx.scene;
   const stripStart = scene.children.length;
-  STRIP.crates.forEach((z, i) => { crate(-1.0, 0, z, i % 2 ? 'orange' : 'blue', 0, 0.94); crate(-1.0, 0.3, z, STRIP_TOPS[i], 0, 0.94); });
-  // the real crates read bigger than the plan pieces: scale the strip up in footprint, keep its height
+  STRIP.blocks.forEach(z => {
+    const h = 0.215;                      // three single blocks lying crosswise, a touch taller than the crates
+    for (let c = 0; c < 3; c++) cinderBlock(0.4, h, 0.2, -1.0, h * (c + 0.5), z);
+    pottedPlant(-1.0, h * 3, z);
+  });
+  // three crate stacks end to end; a touch smaller so they don't overlap
+  STRIP.crates.forEach((z, i) => { crate(-1.0, 0, z, 'blue', 0, 0.875); crate(-1.0, 0.3, z, STRIP_TOPS[i], 0, 0.875); });
+  // the real crates and blocks read bigger than the plan pieces: scale the strip up in footprint, keep its height
   const stripGroup = new THREE.Group(); stripGroup.position.set(-1.0, 0, STRIP.from); scene.add(stripGroup);
   scene.children.slice(stripStart, -1).forEach(o => stripGroup.attach(o));
   stripGroup.scale.set(STRIP.scale, 1, STRIP.scale); stripGroup.position.z = STRIP.to;
@@ -92,7 +98,7 @@ export function buildArcade() {
   linkedChairs(-2.72, 6.0, Math.PI / 2, [GLOSS_ORANGE, GLOSS_ORANGE, GLOSS_ORANGE]);   // row along the grey wall
   linkedChairs(0.62, 6.6, -Math.PI / 2, [0xff8fb0, 0xffc21a, CRATE_ORANGE]);           // along the storage wall: orange, yellow, pink from the street in
   middleStrip();
-  ashtray(-1.0, 0.6, STRIP.at(STRIP.crates[3]));           // on the inner crates, between the cups (the tops stadium goes nearer the street)
+  ashtray(-1.0, 0.6, STRIP.at(STRIP.crates[2]));           // on the inner crates, between the cups (the tops stadium goes nearer the street)
   ashtray(0.04, 0.6, 7.66);                                 // the block table between the two seats by the scooter, clear of their cups
   ashtray(-0.45, 0.6, 9.12);                                // the camping chair's crates on the kerb
   openStackAndSkate();

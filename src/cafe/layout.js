@@ -12,8 +12,8 @@ export const LW = -2.78;                          // seats along the purple wall
 export const LSEATS = [2.0, 0.9, -0.2, -1.3];     // from the door inwards
 const LCUP = { '2.0': 1.62, '0.9': 1.28, '-0.2': 0.3, '-1.3': -0.92 };   // which table each purple-wall seat puts its cup on
 
-// the middle table outside: five stacks of two crates end to end, street side first (built small, then scaled up)
-export const STRIP = { crates: [6.46, 6.16, 5.86, 5.56, 5.26], scale: 1.35, from: 5.86, to: 6.0 };
+// the middle table outside, street side first: blocks, crates, crates, crates, blocks (built small, then scaled up)
+export const STRIP = { blocks: [6.42, 5.30], crates: [6.14, 5.86, 5.58], scale: 1.35, from: 5.86, to: 6.0 };
 STRIP.at = z => (z - STRIP.from) * STRIP.scale + STRIP.to;   // plan z -> where it ends up
 
 export const LANE = 1.9;                 // the owner's lane behind the bar
