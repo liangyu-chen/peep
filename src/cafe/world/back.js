@@ -53,19 +53,22 @@ function toilet() {
 }
 
 function storage() {
-  // steel shelving full of boxes, in the storeroom and along the back corridor
-  [[1.4, -7.05], [1.25, -5.78]].forEach(([x, z]) => {
-    const s = new THREE.Group(); s.position.set(x, 0, z); ctx.scene.add(s);
-    [0.3, 0.9, 1.5, 2.1].forEach(y => box(1.8, 0.04, 0.4, steel, 0, y, 0, s));
-    [-0.88, 0.88].forEach(xx => box(0.04, 2.2, 0.4, steel, xx, 1.1, 0, s));
-    [0.3, 0.9, 1.5].forEach(y => { for (let k = 0; k < 3; k++) box(rand(0.3, 0.45), rand(0.2, 0.4), 0.32, mat(pick([0xb8915e, 0xa47c4c, 0xd2b48c])), -0.55 + k * 0.55, y + 0.15, 0, s); });
+  // one steel shelf against the toilet wall, boxes lined up neatly: same size per shelf, labels facing out
+  const s = new THREE.Group(); s.position.set(1.3, 0, -7.05); ctx.scene.add(s);
+  [0.3, 0.9, 1.5, 2.1].forEach(y => box(1.8, 0.04, 0.4, steel, 0, y, 0, s));
+  [-0.88, 0.88].forEach(xx => box(0.04, 2.2, 0.4, steel, xx, 1.1, 0, s));
+  [[0.3, 0.32, 0xb8915e], [0.9, 0.28, 0xa47c4c], [1.5, 0.24, 0xd2b48c]].forEach(([y, h, c]) => {
+    for (let k = 0; k < 4; k++) {
+      box(0.38, h, 0.32, mat(c), -0.63 + k * 0.42, y + 0.02 + h / 2, 0, s);
+      box(0.14, 0.07, 0.005, mat(0xf4efe3), -0.63 + k * 0.42, y + 0.02 + h * 0.6, 0.162, s);   // label
+    }
   });
-  // fridge in the storeroom (the room has no door), against the far wall, its door facing the storeroom doorway
-  const fridge = new THREE.Group(); fridge.position.set(2.7, 0, -6.8); fridge.rotation.y = -Math.PI / 2; ctx.scene.add(fridge);
-  box(0.72, 1.8, 0.66, mat(new THREE.Color(0xa9d4ea).convertSRGBToLinear(), { roughness: 0.35, metalness: 0.1 }), 0, 0.9, 0, fridge);   // pale blue
-  box(0.7, 0.012, 0.01, mat(0x9aa0a6), 0, 1.25, 0.335, fridge);                                     // freezer seam
-  [[0.31, 1.52, 0.4], [0.31, 0.75, 0.6]].forEach(([x, y, h]) => box(0.025, h, 0.03, mat(0x9aa0a6, { metalness: 0.8 }), x, y, 0.35, fridge));   // handles
-  [[-0.15, 1.45, 0xffd23f], [0.05, 1.6, 0xff4f7b], [-0.05, 0.95, 0x7ec8ff]].forEach(([x, y, c]) => box(0.08, 0.08, 0.005, mat(c), x, y, 0.333, fridge));   // magnets
+  // a small fridge against the far wall, straight across from the doorway, door facing it
+  const fridge = new THREE.Group(); fridge.position.set(2.75, 0, -6.8); fridge.rotation.y = -Math.PI / 2; ctx.scene.add(fridge);
+  box(0.56, 1.35, 0.56, mat(new THREE.Color(0xa9d4ea).convertSRGBToLinear(), { roughness: 0.35, metalness: 0.1 }), 0, 0.675, 0, fridge);   // pale blue
+  box(0.54, 0.012, 0.01, mat(0x9aa0a6), 0, 0.98, 0.285, fridge);                                    // freezer seam
+  [[0.23, 1.15, 0.26], [0.23, 0.6, 0.44]].forEach(([x, y, h]) => box(0.022, h, 0.03, mat(0x9aa0a6, { metalness: 0.8 }), x, y, 0.3, fridge));   // handles
+  [[-0.12, 1.12, 0xffd23f], [0.04, 1.22, 0xff4f7b], [-0.05, 0.72, 0x7ec8ff]].forEach(([x, y, c]) => box(0.07, 0.07, 0.005, mat(c), x, y, 0.283, fridge));   // magnets
   // boxes piled in the arcade storeroom
   for (let i = 0; i < 5; i++) box(rand(0.35, 0.6), rand(0.3, 0.5), 0.4, mat(pick([0xb8915e, 0x8d6e4a])), 1.4 + rand(0, 1.4), 0.2 + (i > 2 ? 0.4 : 0), rand(5.7, 7.6));
 }

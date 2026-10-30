@@ -84,6 +84,8 @@ function bar() {
   for (let i = 0; i < 6; i++) cyl(0.04, 0.035, 0.12, mat(0xe8f4ff, { roughness: 0.05, transparent: true, opacity: 0.5 }), -0.3 + (i % 3) * 0.1, 0.6, -0.1 + Math.floor(i / 3) * 0.1, machine, 10);
   cyl(0.08, 0.05, 0.07, mat(0xc0282d), 0.2, 0.575, 0.05, machine, 14); cyl(0.08, 0.05, 0.07, mat(0xf0c419), 0.32, 0.575, 0.05, machine, 14); // Taiwanese flower bowls
   buildMenuClipboard();
+  grinder(0.62, 0.95);
+  underBar();
   // sink set into the inner end of the bar
   box(0.72, 0.012, 0.62, mat(0x8f969c, { metalness: 0.8, roughness: 0.25 }), 0.5, 1.067, -1.55);
   box(0.62, 0.012, 0.52, mat(0x3a3f44, { metalness: 0.6, roughness: 0.3 }), 0.5, 1.07, -1.55);
@@ -97,7 +99,7 @@ function bar() {
   // the toys crowd the espresso machine: a row along its customer-facing side, more around both ends
   for (let i = 0; i < 12; i++) figurine(0.02 + (i % 2) * 0.1, 1.06, 1.08 + i * 0.07, rand(1.1, 1.9));
   for (let i = 0; i < 8; i++) figurine(0.3 + rand(0, 0.7), 1.06, rand(1.93, 2.05), rand(1.0, 1.6));
-  for (let i = 0; i < 5; i++) figurine(0.53 + rand(0, 0.35), 1.06, rand(0.98, 1.08), rand(1.0, 1.5));
+  for (let i = 0; i < 5; i++) figurine(0.45 + rand(0, 0.4), 1.06, rand(0.6, 0.72), rand(1.0, 1.5));   // past the grinder
   // lucky cat with a flexed arm, the bar's mascot
   const cat = new THREE.Group(); cat.position.set(0.3, 1.06, 2.55); cat.rotation.y = -Math.PI / 2; ctx.scene.add(cat);
   const goldM = mat(0xd9a520, { roughness: 0.25, metalness: 0.8 });
@@ -106,11 +108,43 @@ function bar() {
   stump(0.55, -2.4, 0.45);   // a tree stump at the top end of the bar
 }
 
+// the coffee grinder on the bar, right beside the espresso machine: base, motor body, chute, and a hopper of beans
+function grinder(x, z) {
+  const g = new THREE.Group(); g.position.set(x, 1.06, z); ctx.scene.add(g);
+  const bodyM = mat(0x2b2a2e, { roughness: 0.3, metalness: 0.6 });
+  box(0.2, 0.04, 0.22, bodyM, 0, 0.02, 0, g);                                                    // base with the cup fork
+  box(0.16, 0.3, 0.17, bodyM, 0, 0.19, -0.03, g);                                                // motor body
+  box(0.05, 0.05, 0.07, steel, 0.07, 0.14, 0.05, g);                                             // chute toward the owner
+  box(0.03, 0.03, 0.06, blackM, 0.06, 0.06, 0.06, g);                                            // portafilter fork
+  cyl(0.06, 0.05, 0.03, steel, 0, 0.355, -0.03, g, 14);                                          // burr collar
+  cyl(0.085, 0.045, 0.17, mat(0xd8e4ea, { roughness: 0.05, transparent: true, opacity: 0.45 }), 0, 0.455, -0.03, g, 16);   // hopper
+  cyl(0.06, 0.045, 0.08, mat(0x3b2214, { roughness: 0.9 }), 0, 0.415, -0.03, g, 14);            // beans in it
+  cyl(0.088, 0.088, 0.015, blackM, 0, 0.545, -0.03, g, 16);                                      // lid
+}
+
+// under the bar on the owner's side: an under-counter ice maker and a little fridge, doors facing him
+function underBar() {
+  const X = 1.205;                                          // the bar front on his side
+  const steelFront = mat(0xb9bec2, { metalness: 0.75, roughness: 0.3 });
+  const darkM = mat(0x1d1f22, { roughness: 0.4 });
+  // ice maker: steel front, a flap door with a handle, a vent grille at the bottom
+  box(0.02, 0.82, 0.55, steelFront, X, 0.43, 0.25);
+  box(0.022, 0.28, 0.47, mat(0xa9aeb2, { metalness: 0.8, roughness: 0.25 }), X + 0.004, 0.62, 0.25);
+  box(0.03, 0.025, 0.3, darkM, X + 0.02, 0.78, 0.25);
+  for (let i = 0; i < 5; i++) box(0.024, 0.012, 0.45, darkM, X + 0.004, 0.08 + i * 0.03, 0.25);
+  box(0.024, 0.04, 0.12, mat(0x2a6fd6, { roughness: 0.4 }), X + 0.004, 0.4, 0.4);   // a little blue badge
+  // the fridge next to it: white door, glass window, long bar handle
+  box(0.02, 0.82, 0.6, mat(0xeeeeec, { roughness: 0.35 }), X, 0.43, -0.45);
+  box(0.022, 0.34, 0.42, mat(0x9fb8c4, { roughness: 0.05, metalness: 0.5, transparent: true, opacity: 0.75 }), X + 0.004, 0.54, -0.47);
+  [[0.72, 0x7ec8ff], [0.58, 0xf4efe3], [0.44, 0xffd23f]].forEach(([y, c]) => box(0.018, 0.08, 0.06, mat(c), X - 0.004, y - 0.06, -0.4 - Math.random() * 0.12));   // milk and bottles behind the glass
+  box(0.035, 0.6, 0.025, steel, X + 0.025, 0.45, -0.2);
+  for (let i = 0; i < 3; i++) box(0.024, 0.01, 0.5, darkM, X + 0.004, 0.07 + i * 0.025, -0.45);
+}
+
 function workCounter() {
-  // 工作台 along the right wall, narrower: grinder, sink, tea cups; pegboard of stuff above
+  // 工作台 along the right wall, narrower: sink, tea cups; pegboard of stuff above
   box(0.45, 0.92, 4.2, mat(0x3a3a3c, { roughness: 0.5 }), 2.85, 0.46, 0.1);
   box(0.5, 0.04, 4.25, steel, 2.85, 0.94, 0.1);
-  cyl(0.1, 0.1, 0.3, blackM, 2.88, 1.11, -1.2); cyl(0.13, 0.06, 0.22, mat(0x5a3220, { transparent: true, opacity: 0.8 }), 2.88, 1.37, -1.2);
   box(0.36, 0.05, 0.4, mat(0xbfc4c8, { metalness: 0.7, roughness: 0.2 }), 2.86, 0.965, 1.2);
   cyl(0.012, 0.012, 0.3, steel, 3.0, 1.1, 1.2, ctx.scene, 6);
   for (let i = 0; i < 6; i++) cyl(0.055, 0.04, 0.06, mat(0xf2f0ea, { roughness: 0.3 }), 2.78 + (i % 2) * 0.13, 0.99, 0.2 + Math.floor(i / 2) * 0.14, ctx.scene, 12);
