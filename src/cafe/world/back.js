@@ -53,8 +53,8 @@ function toilet() {
 }
 
 function storage() {
-  // the far wall: a low steel shelf, as tall as the fridge, side by side with it, both facing the doorway
-  const s = new THREE.Group(); s.position.set(2.88, 0, -6.12); s.rotation.y = -Math.PI / 2; ctx.scene.add(s);
+  // the far wall: a low steel shelf at the back, the fridge at the front, both facing the doorway; wall cabinets above them
+  const s = new THREE.Group(); s.position.set(2.88, 0, -6.68); s.rotation.y = -Math.PI / 2; ctx.scene.add(s);
   [0.1, 0.55, 1.0, 1.35].forEach(y => box(1.2, 0.04, 0.4, steel, 0, y, 0, s));
   [-0.58, 0.58].forEach(xx => box(0.04, 1.37, 0.4, steel, xx, 0.685, 0, s));
   [[0.1, 0.3, 0xb8915e], [0.55, 0.3, 0xa47c4c], [1.0, 0.26, 0xd2b48c]].forEach(([y, h, c]) => {   // boxes lined up neatly, labels out
@@ -63,11 +63,19 @@ function storage() {
       box(0.14, 0.07, 0.005, mat(0xf4efe3), -0.4 + k * 0.4, y + 0.02 + h * 0.6, 0.162, s);   // label
     }
   });
-  const fridge = new THREE.Group(); fridge.position.set(2.78, 0, -7.0); fridge.rotation.y = -Math.PI / 2; ctx.scene.add(fridge);
+  const fridge = new THREE.Group(); fridge.position.set(2.78, 0, -5.84); fridge.rotation.y = -Math.PI / 2; ctx.scene.add(fridge);
   box(0.56, 1.35, 0.56, mat(new THREE.Color(0xa9d4ea).convertSRGBToLinear(), { roughness: 0.35, metalness: 0.1 }), 0, 0.675, 0, fridge);   // pale blue
   box(0.54, 0.012, 0.01, mat(0x9aa0a6), 0, 0.98, 0.285, fridge);                                    // freezer seam
   [[0.23, 1.15, 0.26], [0.23, 0.6, 0.44]].forEach(([x, y, h]) => box(0.022, h, 0.03, mat(0x9aa0a6, { metalness: 0.8 }), x, y, 0.3, fridge));   // handles
   [[-0.12, 1.12, 0xffd23f], [0.04, 1.22, 0xff4f7b], [-0.05, 0.72, 0x7ec8ff]].forEach(([x, y, c]) => box(0.07, 0.07, 0.005, mat(c), x, y, 0.283, fridge));   // magnets
+  const cabM = mat(0xe9e5dc, { roughness: 0.6 }), knobM = mat(0x6b6f73, { metalness: 0.7, roughness: 0.3 });
+  [-7.0, -6.45, -5.9].forEach((z, i) => {                // three cupboards hung on the wall, above head height
+    box(0.34, 0.6, 0.54, cabM, 2.93, 2.05, z);
+    box(0.012, 0.56, 0.003, mat(0xb5b0a6), 2.759, 2.05, z);                                        // the seam between its two doors
+    [-1, 1].forEach(k => box(0.03, 0.1, 0.02, knobM, 2.75, 1.93, z + k * 0.045));                   // handles
+    if (i !== 1) box(0.005, 0.08, 0.12, mat(0xf4efe3), 2.758, 2.24, z + 0.14);                     // a taped label
+  });
+  box(0.36, 0.03, 1.66, mat(0xcfc9bd, { roughness: 0.7 }), 2.92, 2.365, -6.45);                       // their top
   // the other back corner, against the toilet wall: crates and odds and ends, clear of the doorway
   crate(-0.25, 0, -7.1, 'blue'); crate(-0.25, 0.3, -7.1, 'green'); crate(-0.25, 0.6, -7.1, 'orange', 0.1);
   crate(0.4, 0, -7.1, 'orange'); crate(0.4, 0.3, -7.1, 'blue', -0.08);
