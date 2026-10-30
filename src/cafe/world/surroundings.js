@@ -1,7 +1,7 @@
 // The lane outside, after the street-view photo of the shop front: a narrow asphalt alley with 慢 painted on it,
 // old two- to four-storey row houses either side of the shop (tiled or washed-concrete fronts, blue roller shutters, balconies with
 // railings, iron window cages, AC boxes, wires sagging along the walls), parked scooters and bikes,
-// and now and then a car or a scooter coming down the lane, stopping for anyone in the way.
+// and now and then a car or a scooter coming down the one-way lane, stopping for anyone in the way.
 // Built after the set is squeezed, so it is in plain world metres. Buildings that come between the camera and what it
 // looks at fade away, the way the shop's own outer walls do.
 import * as THREE from 'three';
@@ -15,9 +15,11 @@ const col = hex => new THREE.Color(hex).convertSRGBToLinear();
 const mat = (hex, o) => rawMat(col(hex), o);
 
 const FRONT = 8.1;                 // our row's frontage (the shop's arcade edge)
+const BACK = -8.35;                // and its back, in line with the shop's back wall
 const LANE_W = 4.8;                // the lane is narrow: a car and a scooter can just pass
 const OPP = FRONT + LANE_W;        // the lane's far edge
 const LANE_Z = FRONT + LANE_W / 2;
+const ONE_WAY = -1;                // the lane is one-way: everything drives toward -x
 
 // ---------------------------------------------------------------- textures
 const TEX = {};
@@ -112,7 +114,7 @@ function fixtures(K) {
 }
 
 // one row house: ground floor shop (shutter or open front), `floors` upper floors, a flat roof (maybe a tin shed on it)
-function rowHouse(x0, x1, frontZ, facing, floors, depth = 9) {
+function rowHouse(x0, x1, frontZ, facing, floors, depth) {
   const w = x1 - x0, K = fixtures(kit());
   const g = new THREE.Group(); g.position.set((x0 + x1) / 2, 0, frontZ); g.rotation.y = facing > 0 ? 0 : Math.PI; env.add(g);
   const faceTex = Math.random() < 0.6
@@ -156,7 +158,7 @@ function rowHouse(x0, x1, frontZ, facing, floors, depth = 9) {
   }
   // roof: parapet, a water tower, sometimes a tin shed built on top
   bx(g, w, 0.9, 0.15, face, 0, H + 0.45, -0.08);
-  if (Math.random() < 0.45) {
+  if (floors < 2 && Math.random() < 0.6) {          // a tin shed on top only of the two-storey ones, so nothing tops three storeys
     const tin = K.m(pick([0x4f7fa8, 0x8e8a80, 0x9b5a3c]), { metalness: 0.4, roughness: 0.6 });
     bx(g, w - 0.3, 2.2, depth * 0.6, tin, 0, H + 1.1, -depth * 0.45);
     bx(g, w - 0.1, 0.08, depth * 0.62, tin, 0, H + 2.25, -depth * 0.45).rotation.x = 0.06;
@@ -241,8 +243,8 @@ const traffic = [];
 let carT = 12, scootT = 5;
 function spawn(kind) {
   const v = kind === 'car' ? carModel() : riderModel();
-  const dir = Math.random() < 0.5 ? 1 : -1;
-  const z = kind === 'car' ? LANE_Z + 0.2 : LANE_Z + dir * rand(0.6, 1.3);
+  const dir = ONE_WAY;
+  const z = kind === 'car' ? LANE_Z + 0.2 : LANE_Z + rand(-1.3, 1.3);
   v.g.position.set(-dir * 42, 0, z); v.g.rotation.y = dir * Math.PI / 2; env.add(v.g);
   traffic.push({ ...v, dir, speed: v.vmax, z });
 }
@@ -300,20 +302,20 @@ export function buildSurroundings() {
   const at = asphaltTex(); at.repeat.set(24, 2);
   const lane = new THREE.Mesh(new THREE.PlaneGeometry(96, LANE_W + 0.6), new THREE.MeshStandardMaterial({ map: at, roughness: 0.95 }));
   lane.rotation.x = -Math.PI / 2; lane.position.set(0, -0.015, LANE_Z); lane.receiveShadow = true; env.add(lane);
-  // a white edge line on the far side, and 慢 painted big across the lane either side of the shop
+  // a white edge line on the far side, and 慢 painted big across the lane, read by drivers coming down the one-way lane
   const paint = new THREE.MeshStandardMaterial({ color: col(0xe8e6e0), roughness: 0.8 });
   const edge = new THREE.Mesh(new THREE.PlaneGeometry(96, 0.12), paint); edge.rotation.x = -Math.PI / 2; edge.position.set(0, -0.01, OPP - 0.35); env.add(edge);
   const slow = canvasTex(256, 256, (g, w) => { g.fillStyle = '#ece9e2'; g.font = 'bold 220px "Noto Sans TC", sans-serif'; g.textAlign = 'center'; g.fillText('慢', w / 2, 210); });
   S.fontTex.push(slow);
-  [[-9, 1], [10, -1]].forEach(([x, d]) => {
+  [10, -12].forEach(x => {
     const m = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 2.6), new THREE.MeshStandardMaterial({ map: slow, transparent: true, roughness: 0.8, depthWrite: false }));
-    m.rotation.set(-Math.PI / 2, 0, d > 0 ? -Math.PI / 2 : Math.PI / 2); m.position.set(x, -0.005, LANE_Z); env.add(m);   // read by drivers coming toward the shop
+    m.rotation.set(-Math.PI / 2, 0, -ONE_WAY * Math.PI / 2); m.position.set(x, -0.005, LANE_Z); env.add(m);   // its top points the way they drive
   });
-  // our row either side of the shop; heights wander like the real street
+  // our row either side of the shop: each as deep as the shop, two or three storeys
   let x = 2.3;
-  while (x < 40) { const w = rand(3.6, 5.2); rowHouse(x, x + w, FRONT - rand(0, 0.3), 1, randi(1, 3)); x += w; }
+  while (x < 40) { const w = rand(3.6, 5.2), f = FRONT - rand(0, 0.3); rowHouse(x, x + w, f, 1, randi(1, 2), f - BACK); x += w; }
   x = -2.3;
-  while (x > -40) { const w = rand(3.6, 5.2); rowHouse(x - w, x, FRONT - rand(0, 0.3), 1, randi(1, 3)); x -= w; }
+  while (x > -40) { const w = rand(3.6, 5.2), f = FRONT - rand(0, 0.3); rowHouse(x - w, x, f, 1, randi(1, 2), f - BACK); x -= w; }
   shopUpstairs();
   // nothing across the lane or behind: just the lane and the row either side, so nothing hides the shop
   wires(FRONT + 0.25, 3.45, -40, 40);
