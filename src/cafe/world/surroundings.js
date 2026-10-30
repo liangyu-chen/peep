@@ -19,7 +19,7 @@ const BACK = -8.35;                // and its back, in line with the shop's back
 const LANE_W = 4.8;                // the lane is narrow: a car and a scooter can just pass
 const OPP = FRONT + LANE_W;        // the lane's far edge
 const LANE_Z = FRONT + LANE_W / 2;
-const ONE_WAY = -1;                // the lane is one-way: everything drives toward -x
+const ONE_WAY = 1;                 // the lane is one-way: everything drives toward +x
 
 // ---------------------------------------------------------------- textures
 const TEX = {};
@@ -307,7 +307,7 @@ export function buildSurroundings() {
   const edge = new THREE.Mesh(new THREE.PlaneGeometry(96, 0.12), paint); edge.rotation.x = -Math.PI / 2; edge.position.set(0, -0.01, OPP - 0.35); env.add(edge);
   const slow = canvasTex(256, 256, (g, w) => { g.fillStyle = '#ece9e2'; g.font = 'bold 220px "Noto Sans TC", sans-serif'; g.textAlign = 'center'; g.fillText('慢', w / 2, 210); });
   S.fontTex.push(slow);
-  [10, -12].forEach(x => {
+  [-10, 12].forEach(x => {
     const m = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 2.6), new THREE.MeshStandardMaterial({ map: slow, transparent: true, roughness: 0.8, depthWrite: false }));
     m.rotation.set(-Math.PI / 2, 0, -ONE_WAY * Math.PI / 2); m.position.set(x, -0.005, LANE_Z); env.add(m);   // its top points the way they drive
   });
