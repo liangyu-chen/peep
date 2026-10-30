@@ -65,6 +65,7 @@ export function mountPreview(host) {
       tickFace(body, anim, dt, t % 7 > 5.2);                     // says something every few seconds, so the mouth shows
       body.head.rotation.y = Math.sin(t * 0.5) * 0.12;
       body.arms.forEach((a, i) => { a.rotation.x = Math.sin(t * 1.4 + i * Math.PI) * 0.04; a.rotation.z = i ? -0.06 : 0.06; });
+      body.elbows.forEach(e => { e.rotation.x = -0.14; });
     }
     if (tween) {
       tween.t = Math.min(1, tween.t + dt / 0.6);

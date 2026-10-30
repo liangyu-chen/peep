@@ -78,23 +78,24 @@ export class Person {
     const sitting = this.pose === 'sit' || this.pose === 'game';
     this.walkPhase += dt * (moving ? 9 : 2);
     const s = Math.sin(this.walkPhase);
-    let y = 0, hipL = 0, hipR = 0, kL = 0, kR = 0, armLx = 0, armRx = 0, armLz = 0.06, armRz = -0.06, bob = 0;
-    if (moving) { hipL = s * 0.55; hipR = -s * 0.55; kL = Math.max(0, -s) * 0.6; kR = Math.max(0, s) * 0.6; armLx = -s * 0.45; armRx = s * 0.45; bob = Math.abs(Math.cos(this.walkPhase)) * 0.04; }
-    else if (sitting) { y = this.seat ? this.seat.sitY : -0.1; hipL = hipR = -Math.PI / 2; kL = kR = this.seat && this.seat.floor ? 0.25 : Math.PI / 2; }
+    let y = 0, hipL = 0, hipR = 0, kL = 0, kR = 0, armLx = 0, armRx = 0, armLz = 0.06, armRz = -0.06, bob = 0, elL = -0.12, elR = -0.12;
+    if (moving) { hipL = s * 0.55; hipR = -s * 0.55; kL = Math.max(0, -s) * 0.6; kR = Math.max(0, s) * 0.6; armLx = -s * 0.45; armRx = s * 0.45; elL = -0.3 + Math.min(0, s) * 0.2; elR = -0.3 - Math.max(0, s) * 0.2; bob = Math.abs(Math.cos(this.walkPhase)) * 0.04; }
+    else if (sitting) { y = this.seat ? this.seat.sitY : -0.1; hipL = hipR = -Math.PI / 2; kL = kR = this.seat && this.seat.floor ? 0.25 : Math.PI / 2; armLx = armRx = -0.25; elL = elR = -0.7; }   // hands resting on the lap
     else { armLx = Math.sin(this.walkPhase * 0.7) * 0.04; armRx = -armLx; }
-    if (this.cup && this.cup.parent === this.hand && !this.act) armRx = moving ? -0.6 : -0.9;
+    if (this.cup && this.cup.parent === this.hand && !this.act) { armRx = moving ? -0.25 : -0.35; elR = -1.0; }   // forearm up, cup in front
     this.pad.visible = this.pose === 'game';
-    if (this.pose === 'game' && !moving) { armLx = armRx = -1.0 + Math.sin(this.walkPhase * 6) * 0.05; armLz = 0.42; armRz = -0.42; bob = Math.sin(this.walkPhase * 3) * 0.01; }
-    if (this.act === 'sip') { armRx = -2.3; armRz = -0.5; }
-    if (this.act === 'cheer') { armLx = armRx = -2.9 + Math.sin(this.walkPhase * 10) * 0.2; armLz = 0.2; armRz = -0.2; bob += Math.abs(Math.sin(this.walkPhase * 8)) * 0.05; }
-    if (this.act === 'wave') { armRx = -2.6; armRz = -0.4 + Math.sin(this.walkPhase * 12) * 0.35; }
-    if (this.act === 'wipe') { armRx = -1.25; armRz = Math.sin(this.walkPhase * 8) * 0.5; }
-    if (this.act === 'brew') { armLx = armRx = -1.3; armLz = 0.3; armRz = -0.3; }
-    if (this.act === 'pour') { armLx = -1.2; armRx = -1.5 + Math.sin(this.walkPhase * 5) * 0.15; armLz = 0.35; armRz = -0.35; }
-    if (this.act === 'facepalm') { armRx = -2.6; armRz = -0.75; }
-    if (this.act === 'carry') { armLx = armRx = -1.4; armLz = 0.25; armRz = -0.25; }
+    if (this.pose === 'game' && !moving) { armLx = armRx = -0.55 + Math.sin(this.walkPhase * 6) * 0.04; elL = elR = -1.0; armLz = 0.3; armRz = -0.3; bob = Math.sin(this.walkPhase * 3) * 0.01; }
+    if (this.act === 'sip') { armRx = -0.5; elR = -2.4; armRz = -0.3; }
+    if (this.act === 'cheer') { armLx = armRx = -2.9 + Math.sin(this.walkPhase * 10) * 0.2; elL = elR = -0.2; armLz = 0.2; armRz = -0.2; bob += Math.abs(Math.sin(this.walkPhase * 8)) * 0.05; }
+    if (this.act === 'wave') { armRx = -2.4; elR = -0.5; armRz = -0.4 + Math.sin(this.walkPhase * 12) * 0.35; }
+    if (this.act === 'wipe') { armRx = -0.8; elR = -0.7; armRz = Math.sin(this.walkPhase * 8) * 0.5; }
+    if (this.act === 'brew') { armLx = armRx = -0.8; elL = elR = -0.8; armLz = 0.3; armRz = -0.3; }
+    if (this.act === 'pour') { armLx = -0.7; armRx = -0.9 + Math.sin(this.walkPhase * 5) * 0.15; elL = -0.8; elR = -0.9; armLz = 0.35; armRz = -0.35; }
+    if (this.act === 'facepalm') { armRx = -0.9; elR = -2.0; armRz = -0.45; }
+    if (this.act === 'carry') { armLx = armRx = -0.9; elL = elR = -0.7; armLz = 0.25; armRz = -0.25; }
     L.hip.rotation.x = hipL; R.hip.rotation.x = hipR; L.knee.rotation.x = kL; R.knee.rotation.x = kR;
     aL.rotation.set(armLx, 0, armLz); aR.rotation.set(armRx, 0, armRz);
+    this.elbows[0].rotation.x = elL; this.elbows[1].rotation.x = elR;
     this.g.position.y = y + bob;
     this.head.rotation.y = this.pose === 'game' ? 0 : Math.sin(this.walkPhase * 0.31) * 0.2;
   }
