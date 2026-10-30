@@ -1,6 +1,6 @@
 // The lane outside, after the street-view photo of the shop front: a narrow asphalt alley with 慢 painted on it,
-// old two- to four-storey row houses both sides (tiled or washed-concrete fronts, blue roller shutters, balconies with
-// railings, iron window cages, AC boxes, wires sagging along the walls), taller flats behind, parked scooters and bikes,
+// old two- to four-storey row houses either side of the shop (tiled or washed-concrete fronts, blue roller shutters, balconies with
+// railings, iron window cages, AC boxes, wires sagging along the walls), parked scooters and bikes,
 // and now and then a car or a scooter coming down the lane, stopping for anyone in the way.
 // Built after the set is squeezed, so it is in plain world metres. Buildings that come between the camera and what it
 // looks at fade away, the way the shop's own outer walls do.
@@ -16,7 +16,7 @@ const mat = (hex, o) => rawMat(col(hex), o);
 
 const FRONT = 8.1;                 // our row's frontage (the shop's arcade edge)
 const LANE_W = 4.8;                // the lane is narrow: a car and a scooter can just pass
-const OPP = FRONT + LANE_W;        // the opposite row's frontage
+const OPP = FRONT + LANE_W;        // the lane's far edge
 const LANE_Z = FRONT + LANE_W / 2;
 
 // ---------------------------------------------------------------- textures
@@ -309,27 +309,23 @@ export function buildSurroundings() {
     const m = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 2.6), new THREE.MeshStandardMaterial({ map: slow, transparent: true, roughness: 0.8, depthWrite: false }));
     m.rotation.set(-Math.PI / 2, 0, d > 0 ? -Math.PI / 2 : Math.PI / 2); m.position.set(x, -0.005, LANE_Z); env.add(m);   // read by drivers coming toward the shop
   });
-  // our row either side of the shop, and the opposite row; heights wander like the real street
+  // our row either side of the shop; heights wander like the real street
   let x = 2.3;
   while (x < 40) { const w = rand(3.6, 5.2); rowHouse(x, x + w, FRONT - rand(0, 0.3), 1, randi(1, 3)); x += w; }
   x = -2.3;
   while (x > -40) { const w = rand(3.6, 5.2); rowHouse(x - w, x, FRONT - rand(0, 0.3), 1, randi(1, 3)); x -= w; }
-  x = -40;
-  while (x < 40) { const w = rand(3.6, 5.2); rowHouse(x, x + w, OPP + rand(0, 0.3), -1, randi(1, 3)); x += w; }
   shopUpstairs();
-  // taller flats behind both rows
-  for (let i = -5; i <= 5; i++) [[-14, 1], [OPP + 13, -1]].forEach(([z, f]) => rowHouse(i * 7.5 - 3.4, i * 7.5 + 3.4, z, f, randi(4, 6), 10));
-  wires(FRONT + 0.25, 3.45, -40, 40); wires(OPP - 0.25, 3.6, -40, 40);
+  // nothing across the lane or behind: just the lane and the row either side, so nothing hides the shop
+  wires(FRONT + 0.25, 3.45, -40, 40);
   // parked scooters and bikes, pot plants and crates along both sides, clear of the shop front
   const park = (px, pz, ry, thing) => { thing.position.set(px, 0, pz); thing.rotation.y = ry; thing.traverse(o => { if (o.isMesh) o.castShadow = true; }); env.add(thing); };
   const vehicle = () => (Math.random() < 0.7 ? scooterModel(pick(SCOOTER_COLS)) : bike(pick([0xd94a7a, 0x9aa0a6, 0x2f6fb0])));
   [-5.2, -5.9, -9.6, -13.5, 4.9, 7.8, 12.2, 17.5].forEach(px => park(px, FRONT + 0.75, rand(-0.15, 0.15) + (Math.random() < 0.5 ? 0 : Math.PI), vehicle()));
-  [-7, -3.5, 2.5, 6.2, 9.4, 14, -11.8, -16].forEach(px => park(px, OPP - 0.75, rand(-0.15, 0.15) + (Math.random() < 0.5 ? 0 : Math.PI), vehicle()));
   for (let i = 0; i < 14; i++) {
-    const pz = i % 2 ? FRONT + 0.25 : OPP - 0.25, px = rand(-30, 30);
+    const pz = FRONT + 0.25, px = rand(-30, 30);
     if (Math.abs(px) < 2.8) continue;
     const pot = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.12, 0.26, 10), mat(pick([0xb06a45, 0x3d6a91, 0xe6e3dc]))); pot.position.set(px, 0.13, pz); env.add(pot);
     const leaf = new THREE.Mesh(new THREE.IcosahedronGeometry(0.22, 0), mat(pick([0x5f8f55, 0x6f9f5c, 0x7fae66]), { flatShading: true })); leaf.position.set(px, 0.42, pz); env.add(leaf);
   }
-  [[-4.3, FRONT + 0.3], [8.6, OPP - 0.3]].forEach(([px, pz]) => { const c = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.3, 0.4), mat(0x2f8a4a, { roughness: 0.6 })); c.position.set(px, 0.15, pz); c.castShadow = true; env.add(c); });   // green crates
+  [[-4.3, FRONT + 0.3], [8.6, FRONT + 0.3]].forEach(([px, pz]) => { const c = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.3, 0.4), mat(0x2f8a4a, { roughness: 0.6 })); c.position.set(px, 0.15, pz); c.castShadow = true; env.add(c); });   // green crates
 }

@@ -49,7 +49,7 @@ export function buildShell() {
   floorPlane(6.2, 12.85, 0, -1.925, new THREE.MeshStandardMaterial({ map: floorTex, roughness: 0.45 }));
   // toilet floor: plain concrete painted orange, no tiles or seams
   const orangeFloor = canvasTex(256, 256, (g, w, h) => concreteWall(g, w, h, '#d8692a'));
-  floorPlane(3.1, 2.0, 0.75, -8.35, new THREE.MeshStandardMaterial({ map: orangeFloor, roughness: 0.55 }), 0.012);
+  floorPlane(3.9, 1.3, 1.15, -8.7, new THREE.MeshStandardMaterial({ map: orangeFloor, roughness: 0.55 }), 0.012);
   floorPlane(6.2, 4.0, 0, 6, new THREE.MeshStandardMaterial({ map: floorTex, roughness: 0.6 }), 0.01);   // the arcade is the same grey concrete
   // the lane outside, its buildings and its traffic are built in surroundings.js
 
@@ -77,12 +77,12 @@ export function buildShell() {
   S.slide = { open: 0 };
   // back of house partitions
   wall(-0.8, -9.35, -0.8, -9.2, WH, greyM);
-  wall(-0.8, -8.2, -0.8, -7.2, WH, greyM);
-  wall(-0.8, -6.4, -0.8, -5.5, WH, greyM);
+  wall(-0.8, -8.2, -0.8, -6.9, WH, greyM);
+  wall(-0.8, -6.1, -0.8, -5.5, WH, greyM);                // the storeroom doorway sits toward the front, clear of the crates in its back corner
   box(0.16, WH - 2.05, 1.0, greyM, -0.8, 2.05 + (WH - 2.05) / 2, -8.7);   // wall over the toilet door, no gap above it
-  box(0.16, WH - 2.1, 0.8, greyM, -0.8, 2.1 + (WH - 2.1) / 2, -6.8);       // and over the storage doorway
-  wall(-0.8, -7.35, 3.1, -7.35, WH, greyM);                // toilet | storage (a small storeroom)
-  wall(2.3, -9.35, 2.3, -7.35, WH, greyM);                 // the toilet stops short of the right wall (a closed-off pipe space behind)
+  box(0.16, WH - 2.1, 0.8, greyM, -0.8, 2.1 + (WH - 2.1) / 2, -6.5);       // and over the storage doorway
+  wall(-0.8, -7.35, 3.1, -7.35, WH, greyM);                // the small storeroom's back wall
+  box(3.9, WH, 0.7, greyM, 1.15, WH / 2, -7.7);             // a solid run of wall between it and the toilet, which is only a little deeper than its door
   S.toiletDoor = box(0.05, 2.05, 1.02, mat(0xd9d2c6, { roughness: 0.6 }), -0.86, 1.025, -8.7);   // sliding toilet door (the storeroom has no door)
   // shop front: cement grey like the rest of the arcade, a plain door, and the melting-face peep window
   wall(-3.1, 4, -2.3, 4, WH, greyM);

@@ -43,12 +43,12 @@ function toilet() {
   const hole = cyl(0.17, 0.12, 0.01, mat(0x8fa3ad, { roughness: 0.1 }), 1.7, 0.032, -8.66, ctx.scene, 20); hole.scale.z = 1.6;
   box(0.2, 0.05, 0.18, porcelain, 1.7, 0.05, -9.08);                                                           // hood at the back end
   box(0.42, 0.32, 0.18, porcelain, 1.7, 1.75, -9.18); cyl(0.02, 0.02, 1.5, steel, 1.7, 0.95, -9.24, ctx.scene, 6);  // high tank + pipe on the back wall
-  cyl(0.12, 0.1, 0.24, mat(0x3a7bd5), 2.08, 0.12, -8.0, ctx.scene, 14); cyl(0.05, 0.05, 0.05, mat(0xff7a12), 2.08, 0.27, -8.0, ctx.scene, 10);     // bucket + scoop
+  cyl(0.12, 0.1, 0.24, mat(0x3a7bd5), 2.55, 0.12, -8.45, ctx.scene, 14); cyl(0.05, 0.05, 0.05, mat(0xff7a12), 2.55, 0.27, -8.45, ctx.scene, 10);     // bucket + scoop
   box(0.42, 0.15, 0.32, porcelain, 0.1, 0.85, -9.1);
   box(0.36, 0.45, 0.03, mat(0xbfe6ff, { roughness: 0.05, metalness: 0.6 }), 0.1, 1.45, -9.26);
   // posters taped up in the toilet
-  [[0.9, 1.7, -9.26, 0, 'eye', 0.36, 0.27, '#ff4f7b'], [2.21, 1.55, -8.6, -Math.PI / 2, 'wave', 0.4, 0.3, '#f4efe3'], [1.4, 1.75, -7.44, Math.PI, 'toys', 0.38, 0.38, '#ffd23f'],
-    [0.6, 1.6, -7.44, Math.PI, 'hoop', 0.3, 0.3, '#c0282d'], [-0.71, 1.7, -9.27, Math.PI / 2, 'hoop', 0.12, 0.12, '#7ec8ff']]
+  [[0.9, 1.7, -9.26, 0, 'eye', 0.36, 0.27, '#ff4f7b'], [2.55, 1.55, -9.26, 0, 'wave', 0.4, 0.3, '#f4efe3'], [1.4, 1.75, -8.06, Math.PI, 'toys', 0.38, 0.38, '#ffd23f'],
+    [2.5, 1.6, -8.06, Math.PI, 'hoop', 0.3, 0.3, '#c0282d'], [-0.71, 1.7, -9.27, Math.PI / 2, 'hoop', 0.12, 0.12, '#7ec8ff']]
     .forEach(([x, y, z, ry, key, w, h, bg]) => plane(w, h, pixelArt(ART[key], PAL, bg), x, y, z, ry));
 }
 
