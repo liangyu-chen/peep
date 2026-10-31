@@ -1,4 +1,4 @@
-import { COLOR_PRESETS, FACE, HAIR_STYLES, HAT_STYLES, faceOf, hairOf, hatOf, type Look } from '@/src/content/catalog';
+import { COLOR_PRESETS, FACE, HAIR, HAT_STYLES, faceOf, hairOf, hatOf, type Look } from '@/src/content/catalog';
 import ColorField from './ColorField';
 
 function Pick({ name, label, value, options }: { name: string; label: string; value: string; options: { value: string; label: string }[] }) {
@@ -15,7 +15,7 @@ function Pick({ name, label, value, options }: { name: string; label: string; va
 // the 捏臉 fields shared by the regulars' editor and the owner's page; parseLook() reads them back
 export default function LookFields({ look, seed }: { look: Look; seed: string }) {
   const f = faceOf(look, seed);
-  const hat = hatOf(look);
+  const hat = hatOf(look), hair = hairOf(look);
   return (
     <>
       <section className="panel-block">
@@ -36,7 +36,10 @@ export default function LookFields({ look, seed }: { look: Look; seed: string })
 
       <section className="panel-block">
         <h2>髮型與穿著</h2>
-        <Pick name="hairStyle" label="髮型" value={hairOf(look)} options={HAIR_STYLES} />
+        <Pick name="hairLength" label="長度" value={hair.length} options={HAIR.length} />
+        <Pick name="hairCurl" label="髮質" value={hair.curl} options={HAIR.curl} />
+        <Pick name="hairFront" label="前額" value={hair.front} options={HAIR.front} />
+        <Pick name="hairTie" label="綁髮（中長髮、長髮）" value={hair.tie} options={HAIR.tie} />
         <Pick name="hat" label="帽子" value={hat.hat} options={HAT_STYLES} />
         <div className="colors">
           <ColorField name="hair" label="髮色" value={look.hair} presets={COLOR_PRESETS.hair} />

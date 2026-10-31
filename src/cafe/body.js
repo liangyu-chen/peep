@@ -319,23 +319,40 @@ export function buildBody(look, seed = '') {
 
 // hats, each a shell round its own tipped crown down to a front edge `elev` above the eyes; own is the hat's own thickness
 const HATS = { cap: { tilt: 0.25, elev: 0.4, own: 0.012 }, bucket: { tilt: 0.1, elev: 0.5, own: 0.014 }, beanie: { tilt: 0.35, elev: 0.45, own: 0.016 } };
-// how far each hairstyle stands off the head where a hat goes, so the hat is made that much bigger and never cuts into it
-// (spikes, buns and ponytails that would sit under a hat are left out or moved below its edge instead)
-const HAIR_LIFT = { bald: 0, buzz: 0.004, short: 0.012, spiky: 0.012, curly: 0.032, side: 0.024, medium: 0.022, long: 0.021, longCurly: 0.04, bun: 0.021, ponytail: 0.021 };
-
-// the hair first, then the hat (if any) put on over it
-function buildHair(style, shape, head, hairM, mk, at, look) {
-  const hair = (thick, tilt, elev, xMax) => mk(shellGeo(shape, thick, crown(tilt), 0, coverFor(tilt, elev), xMax), hairM, 0, 0, 0, head);
-  const TILT = 0.66, FRONT = 0.5;                       // the hairline: front edge just above the brows, back edge down the nape
-  // the hairline: just above the brows at the front, past the temples at the sides, down the nape at the back
-  const line = phi => -0.16 + 0.66 * Math.cos(phi);
-  const lobe = (phi, at0, p) => Math.max(0, Math.cos(phi - at0)) ** p;      // a bump centred on angle at0
-  const base = () => mk(capGeo(shape, 'base', line, () => 0.012), hairM, 0, 0, 0, head);
-  // a fringe is the same cap, coming a touch lower over the forehead and standing out a little more there, so it
-  // blends into the rest of the hair instead of sitting on the forehead as a separate patch
-  const fringe = () => mk(capGeo(shape, 'fringe', phi => line(phi) - 0.07 * lobe(phi, 0, 4), phi => 0.012 + 0.009 * lobe(phi, 0, 2)), hairM, 0, 0, 0, head);
+// the top of the head for each way the front can go: the hairline (radians above the eyes' horizon) all the way round,
+// and how full it stands, both by φ, the angle from straight ahead; lift is how far it stands off the head at most
+const line = phi => -0.16 + 0.66 * Math.cos(phi);                          // just above the brows, past the temples, down the nape
+const lobe = (phi, at0, p) => Math.max(0, Math.cos(phi - at0)) ** p;      // a bump centred on angle at0
+const ang = phi => Math.atan2(Math.sin(phi), Math.cos(phi));               // -π..π, 0 straight ahead
+const FRONTS = {
+  none: { edge: line, thick: () => 0.012, lift: 0.012 },
+  // a fringe comes a touch lower over the forehead and stands out a little more there, blending into the rest of the hair
+  bangs: { edge: phi => line(phi) - 0.07 * lobe(phi, 0, 4), thick: phi => 0.012 + 0.009 * lobe(phi, 0, 2), lift: 0.021 },
+  // parted in the middle: the hairline lifts at the centre of the forehead and the hair falls away to both sides,
+  // fuller over the temples, with a shallow parting line running back from the front
+  center: {
+    edge: phi => line(phi) + 0.12 * lobe(phi, 0, 8) - 0.05 * (lobe(phi, 0.55, 6) + lobe(phi, -0.55, 6)),
+    thick: phi => 0.014 + 0.008 * (lobe(phi, 0.6, 3) + lobe(phi, -0.6, 3)) - 0.006 * Math.exp(-((ang(phi) / 0.05) ** 2)), lift: 0.022,
+  },
   // swept to one side: lower and fuller over one brow, rising toward the other
-  const sweep = () => mk(capGeo(shape, 'sweep', phi => line(phi) - 0.16 * lobe(phi, -0.55, 3) + 0.04 * lobe(phi, 0.6, 3), phi => 0.012 + 0.012 * lobe(phi, -0.45, 2)), hairM, 0, 0, 0, head);
+  side: { edge: phi => line(phi) - 0.16 * lobe(phi, -0.55, 3) + 0.04 * lobe(phi, 0.6, 3), thick: phi => 0.012 + 0.012 * lobe(phi, -0.45, 2), lift: 0.024 },
+};
+const CURL_TOP = 0.018;     // how far curls stand out of the top of the head
+// the hair hanging round the back and sides for each length, as a profile below the widest part of the head (w, y0)
+const LENGTHS = {
+  medium: (w, y0) => [[w + 0.004, y0 - 0.07], [w + 0.01, y0 - 0.15], [w + 0.016, y0 - 0.22], [w + 0.018, y0 - 0.26], [w + 0.006, y0 - 0.285], [w - 0.008, y0 - 0.29]],   // to the shoulders, ends turned under
+  long: (w, y0) => [[w + 0.004, y0 - 0.08], [w + 0.012, y0 - 0.19], [w + 0.026, y0 - 0.29], [w + 0.008, y0 - 0.33]],
+};
+const CURLY_LENGTHS = {   // curls take up more room: fuller, and fullest toward the ends
+  medium: (w, y0) => [[w + 0.01, y0 - 0.06], [w + 0.02, y0 - 0.13], [w + 0.03, y0 - 0.2], [w + 0.034, y0 - 0.25], [w + 0.02, y0 - 0.28], [w + 0.004, y0 - 0.29]],
+  long: (w, y0) => [[w + 0.012, y0 - 0.06], [w + 0.02, y0 - 0.13], [w + 0.03, y0 - 0.2], [w + 0.038, y0 - 0.27], [w + 0.042, y0 - 0.33], [w + 0.028, y0 - 0.37], [w + 0.006, y0 - 0.38]],
+};
+
+// the hair first, built from its parts (length, straight / curly / spiky, the front, tied up or not), then the hat
+// (if any) put on over it, made bigger by however far the hair stands off the head so nothing pokes through it
+function buildHair(hairParts, shape, head, hairM, mk, at, look) {
+  const { length, curl, front, tie } = hairParts;
+  const TILT = 0.66;                                    // the old tipped crown, still used to spread spikes
 
   // the hat this person wears, worked out first so the hair can keep out from under it
   const { hat: hatStyle, color: hatColor } = hatOf(look);
@@ -344,7 +361,6 @@ function buildHair(style, shape, head, hairM, mk, at, look) {
   const underHat = (u, margin) => !!H && Math.acos(Math.max(-1, Math.min(1, u.dot(hatN)))) < hatA + margin;
   const hatBack = H ? Math.PI / 2 - hatA - H.tilt : 9;  // the height (radians) of the hat's edge straight behind
   const backAt = e => at(0, Math.sin(e), -Math.cos(e)); // the point at height e straight behind
-
   // spread small pieces evenly over the part of the head the hair covers, skipping any a hat would sit on
   const scatter = (limit, margin, place) => FIB.forEach(u => {
     const a = Math.acos(u.dot(crown(TILT)));
@@ -352,7 +368,7 @@ function buildHair(style, shape, head, hairM, mk, at, look) {
   });
   // a curtain round the back and sides, open at the face; its top follows the head's own outline right up to the
   // crown, lying just over the cap, so the back of the head is one surface. tail(w, y0) gives the profile below;
-  // `curls` twists it into ringlets, starting a little below the crown and deepening toward the ends
+  // `curls` turns it into ringlets, starting a little below the crown and deepening toward the ends
   const curtain = (key, tail, curls = 0) => {
     const prof = [];
     for (let k = 0; k <= 6; k++) {
@@ -366,59 +382,42 @@ function buildHair(style, shape, head, hairM, mk, at, look) {
       const top = prof[3][1], bottom = prof[prof.length - 1][1];
       mk(ringletLathe(`${shape}:${key}`, prof, 120, 0.85, Math.PI * 2 - 1.7, curls, y => Math.max(0, Math.min(1, (top - y) / (top - bottom) * 1.6))), hairM, 0, 0, 0, head);
     }
-    return prof;
   };
 
-  switch (style) {
-    case 'bald': break;
-    case 'buzz': hair(0.004, 0.5, 0.55); break;
-    case 'medium': {
-      // 中長髮: down to the shoulders, parted in the middle: the hairline lifts at the centre of the forehead and the
-      // hair falls away to both sides, fuller over the temples, with a shallow parting line running back from the front
-      const ang = phi => Math.atan2(Math.sin(phi), Math.cos(phi));                     // -π..π, 0 straight ahead
-      mk(capGeo(shape, 'centrePart', phi => line(phi) + 0.12 * lobe(phi, 0, 8) - 0.05 * (lobe(phi, 0.55, 6) + lobe(phi, -0.55, 6)),
-        phi => 0.014 + 0.008 * (lobe(phi, 0.6, 3) + lobe(phi, -0.6, 3)) - 0.006 * Math.exp(-((ang(phi) / 0.05) ** 2))), hairM, 0, 0, 0, head);
-      curtain('medium', (w, y0) => [[w + 0.004, y0 - 0.07], [w + 0.01, y0 - 0.15], [w + 0.016, y0 - 0.22], [w + 0.018, y0 - 0.26], [w + 0.006, y0 - 0.285], [w - 0.008, y0 - 0.29]]);
-      break;
-    }
-    case 'long':
-      fringe();
-      curtain('long', (w, y0) => [[w + 0.004, y0 - 0.08], [w + 0.012, y0 - 0.19], [w + 0.026, y0 - 0.29], [w + 0.008, y0 - 0.33]]);
-      break;
-    case 'longCurly':
-      // long curls: curly on top, then a full curtain twisted into ringlets, fuller toward the ends
-      mk(capGeo(shape, 'fringeCurly', phi => line(phi) - 0.07 * lobe(phi, 0, 4), phi => 0.012 + 0.009 * lobe(phi, 0, 2), curlLumps(0.018)), hairM, 0, 0, 0, head);
-      curtain('curly', (w, y0) => [[w + 0.012, y0 - 0.06], [w + 0.02, y0 - 0.13], [w + 0.03, y0 - 0.2], [w + 0.038, y0 - 0.27], [w + 0.042, y0 - 0.33], [w + 0.028, y0 - 0.37], [w + 0.006, y0 - 0.38]], 0.022);
-      break;
-    case 'bun': {
-      fringe();
-      // up on the crown, or, under a hat, a low bun below its edge at the back
-      const e = H ? Math.min(0.86, hatBack - 0.3) : 0.86, p = backAt(e), out = new THREE.Vector3(0, Math.sin(e), -Math.cos(e));
-      mk(sp(0.075, 14, 12), hairM, p.x + out.x * 0.05, p.y + out.y * 0.05, p.z + out.z * 0.05, head);
-      break;
-    }
-    case 'ponytail': {
-      fringe();
-      const p = backAt(H ? Math.min(0.15, hatBack - 0.22) : 0.15);
-      mk(cy(0.038, 0.038, 0.03, 12), mat(0xff4f7b), p.x, p.y, p.z - 0.012, head).rotation.x = Math.PI / 2;
-      const tail = mk(lathe('tail', [[0.001, 0.02], [0.04, 0], [0.05, -0.08], [0.035, -0.2], [0.012, -0.28], [0, -0.29]], 14), hairM, p.x, p.y - 0.01, p.z - 0.04, head);
-      tail.rotation.x = 0.35; break;
-    }
-    case 'side': sweep(); break;                       // a side-swept fringe over one brow
-    case 'spiky':
-      base();
-      scatter(1.0, 0.4, (u, p) => {                   // spikes stick out a long way, so keep them well clear of a hat's edge and brim
+  let lift = 0;
+  if (length === 'buzz') {
+    mk(shellGeo(shape, 0.004, crown(0.5), 0, coverFor(0.5, 0.55)), hairM, 0, 0, 0, head); lift = 0.004;
+  } else if (length !== 'bald') {
+    // the top of the head: shaped by the front, with curls in its surface if it's curly
+    const F = FRONTS[front] || FRONTS.none, curly = curl === 'curly';
+    const amp = length === 'short' ? 0.02 : CURL_TOP;
+    mk(capGeo(shape, `${front}${curly ? `:curly${amp}` : ''}`, F.edge, F.thick, curly ? curlLumps(amp) : null), hairM, 0, 0, 0, head);
+    lift = F.lift + (curly ? 0.02 : 0);
+    if (curl === 'spiky') {
+      scatter(1.0, 0.4, (u, p) => {                     // spikes stick out a long way, so keep them well clear of a hat's edge and brim
         const s = mk(cy(0, 0.04, 0.11, 6), hairM, p.x + u.x * 0.05, p.y + u.y * 0.05, p.z + u.z * 0.05, head);
         s.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), u);
       });
-      break;
-    case 'curly': mk(capGeo(shape, 'curly', line, () => 0.012, curlLumps(0.02)), hairM, 0, 0, 0, head); break;   // short and tightly curled, the curls part of the hair itself
-    default: base();   // short
+    }
+    // what hangs below: left loose to its length, or pulled back and tied
+    const long = length === 'medium' || length === 'long';
+    if (tie === 'bun' && long) {
+      // up on the crown, or, under a hat, a low bun below its edge at the back
+      const e = H ? Math.min(0.86, hatBack - 0.3) : 0.86, p = backAt(e), out = new THREE.Vector3(0, Math.sin(e), -Math.cos(e));
+      mk(sp(curly ? 0.085 : 0.075, 14, 12), hairM, p.x + out.x * 0.05, p.y + out.y * 0.05, p.z + out.z * 0.05, head);
+    } else if (tie === 'ponytail' && long) {
+      const p = backAt(H ? Math.min(0.15, hatBack - 0.22) : 0.15), L = length === 'long' ? 1 : 0.7, R = curly ? 1.25 : 1;
+      mk(cy(0.038, 0.038, 0.03, 12), mat(0xff4f7b), p.x, p.y, p.z - 0.012, head).rotation.x = Math.PI / 2;
+      const tail = mk(lathe(`tail:${L}:${R}`, [[0.001, 0.02], [0.04 * R, 0], [0.05 * R, -0.08 * L], [0.035 * R, -0.2 * L], [0.012 * R, -0.28 * L], [0, -0.29 * L]], 14), hairM, p.x, p.y - 0.01, p.z - 0.04, head);
+      tail.rotation.x = 0.35;
+    } else if (long) {
+      curtain(`${length}${curly ? ':curly' : ''}`, (curly ? CURLY_LENGTHS : LENGTHS)[length], curly ? 0.022 : 0);
+    }
   }
 
   if (!H) return;
   // the hat, made bigger by however far this hairstyle stands off the head, so it sits on the hair, not through it
-  const lift = HAIR_LIFT[style] ?? 0.012, T = lift + H.own;
+  const T = lift + H.own;
   const shell = (thick, from, to, m) => mk(shellGeo(shape, thick, hatN, from, to), m, 0, 0, 0, head);
   if (hatStyle === 'cap') {
     const capM = mat(hatColor, { roughness: 0.8 });

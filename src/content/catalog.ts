@@ -12,6 +12,7 @@ export type Look = {
   skin: number; hair: number; hairStyle: string; shirt: number; pants: number;
   number?: string; longSleeve?: boolean;
   hat?: string; hatColor?: number;             // a hat worn over whatever the hair is (older looks: hairStyle 'cap'/'bucket' + cap, or beanie)
+  hairLength?: string; hairCurl?: string; hairFront?: string; hairTie?: string;   // the hair, chosen part by part (older looks: hairStyle alone)
   glasses?: boolean | string;                  // older looks stored true for square frames
   faceShape?: string; eyes?: string; eyeColor?: number; brows?: string; nose?: string; mouth?: string;
   facialHair?: string; blush?: boolean;
@@ -217,22 +218,54 @@ export const RENAMED_LINES: [string, string, string][] = [
 // ---------------------------------------------------------------- regulars
 export const TEAM_NAMES = ['湖人', '勇士', '塞爾提克', '公牛', '熱火', '獨行俠', '金塊', '公鹿', '太陽', '尼克'];
 type Option = { value: string; label: string };
-export const HAIR_STYLES: Option[] = [
-  { value: 'short', label: '短髮' }, { value: 'buzz', label: '平頭' }, { value: 'side', label: '旁分' },
-  { value: 'spiky', label: '刺蝟頭' }, { value: 'curly', label: '捲髮' }, { value: 'medium', label: '中長髮' }, { value: 'long', label: '長髮' },
-  { value: 'longCurly', label: '長捲髮' }, { value: 'ponytail', label: '馬尾' }, { value: 'bun', label: '包頭' },
-  { value: 'bald', label: '光頭' },
-];
+// hair is chosen part by part: how long, straight or curly, what it does at the forehead, and whether it's tied up
+export const HAIR: Record<'length' | 'curl' | 'front' | 'tie', Option[]> = {
+  length: [{ value: 'bald', label: '光頭' }, { value: 'buzz', label: '平頭' }, { value: 'short', label: '短髮' }, { value: 'medium', label: '中長髮' }, { value: 'long', label: '長髮' }],
+  curl: [{ value: 'straight', label: '直髮' }, { value: 'curly', label: '捲髮' }, { value: 'spiky', label: '刺蝟頭' }],
+  front: [{ value: 'none', label: '無瀏海' }, { value: 'bangs', label: '瀏海' }, { value: 'center', label: '中分' }, { value: 'side', label: '旁分' }],
+  tie: [{ value: 'none', label: '不綁' }, { value: 'ponytail', label: '馬尾' }, { value: 'bun', label: '包頭' }],
+};
+export type Hair = { length: string; curl: string; front: string; tie: string };
+// what each of the older single hairstyles was, part by part
+const HAIR_FROM_STYLE: Record<string, Hair> = {
+  bald: { length: 'bald', curl: 'straight', front: 'none', tie: 'none' },
+  buzz: { length: 'buzz', curl: 'straight', front: 'none', tie: 'none' },
+  short: { length: 'short', curl: 'straight', front: 'none', tie: 'none' },
+  side: { length: 'short', curl: 'straight', front: 'side', tie: 'none' },
+  spiky: { length: 'short', curl: 'spiky', front: 'none', tie: 'none' },
+  curly: { length: 'short', curl: 'curly', front: 'none', tie: 'none' },
+  medium: { length: 'medium', curl: 'straight', front: 'center', tie: 'none' },
+  long: { length: 'long', curl: 'straight', front: 'bangs', tie: 'none' },
+  longCurly: { length: 'long', curl: 'curly', front: 'bangs', tie: 'none' },
+  bun: { length: 'medium', curl: 'straight', front: 'bangs', tie: 'bun' },
+  ponytail: { length: 'long', curl: 'straight', front: 'bangs', tie: 'ponytail' },
+  cap: { length: 'short', curl: 'straight', front: 'none', tie: 'none' },
+  bucket: { length: 'short', curl: 'straight', front: 'none', tie: 'none' },
+};
+const hairValid = (key: keyof typeof HAIR, v: unknown) => typeof v === 'string' && HAIR[key].some(o => o.value === v);
+// a look's hair, part by part: what's stored, or what its older single hairstyle meant
+export function hairOf(look: Look): Hair {
+  const old = HAIR_FROM_STYLE[look.hairStyle] ?? HAIR_FROM_STYLE.short;
+  return {
+    length: hairValid('length', look.hairLength) ? (look.hairLength as string) : old.length,
+    curl: hairValid('curl', look.hairCurl) ? (look.hairCurl as string) : old.curl,
+    front: hairValid('front', look.hairFront) ? (look.hairFront as string) : old.front,
+    tie: hairValid('tie', look.hairTie) ? (look.hairTie as string) : old.tie,
+  };
+}
+// a short description, like 長髮・捲髮・瀏海・馬尾
+export function hairLabel(h: Hair): string {
+  const l = (key: keyof typeof HAIR, v: string) => HAIR[key].find(o => o.value === v)?.label ?? v;
+  if (h.length === 'bald' || h.length === 'buzz') return l('length', h.length);
+  return [l('length', h.length), h.curl !== 'straight' && l('curl', h.curl), h.front !== 'none' && l('front', h.front), h.tie !== 'none' && l('tie', h.tie)].filter(Boolean).join('・');
+}
 // a hat is its own choice, put on over the hair
 export const HAT_STYLES: Option[] = [
   { value: 'none', label: '不戴' }, { value: 'cap', label: '棒球帽' }, { value: 'bucket', label: '漁夫帽' }, { value: 'beanie', label: '毛帽' },
 ];
 const HAT_COLOR: Record<string, number> = { cap: 0xf08a24, bucket: 0x2f2f2f, beanie: 0xd08a1e };
-// the hair and the hat of a look, reading the older ways hats were stored: as a hairstyle (with its colour in `cap`,
-// short hair under it) or as a beanie colour
-export function hairOf(look: Look): string {
-  return look.hairStyle === 'cap' || look.hairStyle === 'bucket' ? 'short' : look.hairStyle;
-}
+// the hat of a look, reading the older ways hats were stored: as a hairstyle (with its colour in `cap`, short hair
+// under it) or as a beanie colour
 export function hatOf(look: Look): { hat: string; color: number } {
   const hat = HAT_STYLES.some(h => h.value === look.hat) ? (look.hat as string)
     : look.hairStyle === 'cap' || look.hairStyle === 'bucket' ? look.hairStyle
@@ -286,13 +319,14 @@ export function parseLook(get: (k: string) => string | null, prev?: Look): Look 
   const hex = (k: string, fallback: number) => { const v = get(k) ?? ''; return /^#[0-9a-f]{6}$/i.test(v) ? parseInt(v.slice(1), 16) : fallback; };
   const opt = (k: keyof typeof FACE, fallback: string) => { const v = get(k); return valid(k, v) ? (v as string) : fallback; };
   const face = faceOf(base, String(get('name') ?? ''));
-  const hairStyle = get('hairStyle') ?? '';
+  const hairNow = hairOf(base), hairPart = (key: keyof typeof HAIR, field: string, now: string) => { const v = get(field); return hairValid(key, v) ? (v as string) : now; };
   const hatNow = hatOf(base), hat = get('hat') ?? hatNow.hat;
   const number = (get('number') ?? '').trim().slice(0, 2);
   const look: Look = {
     ...base,
     skin: hex('skin', base.skin), hair: hex('hair', base.hair), shirt: hex('shirt', base.shirt), pants: hex('pants', base.pants),
-    hairStyle: HAIR_STYLES.some(h => h.value === hairStyle) ? hairStyle : hairOf(base),
+    hairLength: hairPart('length', 'hairLength', hairNow.length), hairCurl: hairPart('curl', 'hairCurl', hairNow.curl),
+    hairFront: hairPart('front', 'hairFront', hairNow.front), hairTie: hairPart('tie', 'hairTie', hairNow.tie),
     hat: HAT_STYLES.some(h => h.value === hat) ? hat : 'none', hatColor: hex('hatColor', hatNow.color),
     faceShape: opt('faceShape', face.faceShape), eyes: opt('eyes', face.eyes), brows: opt('brows', face.brows),
     nose: opt('nose', face.nose), mouth: opt('mouth', face.mouth), facialHair: opt('facialHair', face.facialHair),

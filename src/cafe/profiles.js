@@ -37,6 +37,15 @@ export const GAME_LABEL = { nba: 'NBA 2K', fight: '快打旋風' };
 
 // a first-timer is surname + title (a female or male title decides the look) and a job, all from the back office's pools;
 // a name already in the shop is avoided when another is possible
+// a first-timer's hair, part by part
+function randomHair(female) {
+  const hairLength = female ? pick(['long', 'long', 'medium', 'medium', 'short']) : pick(['short', 'short', 'short', 'buzz', 'bald', 'medium']);
+  const hairCurl = Math.random() < 0.25 ? 'curly' : hairLength === 'short' && !female && Math.random() < 0.2 ? 'spiky' : 'straight';
+  const hairFront = pick(female ? ['bangs', 'bangs', 'center', 'side', 'none'] : ['none', 'none', 'side', 'center', 'bangs']);
+  const hairTie = female && hairLength !== 'short' && Math.random() < 0.35 ? pick(['ponytail', 'bun']) : 'none';
+  return { hairLength, hairCurl, hairFront, hairTie };
+}
+
 export function newProfile() {
   const { surname, titleF, titleM, job } = S.content.pools;
   const taken = n => S.customers.some(c => c.p.name === n);
@@ -50,9 +59,10 @@ export function newProfile() {
     name, regular: false, visits: 1, job: pick(job),
     drink: pick(menuNames()), team: pick(TEAM_NAMES), fighter: pick(FIGHTER_NAMES), wins: 0, losses: 0, quirk: '第一次來',
     plays2k: Math.random() < 0.35, playsFight: Math.random() < 0.2, playsTops: false, smokes: Math.random() < 0.2,
-    look: L(pick(SKINS), pick(HAIRS), female ? pick(['long', 'medium', 'longCurly', 'bun', 'ponytail', 'short', 'curly']) : pick(['short', 'short', 'buzz', 'side', 'spiky', 'curly', 'bald']),
+    look: L(pick(SKINS), pick(HAIRS), 'short',
       new THREE.Color().setHSL(Math.random(), rand(0.3, 0.6), rand(0.35, 0.6)).getHex(), pick([0x2b2b2b, 0x334455, 0x5a4a3a, 0x1f2a44]),
       {
+        ...randomHair(female),
         hat: Math.random() < 0.3 ? pick(['cap', 'cap', 'bucket', 'beanie']) : 'none', hatColor: new THREE.Color().setHSL(Math.random(), 0.5, 0.45).getHex(), longSleeve: Math.random() < 0.4,
         faceShape: pickFace('faceShape'), eyes: pickFace('eyes'), brows: pickFace('brows'), nose: pickFace('nose'), mouth: pickFace('mouth'),
         glasses: Math.random() < 0.15 ? pick(['round', 'square']) : 'none',
