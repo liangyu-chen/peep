@@ -5,7 +5,7 @@ import { S } from '../state.js';
 import { rand, randi, pick, DOT } from '../util.js';
 import { TVX, TVZ, TVY, LW, LSEATS } from '../layout.js';
 import { buildMenuClipboard } from './menu.js';
-import { woodM, steel, blackM, cinderSeat, crate, crateTable, stump, highStool, figurine, framed, trackRun, ceilingFan } from './props.js';
+import { woodM, steel, blackM, cinderSeat, crate, crateTable, stump, highStool, figurine, framed, trackRun, ceilingFan, cinderBlock } from './props.js';
 
 function ledgeAndTv() {
   // ledge under the neon: from where the wall starts beside the sliding door right across to the side wall,
@@ -233,8 +233,59 @@ function decor() {
   ceilingFan(-1.5, -3.1);
 }
 
+// under the peep window, inside, after the photo: an old wooden stool with a cloth over it, a cup with a bug-eyed toy on
+// top and manga and figurines on its rungs; a heap of toys on the floor; and a tall stack of blocks with a cloth on it, a
+// yellow drinks cooler and toys on top and little pixel-block toys on its front. All kept against the wall, clear of the
+// walkway in front of them
+function windowNook() {
+  const Z = 3.72, F = -1;   // F: the room side (the wall is behind, at +z)
+  const printTex = (bg, dots) => canvasTex(64, 64, g => { g.fillStyle = bg; g.fillRect(0, 0, 64, 64); for (let i = 0; i < 40; i++) { g.fillStyle = pick(dots); g.fillRect(rand(0, 60), rand(0, 60), rand(3, 7), rand(3, 7)); } });
+  // the stool: four splayed legs, two rungs of shelves, a printed cloth hanging over the seat
+  const stool = new THREE.Group(); stool.position.set(0.95, 0, Z); ctx.scene.add(stool);
+  const dark = mat(0x4a2f1f, { roughness: 0.7 });
+  [-1, 1].forEach(sx => [-1, 1].forEach(sz => { const l = box(0.04, 0.62, 0.04, dark, sx * 0.17, 0.31, sz * 0.15, stool); l.rotation.set(-sz * 0.06, 0, sx * 0.06); }));
+  box(0.4, 0.04, 0.34, dark, 0, 0.63, 0, stool);
+  [0.12, 0.36].forEach(y => box(0.34, 0.02, 0.28, dark, 0, y, 0, stool));                                 // the shelves between the legs
+  const cloth = new THREE.MeshStandardMaterial({ map: printTex('#cfe0ea', ['#2f5fb3', '#c0282d', '#ffd23f', '#f4efe3']), roughness: 0.9 });
+  box(0.44, 0.01, 0.38, cloth, 0, 0.655, 0, stool);
+  [-1, 1].forEach(sx => box(0.01, 0.12, 0.38, cloth, sx * 0.22, 0.6, 0, stool));                          // hanging down the sides
+  for (let i = 0; i < 6; i++) box(0.05, 0.16, 0.12, mat(pick([0xd8d0c0, 0xc94a3a, 0x3a5fa8, 0xe6c34a, 0xf2f2f2])), -0.13 + i * 0.052, 0.21, 0.02, stool);   // manga
+  for (let i = 0; i < 5; i++) box(0.05, 0.14, 0.12, mat(pick([0xd8d0c0, 0xc94a3a, 0x3a5fa8, 0xe6c34a, 0xf2f2f2])), -0.1 + i * 0.052, 0.44, 0.02, stool);
+  cyl(0.045, 0.035, 0.14, mat(0xe8e0f0, { roughness: 0.4 }), 0, 0.73, 0, stool, 12);                    // the tall cup on top
+  cyl(0.05, 0.05, 0.05, mat(0x9a6a30), 0, 0.82, 0, stool, 10);                                          // the bug-eyed toy in it
+  [-1, 1].forEach(sx => cyl(0.012, 0.012, 0.04, mat(0x9a6a30), sx * 0.02, 0.86, 0, stool, 6));
+  [-1, 1].forEach(sx => cyl(0.014, 0.014, 0.012, mat(0xffffff), sx * 0.02, 0.885, 0.004, stool, 8));
+  [[-0.12, 0.6], [0, 0.85], [0.12, 0.7]].forEach(([x, s]) => figurine(0.95 + x, 0.02, Z + F * 0.06, s));       // on the bottom, in front of the manga
+  // the heap of toys on the floor next to it: figures, robots, a few boxed toy cars, leaning on the wall
+  for (let i = 0; i < 14; i++) figurine(0.3 + rand(0, 0.4), 0, Z + rand(-0.12, 0.08), rand(0.8, 1.6));
+  [[0.3, 0.35, 0x2f5fb3], [0.45, 0.42, 0xc0282d], [0.6, 0.3, 0xffd23f]].forEach(([x, h, c]) => box(0.12, h, 0.05, mat(c, { roughness: 0.5 }), x, h / 2, 3.88));
+  // the block stack: four courses of cinder blocks, a dark flowered cloth on top, the cooler and toys on that
+  for (let k = 0; k < 4; k++) [-1, 0, 1].forEach(s => cinderBlock(0.4, 0.2, 0.19, -0.5 + s * 0.4 + (k % 2) * 0.04, 0.1 + k * 0.2, Z, ctx.scene));   // three blocks wide
+  const flowers = new THREE.MeshStandardMaterial({ map: printTex('#3a2a3a', ['#7a3a4a', '#4a6a3a', '#c08a3a', '#2a4a6a']), roughness: 0.9 });
+  box(1.32, 0.012, 0.3, flowers, -0.48, 0.806, Z);
+  box(1.32, 0.14, 0.01, flowers, -0.48, 0.74, Z + F * 0.15);                                           // hanging down the front
+  const cooler = new THREE.Group(); cooler.position.set(-0.2, 0.812, Z); ctx.scene.add(cooler);
+  cyl(0.15, 0.15, 0.3, mat(0xf2c81a, { roughness: 0.5 }), 0, 0.15, 0, cooler, 20);                      // yellow body
+  cyl(0.155, 0.155, 0.05, mat(0xc0282d, { roughness: 0.5 }), 0, 0.325, 0, cooler, 20);                  // red lid
+  cyl(0.152, 0.152, 0.012, mat(0xc0282d, { roughness: 0.5 }), 0, 0.02, 0, cooler, 20);                  // red base ring
+  [-1, 1].forEach(sx => box(0.02, 0.05, 0.14, mat(0xf4f2ec), sx * 0.16, 0.26, 0, cooler));              // handles
+  box(0.04, 0.04, 0.05, mat(0xf4f2ec), 0, 0.06, 0.16, cooler);                                           // the spigot
+  [[-0.95, 0.81, 1.3], [-0.8, 0.81, 1.0], [-0.62, 0.81, 1.1], [-0.22, 1.16, 1.2], [-0.14, 1.16, 0.9]].forEach(([x, y, s]) => figurine(x, y, Z + F * 0.04, s));
+  // little pixel-block toys stuck on the front of the lower blocks: a figure in overalls and a spotted mushroom
+  const pixel = rows => canvasTex(rows[0].length, rows.length, g => rows.forEach((r, y) => [...r].forEach((ch, x) => {
+    const c = { r: '#d1342b', w: '#f4f2ec', b: '#2f5fb3', s: '#e8b48a', k: '#222', y: '#ffd23f' }[ch]; if (c) { g.fillStyle = c; g.fillRect(x, y, 1, 1); }
+  })), true);
+  const guy = pixel(['..bbbb..', '.bbbbbb.', '..ssss..', '..skks..', '..ssss..', '.rbbbbr.', 'rrbyybrr', '..bbbb..', '..b..b..', '.kk..kk.']);
+  const shroom = pixel(['..rrrr..', '.rwrrwr.', 'rwwrrwwr', 'rrrrrrrr', '.wwwwww.', '..wkkw..', '..wwww..', '..wwww..']);
+  [[-0.75, guy, 0.16, 0.2], [-0.45, shroom, 0.16, 0.16]].forEach(([x, t, w, h]) => {
+    const m = new THREE.MeshStandardMaterial({ map: t, transparent: true, alphaTest: 0.5, roughness: 0.6 });
+    const pl = new THREE.Mesh(new THREE.PlaneGeometry(w, h), m); pl.position.set(x, 0.22, Z + F * 0.105); pl.rotation.y = Math.PI; ctx.scene.add(pl);   // facing into the room
+  });
+}
+
 export function buildInterior() {
   ledgeAndTv();
+  windowNook();
   purpleWall();
   bar();
   workCounter();
