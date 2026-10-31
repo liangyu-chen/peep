@@ -58,8 +58,8 @@ export default function LoadingHands({ ready, onDone }: { ready: boolean; onDone
       </div>
       <p className="lh-caption">
         <b>窺視咖啡</b>
-        <span className="lh-wait">萬全淨土淨化中<i className="lh-dots"><i>.</i><i>.</i><i>.</i></i></span>
-        <span className="lh-go">淨化完成</span>
+        <span className="lh-wait">萬全淨土淨化中…</span>
+        <span className="lh-go">淨化完成，請進</span>
       </p>
     </div>
   );

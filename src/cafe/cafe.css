@@ -108,9 +108,5 @@ body:has(.cafe-root){margin:0;overflow:hidden;background:#141218}
 .loading-hands .lh-caption span{font-size:15px;color:#c9c4cf}
 .loading-hands .lh-go,.loading-hands[data-state="in"] .lh-wait{display:none}
 .loading-hands[data-state="in"] .lh-go{display:inline}
-/* the three dots after 淨化中 light up one after another */
-.loading-hands .lh-dots{font-style:normal;display:inline-block;width:1.6em;text-align:left}
-.loading-hands .lh-dots i{font-style:normal;opacity:0;animation:lh-dot 1.4s infinite}
-.loading-hands .lh-dots i:nth-child(2){animation-delay:.25s}
-.loading-hands .lh-dots i:nth-child(3){animation-delay:.5s}
-@keyframes lh-dot{0%,15%{opacity:0}30%,80%{opacity:1}100%{opacity:0}}
+.loading-hands .lh-wait{animation:lh-blink 1.2s steps(2) infinite}
+@keyframes lh-blink{50%{opacity:.35}}
