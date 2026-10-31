@@ -386,7 +386,14 @@ const NBA = {
     const s = { rack: 0, ball: 0, score: 0, time: 60, meter: 0, mt: 0, shot: null, pop: null, done: false, best: 0 };
     // five spots round the arc, from the near corner to the top of the key; nearer the camera, the shooter is bigger
     const spots = [205, 185, 165, 145, 125].map(a => [560 + 430 * Math.cos(a * Math.PI / 180), 258 - 80 * Math.sin(a * Math.PI / 180)]);
-    const zone = () => [0.72 - s.rack * 0.015, 0.84 - s.rack * 0.025];          // the green window narrows rack by rack
+    // the green window: somewhere new on the meter for every ball, its width a little random and narrowing rack by rack
+    // (the money ball's a touch tighter still)
+    const newZone = () => {
+      const w = rand(0.09, 0.15) * (1 - s.rack * 0.07) * (s.ball === 4 ? 0.85 : 1), mid = rand(0.3 + w / 2, 0.95 - w / 2);
+      return [mid - w / 2, mid + w / 2];
+    };
+    s.green = newZone();
+    const zone = () => s.green;
     const shoot = () => {
       if (s.done || s.shot) return;
       const [a, b] = zone(), m = s.meter, money = s.ball === 4;
@@ -410,6 +417,7 @@ const NBA = {
             else { sfx('rim'); s.pop = { label: s.shot.miss < 0 ? '太短了' : '太大力', t: 0.8 }; }
             s.shot = null; s.ball++; s.mt = 0;
             if (s.ball >= 5) { s.ball = 0; s.rack++; }
+            s.green = newZone();
           }
         }
         if (s.rack >= 5 || s.time <= 0) {
