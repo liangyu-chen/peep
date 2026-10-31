@@ -97,16 +97,16 @@ body:has(.cafe-root){margin:0;overflow:hidden;background:#141218}
 }
 @media (prefers-reduced-motion:reduce){.cafe-root .bubble{transition:none}}
 
-/* loading screen: the two hands from the drawing closing in, on the drawing's own white paper */
+/* loading screen: the two hands from the drawing closing in, inverted to white lines on black */
 .loading-hands{position:fixed;inset:0;z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;
-  background:#fff;color:#18161c;overflow:hidden;opacity:var(--fade,1);font-family:"DotGothic16","Noto Sans TC",sans-serif}
-.loading-hands .lh-stage{position:relative;width:min(94vw,1000px,150vh);aspect-ratio:1179/652;transform:scale(var(--zoom,1));will-change:transform}
+  background:#000;color:#f2efe9;overflow:hidden;opacity:var(--fade,1);font-family:"DotGothic16","Noto Sans TC",sans-serif}
+.loading-hands .lh-stage{position:relative;width:min(94vw,1000px,140vh);aspect-ratio:1179/700;transform:scale(var(--zoom,1));filter:invert(1);will-change:transform}
 .loading-hands img{position:absolute;inset:0;width:100%;height:100%;user-select:none;pointer-events:none}
 .loading-hands .lh-left{transform:translateX(var(--left,-24%))}
 .loading-hands .lh-right{transform:translateX(var(--right,46%))}
 .loading-hands .lh-caption{margin:0;display:flex;align-items:baseline;gap:12px;font-size:18px;opacity:calc(var(--fade,1) * var(--fade,1))}
-.loading-hands .lh-caption small{font-family:"Press Start 2P",monospace;font-size:9px;letter-spacing:.1em;color:#d0372b}
-.loading-hands .lh-caption span{font-size:14px;color:#6b6670}
+.loading-hands .lh-caption small{font-family:"Press Start 2P",monospace;font-size:9px;letter-spacing:.1em;color:#ff5a4a}
+.loading-hands .lh-caption span{font-size:14px;color:#9a95a0}
 .loading-hands .lh-go,.loading-hands[data-state="in"] .lh-wait{display:none}
 .loading-hands[data-state="in"] .lh-go{display:inline}
 .loading-hands .lh-wait{animation:lh-blink 1.2s steps(2) infinite}

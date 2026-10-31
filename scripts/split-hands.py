@@ -68,3 +68,28 @@ r = Image.open('public/loading/hand-right.png'); r.alpha_composite(patch, (X0, Y
 a = np.asarray(r).copy(); keep = right | tip
 a[keep] = np.dstack([rgb, np.full(rgb.shape[:2], 255, np.uint8)])[keep]
 Image.fromarray(a).save('public/loading/hand-right.png')
+
+# the drawing cuts off two of the left hand's raised fingers at the top edge: give both images PAD rows of headroom
+# (so they still line up) and finish those fingertips, each a rounded cap carrying on its two edge lines
+PAD = 48
+def bez3(p0, p1, p2, p3, n=40):
+    return [tuple((1 - t) ** 3 * a + 3 * (1 - t) ** 2 * t * b + 3 * (1 - t) * t * t * c + t ** 3 * d for a, b, c, d in zip(p0, p1, p2, p3))
+            for t in (i / n for i in range(n + 1))]
+for name in ('hand-left', 'hand-right'):
+    im = Image.open(f'public/loading/{name}.png'); big = Image.new('RGBA', (W, H + PAD), (0, 0, 0, 0)); big.paste(im, (0, PAD)); big.save(f'public/loading/{name}.png')
+S2 = 4
+caps = Image.new('RGBA', (W * S2 // 4, (PAD + 12) * S2), (0, 0, 0, 0))   # just the strip across the top, drawn 4x up
+cd = ImageDraw.Draw(caps)
+CX0 = 380
+upc = lambda pts: [((x - CX0) * S2, (y + PAD) * S2) for x, y in pts]
+INK = (24, 24, 24, 255)
+# the middle finger: its edges cross the top at x 404 (leaning right as it rises) and x 461 (nearly upright)
+mid = bez3((404, 2), (416, -24), (452, -40), (462, 2))
+cd.polygon(upc(mid), fill=(255, 255, 255, 255)); cd.line(upc(mid), fill=INK, width=4 * S2, joint='curve')
+cd.line(upc(bez3((424, -14), (430, -22), (440, -26), (448, -24), 12)), fill=(120, 120, 120, 255), width=1 * S2)   # a fingertip crease
+# the ring finger leans over to the upper right, so only the corner of its tip is lost, between x 551 and 585: its top
+# edge carries on rising gently and rounds over into the upright outer edge
+ring = bez3((551, 2), (566, -5), (584, -13), (586, 3))
+cd.polygon(upc(ring), fill=(255, 255, 255, 255)); cd.line(upc(ring), fill=INK, width=4 * S2, joint='curve')
+caps = caps.resize((W // 4, PAD + 12), Image.LANCZOS)
+left = Image.open('public/loading/hand-left.png'); left.alpha_composite(caps, (CX0, 0)); left.save('public/loading/hand-left.png')

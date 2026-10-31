@@ -4,8 +4,9 @@ import { useEffect, useRef } from 'react';
 
 // The loading screen: the two hands from the drawing start apart and creep toward each other while the 3D scene loads.
 // Once it's ready the finger goes home through the ring, and the screen dives into the ring to reveal the café.
-// The hands are two cut-outs of one drawing (public/loading, made by scripts/split-hands.py) that meet exactly as drawn.
-const RING = { x: 0.38, y: 0.56 };   // the hole in the ring, as a fraction of the drawing: where the screen dives in
+// The hands are two cut-outs of one drawing (public/loading, made by scripts/split-hands.py) that meet exactly as drawn,
+// shown inverted: white lines on black.
+const RING = { x: 0.38, y: 0.6 };    // the hole in the ring, as a fraction of the drawing: where the screen dives in
 const MIN_SHOW = 3.0;                 // seconds, so even a fast load shows the hands slowly closing in
 const NEAR = 0.9;                     // how far they get while still loading
 const TAU = 1.3;                      // how slowly they creep in (seconds)
