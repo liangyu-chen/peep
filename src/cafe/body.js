@@ -79,6 +79,28 @@ const shellGeo = (shape, thick, n, from, to, xMax = 9) => geo(`shell:${shape},${
   }
   g.computeVertexNormals(); return g;
 });
+// a head of hair as one piece: from the crown down to a hairline whose height (radians above the eyes' horizon) is
+// edge(φ) all the way round, φ being the angle from straight ahead toward +x; thick(φ) lets the fringe stand out
+// more than the back (at the edge; it fades out toward the crown). Built on its own grid, so the hairline is a smooth curve however it's shaped.
+const capGeo = (shape, key, edge, thick) => geo(`cap:${shape},${key}`, () => {
+  const h = HEADS[shape], NA = 72, NT = 20, pos = [], uv = [], idx = [], v = new THREE.Vector3(), u = new THREE.Vector3();
+  for (let i = 0; i <= NA; i++) {
+    const phi = (i / NA) * Math.PI * 2, polar = Math.PI / 2 - edge(phi), th0 = thick(0.5 * Math.PI), th1 = thick(phi);
+    for (let j = 0; j <= NT; j++) {
+      const p = (j / NT) * polar, th = th0 + (th1 - th0) * (j / NT) ** 1.5;   // any extra fullness grows toward the edge, so the crown stays one point
+      u.set(Math.sin(p) * Math.sin(phi), Math.cos(p), Math.sin(p) * Math.cos(phi));
+      deform(h, v.copy(u)).addScaledVector(u, th);
+      pos.push(v.x, v.y, v.z); uv.push(i / NA * 6, j / NT);
+    }
+  }
+  for (let i = 0; i < NA; i++) for (let j = 0; j < NT; j++) {
+    const a = i * (NT + 1) + j, b = a + NT + 1;
+    idx.push(a, b, a + 1, b, b + 1, a + 1);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  g.setIndex(idx); g.computeVertexNormals(); return g;
+});
 // "tipped back by `tilt`": the crown direction leaning toward the back of the head
 const crown = tilt => new THREE.Vector3(0, Math.cos(tilt), -Math.sin(tilt));
 // the angle from a tipped crown that puts a shell's front edge at `elev` radians above the eyes' horizon
@@ -271,8 +293,15 @@ export function buildBody(look, seed = '') {
 function buildHair(style, shape, head, hairM, mk, at, look) {
   const hair = (thick, tilt, elev, xMax) => mk(shellGeo(shape, thick, crown(tilt), 0, coverFor(tilt, elev), xMax), hairM, 0, 0, 0, head);
   const TILT = 0.66, FRONT = 0.5;                       // the hairline: front edge just above the brows, back edge down the nape
-  const base = () => hair(0.012, TILT, FRONT);
-  const bangs = (xMax = 9) => mk(shellGeo(shape, 0.02, crown(-0.75), 0, 0.38, xMax), hairM, 0, 0, 0, head);
+  // the hairline: just above the brows at the front, past the temples at the sides, down the nape at the back
+  const line = phi => -0.16 + 0.66 * Math.cos(phi);
+  const lobe = (phi, at0, p) => Math.max(0, Math.cos(phi - at0)) ** p;      // a bump centred on angle at0
+  const base = () => mk(capGeo(shape, 'base', line, () => 0.012), hairM, 0, 0, 0, head);
+  // a fringe is the same cap, coming a touch lower over the forehead and standing out a little more there, so it
+  // blends into the rest of the hair instead of sitting on the forehead as a separate patch
+  const fringe = () => mk(capGeo(shape, 'fringe', phi => line(phi) - 0.07 * lobe(phi, 0, 4), phi => 0.012 + 0.009 * lobe(phi, 0, 2)), hairM, 0, 0, 0, head);
+  // swept to one side: lower and fuller over one brow, rising toward the other
+  const sweep = () => mk(capGeo(shape, 'sweep', phi => line(phi) - 0.16 * lobe(phi, -0.55, 3) + 0.04 * lobe(phi, 0.6, 3), phi => 0.012 + 0.012 * lobe(phi, -0.45, 2)), hairM, 0, 0, 0, head);
   const hat = (thick, tilt, elev, m) => mk(shellGeo(shape, thick, crown(tilt), 0, coverFor(tilt, elev)), m, 0, 0, 0, head);
   // spread small pieces evenly over the part of the head the hair covers
   const scatter = (limit, place) => FIB.forEach(u => { const a = Math.acos(u.dot(crown(TILT))); if (a < limit) place(u, at(u.x, u.y, u.z)); });
@@ -280,21 +309,28 @@ function buildHair(style, shape, head, hairM, mk, at, look) {
     case 'bald': break;
     case 'buzz': hair(0.004, 0.5, 0.55); break;
     case 'long': {
-      base(); bangs();
-      // a curtain of hair round the back and sides, open at the face, flaring out a little at the ends
-      const w = Math.max(at(1, 0, 0).x, -at(0, 0, -1).z) + 0.012;
-      mk(lathe(`curtain${w.toFixed(3)}`, [[w, 0.05], [w + 0.006, -0.06], [w + 0.016, -0.17], [w + 0.03, -0.27], [w + 0.012, -0.31]], 28, 0.85, Math.PI * 2 - 1.7), hairM, 0, 0, 0, head);
+      fringe();
+      // a curtain of hair round the back and sides, open at the face, flaring out a little at the ends. Its top follows
+      // the head's own outline right up to the crown, lying just over the cap, so the back of the head is one surface
+      const prof = [];
+      for (let k = 0; k <= 6; k++) {
+        const t = 0.12 + k * (1.55 - 0.12) / 6, ps = at(Math.sin(t), Math.cos(t), 0), pb = at(0, Math.cos(t), -Math.sin(t));
+        prof.push([Math.max(ps.x, -pb.z) + 0.0135 + 0.005 * (k / 6), (ps.y + pb.y) / 2]);
+      }
+      const [w, y0] = prof[prof.length - 1];
+      prof.push([w + 0.004, y0 - 0.08], [w + 0.012, y0 - 0.19], [w + 0.026, y0 - 0.29], [w + 0.008, y0 - 0.33]);
+      mk(lathe(`curtain:${shape}`, prof, 32, 0.85, Math.PI * 2 - 1.7), hairM, 0, 0, 0, head);
       break;
     }
-    case 'bun': base(); bangs(); { const p = at(0, 0.75, -0.65); mk(sp(0.075, 14, 12), hairM, p.x, p.y + 0.03, p.z - 0.04, head); } break;
+    case 'bun': fringe(); { const p = at(0, 0.75, -0.65); mk(sp(0.075, 14, 12), hairM, p.x, p.y + 0.03, p.z - 0.04, head); } break;
     case 'ponytail': {
-      base(); bangs();
+      fringe();
       const p = at(0, 0.15, -1);
       mk(cy(0.038, 0.038, 0.03, 12), mat(0xff4f7b), p.x, p.y, p.z - 0.012, head).rotation.x = Math.PI / 2;
       const tail = mk(lathe('tail', [[0.001, 0.02], [0.04, 0], [0.05, -0.08], [0.035, -0.2], [0.012, -0.28], [0, -0.29]], 14), hairM, p.x, p.y - 0.01, p.z - 0.04, head);
       tail.rotation.x = 0.35; break;
     }
-    case 'side': base(); bangs(0.25); break;            // a side-swept fringe over one brow
+    case 'side': sweep(); break;                       // a side-swept fringe over one brow
     case 'spiky':
       base();
       scatter(1.0, (u, p) => {
