@@ -8,10 +8,11 @@ import { TEAMS, TEAM_NAMES } from './profiles.js';
 import { sayLine } from './content.js';
 import { log, renderResults } from './feed.js';
 import { startFight, stepFight, drawFight, fightClock } from './fight.js';
+import { hoopsPlayer, crowd as stands } from './hoops.js';
 
 export const QLEN = 30;   // simulated seconds per quarter
 const TVW = 320, TVH = 180;
-let tvCtx, tvTex, crowd;
+let tvCtx, tvTex;
 
 // the screen itself; built with the rest of the set so it gets squeezed with it
 export function createTvScreen() {
@@ -21,7 +22,6 @@ export function createTvScreen() {
   S.tvScreen = new THREE.Mesh(new THREE.PlaneGeometry(1.62, 0.91), new THREE.MeshBasicMaterial({ map: tvTex, toneMapped: false }));
   S.tvScreen.position.set(TVX + 0.075, TVY, TVZ); S.tvScreen.rotation.y = Math.PI / 2; ctx.scene.add(S.tvScreen);
   const tvGlow = new THREE.PointLight(0x7fb0ff, 0.45, 4, 2); tvGlow.position.set(-2.3, 1.5, TVZ); ctx.scene.add(tvGlow);
-  crowd = Array.from({ length: 140 }, () => ({ x: Math.random(), y: Math.random(), c: pick(['#ff4f7b', '#ffd23f', '#7ec8ff', '#3ddc97', '#f4efe3', '#9b6bff']) }));
 }
 
 // ---------------------------------------------------------------- logic
@@ -36,7 +36,7 @@ function startMatch() {
   let at = a ? a.p.team : pick(TEAM_NAMES.filter(t => t !== ht));
   if (a && at === ht) { at = pick(TEAM_NAMES.filter(t => t !== ht)); sayLine(a, 'game.teamClash', { team: at }); }
   const dots = [];
-  for (let side = 0; side < 2; side++) for (let i = 0; i < 5; i++) dots.push({ side, i, x: side ? 0.6 : 0.4, y: 0.2 + i * 0.15, num: randi(0, 35) });
+  for (let side = 0; side < 2; side++) for (let i = 0; i < 5; i++) dots.push({ side, i, x: side ? 0.6 : 0.4, y: 0.2 + i * 0.15, num: randi(0, 35), skin: pick(['#f1c9a5', '#e0ac80', '#c68a5e', '#8d5a3b', '#6b4430']) });
   tv.match = { kind: 'nba', home: makeSide(h, ht), away: makeSide(a, at), q: 1, t: QLEN, poss: 0, holder: 0, flight: null, next: 1, passes: randi(1, 3), dots, final: 0, jit: 0 };
   if (a) sayLine(h, 'game.challenge', { opponent: a.p.name, name: h.p.name }); else sayLine(h, 'game.vsCpu', { name: h.p.name });
   log(a ? `${h.p.name}（${ht}）對上 ${a.p.name}（${at}）` : `${h.p.name} 用${ht}打電腦`);
@@ -157,39 +157,54 @@ export function drawTV() {
     tvTex.needsUpdate = true; return;
   }
   if (m.kind === 'fight') { drawFight(g, m, tv.attract); tvTex.needsUpdate = true; return; }
-  g.fillStyle = '#120d12'; g.fillRect(0, 0, W, H);
-  crowd.forEach(c => { g.fillStyle = c.c; g.fillRect(Math.floor(c.x * 80) * 8, 44 + Math.floor(c.y * 5) * 9 + (Math.sin(tv.attract * 6 + c.x * 30) > 0.6 && m.final > 0 ? -4 : 0), 6, 6); });
   const tc = TEAMS[m.home.team], ta = TEAMS[m.away.team];
+  // the arena: dark stands full of fans (up on their feet for a three or the final buzzer), the ad boards, the floor
+  g.fillStyle = '#120d12'; g.fillRect(0, 0, W, H);
+  stands(g, 0, W, 44, 2, 6, tv.attract, m.final > 0 ? 1 : tv.flash ? 0.7 : 0);
+  g.fillStyle = '#0c0a10'; g.fillRect(0, 62, W, 16);
+  g.font = `12px ${PIX}`; g.textAlign = 'left';
+  for (let x = -((tv.attract * 30) % 214); x < W; x += 214) { g.fillStyle = '#ff4f7b'; g.fillText('PEEP COFFEE', x + 8, 75); g.fillStyle = '#ffd23f'; g.fillText('★', x + 160, 75); }
   poly(g, [[-0.04, -0.06], [1.04, -0.06], [1.04, 1.06], [-0.04, 1.06]], true); g.fillStyle = '#c99256'; g.fill();
+  for (let i = 0; i < 22; i += 2) { poly(g, [[i / 22 - 0.04, -0.06], [(i + 1) / 22 - 0.04, -0.06], [(i + 1) / 22 - 0.04, 1.06], [i / 22 - 0.04, 1.06]], true); g.fillStyle = '#c08a50'; g.fill(); }   // the planks
   g.strokeStyle = '#ffffff'; g.lineWidth = 4;
   poly(g, [[0, 0], [1, 0], [1, 1], [0, 1]], true); g.stroke();
   poly(g, [[0.5, 0], [0.5, 1]]); g.stroke();
   poly(g, arcPts(0.5, 0.5, 0.06, 0.12, 0, Math.PI * 2), true); g.fillStyle = tc.c1; g.fill(); g.stroke();
+  { const [cx, cy] = P(0.5, 0.5); g.font = `14px ${PIX}`; g.textAlign = 'center'; g.fillStyle = tc.c2; g.fillText('PEEP', cx, cy + 6); }
   [0, 1].forEach(side => {
     const hx = side ? 0.955 : 0.045, dir = side ? -1 : 1, base = side ? 1 : 0;
     poly(g, [[base, 0.36], [base + dir * 0.19, 0.36], [base + dir * 0.19, 0.64], [base, 0.64]], true);
     g.fillStyle = side ? ta.c1 : tc.c1; g.fill(); g.stroke();
     poly(g, [[base, 0.06], [base + dir * 0.1, 0.06]].concat(arcPts(hx, 0.5, 0.25, 0.44, -Math.PI / 2, Math.PI / 2).map(([x, y]) => [hx + dir * (x - hx), y]).filter(([x]) => side ? x < 0.9 : x > 0.1)).concat([[base + dir * 0.1, 0.94], [base, 0.94]])); g.stroke();
-    const [rx, ry] = P(hx, 0.5); g.fillStyle = '#ff6a1a'; g.fillRect(rx - 10, ry - 4, 20, 8);
   });
+  // the players, back row first: the ball handler dribbling, his team running, the other team guarding, a shooter up
+  const team = m.dots.filter(d => d.side === m.poss), att = m.poss === 0 ? 1 : -1;
+  const shooter = m.flight && m.flight.kind === 'shot' ? m.flight.from : null;
   m.dots.slice().sort((a, b) => a.y - b.y).forEach(d => {
-    const [px, py] = P(d.x, d.y); const r = Math.round(lerp(9, 13, d.y) / 2) * 2;
-    const t = d.side ? ta : tc;
-    g.fillStyle = 'rgba(0,0,0,.35)'; g.fillRect(px - r, py + r - 2, r * 2, 4);
-    g.fillStyle = t.c2; g.fillRect(px - r - 2, py - r - 2, r * 2 + 4, r * 2 + 4);
-    g.fillStyle = t.c1; g.fillRect(px - r, py - r, r * 2, r * 2);
+    const [px, py] = P(d.x, d.y), t = d.side ? ta : tc, off = d.side === m.poss;
+    const pose = d === shooter && m.flight.t < 0.4 ? 'shoot' : off ? (d === team[m.holder] && !m.flight ? 'dribble' : 'run') : 'guard';
+    hoopsPlayer(g, px, py, lerp(2.1, 2.9, d.y), { c1: t.c1, c2: t.c2, skin: d.skin }, pose, tv.attract + d.i, off ? att : -att);
+  });
+  // the hoops: pole, backboard and rim raised off the floor, a net under it
+  [0, 1].forEach(side => {
+    const [rx, ry] = P(side ? 0.045 : 0.955, 0.5), out = side ? -1 : 1;
+    g.fillStyle = '#555'; g.fillRect(rx + out * 20 - 3, ry - 40, 6, 44);
+    g.fillStyle = '#f4efe3'; g.fillRect(rx + out * 12 - 3, ry - 56, 6, 34); g.fillStyle = '#c0282d'; g.fillRect(rx + out * 12 - 3, ry - 44, 6, 10);
+    g.fillStyle = '#ff6a1a'; g.fillRect(rx - 12, ry - 26, 24, 5);
+    g.fillStyle = '#f4efe3'; for (let i = 0; i < 4; i++) g.fillRect(rx - 10 + i * 6, ry - 21, 2, 12 - (i % 2) * 3);
   });
   let bx, by, bh = 0;
-  const team = m.dots.filter(d => d.side === m.poss);
   if (m.flight) {
     const f = m.flight; const a = f.from, b = f.kind === 'pass' ? team[f.to] : f.to;
     const t = Math.min(1, f.t);
-    bx = lerp(a.x, b.x, t); by = lerp(a.y, b.y, t); bh = Math.sin(t * Math.PI) * (f.kind === 'shot' ? 46 : 10);
-  } else { const h = team[m.holder] || team[0]; bx = h.x + 0.012; by = h.y + 0.01; bh = Math.abs(Math.sin(tv.attract * 12)) * 8; }
+    bx = lerp(a.x, b.x, t); by = lerp(a.y, b.y, t);
+    bh = f.kind === 'shot' ? 34 + Math.sin(t * Math.PI) * 60 - t * 10 : 22 + Math.sin(t * Math.PI) * 8;   // from the hands up to the rim; a chest pass
+  } else { const h = team[m.holder] || team[0]; bx = h.x + 0.014 * att; by = h.y + 0.01; bh = Math.abs(Math.sin(tv.attract * 12)) * 14; }
   const [bpx, bpy] = P(bx, by);
-  g.fillStyle = 'rgba(0,0,0,.4)'; g.fillRect(bpx - 6, bpy + 4, 12, 4);
+  g.fillStyle = 'rgba(0,0,0,.4)'; g.fillRect(bpx - 6, bpy + 2, 12, 4);
+  g.fillStyle = '#000'; g.fillRect(bpx - 8, bpy - bh - 8, 16, 16);
   g.fillStyle = '#ff7a1f'; g.fillRect(bpx - 6, bpy - bh - 6, 12, 12);
-  g.fillStyle = '#4a1d05'; g.fillRect(bpx - 1, bpy - bh - 6, 2, 12);
+  g.fillStyle = '#4a1d05'; g.fillRect(bpx - 1, bpy - bh - 6, 2, 12); g.fillRect(bpx - 6, bpy - bh - 1, 12, 2);
   // scoreboard
   g.fillStyle = '#000'; g.fillRect(116, 4, 408, 42);
   g.fillStyle = tc.c1; g.fillRect(120, 8, 150, 34); g.fillStyle = ta.c1; g.fillRect(370, 8, 150, 34);

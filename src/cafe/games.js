@@ -4,6 +4,8 @@
 import { DOT, PIX, rand, pick } from './util.js';
 import { drawFight, fighterSide } from './fight.js';
 import { FIGHTER_NAMES } from '../content/catalog';
+import { hoopsPlayer, crowd } from './hoops.js';
+import { sfx, sfxMuted, toggleSfx } from './sfx.js';
 
 const W = 640, H = 360;
 let open = null;   // the game showing now
@@ -16,7 +18,7 @@ export function openGame(kind, root, onClose) {
   let G = GAMES[kind]; if (!G) return;
   const sheet = document.createElement('div'); sheet.className = 'gameSheet';
   sheet.innerHTML = `<section class="win gameWin" role="dialog">
-    <div class="gameHead"><h2></h2><button class="gameClose" aria-label="關閉">✕</button></div>
+    <div class="gameHead"><h2></h2><button class="gameSound" aria-label="音效"></button><button class="gameClose" aria-label="關閉">✕</button></div>
     <canvas width="${W}" height="${H}"></canvas><p class="gameHelp"></p><div class="gamePad"></div></section>`;
   root.appendChild(sheet);
   const canvas = sheet.querySelector('canvas'), g = canvas.getContext('2d'), pad = sheet.querySelector('.gamePad');
@@ -42,9 +44,12 @@ export function openGame(kind, root, onClose) {
   listen(canvas, 'pointerdown', e => { e.preventDefault(); ctl.pointer = toCanvas(e); game.tap?.(ctl.pointer); });
   listen(sheet, 'pointerdown', e => { if (e.target === sheet) close(); });
   listen(sheet.querySelector('.gameClose'), 'click', () => close());
+  const soundBtn = sheet.querySelector('.gameSound'), showSound = () => { soundBtn.textContent = sfxMuted() ? '🔇' : '🔊'; };
+  showSound(); listen(soundBtn, 'click', () => { toggleSfx(); showSound(); });
   let game = null, raf = 0, last = performance.now();
   // start a game in this window (the TV's list switches to the one picked)
   ctl.play = k => {
+    if (game) sfx('select');
     G = GAMES[k]; ctl.clear(); keys.clear();
     sheet.querySelector('h2').textContent = G.title; sheet.querySelector('.gameHelp').textContent = G.help;
     sheet.querySelector('.gameWin').setAttribute('aria-label', G.title);
@@ -101,15 +106,15 @@ const FIGHT = {
       const o = f === P ? C : P;
       f.act = kind; f.actT = kind === 'punch' ? 0.22 : 0.34;
       const reach = kind === 'punch' ? 0.14 : 0.18, dmg = kind === 'punch' ? 7 : 11;
-      if (Math.abs(o.x - f.x) > reach || o.act === 'ko') return;
+      if (Math.abs(o.x - f.x) > reach || o.act === 'ko') { sfx('whiff'); return; }
       if (o === C && !busy(C) && Math.random() < 0.3) o.act = 'block';   // the computer sees some of them coming
-      if (o.act === 'block') { o.hp = Math.max(0, o.hp - 1); spark(f, o, '#ffffff'); }
-      else { o.hp = Math.max(0, o.hp - dmg); o.act = 'hit'; o.actT = 0.28; o.x = clamp(o.x + f.dir * 0.04); spark(f, o, f.col[1]); }
-      if (o.hp <= 0) { o.act = 'ko'; o.actT = 99; f.act = 'idle'; f.score++; m.ko = 2.2; m.koText = 'K.O.'; }
+      if (o.act === 'block') { o.hp = Math.max(0, o.hp - 1); spark(f, o, '#ffffff'); sfx('block'); }
+      else { sfx(kind); o.hp = Math.max(0, o.hp - dmg); o.act = 'hit'; o.actT = 0.28; o.x = clamp(o.x + f.dir * 0.04); spark(f, o, f.col[1]); }
+      if (o.hp <= 0) { o.act = 'ko'; o.actT = 99; f.act = 'idle'; f.score++; m.ko = 2.2; m.koText = 'K.O.'; sfx('ko'); }
     }
     function nextRound() {
       if (P.score >= 2 || C.score >= 2) { m.final = 99; return; }
-      m.round++; m.t = 40; m.intro = 1.6;
+      m.round++; m.t = 40; m.intro = 1.6; sfx('start');
       [[P, 0.3], [C, 0.7]].forEach(([f, x]) => Object.assign(f, { hp: 100, x, act: 'idle', actT: 0 }));
     }
     return {
@@ -117,7 +122,7 @@ const FIGHT = {
       step(dt) {
         m.sparks.forEach(s => { s.t -= dt; }); m.sparks = m.sparks.filter(s => s.t > 0);
         if (m.final > 0) {
-          if (!again) { again = true; ctl.clear(); ctl.button('再來一場', () => ctl.restart(), null, 'hot'); }
+          if (!again) { again = true; sfx(P.score > C.score ? 'win' : 'lose'); ctl.clear(); ctl.button('再來一場', () => ctl.restart(), null, 'hot'); }
           return;
         }
         if (m.intro > 0) m.intro -= dt;
@@ -127,7 +132,7 @@ const FIGHT = {
           if (m.t <= 0) {   // time: whoever has more left takes the round
             const w = P.hp === C.hp ? null : P.hp > C.hp ? P : C;
             if (w) w.score++;
-            m.ko = 2.2; m.koText = 'TIME';
+            m.ko = 2.2; m.koText = 'TIME'; sfx('buzzer');
           }
         }
         [P, C].forEach(f => { if (f.act !== 'ko' && f.act !== 'block' && f.actT > 0) { f.actT -= dt; if (f.actT <= 0) f.act = 'idle'; } });
@@ -188,15 +193,16 @@ const TOPS = {
     const ram = (a, b) => {
       if (s.phase !== 'battle' || a.cool > 0 || a.stamina < 0.12 || a.fall) return;
       const dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy) || 1;
-      a.vx += dx / d * 190; a.vy += dy / d * 190; a.stamina -= 0.05; a.cool = 1.2; a.dash = 0.3;
+      a.vx += dx / d * 190; a.vy += dy / d * 190; a.stamina -= 0.05; a.cool = 1.2; a.dash = 0.3; sfx('dash');
     };
     const fire = () => {
-      if (s.phase === 'power') { s.phase = 'battle'; s.go = 1; launch(me, s.power); launch(cpu, rand(0.5, 0.92)); ctl.clear(); ctl.button('衝撞', () => ram(me, cpu), null, 'hot'); }
+      if (s.phase === 'power') { s.phase = 'battle'; s.go = 1; sfx('launch'); launch(me, s.power); launch(cpu, rand(0.5, 0.92)); ctl.clear(); ctl.button('衝撞', () => ram(me, cpu), null, 'hot'); }
       else ram(me, cpu);
     };
     ctl.button('發射', fire, null, 'hot');
     const finish = text => {
       s.phase = 'over'; s.result = text;
+      if (text.includes('出場')) sfx('ringout'); setTimeout(() => sfx(text.includes('你贏') ? 'win' : 'lose'), 350);
       ctl.clear(); ctl.button('再來一次', () => ctl.restart(), null, 'hot');
     };
     return {
@@ -225,7 +231,7 @@ const TOPS = {
             me.vx -= rel * nx * 1.1; me.vy -= rel * ny * 1.1; cpu.vx += rel * nx * 1.1; cpu.vy += rel * ny * 1.1;
             const hit = 0.03 + Math.min(0.12, rel / 2000);
             me.stamina -= hit * (0.6 + cpu.stamina * 0.8); cpu.stamina -= hit * (0.6 + me.stamina * 0.8);
-            burst((me.x + cpu.x) / 2, (me.y + cpu.y) / 2, 6 + Math.round(Math.min(14, rel / 25)));
+            sfx('clash'); burst((me.x + cpu.x) / 2, (me.y + cpu.y) / 2, 6 + Math.round(Math.min(14, rel / 25)));
             if (rel > 140) s.shake = 0.25;
           }
           const push = (TR * 2 - d) / 2; me.x -= nx * push; me.y -= ny * push; cpu.x += nx * push; cpu.y += ny * push;
@@ -352,7 +358,7 @@ const PICKER = {
 };
 
 // ---------------------------------------------------------------- NBA 2K three-point contest: five racks of five
-const HOOP = [520, 150];
+const HOOP = [520, 128];
 const NBA = {
   title: '玩電動：NBA 2K 三分球大賽',
   help: '投籃條在跑，跑到綠色區按「投籃」（或空白鍵）就是空心。五個點、每點五顆，最後一顆彩球算 2 分，限時 60 秒',
@@ -360,13 +366,14 @@ const NBA = {
   start(ctl) {
     const low = lowRes();
     const s = { rack: 0, ball: 0, score: 0, time: 60, meter: 0, mt: 0, shot: null, pop: null, done: false, best: 0 };
-    const spots = [[110, 300], [150, 262], [200, 245], [150, 262], [110, 300]];   // round the arc, corner to corner
+    // five spots round the arc, from the near corner to the top of the key; nearer the camera, the shooter is bigger
+    const spots = [205, 185, 165, 145, 125].map(a => [560 + 430 * Math.cos(a * Math.PI / 180), 258 - 80 * Math.sin(a * Math.PI / 180)]);
     const zone = () => [0.72 - s.rack * 0.015, 0.84 - s.rack * 0.025];          // the green window narrows rack by rack
     const shoot = () => {
       if (s.done || s.shot) return;
       const [a, b] = zone(), m = s.meter, money = s.ball === 4;
       const good = m >= a && m <= b, close = !good && m > a - 0.1 && m < b + 0.08;
-      s.shot = { t: 0, made: good || (close && Math.random() < 0.35), money, miss: m < a ? -1 : 1 };
+      s.shot = { t: 0, made: good || (close && Math.random() < 0.35), money, miss: m < a ? -1 : 1 }; sfx('shoot');
     };
     ctl.button('投籃', shoot, null, 'hot');
     return {
@@ -375,63 +382,93 @@ const NBA = {
       step(dt) {
         if (s.pop) { s.pop.t -= dt; if (s.pop.t <= 0) s.pop = null; }
         if (s.done) return;
+        if (s.time > 0.5 && s.time <= 5.5 && Math.ceil(s.time - dt) < Math.ceil(s.time)) sfx('tick');   // the last five seconds
         s.time -= dt;
         s.mt += dt; s.meter = 0.5 - 0.5 * Math.cos(s.mt * 3.4);
         if (s.shot) {
           s.shot.t += dt / 0.85;
           if (s.shot.t >= 1) {
-            if (s.shot.made) { s.score += s.shot.money ? 2 : 1; s.pop = { label: s.shot.money ? 'MONEY! +2' : 'SWISH +1', t: 0.8 }; }
-            else s.pop = { label: s.shot.miss < 0 ? '太短了' : '太大力', t: 0.8 };
+            if (s.shot.made) { sfx(s.shot.money ? 'money' : 'swish'); s.score += s.shot.money ? 2 : 1; s.pop = { label: s.shot.money ? 'MONEY BALL! +2' : 'SWISH! +1', t: 0.9 }; }
+            else { sfx('rim'); s.pop = { label: s.shot.miss < 0 ? '太短了' : '太大力', t: 0.8 }; }
             s.shot = null; s.ball++; s.mt = 0;
             if (s.ball >= 5) { s.ball = 0; s.rack++; }
           }
         }
         if (s.rack >= 5 || s.time <= 0) {
-          s.done = true; s.time = Math.max(0, s.time); s.best = best('peep.nba.best', s.score);
+          s.done = true; s.time = Math.max(0, s.time); s.best = best('peep.nba.best', s.score); sfx('buzzer');
           ctl.clear(); ctl.button('再投一次', () => ctl.restart(), null, 'hot');
         }
       },
-      draw(g) {
-        const d = low.g;
+      draw(g, t) {
+        const d = low.g, sh = s.shot, k = sh ? sh.t : 0, made = sh && sh.made && k > 0.78;
+        // the arena: stands full of fans (up on their feet after a make), ad boards, the floor running away from us
         d.fillStyle = '#120d12'; d.fillRect(0, 0, W, H);
-        for (let i = 0; i < 140; i++) { d.fillStyle = ['#ff4f7b', '#ffd23f', '#7ec8ff', '#f4efe3', '#3ddc97'][(i * 7) % 5]; d.fillRect(((i * 97) % 79) * 8, 50 + ((i * 31) % 11) * 12, 6, 6); }   // the crowd
-        d.fillStyle = '#c99256'; d.fillRect(0, 200, W, 160);                                                // the floor
-        d.fillStyle = '#b07e46'; for (let x = 0; x < W; x += 40) d.fillRect(x, 200, 3, 160);
-        d.strokeStyle = '#fff'; d.lineWidth = 4; d.beginPath(); d.ellipse(560, 280, 470, 70, 0, Math.PI * 0.5, Math.PI * 1.5); d.stroke();   // the three-point arc
-        // the hoop: pole, backboard, rim, net
-        d.fillStyle = '#555'; d.fillRect(590, 120, 10, 200);
-        d.fillStyle = '#f4efe3'; d.fillRect(560, 90, 12, 90); d.fillStyle = '#c0282d'; d.fillRect(560, 128, 12, 24);
-        d.fillStyle = '#ff6a1a'; d.fillRect(HOOP[0] - 26, HOOP[1] - 3, 46, 6);
-        d.fillStyle = '#f4efe3'; for (let i = 0; i < 5; i++) d.fillRect(HOOP[0] - 22 + i * 9, HOOP[1] + 3, 3, 26 - (i % 2) * 4);
-        // the shooter: a little 8-bit player at this rack's spot
-        const [px, py] = spots[Math.min(4, s.rack)], up = s.shot && s.shot.t < 0.25;
-        d.fillStyle = 'rgba(0,0,0,.3)'; d.fillRect(px - 18, py - 4, 36, 8);
-        d.fillStyle = '#1f1c27'; d.fillRect(px - 10, py - 30, 8, 30); d.fillRect(px + 2, py - 30, 8, 30);
-        d.fillStyle = '#552583'; d.fillRect(px - 14, py - 70, 28, 42); d.fillStyle = '#fdb927'; d.fillRect(px - 4, py - 62, 8, 10);
-        d.fillStyle = '#c68a5e'; d.fillRect(px - 9, py - 90, 18, 20); d.fillStyle = '#111'; d.fillRect(px - 9, py - 92, 18, 6);
-        d.fillStyle = '#c68a5e'; if (up) d.fillRect(px + 10, py - 104, 8, 36); else d.fillRect(px + 12, py - 66, 8, 26);
-        // the ball: in hand, or in the air on its arc
-        let bx = px + 18, by = up ? py - 112 : py - 44;
-        if (s.shot && !up) {
-          const k = (s.shot.t - 0.25) / 0.75, fx = px + 14, fy = py - 108;
-          const tx = s.shot.made ? HOOP[0] - 4 : HOOP[0] + s.shot.miss * 30, ty = HOOP[1] - 8;
-          bx = fx + (tx - fx) * k; by = fy + (ty - fy) * k - Math.sin(k * Math.PI) * 130;
-          if (s.shot.made && k > 0.85) by += (k - 0.85) * 200;   // dropping through the net
+        crowd(d, 0, W, 50, 4, 8, t, made || (s.pop && s.pop.label.includes('+')) ? 1 : 0);
+        d.fillStyle = '#0c0a10'; d.fillRect(0, 150, W, 22);
+        d.font = `14px ${PIX}`; d.textAlign = 'left';
+        for (let x = -((t * 40) % 260); x < W; x += 260) { d.fillStyle = '#ff4f7b'; d.fillText('PEEP COFFEE', x + 10, 167); d.fillStyle = '#ffd23f'; d.fillText('3PT', x + 190, 167); }
+        d.fillStyle = '#c99256'; d.fillRect(0, 172, W, H - 172);
+        d.fillStyle = '#bd864c'; for (let x = -400; x < W + 400; x += 44) { d.beginPath(); d.moveTo(x, 172); d.lineTo(x + 3, 172); d.lineTo(320 + (x + 3 - 320) * 2.4, H); d.lineTo(320 + (x - 320) * 2.4, H); d.fill(); }   // planks
+        d.fillStyle = 'rgba(255,230,180,.12)'; d.beginPath(); d.ellipse(330, 270, 300, 60, 0, 0, Math.PI * 2); d.fill();   // the floor's shine
+        d.strokeStyle = '#fff'; d.lineWidth = 4;
+        d.beginPath(); d.ellipse(560, 258, 430, 80, 0, Math.PI * 0.55, Math.PI * 1.5); d.stroke();             // the three-point line
+        d.fillStyle = '#552583'; d.beginPath(); d.moveTo(470, 222); d.lineTo(640, 222); d.lineTo(640, 300); d.lineTo(430, 300); d.closePath(); d.fill();   // the paint
+        d.stroke();
+        // the hoop: padded base, arm, glass backboard, rim, and a net that flicks when one drops through
+        d.fillStyle = '#1d428a'; d.fillRect(590, 196, 50, 70); d.fillStyle = '#163469'; d.fillRect(590, 196, 50, 8);
+        d.fillStyle = '#555'; d.fillRect(600, 70, 12, 128); d.fillRect(562, 82, 44, 8);
+        d.fillStyle = 'rgba(200,230,255,.55)'; d.fillRect(546, 44, 20, 110); d.fillStyle = '#f4efe3'; d.fillRect(546, 44, 20, 4); d.fillRect(546, 150, 20, 4); d.fillRect(546, 44, 4, 110);
+        d.fillStyle = '#c0282d'; d.fillRect(552, 96, 8, 30);
+        const flick = made && k < 0.95 ? Math.sin((k - 0.78) * 60) * 4 : 0;
+        d.fillStyle = '#f4efe3'; for (let i = 0; i < 6; i++) { const nx = HOOP[0] - 24 + i * 9; d.fillRect(nx + flick * (i % 2 ? 1 : -1), HOOP[1] + 4, 3, 30 - Math.abs(i - 2.5) * 3); }
+        d.fillRect(HOOP[0] - 18, HOOP[1] + 30, 36, 3);
+        d.fillStyle = '#ff6a1a'; d.fillRect(HOOP[0] - 28, HOOP[1] - 2, 54, 7); d.fillStyle = '#c94f10'; d.fillRect(HOOP[0] - 28, HOOP[1] + 3, 54, 2);
+        // the shooter at this rack's spot, the ball rack beside him
+        const [px, py] = spots[Math.min(4, s.rack)], u = 3.4 + (py - 190) / 100 * 1.6, up = sh && k < 0.28;
+        const rackX = px - 16 * u, left = 4 - s.ball;   // what's still on the rack, the money ball last
+        d.fillStyle = '#2a2a2a'; d.fillRect(rackX - 6 * u, py - 5 * u, 12 * u, 2 * u); d.fillRect(rackX - 6 * u, py - 3 * u, u, 3 * u); d.fillRect(rackX + 5 * u, py - 3 * u, u, 3 * u);
+        for (let i = 0; i < left; i++) {
+          const bxr = rackX - 4.5 * u + i * 2.4 * u;
+          d.fillStyle = '#000'; d.fillRect(bxr - 0.2 * u, py - 7.6 * u, 2.4 * u, 2.4 * u);
+          d.fillStyle = i === left - 1 ? '#f4efe3' : '#ff7a1f'; d.fillRect(bxr, py - 7.4 * u, 2 * u, 2 * u);
         }
-        if (!s.done) { d.fillStyle = '#000'; d.fillRect(bx - 11, by - 11, 22, 22); d.fillStyle = s.ball === 4 && !s.shot ? '#f4efe3' : '#ff7a1f'; d.fillRect(bx - 9, by - 9, 18, 18); d.fillStyle = '#4a1d05'; d.fillRect(bx - 1, by - 9, 2, 18); }
-        // the meter beside the shooter, with its green window
-        const [a, b] = zone(), mx = 30, my = 110, mh = 160;
-        d.fillStyle = '#000'; d.fillRect(mx - 4, my - 4, 26, mh + 8); d.fillStyle = '#3a2a1e'; d.fillRect(mx, my, 18, mh);
-        d.fillStyle = '#3ddc97'; d.fillRect(mx, my + mh * (1 - b), 18, mh * (b - a));
-        d.fillStyle = '#ffd23f'; d.fillRect(mx - 4, my + mh * (1 - s.meter) - 3, 26, 6);
-        // the score, the clock, the rack
-        text(d, `SCORE ${s.score}`, 20, 36, 16, '#ffd23f', 'left');
-        text(d, `${Math.ceil(Math.max(0, s.time))}`, 320, 36, 20, s.time < 10 ? '#ff4f7b' : '#f4efe3');
-        text(d, `RACK ${Math.min(5, s.rack + 1)}/5`, 620, 36, 16, '#ffd23f', 'right');
-        for (let i = 0; i < 5; i++) { d.fillStyle = '#000'; d.fillRect(248 + i * 30, 328, 24, 24); d.fillStyle = i < s.ball ? '#3d3850' : i === 4 ? '#f4efe3' : '#ff7a1f'; d.fillRect(250 + i * 30, 330, 20, 20); }
-        if (s.pop) text(d, s.pop.label, 320, 90, 22, s.pop.label.includes('+') ? '#3ddc97' : '#ff4f7b', 'center', DOT);
+        hoopsPlayer(d, px, py, u, { c1: '#552583', c2: '#FDB927', skin: '#8d5a3b', num: 3 }, up ? 'shoot' : 'stand', t, 1);
+        // the ball: at his chest, up over his head, then on its arc; in, it drops through the net and bounces away
+        const money = s.ball === 4;
+        let bx = px + 3.6 * u, by = py - 9 * u, floor = py;
+        if (up) { bx = px; by = py - (19 + k * 8) * u; }
+        else if (sh) {
+          const q = (k - 0.28) / 0.72, fx = px, fy = py - 21 * u;
+          const tx = sh.made ? HOOP[0] - 2 : HOOP[0] - 26 + (sh.miss > 0 ? 50 : 0), ty = HOOP[1] - 10;
+          if (q < 0.7) { const r = q / 0.7; bx = fx + (tx - fx) * r; by = fy + (ty - fy) * r - Math.sin(r * Math.PI) * 150; }
+          else if (sh.made) { const r = (q - 0.7) / 0.3; bx = tx; by = ty + r * 120; }                  // down through the net
+          else { const r = (q - 0.7) / 0.3; bx = tx + sh.miss * r * 90; by = ty - Math.sin(r * Math.PI) * 40 + r * 60; }   // off the rim
+          floor = 258 + (bx - 320) * 0.02;
+        }
+        if (!s.done) {
+          const shadowX = bx, sz = 11;
+          d.fillStyle = 'rgba(0,0,0,.25)'; d.fillRect(shadowX - 10, Math.max(floor, by + 14) - 2, 20, 5);
+          d.fillStyle = '#000'; d.fillRect(bx - sz - 2, by - sz - 2, (sz + 2) * 2, (sz + 2) * 2);
+          if (money) { d.fillStyle = '#c0282d'; d.fillRect(bx - sz, by - sz, sz * 2, sz * 2); d.fillStyle = '#f4efe3'; d.fillRect(bx - sz, by - 3, sz * 2, 6); d.fillStyle = '#1c4fd6'; d.fillRect(bx - 3, by - sz, 6, sz * 2); }   // the red, white and blue money ball
+          else { d.fillStyle = '#ff7a1f'; d.fillRect(bx - sz, by - sz, sz * 2, sz * 2); d.fillStyle = '#ffa04a'; d.fillRect(bx - sz + 2, by - sz + 2, 6, 6); d.fillStyle = '#4a1d05'; d.fillRect(bx - 1, by - sz, 2, sz * 2); d.fillRect(bx - sz, by - 1, sz * 2, 2); }
+        }
+        // the shot meter, standing beside him the way the game shows it
+        const [a, b] = zone(), mx = px + 8 * u, mh = 26 * u, my = py - 24 * u;
+        if (!s.done && !sh) {
+          d.fillStyle = '#000'; d.fillRect(mx - 3, my - 3, 18, mh + 6); d.fillStyle = '#3a2a1e'; d.fillRect(mx, my, 12, mh);
+          d.fillStyle = '#3ddc97'; d.fillRect(mx, my + mh * (1 - b), 12, mh * (b - a));
+          d.fillStyle = s.meter >= a && s.meter <= b ? '#ffffff' : '#ffd23f'; d.fillRect(mx - 5, my + mh * (1 - s.meter) - 3, 22, 6);
+        }
+        // the broadcast bar along the top: score, game clock, rack, balls left in it
+        d.fillStyle = '#000'; d.fillRect(0, 0, W, 40); d.fillStyle = '#552583'; d.fillRect(0, 36, W, 4);
+        text(d, `SCORE ${s.score}`, 16, 28, 16, '#ffd23f', 'left');
+        d.fillStyle = '#1f0a0a'; d.fillRect(286, 4, 68, 32);
+        text(d, `${Math.ceil(Math.max(0, s.time))}`.padStart(2, '0'), 320, 30, 20, s.time < 10 ? '#ff4f7b' : '#ff7a1f');
+        text(d, `RACK ${Math.min(5, s.rack + 1)}/5`, 470, 28, 14, '#f4efe3', 'left');
+        for (let i = 0; i < 5; i++) { d.fillStyle = i < s.ball ? '#3d3850' : i === 4 ? '#f4efe3' : '#ff7a1f'; d.fillRect(400 + i * 13, 14, 10, 10); }
+        if (s.pop) text(d, s.pop.label, 320, 96, 26, s.pop.label.includes('+') ? '#3ddc97' : '#ff4f7b', 'center', DOT);
         if (s.done) {
-          d.fillStyle = 'rgba(0,0,0,.6)'; d.fillRect(140, 120, 360, 120);
+          d.fillStyle = 'rgba(0,0,0,.65)'; d.fillRect(140, 120, 360, 120);
           text(d, `總分 ${s.score}`, 320, 170, 34, '#ffd23f', 'center', DOT);
           text(d, `最高紀錄 ${s.best}`, 320, 214, 20, '#f4efe3', 'center', DOT);
         }

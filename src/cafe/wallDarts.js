@@ -6,6 +6,7 @@ import { ctx, mat } from './engine.js';
 import { S } from './state.js';
 import { K, $ } from './util.js';
 import { dartScore } from './dartboard.js';
+import { sfx, sfxMuted, toggleSfx } from './sfx.js';
 
 const BOARD = { x: (-2.995 + 0.0225) * K, y: 1.55, z: 3.06, r: 0.25 };   // the middle of its face, in the room as built
 const FLIGHTS = [0xc0282d, 0x1c4fd6, 0xffd23f];
@@ -48,7 +49,7 @@ export function playWallDarts(root, onClose) {
     <div class="dPop"></div><div class="dAim"></div>
     <div class="dEnd" hidden><b></b><span></span><button class="dAgain">再玩一次</button></div>
     <p class="dHelp">移動滑鼠或手指瞄準，準星會晃，抓好時機點一下（或空白鍵）射出 · 三輪、每輪三支</p>
-    <button class="dClose" aria-label="離開">✕ 離開</button>`;
+    <div class="dBtns"><button class="dSound" aria-label="音效"></button><button class="dClose" aria-label="離開">✕ 離開</button></div>`;
   root.appendChild(hud);
   const q = s => hud.querySelector(s), aimEl = q('.dAim'), pop = q('.dPop');
 
@@ -70,7 +71,8 @@ export function playWallDarts(root, onClose) {
     if (!ray.ray.intersectPlane(plane, hitP)) return;
     const hit = dartScore(-(hitP.z - BOARD.z) / BOARD.r, -(hitP.y - BOARD.y) / BOARD.r);   // as you look at it: right is -z, down is -y
     const d = dartMesh(FLIGHTS[s.darts.length]);
-    d.userData = { at: hitP.clone().setX(BOARD.x - (hit.pts ? 0.012 : 0.03)), from: camera.position.clone(), t: 0 };
+    d.userData = { at: hitP.clone().setX(BOARD.x - (hit.pts ? 0.012 : 0.03)), from: camera.position.clone(), t: 0, sound: hit.pts >= 50 ? 'bull' : hit.pts ? 'thunk' : 'wall' };
+    sfx('throw');
     d.rotation.set(0, (Math.random() - 0.5) * 0.25, (Math.random() - 0.5) * 0.25 + 0.08);
     ctx.scene.add(d); s.darts.push(d);
     s.total += hit.pts; pop.textContent = hit.label; pop.classList.toggle('miss', !hit.pts); s.popT = 1.1;
@@ -86,6 +88,8 @@ export function playWallDarts(root, onClose) {
   listen(hud, 'pointerdown', e => { if (e.target.closest('button')) return; e.preventDefault(); pointer = at(e); throwDart(); });
   listen(q('.dClose'), 'click', () => stop());
   listen(q('.dAgain'), 'click', again);
+  const showSound = () => { q('.dSound').textContent = sfxMuted() ? '🔇' : '🔊'; };
+  showSound(); listen(q('.dSound'), 'click', () => { toggleSfx(); showSound(); });
   listen(window, 'keydown', e => {
     if (e.key === 'Escape') stop();
     else if (e.key === ' ') { e.preventDefault(); if (!e.repeat) throwDart(); }
@@ -98,6 +102,7 @@ export function playWallDarts(root, onClose) {
     s.darts.forEach(d => {   // flying in from the hand, then stuck
       const u = d.userData; if (u.t >= 1) return;
       u.t = Math.min(1, u.t + dt / 0.14);
+      if (u.t >= 1) { sfx(u.sound === 'bull' ? 'thunk' : u.sound); if (u.sound === 'bull') sfx('bull'); }   // it lands
       d.position.lerpVectors(u.from.clone().add(new THREE.Vector3(0, -0.15, 0)), u.at, u.t);
     });
     if (s.popT > 0) { s.popT -= dt; pop.style.opacity = s.popT > 0 ? 1 : 0; }
@@ -107,6 +112,7 @@ export function playWallDarts(root, onClose) {
         if (s.round >= 3) {
           s.done = true;
           let best = s.total; try { best = Math.max(best, Number(localStorage.getItem('peep.darts.best')) || 0); localStorage.setItem('peep.darts.best', String(best)); } catch { /* private mode */ }
+          sfx('win');
           q('.dEnd b').textContent = `總分 ${s.total}`; q('.dEnd span').textContent = `最高紀錄 ${best}`; q('.dEnd').hidden = false;
         } else { s.round++; clearDarts(); }
       }
