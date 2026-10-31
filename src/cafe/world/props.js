@@ -126,8 +126,9 @@ export function figurine(x, y, z, s = 1) {
   box(0.08 * s, 0.07 * s, 0.07 * s, mat(pick(FIG)), 0, 0.115 * s, 0, g);
   box(0.02 * s, 0.02 * s, 0.02 * s, mat(0x111111), 0.02 * s, 0.12 * s, 0.036 * s, g); box(0.02 * s, 0.02 * s, 0.02 * s, mat(0x111111), -0.02 * s, 0.12 * s, 0.036 * s, g);
 }
-// a framed pixel-art poster hanging on the purple wall (facing +x)
+// a framed pixel-art poster hanging on the purple wall (facing +x). x is the wall's face: the frame sits on it, standing
+// out from it, never level with it (a frame face level with the wall flickers between the two as the view turns)
 export function framed(key, x, y, z, w, h, bg, frame = 0x111111) {
-  box(0.04, h + 0.08, w + 0.08, mat(frame), x, y, z);
-  plane(w, h, pixelArt(ART[key], PAL, bg), x + 0.03, y, z, Math.PI / 2);
+  box(0.04, h + 0.08, w + 0.08, mat(frame), x + 0.02, y, z);
+  plane(w, h, pixelArt(ART[key], PAL, bg), x + 0.045, y, z, Math.PI / 2);
 }

@@ -223,13 +223,13 @@ function decor() {
   // the track lights run round a rectangle over the room: the two long runs and the two short ones closing it off
   trackRun(-1.0, -4.2, -1.0, 3.6); trackRun(1.7, -4.2, 1.7, 3.6);
   trackRun(-1.0, -4.2, 1.7, -4.2, 2.75, 1.0); trackRun(-1.0, 3.6, 1.7, 3.6, 2.75, 1.0);
-  framed('hoop', -3.04, 1.9, -1.4, 0.55, 0.75, '#c0282d');
-  framed('toys', -3.04, 2.0, -0.4, 0.5, 0.7, '#ffd23f', 0x7a1c1c);
-  framed('eye', -3.04, 1.75, 0.25, 0.3, 0.25, '#ff4f7b', 0x7a1c1c);
-  framed('wave', -3.04, 1.9, 1.9, 0.95, 0.72, '#f4efe3', 0x1a1410);   // kept clear of the dartboard
+  framed('hoop', -3.02, 1.9, -1.4, 0.55, 0.75, '#c0282d');
+  framed('toys', -3.02, 2.0, -0.4, 0.5, 0.7, '#ffd23f', 0x7a1c1c);
+  framed('eye', -3.02, 1.75, 0.25, 0.3, 0.25, '#ff4f7b', 0x7a1c1c);
+  framed('wave', -3.02, 1.9, 1.9, 0.95, 0.72, '#f4efe3', 0x1a1410);   // kept clear of the dartboard
   // a cluster of small black frames, like the gallery seen from the sliding door
   [[-4.15, 1.95], [-3.7, 1.6], [-3.25, 2.05], [-2.8, 1.65], [-2.35, 2.0], [0.65, 2.1], [0.95, 1.7], [1.2, 2.15], [3.68, 2.2]].forEach(([z, y], i) => {
-    framed(['eye', 'hoop', 'toys'][i % 3], -3.04, y, z, 0.24, 0.3, pick(['#f4efe3', '#ffd23f', '#7ec8ff', '#ff4f7b']));
+    framed(['eye', 'hoop', 'toys'][i % 3], -3.02, y, z, 0.24, 0.3, pick(['#f4efe3', '#ffd23f', '#7ec8ff', '#ff4f7b']));
   });
   // ceiling fans: one over the front end of the bar, toward the door, and one over the games corner
   ceilingFan(0.6, 2.55);
