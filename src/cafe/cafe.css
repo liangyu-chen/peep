@@ -55,15 +55,15 @@ body:has(.cafe-root){margin:0;overflow:hidden;background:#141218}
 .cafe-root button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 .cafe-root button.on{background:var(--gold);color:#1f1c27;box-shadow:inset -3px -3px 0 0 #b08d10,inset 3px 3px 0 0 #fff2a8}
 .cafe-root button.primary{background:var(--neon);color:#2a0a14;box-shadow:inset -3px -3px 0 0 #a8264b,inset 3px 3px 0 0 #ff9ab3}
-/* the menu and Instagram, two square icon buttons on the left edge */
-.cafe-root #quick{position:absolute;left:calc(16px + env(safe-area-inset-left,0px));top:50%;transform:translateY(-50%);display:grid;gap:10px;z-index:3}
-.cafe-root .quickBtn{width:56px;height:56px;display:grid;place-items:center;align-content:center;gap:3px;padding:0;color:var(--ink);text-decoration:none;
-  background:var(--panel);box-shadow:0 0 0 3px #000,inset -3px -3px 0 0 #15131c,inset 3px 3px 0 0 #4a4458}
-.cafe-root .quickBtn svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-.cafe-root .quickBtn span{font-size:11px;line-height:1}
-.cafe-root .quickBtn:hover{color:var(--gold);background:#373245}
-.cafe-root .quickBtn.on{background:var(--gold);color:#1f1c27}
-.cafe-root .quickBtn:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+/* the menu and Instagram, in the name panel: rounded pills, unlike the panel's square buttons */
+.cafe-root #brand .quick{display:flex;flex-wrap:wrap;gap:8px;margin-top:2px}
+.cafe-root #brand .pill{display:inline-flex;align-items:center;gap:6px;padding:6px 12px 6px 10px;border-radius:999px;font-size:13px;line-height:1;text-decoration:none;font-family:var(--f-dot);box-shadow:0 2px 0 0 rgba(0,0,0,.45)}
+.cafe-root #brand .pill svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.cafe-root #brand .pillMenu{background:var(--gold);color:#1f1c27}
+.cafe-root #brand .pillMenu:hover,.cafe-root #brand .pillMenu.on{background:#ffe27a}
+.cafe-root #brand .pillIg{background:linear-gradient(45deg,#f58529,#dd2a7b 55%,#8134af);color:#fff}
+.cafe-root #brand .pillIg:hover{filter:brightness(1.1)}
+.cafe-root #brand .pill:focus-visible{outline:3px solid #fff;outline-offset:2px}
 .cafe-root .adminLink{margin-left:auto;font-size:12px;color:var(--muted);padding:4px 2px;text-decoration:underline;text-underline-offset:3px}
 .cafe-root .adminLink:hover{color:var(--gold)}
 .cafe-root .adminLink:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
