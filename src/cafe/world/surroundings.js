@@ -1,4 +1,4 @@
-// The lane outside, after the street-view photo of the shop front: a narrow asphalt alley with 慢 painted on it,
+// The lane outside, after the street-view photo of the shop front: a narrow asphalt alley with 停 消防通道 painted before the crossroads,
 // old two- to four-storey row houses either side of the shop (tiled or washed-concrete fronts, blue roller shutters, balconies with
 // railings, iron window cages, AC boxes, wires sagging along the walls), parked scooters and bikes,
 // and now and then a car or a scooter coming down the one-way lane, stopping for anyone in the way.
