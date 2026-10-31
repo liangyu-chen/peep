@@ -7,7 +7,7 @@ import { $, K } from './util.js';
 import { sayLine } from './content.js';
 import { fmtTime } from './feed.js';
 import { matchClock } from './tv.js';
-import { DAYS, canJoinTv, trySpawn } from './sim.js';
+import { DAYS, canJoinTv } from './sim.js';
 import { tvGames, GAME_LABEL } from './profiles.js';
 
 export function updateHUD() {
@@ -90,7 +90,6 @@ export function bindHUD(root, stage) {
     S.speed = +b.dataset.speed; root.querySelectorAll('[data-speed]').forEach(x => x.classList.toggle('on', x === b));
   }));
   on($('tagToggle'), 'click', e => { S.showTags = !S.showTags; e.currentTarget.classList.toggle('on', S.showTags); });
-  on($('spawnBtn'), 'click', () => trySpawn(true));
   on($('tvCard'), 'click', () => setCam('tv'));
   const stopTween = () => { camTween = null; root.querySelectorAll('[data-cam]').forEach(b => b.classList.remove('on')); };
   ctx.controls.addEventListener('start', stopTween); off.push(() => ctx.controls.removeEventListener('start', stopTween));
