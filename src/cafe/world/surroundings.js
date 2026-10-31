@@ -356,9 +356,9 @@ export function buildSurroundings() {
     m.rotation.set(-Math.PI / 2, 0, -ONE_WAY * Math.PI / 2); m.position.set(x, -0.005, LANE_Z); low.add(m);   // its top points the way they drive
   };
   roadWord('慢', -10, 2.6, 2.6);
-  // drawn long along the road, as road lettering is, and read top to bottom as you drive up to the junction: 停 nearest it
-  roadWord('停', CROSS0 - 1.3, 1.4, 1.3);
-  ['消', '防', '通', '道'].forEach((ch, i) => roadWord(ch, CROSS0 - 3.0 - i * 1.75, 2.2, 1.6));
+  // drawn long along the road, as road lettering is, all the same size, and read top to bottom as you drive up to the
+  // junction: 停 nearest it
+  ['停', '消', '防', '通', '道'].forEach((ch, i) => roadWord(ch, CROSS0 - 1.45 - i * 1.75, 2.2, 1.6));
   // our row either side of the shop: each as deep as the shop, two or three storeys
   // to the right, two houses then the corner shop at the cross street; past it, two or three more and the row ends
   const front = () => FRONT - rand(0, 0.3);
