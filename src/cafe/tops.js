@@ -16,7 +16,7 @@ const SPOTS = [
   { path: [[-0.4, TABLE.z], [-0.45, 4.7]].concat(PORCH), face: -Math.PI / 2 },
 ];
 // the stadium lives on the shelves in the back
-const FETCH = [[1.0, -5.5], [-0.3, -5.5], [-1.5, -5.5], [-1.5, -3.95], [HUBX, -3.6]];
+const FETCH = [[1.0, -5.5], [-0.3, -5.5], [-1.2, -5.5], [-1.2, -3.95], [HUBX, -3.6]];
 const TOP_COLS = [[0xc0282d, 0xffd23f], [0x1c4fd6, 0x7ec8ff]];
 
 export function createStadium() {

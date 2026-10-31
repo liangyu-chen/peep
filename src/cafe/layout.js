@@ -20,7 +20,7 @@ STRIP.at = z => (z - STRIP.from) * STRIP.scale + STRIP.to;   // plan z -> where 
 export const LANE = 1.9;                 // the owner's lane behind the bar
 export const MACHINE = [1.62, 1.5];      // where he stands to work the espresso machine (back far enough that he is not inside the bar top)
 
-export const TOILET = [[1.25, -7.7], [0.0, -7.7], [-1.5, -7.7], [-1.5, -5.0], [-1.5, -4.0], [HUBX, -3.6]];
+export const TOILET = [[1.25, -7.7], [0.0, -7.7], [-1.2, -7.7], [-1.2, -5.0], [-1.2, -4.0], [HUBX, -3.6]];   // through the open (right) half of the sliding door
 export const DOOR = [[-1.75, 11], [-1.75, 4.75], [-1.6, 4.5], [HUBX, 3.6]];
 export const zoneSpot = s => [[s.x, s.z], [HUBX, s.z]];
 export const route = (from, to) => from.slice(1).concat(to.slice().reverse());
