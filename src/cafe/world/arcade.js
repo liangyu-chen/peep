@@ -121,26 +121,30 @@ function vespa(x, z, ry) {
 }
 
 // the nook between the front wall and the storeroom, outside its door: a patterned beanbag in the corner, a burlap coffee
-// sack hung on the wall over it, a block shelf with a plant and toys beside it, a longboard leaning behind, a bag in the corner
+// sack hung on the wall over it, a block shelf with a plant and toys beside it, a longboard leaning behind
 function beanbagNook() {
-  // dark fabric with a small white star-and-flower print
-  const print = canvasTex(128, 128, (g, w, h) => {
-    g.fillStyle = '#2b2b2e'; g.fillRect(0, 0, w, h); g.fillStyle = '#e9e6de'; g.strokeStyle = '#e9e6de'; g.lineWidth = 1.5;
-    for (let r = 0; r < 6; r++) for (let c = 0; c < 6; c++) {
-      const x = c * 21.3 + (r % 2) * 10.6 + 5, y = r * 21.3 + 10, k = (r + c) % 3;
-      if (k === 0) { g.beginPath(); for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4, rr = i % 2 ? 2 : 6; g.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr); } g.fill(); }
-      else if (k === 1) { for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2; g.beginPath(); g.arc(x + Math.cos(a) * 3, y + Math.sin(a) * 3, 2.2, 0, Math.PI * 2); g.fill(); } }
-      else { g.beginPath(); g.arc(x, y, 4.5, 0, Math.PI * 2); g.stroke(); g.beginPath(); g.arc(x, y, 1.4, 0, Math.PI * 2); g.fill(); }
+  // charcoal fabric with a dense, small cream print of four-point stars, little flowers and ringed dots
+  const print = canvasTex(256, 256, (g, w, h) => {
+    g.fillStyle = '#2f2f33'; g.fillRect(0, 0, w, h); g.fillStyle = '#ece8dd'; g.strokeStyle = '#ece8dd'; g.lineWidth = 1.4;
+    const N = 10, d = w / N;
+    for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
+      const x = c * d + (r % 2) * d / 2 + d / 4, y = r * d + d / 2, k = (r * 2 + c) % 4;
+      if (k === 0) { g.beginPath(); for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4, rr = i % 2 ? 1.6 : 6; g.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr); } g.fill(); }
+      else if (k === 1) { for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2 + Math.PI / 4; g.beginPath(); g.arc(x + Math.cos(a) * 2.6, y + Math.sin(a) * 2.6, 2, 0, Math.PI * 2); g.fill(); } }
+      else if (k === 2) { g.beginPath(); g.arc(x, y, 4.5, 0, Math.PI * 2); g.stroke(); for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2; g.beginPath(); g.arc(x + Math.cos(a) * 2, y + Math.sin(a) * 2, 1, 0, Math.PI * 2); g.fill(); } }
+      else { g.beginPath(); for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4 + Math.PI / 8, rr = i % 2 ? 1.4 : 4.2; g.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr); } g.fill(); }
     }
   });
-  print.wrapS = print.wrapT = THREE.RepeatWrapping; print.repeat.set(5, 3);
-  const fabric = new THREE.MeshStandardMaterial({ map: print, roughness: 0.85 });
-  // built round, then stretched back out by 1/K so the squeeze leaves it round
+  print.wrapS = print.wrapT = THREE.RepeatWrapping; print.repeat.set(2, 1.4);
+  const fabric = new THREE.MeshStandardMaterial({ map: print, roughness: 0.8 });
+  // a tall lounger beanbag, after the photo: a wide slumped seat, a high rounded back leaning on the wall and two
+  // fat rolled arms; built round, then stretched back out by 1/K so the squeeze leaves it round. It faces -x, out of the nook
   const bag = new THREE.Group(); bag.position.set(2.45, 0, 4.78); bag.scale.x = 1 / K; ctx.scene.add(bag);
-  const blob = (r, sx, sy, sz, x, y, z) => { const m = new THREE.Mesh(new THREE.SphereGeometry(r, 20, 14), fabric); m.scale.set(sx, sy, sz); m.position.set(x, y, z); m.castShadow = m.receiveShadow = true; bag.add(m); };
-  blob(0.4, 1, 0.5, 1.05, 0, 0.2, 0);              // the seat, slumped
-  blob(0.36, 0.45, 0.95, 1.05, 0.27, 0.48, 0);      // the back, against the wall
-  [-1, 1].forEach(sd => blob(0.16, 1.4, 0.75, 0.8, -0.02, 0.36, sd * 0.32));   // the sides puffed up into arms
+  const blob = (r, sx, sy, sz, x, y, z, rz = 0) => { const m = new THREE.Mesh(new THREE.SphereGeometry(r, 24, 18), fabric); m.scale.set(sx, sy, sz); m.position.set(x, y, z); m.rotation.z = rz; m.castShadow = m.receiveShadow = true; bag.add(m); };
+  blob(0.42, 1.05, 0.45, 1.05, -0.04, 0.18, 0);           // the seat, wide and low, pressed flat
+  blob(0.24, 1.2, 0.6, 1.6, -0.3, 0.2, 0);                // its rounded front lip
+  blob(0.42, 0.45, 1.05, 1.05, 0.24, 0.55, 0, -0.16);     // the tall back, as wide as the seat, leaning toward the wall
+  [-1, 1].forEach(sd => blob(0.2, 1.8, 1.35, 0.85, -0.02, 0.4, sd * 0.35));   // the rolled arms
   // the burlap sack on the wall above: a playing-card frame, a grinning jester and the line under it
   const sack = canvasTex(240, 320, (g, w, h) => {
     g.fillStyle = '#b8873e'; g.fillRect(0, 0, w, h);
@@ -161,14 +165,27 @@ function beanbagNook() {
   pottedPlant(2.5, 0.6, 4.2);
   box(0.12, 0.04, 0.09, mat(0x6a3fc0), 2.75, 0.62, 4.2);                         // a little boxed something
   [[2.52, 0.1], [2.72, 0.3]].forEach(([x, y]) => figurine(x, y - 0.06, 4.24, 0.9));
-  // a longboard leaning on the back wall behind the shelf
-  const board = new THREE.Group(); board.position.set(2.98, 0, 4.25); board.rotation.z = 0.12; ctx.scene.add(board);
-  box(0.016, 0.95, 0.22, mat(0xe86ca0, { roughness: 0.5 }), 0, 0.55, 0, board);
-  box(0.017, 0.4, 0.2, mat(0xf2c23a, { roughness: 0.5 }), 0, 0.3, 0, board);
-  [0.2, 0.9].forEach(y => [-0.08, 0.08].forEach(z => { const wl = cyl(0.03, 0.03, 0.035, mat(0xd8c08a), -0.04, y, z, board, 12); wl.rotation.z = Math.PI / 2; }));
-  // a dark tote hanging in the far corner by the door
-  box(0.12, 0.42, 0.3, mat(0x2a2624, { roughness: 0.9 }), 2.98, 1.05, 5.2);
-  box(0.01, 0.25, 0.02, mat(0x7a4a2a), 2.98, 1.38, 5.2);
+  // a longboard standing on its tail behind the shelf, leaning on the back wall: pintail deck, its pink-to-yellow
+  // graphic and the trucks with big cream wheels on the side facing out
+  const outline = new THREE.Shape(); const BW = 0.12, BL = 1.0;
+  outline.moveTo(0, 0); outline.quadraticCurveTo(BW, 0.02, BW, 0.25); outline.lineTo(BW, 0.62); outline.quadraticCurveTo(BW, BL - 0.05, 0, BL);
+  outline.quadraticCurveTo(-BW, BL - 0.05, -BW, 0.62); outline.lineTo(-BW, 0.25); outline.quadraticCurveTo(-BW, 0.02, 0, 0);
+  const deckArt = canvasTex(96, 400, (g, w, h) => {
+    const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, '#f07aa8'); gr.addColorStop(0.55, '#f59a6a'); gr.addColorStop(1, '#f5cf45');
+    g.fillStyle = gr; g.fillRect(0, 0, w, h);
+    g.strokeStyle = '#3a2a2a'; g.lineWidth = 2; g.beginPath(); g.arc(w / 2, h * 0.3, 16, 0, Math.PI * 2); g.stroke();   // a little doodled face
+    g.beginPath(); g.arc(w / 2 - 6, h * 0.29, 2, 0, Math.PI * 2); g.arc(w / 2 + 6, h * 0.29, 2, 0, Math.PI * 2); g.fill(); g.beginPath(); g.arc(w / 2, h * 0.31, 8, 0.3, Math.PI - 0.3); g.stroke();
+  });
+  deckArt.repeat.set(1 / (2 * BW), 1 / BL); deckArt.offset.set(0.5, 0);
+  const deckGeo = new THREE.ExtrudeGeometry(outline, { depth: 0.014, bevelEnabled: false });
+  const board = new THREE.Group(); board.position.set(2.86, 0.02, 4.3); board.rotation.z = -0.13; ctx.scene.add(board);   // leans its top onto the wall
+  const deck = new THREE.Mesh(deckGeo, new THREE.MeshStandardMaterial({ map: deckArt, roughness: 0.45 })); deck.rotation.y = Math.PI / 2; deck.castShadow = true; board.add(deck);
+  const truckM = mat(0xb9bec4, { metalness: 0.8, roughness: 0.3 }), wheelM = mat(0xe9dcb8, { roughness: 0.35 });
+  [0.2, 0.8].forEach(y => {
+    box(0.02, 0.05, 0.07, truckM, -0.012, y, 0, board);                                  // baseplate
+    const hanger = cyl(0.01, 0.01, 0.2, truckM, -0.04, y, 0, board, 8); hanger.rotation.x = Math.PI / 2;
+    [-0.1, 0.1].forEach(z => { const wl = cyl(0.036, 0.036, 0.042, wheelM, -0.045, y, z, board, 16); wl.rotation.x = Math.PI / 2; });
+  });
 }
 
 // smoking is allowed outside: an ashtray (a couple of butts in it) on some of the tables
