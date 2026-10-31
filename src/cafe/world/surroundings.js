@@ -55,7 +55,10 @@ const asphaltTex = () => TEX.asphalt || (TEX.asphalt = (() => {
   t.wrapS = t.wrapT = THREE.RepeatWrapping; return t;
 })());
 
-const SIGNS = [['致泰', '各式零件承製'], ['永興五金', '水電材料'], ['金香珍', '糕餅'], ['萬全機車行', '修理'], ['福德雜貨', ''], ['大同鐵工', '鐵窗鐵門'], ['順發洗衣', ''], ['阿娥麵店', '']];
+// the lane is mostly hardware shops; each name is used once (dealt from a shuffled deck, no sign once it runs out)
+const SIGNS = [['永興五金行', '水電材料'], ['大同五金行', '工具 螺絲'], ['協益五金行', ''], ['金順五金行', '油漆 塗料'], ['振昌五金行', '鎖匙 門鎖'],
+  ['合發五金行', ''], ['新泰五金行', '水電器材'], ['東昇五金行', '五金百貨'], ['萬全五金行', ''], ['致泰', '各式零件承製'], ['大同鐵工', '鐵窗鐵門']];
+let signDeck = [];
 function signTex(lines, bg) {
   const fg = bg === '#f2efe6' ? '#b8232b' : '#ffffff';
   const t = canvasTex(256, 96, (g, w, h) => {
@@ -136,8 +139,8 @@ function rowHouse(x0, x1, frontZ, facing, floors, depth) {
     bx(g, 0.9, 2.1, 0.05, K.m(pick([0x8d8f88, 0x6b5a48, 0xb8b2a4])), -w / 4, 1.05, 0.06);                 // door
     windowUnit(g, K, w / 4, 1.5, Math.min(1.4, w / 3), 1.0, { cage: true });
   }
-  if (Math.random() < 0.45) {
-    const sm = K.own(new THREE.MeshStandardMaterial({ map: signTex(pick(SIGNS), pick(['#1f4f9a', '#b8232b', '#f2efe6', '#1c6a43'])), roughness: 0.7 }));
+  if (Math.random() < 0.45 && signDeck.length) {
+    const sm = K.own(new THREE.MeshStandardMaterial({ map: signTex(signDeck.pop(), pick(['#1f4f9a', '#b8232b', '#f2efe6', '#1c6a43'])), roughness: 0.7 }));
     const sw = Math.min(1.6, w * 0.45);
     bx(g, sw, sw * 0.375, 0.06, sm, rand(-w / 4, w / 4), GF + 0.38, 0.3);
   }
@@ -240,23 +243,21 @@ function riderModel() {
   return { g, len: 1.6, vmax: 5.5 };
 }
 const traffic = [];
-let carT = 12, scootT = 5;
+let nextT = 5;
+// the lane is narrow: one vehicle at a time, car or scooter, down the middle
 function spawn(kind) {
   const v = kind === 'car' ? carModel() : riderModel();
   const dir = ONE_WAY;
-  const z = kind === 'car' ? LANE_Z + 0.2 : LANE_Z + rand(-1.3, 1.3);
+  const z = kind === 'car' ? LANE_Z + 0.2 : LANE_Z + rand(-0.3, 0.3);
   v.g.position.set(-dir * 42, 0, z); v.g.rotation.y = dir * Math.PI / 2; env.add(v.g);
   traffic.push({ ...v, dir, speed: v.vmax, z });
 }
 function updateTraffic(sdt) {
-  carT -= sdt; scootT -= sdt;
-  if (carT <= 0) { carT = rand(35, 90); spawn('car'); }
-  if (scootT <= 0) { scootT = rand(10, 30); spawn('scooter'); }
+  if (!traffic.length && (nextT -= sdt) <= 0) { nextT = rand(8, 25); spawn(Math.random() < 0.3 ? 'car' : 'scooter'); }
   for (let i = traffic.length - 1; i >= 0; i--) {
     const t = traffic[i], p = t.g.position;
-    // slow down and wait for anyone standing in front of it, or for the vehicle ahead
+    // slow down and wait for anyone standing in front of it
     let blocked = S.people.some(q => { const d = (q.g.position.x - p.x) * t.dir; return d > 0 && d < t.len / 2 + 2.2 && Math.abs(q.g.position.z - p.z) < 1.3; });
-    blocked = blocked || traffic.some(o => o !== t && o.dir === t.dir && Math.abs(o.z - t.z) < 1 && (o.g.position.x - p.x) * t.dir > 0 && (o.g.position.x - p.x) * t.dir < (o.len + t.len) / 2 + 1.2);
     t.speed += ((blocked ? 0 : t.vmax) - t.speed) * Math.min(1, sdt * (blocked ? 4 : 1.2));
     p.x += t.dir * t.speed * sdt;
     if (Math.abs(p.x) > 44) { env.remove(t.g); t.g.traverse(o => { if (o.isMesh) o.geometry.dispose(); }); traffic.splice(i, 1); }
@@ -292,7 +293,8 @@ export function updateSurroundings(dt) {
 
 export function buildSurroundings() {
   env = new THREE.Group(); ctx.scene.add(env);
-  traffic.length = 0; carT = rand(4, 10); scootT = 2;
+  traffic.length = 0; nextT = 2;
+  signDeck = SIGNS.slice().sort(() => Math.random() - 0.5);
   S.envWindows = []; S.envBlocks = [];
   S.traffic = traffic; S.spawnVehicle = spawn;   // handy from the console
   ctx.scene.fog = new THREE.Fog(0xd9dcdc, 45, 140);
