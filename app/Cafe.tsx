@@ -8,14 +8,6 @@ import LoadingHands from './LoadingHands';
 // little pixel-art icons for the tiles: '#' is a lit pixel, drawn in the tile's text colour with hard edges
 const CUP = ['...#..#.....', '..#..#......', '...#..#.....', '............', '.#########..', '.#.......###', '.#.......#.#',
   '.#.......#.#', '.#.......###', '..#.....#...', '...#####....', '############'];
-const CAMERA = ['.##########.', '#..........#', '#.......##.#', '#.......##.#', '#...####...#', '#..#....#..#', '#..#....#..#',
-  '#..#....#..#', '#...####...#', '#..........#', '#..........#', '.##########.'];
-const PAD = ['............', '............', '.##########.', '#..........#', '#.#.....#..#', '###.....#.##', '#.#..#.....#',
-  '#...###.#..#', '#....#.....#', '.##########.', '............', '............'];
-const BOARD = ['....####....', '..##....##..', '.#..####..#.', '.#.#....#.#.', '#.#..##..#.#', '#.#.####.#.#', '#.#.####.#.#',
-  '#.#..##..#.#', '.#.#....#.#.', '.#..####..#.', '..##....##..', '....####....'];
-const TOP = ['.....##.....', '.....##.....', '....####....', '.##########.', '############', '#.##.##.##.#', '############',
-  '.##########.', '...######...', '....####....', '.....##.....', '.....##.....'];
 function PixelIcon({ rows }: { rows: string[] }) {
   return (
     <svg viewBox={`0 0 ${rows[0].length} ${rows.length}`} shapeRendering="crispEdges" aria-hidden="true">
@@ -57,22 +49,12 @@ export default function Cafe({ content }: { content: CafeContent }) {
           <div><b id="sPeople">0</b><span>店內客人</span></div>
         </div>
       </section>
-      {/* the menu and the shop's Instagram: two square tiles side by side under the name panel, in their own colours */}
+      {/* the menu: a square tile under the name panel (the games are played by clicking the TV, the dartboard or the stadium) */}
       <nav className="quick" aria-label="捷徑">
         <button data-cam="menu" className="tile tileMenu" aria-label="菜單">
           <PixelIcon rows={CUP} />
           <span>MENU</span>
         </button>
-        <a className="tile tileIg" href="https://www.instagram.com/peep20190401" target="_blank" rel="noreferrer" aria-label="Instagram">
-          <PixelIcon rows={CAMERA} />
-          <span>INSTAGRAM</span>
-        </a>
-      </nav>
-      {/* little games: the same as clicking the TV, the dartboard or the stadium in the scene; the camera closes in, then the game opens */}
-      <nav className="quick" aria-label="小遊戲">
-        <button data-game="tv" className="tile tileFight" aria-label="玩電動"><PixelIcon rows={PAD} /><span>玩電動</span></button>
-        <button data-game="darts" className="tile tileDarts" aria-label="射飛鏢"><PixelIcon rows={BOARD} /><span>射飛鏢</span></button>
-        <button data-game="tops" className="tile tileTops" aria-label="戰鬥陀螺"><PixelIcon rows={TOP} /><span>戰鬥陀螺</span></button>
       </nav>
       </div>
 

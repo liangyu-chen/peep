@@ -142,7 +142,6 @@ export function bindHUD(root, stage) {
     fillCard();
   });
   root.querySelectorAll('[data-cam]').forEach(b => on(b, 'click', () => setCam(b.dataset.cam)));
-  root.querySelectorAll('[data-game]').forEach(b => on(b, 'click', () => playAt(b.dataset.game, root)));
   off.push(closeGame, stopWallDarts, () => { neonTimers.forEach(clearTimeout); neonTimers = []; });
   root.querySelectorAll('[data-speed]').forEach(b => on(b, 'click', () => {
     S.speed = +b.dataset.speed; root.querySelectorAll('[data-speed]').forEach(x => x.classList.toggle('on', x === b));
@@ -151,7 +150,7 @@ export function bindHUD(root, stage) {
   // a soft pop for the HUD's buttons (camera moves swoosh instead; the games make their own sounds), and the sound switch
   on(root, 'click', e => {
     const b = e.target.closest('button, a.tile');
-    if (!b || b.closest('.gamePad, .dartsHud') || b.matches('[data-cam], [data-game], #sfxToggle, .gameSound')) return;
+    if (!b || b.closest('.gamePad, .dartsHud') || b.matches('[data-cam], #sfxToggle, .gameSound')) return;
     sfx(b.classList.contains('on') || b.id === 'closeCard' || b.classList.contains('gameClose') ? 'popDown' : 'pop');
   });
   const sfxBtn = $('sfxToggle'), showSfx = () => sfxBtn?.classList.toggle('on', !sfxMuted());

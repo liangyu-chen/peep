@@ -55,7 +55,7 @@ body:has(.cafe-root){margin:0;overflow:hidden;background:#141218}
 .cafe-root button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 .cafe-root button.on{background:var(--gold);color:#1f1c27;box-shadow:inset -3px -3px 0 0 #b08d10,inset 3px 3px 0 0 #fff2a8}
 .cafe-root button.primary{background:var(--neon);color:#2a0a14;box-shadow:inset -3px -3px 0 0 #a8264b,inset 3px 3px 0 0 #ff9ab3}
-/* the name panel and, under it, the menu and Instagram as two square tiles side by side, in their own colours */
+/* the name panel and, under it, the menu as a square tile */
 .cafe-root #topLeft{position:absolute;top:calc(16px + env(safe-area-inset-top,0px));left:calc(16px + env(safe-area-inset-left,0px));display:grid;gap:12px;justify-items:start;z-index:3}
 .cafe-root #topLeft #brand{position:relative;top:auto;left:auto}
 .cafe-root #topLeft .quick{display:flex;gap:9px}
@@ -68,14 +68,7 @@ body:has(.cafe-root){margin:0;overflow:hidden;background:#141218}
 .cafe-root .tile:active,.cafe-root .tile.on{transform:translate(4px,4px);box-shadow:0 0 0 3px #000,inset 4px 4px 0 0 rgba(0,0,0,.32),inset -4px -4px 0 0 rgba(255,255,255,.25),1px 1px 0 0 #000}
 .cafe-root .tileMenu{background:#ffd23f;color:#1f1c27}
 .cafe-root .tileMenu.on{background:#ffe27a}
-.cafe-root .tileIg{background:linear-gradient(135deg,#f58529 0 34%,#dd2a7b 34% 67%,#8134af 67% 100%);color:#fff;text-shadow:1px 1px 0 #3a1240}
 .cafe-root .tile:focus-visible{outline:3px solid #fff;outline-offset:4px}
-/* the game tiles, labelled in Chinese in the dot font */
-.cafe-root .tileFight,.cafe-root .tileDarts,.cafe-root .tileTops{color:#fff;text-shadow:1px 1px 0 #000}
-.cafe-root .tileFight span,.cafe-root .tileDarts span,.cafe-root .tileTops span{font-family:var(--f-dot);font-size:10px;letter-spacing:0}
-.cafe-root .tileFight{background:#1c4fd6}
-.cafe-root .tileDarts{background:#2e8b57}
-.cafe-root .tileTops{background:#c0282d}
 /* a game's window, over the café with it dimmed behind; the canvas keeps its 16:9 and fits the screen */
 .cafe-root .gameSheet{position:absolute;inset:0;z-index:20;display:grid;place-items:center;background:rgba(10,8,16,.4);padding:16px}
 .cafe-root .gameWin{position:relative;width:min(760px,100%);padding:12px 14px;display:grid;gap:10px;max-height:100%;overflow:auto}
