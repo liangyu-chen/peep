@@ -94,7 +94,7 @@ function storage() {
   box(0.32, 0.03, 0.3, mat(0xc0282d), 0, 0.5, 0, stool);
   [-0.13, 0.13].forEach(x => box(0.025, 0.5, 0.025, steel, x, 0.25, 0.1, stool));
   // boxes piled in the arcade storeroom
-  for (let i = 0; i < 5; i++) box(rand(0.35, 0.6), rand(0.3, 0.5), 0.4, mat(pick([0xb8915e, 0x8d6e4a])), 1.4 + rand(0, 1.4), 0.2 + (i > 2 ? 0.4 : 0), rand(6.2, 7.6));
+  for (let i = 0; i < 5; i++) box(rand(0.35, 0.6), rand(0.3, 0.5), 0.4, mat(pick([0xb8915e, 0x8d6e4a])), 1.4 + rand(0, 1.4), 0.2 + (i > 2 ? 0.4 : 0), rand(5.95, 7.6));
 }
 
 export function buildBack() {
