@@ -5,7 +5,7 @@ import { K } from './util.js';
 
 export const WH = 2.8;            // wall height
 export const BACK_SHIFT = 1.0;
-export const KERB = 8.0, RISE = 0.18;   // the shop front is raised RISE above the street, out to the kerb at z = KERB (the Vespa and the kerb camping chair stand below it)
+export const KERB = 8.08, RISE = 0.18;   // the shop front is raised RISE above the street, out to the kerb at z = KERB (the Vespa and the kerb camping chair stand below it)
 export const HUBX = -1.6;          // the main walkway runs along this x
 
 export const TVX = -2.6, TVZ = -3.15, TVY = 1.3;   // the TV on its rolling cart

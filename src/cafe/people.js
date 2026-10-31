@@ -239,9 +239,10 @@ export class Person {
     if (this.act === 'sip') { const P = sipPose(this.cup); armRx = P.x; armRy = P.y || 0; armRz = P.z; elR = P.el; }
     if (this.act === 'cheer') { armLx = armRx = -2.9 + Math.sin(this.walkPhase * 10) * 0.2; elL = elR = -0.2; armLz = 0.2; armRz = -0.2; bob += Math.abs(Math.sin(this.walkPhase * 8)) * 0.05; }
     if (this.act === 'wave') { armRx = -2.4; elR = -0.5; armRz = -0.4 + Math.sin(this.walkPhase * 12) * 0.35; }
-    if (this.act === 'wipe') { armRx = -0.8; elR = -0.7; armRz = Math.sin(this.walkPhase * 8) * 0.5; }
-    if (this.act === 'brew') { armLx = armRx = -0.8; elL = elR = -0.8; armLz = 0.3; armRz = -0.3; }
-    if (this.act === 'pour') { armLx = -0.7; armRx = -0.9 + Math.sin(this.walkPhase * 5) * 0.15; elL = -0.8; elR = -0.9; armLz = 0.35; armRz = -0.35; }
+    // the owner's counter work: arms raised to bar height and reaching out, so the hands work on top of the counter, not inside it
+    if (this.act === 'wipe') { armRx = -1.2; elR = -0.4; armRz = Math.sin(this.walkPhase * 8) * 0.45; }
+    if (this.act === 'brew') { armLx = armRx = -1.25; elL = elR = -0.35; armLz = 0.22; armRz = -0.22; }
+    if (this.act === 'pour') { armLx = -1.1; armRx = -1.2 + Math.sin(this.walkPhase * 5) * 0.12; elL = -0.5; elR = -0.55; armLz = 0.3; armRz = -0.3; }
     if (this.act === 'facepalm') { armRx = -0.9; elR = -2.0; armRz = -0.45; }
     let pitch = 0;
     const ph = !moving && !this.act && this.smk ? this.smk.phase : null;

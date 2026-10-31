@@ -7,7 +7,7 @@
 import * as THREE from 'three';
 import { ctx, mat as rawMat, canvasTex } from '../engine.js';
 import { S } from '../state.js';
-import { rand, randi, pick } from '../util.js';
+import { rand, randi, pick, K as SQ } from '../util.js';
 import { KERB, RISE } from '../layout.js';
 
 let env;
@@ -125,7 +125,7 @@ function fixtures(K) {
 // is open with its goods out and its sign on both faces
 function rowHouse(x0, x1, frontZ, facing, floors, depth, corner = 0, shop = null) {
   const w = x1 - x0, K = fixtures(kit());
-  const g = new THREE.Group(); g.position.set((x0 + x1) / 2, 0, frontZ); g.rotation.y = facing > 0 ? 0 : Math.PI; env.add(g);
+  const g = new THREE.Group(); g.position.set((x0 + x1) / 2, -RISE, frontZ); g.rotation.y = facing > 0 ? 0 : Math.PI; env.add(g);   // on the street; only our shop is raised
   const faceTex = Math.random() < 0.6
     ? tiles(`t${randi(0, 3)}`, pick([0xd8c9a8, 0xc9b9a0, 0xe0d6c4, 0xbfa58c]), '#8d8478')
     : washed(`w${randi(0, 3)}`, pick(['#a9a59c', '#b8b2a6', '#9c978e', '#c2bcb0']));
@@ -350,12 +350,10 @@ export function buildSurroundings() {
   let x = -2.3;
   while (x > -40) { const w = rand(3.6, 5.2), f = FRONT - rand(0, 0.3); rowHouse(x - w, x, f, 1, randi(1, 2), f - BACK); x -= w; }
   shopUpstairs();
-  // the raised frontage under the whole row, its kerb along the lane and down the cross street
+  // only our shop stands raised: a concrete plinth under it, its front edge flush with the pillar and the storeroom wall
   const stepM = new THREE.MeshStandardMaterial({ map: washed('step', '#9a968e'), roughness: 0.95 });
-  [[-44, CROSS0], [CROSS1, end]].forEach(([a, b]) => {
-    const p = new THREE.Mesh(new THREE.BoxGeometry(b - a, RISE, KERB - BACK + 0.3), stepM);
-    p.position.set((a + b) / 2, -RISE / 2 - 0.006, (KERB + BACK - 0.3) / 2); p.receiveShadow = true; env.add(p);
-  });
+  const half = 3.18 * SQ, plinth = new THREE.Mesh(new THREE.BoxGeometry(2 * half, RISE, KERB - BACK + 0.1), stepM);
+  plinth.position.set(0, -RISE / 2 - 0.006, (KERB + BACK - 0.1) / 2); plinth.receiveShadow = true; env.add(plinth);
   // nothing across the lane or behind: just the lane and the row either side, so nothing hides the shop
   wires(FRONT + 0.25, 3.45, -40, CROSS0); wires(FRONT + 0.25, 3.45, CROSS1, end);
   // parked scooters and bikes, pot plants and crates along both sides, clear of the shop front

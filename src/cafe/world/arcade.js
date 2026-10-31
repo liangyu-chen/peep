@@ -73,7 +73,7 @@ function street() {
   [[0.0, 0.0, 0x2a2a2a], [0.04, 0.03, 0x1c4fd6], [-0.04, 0.02, 0xc0282d]].forEach(([dx, dz, c]) => { const u = cyl(0.025, 0.04, 0.7, mat(c), 0.82 + dx, 0.45, 7.9 + dz, ctx.scene, 8); u.rotation.z = dx * 2; });
   // cinder stacks with little plants on the street end
   [[-2.8, 7.55], [-2.35, 7.7]].forEach(([x, z]) => { cinderBlock(0.4, 0.2, 0.2, x, 0.1, z); cinderBlock(0.4, 0.2, 0.2, x, 0.3, z); pottedPlant(x, 0.4, z); });
-  vespa(0.55, 8.75, 0.1);
+  vespa(0.55, 8.88, 0.1);
   box(4.0, 0.3, 0.12, mat(0x2a4f8a), -1.05, 2.62, 8.2);                                  // blue lintel over the opening
   [[-3.0, 1.8], [0.95, 1.6]].forEach(([x, y]) => box(0.18, 0.22, 0.08, mat(0xd9d9d0), x, y, 8.22));   // electricity meters
   campChair(-0.55, 8.55, 0, 0xc4a27e).position.y = -RISE;                                                    // one milk-tea camping chair facing the street
