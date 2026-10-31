@@ -7,7 +7,7 @@ export const menuItem = name => S.content.menu.find(m => m.name === name);
 // 'hot' or 'ice': whichever the menu serves it as; when it's both, iced a bit more often
 export function pickVariant(name) {
   const m = menuItem(name);
-  if (!m) return 'ice';
+  if (!m) return /^熱/.test(name) ? 'hot' : 'ice';   // something off the menu: hot if it says so, iced otherwise
   if (m.hot && m.ice) return Math.random() < 0.6 ? 'ice' : 'hot';
   return m.ice ? 'ice' : 'hot';
 }
@@ -19,8 +19,8 @@ export function orderName(name, variant) {
 // the price in that column; a column that isn't a number (∞, ???) still tallies a believable amount
 export const priceOf = (name, variant) => parseInt(menuItem(name)?.[variant], 10) || randi(12, 18) * 10;
 
-// a regular's usual drink may have been taken off the menu; then they pick something else
-export const drinkFor = wanted => (menuItem(wanted) ? wanted : pick(menuNames()));
+// a regular orders their usual even if it isn't on the menu (the owner makes it for them); with none set, something from the menu
+export const drinkFor = wanted => (String(wanted || '').trim() ? String(wanted).trim() : pick(menuNames()));
 
 export function line(key, vars) {
   const options = S.content.lines[key];

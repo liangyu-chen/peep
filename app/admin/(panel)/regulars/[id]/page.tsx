@@ -21,7 +21,6 @@ export default async function RegularEditor({ params, searchParams }: { params: 
   if (!isNew && !row) notFound();
   const menu = await db.select({ name: schema.menuItems.name, active: schema.menuItems.active }).from(schema.menuItems).orderBy(asc(schema.menuItems.sort));
   const drinks = menu.filter(m => m.active).map(m => m.name);
-  const drinkOptions = row?.drink && !drinks.includes(row.drink) ? [...drinks, row.drink] : drinks;
   const look = row?.look ?? NEW_LOOK;
 
   return (
@@ -40,10 +39,11 @@ export default async function RegularEditor({ params, searchParams }: { params: 
             <div className="grid">
               <label>名字<input name="name" defaultValue={row?.name} required maxLength={20} /></label>
               <label>職業<input name="job" defaultValue={row?.job} maxLength={30} /></label>
+              {/* pick from the menu, or type anything: the owner makes regulars their usual even when it isn't on the menu */}
               <label>常點
-                <select name="drink" defaultValue={row?.drink ?? drinks[0]}>
-                  {drinkOptions.map(d => <option key={d} value={d}>{drinks.includes(d) ? d : `${d}（已不在菜單上）`}</option>)}
-                </select>
+                <input name="drink" list="menu-drinks" defaultValue={row?.drink ?? drinks[0]} maxLength={30} placeholder="從菜單選，或直接輸入" autoComplete="off" />
+                <datalist id="menu-drinks">{drinks.map(d => <option key={d} value={d} />)}</datalist>
+                {row?.drink && !drinks.includes(row.drink) && <small className="muted">不在菜單上，老闆會照做</small>}
               </label>
               <label>來店次數<input name="visits" type="number" min={1} defaultValue={row?.visits ?? 1} /></label>
               <label>排序<input name="sort" type="number" defaultValue={row?.sort ?? 0} /></label>

@@ -65,7 +65,7 @@ async function ownerLoop(owner) {
     }
     const c = S.orderQueue.shift();
     if (c.gone) continue;
-    const drink = drinkFor(c.p.drink);   // a regular's usual may have come off the menu
+    const drink = drinkFor(c.p.drink);   // a regular's usual, on the menu or not
     const variant = pickVariant(drink);
     c.drink = orderName(drink, variant);
     const vars = { name: c.p.name, drink: c.drink };
