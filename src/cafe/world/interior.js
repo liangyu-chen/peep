@@ -1,6 +1,6 @@
 // Inside the shop: manga ledge, TV cart, purple-wall seats, toy boxes, the bar and the work counter, and the decor.
 import * as THREE from 'three';
-import { ctx, mat, box, cyl, canvasTex, plane } from '../engine.js';
+import { ctx, mat, box, cyl, canvasTex, plane, DECAL } from '../engine.js';
 import { S } from '../state.js';
 import { rand, randi, pick, DOT } from '../util.js';
 import { TVX, TVZ, TVY, LW, LSEATS } from '../layout.js';
@@ -105,7 +105,7 @@ function bar() {
   box(0.8, 0.08, 0.54, mat(0x111111, { roughness: 0.3 }), 0, 0.5, 0, machine);
   [-0.2, 0.2].forEach(x => { cyl(0.05, 0.045, 0.09, steel, x, 0.15, 0.3, machine); cyl(0.012, 0.012, 0.2, blackM, x, 0.15, 0.4, machine, 6).rotation.x = Math.PI / 2; });
   for (let i = 0; i < 9; i++) {          // stickers on the side customers see
-    const s = new THREE.Mesh(new THREE.PlaneGeometry(rand(0.07, 0.13), rand(0.06, 0.12)), new THREE.MeshBasicMaterial({ color: new THREE.Color(pick(posterCols)), toneMapped: true }));
+    const s = new THREE.Mesh(new THREE.PlaneGeometry(rand(0.07, 0.13), rand(0.06, 0.12)), new THREE.MeshBasicMaterial({ color: new THREE.Color(pick(posterCols)), toneMapped: true, ...DECAL }));
     s.position.set(rand(-0.33, 0.33), rand(0.06, 0.42), -0.262); s.rotation.y = Math.PI; s.rotation.z = rand(-0.4, 0.4); machine.add(s);
   }
   for (let i = 0; i < 6; i++) cyl(0.04, 0.035, 0.12, mat(0xe8f4ff, { roughness: 0.05, transparent: true, opacity: 0.5 }), -0.3 + (i % 3) * 0.1, 0.6, -0.1 + Math.floor(i / 3) * 0.1, machine, 10);

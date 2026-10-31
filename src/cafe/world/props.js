@@ -129,5 +129,5 @@ export function figurine(x, y, z, s = 1) {
 // a framed pixel-art poster hanging on the purple wall (facing +x)
 export function framed(key, x, y, z, w, h, bg, frame = 0x111111) {
   box(0.04, h + 0.08, w + 0.08, mat(frame), x, y, z);
-  plane(w, h, pixelArt(ART[key], PAL, bg), x + 0.025, y, z, Math.PI / 2);
+  plane(w, h, pixelArt(ART[key], PAL, bg), x + 0.03, y, z, Math.PI / 2);
 }

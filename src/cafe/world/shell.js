@@ -1,6 +1,6 @@
 // The building: floors, walls, doors, the peep window, the arcade storeroom and the neighbour's shutter.
 import * as THREE from 'three';
-import { ctx, mat, box, wall, canvasTex, plane, floorPlane, pixelArt } from '../engine.js';
+import { ctx, mat, box, wall, canvasTex, plane, floorPlane, pixelArt, DECAL } from '../engine.js';
 import { S } from '../state.js';
 import { DOT, K } from '../util.js';
 import { WH } from '../layout.js';
@@ -104,7 +104,7 @@ export function buildShell() {
   [-1, 1].forEach(sd => { box(0.04, 0.03, 0.12, knob, sd * 0.045, 0.98, -0.88, S.toiletDoor); box(0.02, 0.1, 0.05, knob, sd * 0.03, 0.98, -0.93, S.toiletDoor); });   // lever handles, both sides
   // posters taped on its corridor side (they swing with it, clear of the handle), and a hand-written note
   const doorSide = (tex, w, h, y, z, tilt = 0) => {
-    const p = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshStandardMaterial({ map: tex, roughness: 0.9 }));
+    const p = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshStandardMaterial({ map: tex, roughness: 0.9, ...DECAL }));
     p.position.set(-0.027, y, z); p.rotation.set(0, -Math.PI / 2, tilt); leaf.add(p);
   };
   doorSide(pixelArt(ART.toys, PAL, '#ffd23f'), 0.36, 0.36, 0.42, -0.2, 0.04);

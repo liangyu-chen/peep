@@ -1,7 +1,7 @@
 // The outdoor area (戶外區, under the arcade): linked plastic chairs down both sides, the block-and-crate table down the middle, the Open stack,
 // the skateboard, the scooter seats and the kerb camping chair.
 import * as THREE from 'three';
-import { ctx, mat, box, cyl, canvasTex, plane, LOW_POWER } from '../engine.js';
+import { ctx, mat, box, cyl, canvasTex, plane, LOW_POWER, DECAL } from '../engine.js';
 import { S } from '../state.js';
 import { pick, rand, DOT, K } from '../util.js';
 import { STRIP, RISE } from '../layout.js';
@@ -220,7 +220,7 @@ function beanbagNook() {
 // line where the stairs above cut across the wall
 function storeroomWall() {
   const X = 0.915, FACE = -Math.PI / 2;                     // the wall's arcade face, everything turned to face the chairs
-  const onWall = (w, h, m, y, z, dx = 0) => { const p = new THREE.Mesh(new THREE.PlaneGeometry(w, h), m); p.position.set(X - dx, y, z); p.rotation.y = FACE; ctx.scene.add(p); return p; };
+  const onWall = (w, h, m, y, z, dx = 0) => { Object.assign(m, DECAL); const p = new THREE.Mesh(new THREE.PlaneGeometry(w, h), m); p.position.set(X - dx, y, z); p.rotation.y = FACE; ctx.scene.add(p); return p; };
   const poster = canvasTex(60, 84, (g, w, h) => {
     g.fillStyle = '#f2efe6'; g.fillRect(0, 0, w, h); g.fillStyle = '#2f5fb3'; g.font = 'bold 13px sans-serif'; g.fillText('ADVENTURE', 4, 16);
     g.fillStyle = '#e8762a'; g.beginPath(); g.arc(30, 44, 12, 0, Math.PI * 2); g.fill(); g.fillStyle = '#1b1b1b'; g.fillRect(24, 26, 12, 6); g.fillRect(22, 56, 16, 14);

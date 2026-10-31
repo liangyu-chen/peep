@@ -63,8 +63,10 @@ export function canvasTex(w, h, draw, pixel) {
   t.redraw = () => { g.clearRect(0, 0, w, h); draw(g, w, h); t.needsUpdate = true; };
   return t;
 }
+// a picture flat on a wall: drawn as if a little nearer than it is, so it never flickers against the wall behind it
+export const DECAL = { polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 };
 export function plane(w, h, tex, x, y, z, ry = 0, basic) {
-  const m = basic ? new THREE.MeshBasicMaterial({ map: tex, transparent: true, toneMapped: false }) : new THREE.MeshStandardMaterial({ map: tex, roughness: 0.9, transparent: true });
+  const m = basic ? new THREE.MeshBasicMaterial({ map: tex, transparent: true, toneMapped: false, ...DECAL }) : new THREE.MeshStandardMaterial({ map: tex, roughness: 0.9, transparent: true, ...DECAL });
   const me = new THREE.Mesh(new THREE.PlaneGeometry(w, h), m); me.position.set(x, y, z); me.rotation.y = ry; ctx.scene.add(me); return me;
 }
 export function floorPlane(w, d, x, z, m, y = 0.005) {
