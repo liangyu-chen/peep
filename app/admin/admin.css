@@ -42,7 +42,8 @@ body:has(.admin){margin:0;background:#141218}
 .admin .bar nav{display:flex;flex-wrap:wrap;gap:4px 16px;flex:1}
 .admin .bar nav a{text-decoration:none;white-space:nowrap}
 .admin .bar strong{white-space:nowrap}
-.admin .bar nav a:hover{text-decoration:underline}
+.admin .bar nav a:hover,.admin .bar .home:hover{text-decoration:underline}
+.admin .bar .home{text-decoration:none;white-space:nowrap}
 
 /* menu table */
 .admin .menu-row{display:grid;grid-template-columns:52px minmax(0,0.8fr) minmax(0,1.2fr) 60px 60px 150px 64px 64px;gap:8px;align-items:center;padding:6px 0;border-bottom:2px dashed var(--line)}
