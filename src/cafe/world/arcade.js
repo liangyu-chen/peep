@@ -139,7 +139,7 @@ function beanbagNook() {
   const fabric = new THREE.MeshStandardMaterial({ map: print, roughness: 0.8 });
   // a tall lounger beanbag, after the photo: a wide slumped seat, a high rounded back leaning on the wall and two
   // fat rolled arms; built round, then stretched back out by 1/K so the squeeze leaves it round. It faces -x, out of the nook
-  const bag = new THREE.Group(); bag.position.set(2.45, 0, 4.78); bag.scale.x = 1 / K; ctx.scene.add(bag);
+  const bag = new THREE.Group(); bag.position.set(2.5, 0, 4.86); bag.scale.set(0.82 / K, 0.82, 0.82); ctx.scene.add(bag);   // sized to leave the nook some room
   const blob = (r, sx, sy, sz, x, y, z, rz = 0) => { const m = new THREE.Mesh(new THREE.SphereGeometry(r, 24, 18), fabric); m.scale.set(sx, sy, sz); m.position.set(x, y, z); m.rotation.z = rz; m.castShadow = m.receiveShadow = true; bag.add(m); };
   blob(0.42, 1.05, 0.45, 1.05, -0.04, 0.18, 0);           // the seat, wide and low, pressed flat
   blob(0.24, 1.2, 0.6, 1.6, -0.3, 0.2, 0);                // its rounded front lip
@@ -158,16 +158,16 @@ function beanbagNook() {
     g.fillStyle = '#b8232b'; g.beginPath(); g.moveTo(108, 138); g.quadraticCurveTo(132, 168, 156, 128); g.quadraticCurveTo(132, 146, 108, 138); g.fill();   // the grin
     g.fillStyle = '#1b1b1b'; g.textAlign = 'center'; g.font = 'bold 15px sans-serif'; g.fillText('Honduran Coffee,', w / 2, 215); g.fillText("ain't no joke!", w / 2, 235);
   });
-  plane(0.62, 0.85, sack, 3.0, 1.62, 4.75, -Math.PI / 2);
-  box(0.02, 0.02, 0.66, mat(0x5a4a32), 3.0, 2.06, 4.75);                         // the stick it hangs from
+  plane(0.48, 0.64, sack, 3.0, 1.5, 4.86, -Math.PI / 2);
+  box(0.02, 0.02, 0.52, mat(0x5a4a32), 3.0, 1.83, 4.86);                         // the stick it hangs from
   // the block shelf beside it against the front wall: three high, a plant and a little box on top, toys in the holes
-  [0.1, 0.3, 0.5].forEach(y => cinderBlock(0.4, 0.2, 0.2, 2.62, y, 4.2));
-  pottedPlant(2.5, 0.6, 4.2);
-  box(0.12, 0.04, 0.09, mat(0x6a3fc0), 2.75, 0.62, 4.2);                         // a little boxed something
-  [[2.52, 0.1], [2.72, 0.3]].forEach(([x, y]) => figurine(x, y - 0.06, 4.24, 0.9));
+  [0.1, 0.3, 0.5].forEach(y => cinderBlock(0.4, 0.2, 0.2, 2.55, y, 4.2));
+  pottedPlant(2.45, 0.6, 4.2);
+  box(0.12, 0.04, 0.09, mat(0x6a3fc0), 2.68, 0.62, 4.2);                         // a little boxed something
+  [[2.45, 0.1], [2.65, 0.3]].forEach(([x, y]) => figurine(x, y - 0.06, 4.24, 0.9));
   // a longboard standing on its tail behind the shelf, leaning on the back wall: pintail deck, its pink-to-yellow
   // graphic and the trucks with big cream wheels on the side facing out
-  const outline = new THREE.Shape(); const BW = 0.12, BL = 1.0;
+  const outline = new THREE.Shape(); const BW = 0.1, BL = 0.86;
   outline.moveTo(0, 0); outline.quadraticCurveTo(BW, 0.02, BW, 0.25); outline.lineTo(BW, 0.62); outline.quadraticCurveTo(BW, BL - 0.05, 0, BL);
   outline.quadraticCurveTo(-BW, BL - 0.05, -BW, 0.62); outline.lineTo(-BW, 0.25); outline.quadraticCurveTo(-BW, 0.02, 0, 0);
   const deckArt = canvasTex(96, 400, (g, w, h) => {
@@ -178,13 +178,13 @@ function beanbagNook() {
   });
   deckArt.repeat.set(1 / (2 * BW), 1 / BL); deckArt.offset.set(0.5, 0);
   const deckGeo = new THREE.ExtrudeGeometry(outline, { depth: 0.014, bevelEnabled: false });
-  const board = new THREE.Group(); board.position.set(2.86, 0.02, 4.3); board.rotation.z = -0.13; ctx.scene.add(board);   // leans its top onto the wall
+  const board = new THREE.Group(); board.position.set(2.9, 0.02, 4.2); board.rotation.z = -0.13; ctx.scene.add(board);   // leans its top onto the wall
   const deck = new THREE.Mesh(deckGeo, new THREE.MeshStandardMaterial({ map: deckArt, roughness: 0.45 })); deck.rotation.y = Math.PI / 2; deck.castShadow = true; board.add(deck);
   const truckM = mat(0xb9bec4, { metalness: 0.8, roughness: 0.3 }), wheelM = mat(0xe9dcb8, { roughness: 0.35 });
-  [0.2, 0.8].forEach(y => {
+  [0.17, 0.69].forEach(y => {
     box(0.02, 0.05, 0.07, truckM, -0.012, y, 0, board);                                  // baseplate
-    const hanger = cyl(0.01, 0.01, 0.2, truckM, -0.04, y, 0, board, 8); hanger.rotation.x = Math.PI / 2;
-    [-0.1, 0.1].forEach(z => { const wl = cyl(0.036, 0.036, 0.042, wheelM, -0.045, y, z, board, 16); wl.rotation.x = Math.PI / 2; });
+    const hanger = cyl(0.01, 0.01, 0.17, truckM, -0.04, y, 0, board, 8); hanger.rotation.x = Math.PI / 2;
+    [-0.085, 0.085].forEach(z => { const wl = cyl(0.032, 0.032, 0.038, wheelM, -0.045, y, z, board, 16); wl.rotation.x = Math.PI / 2; });
   });
 }
 

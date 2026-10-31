@@ -52,7 +52,7 @@ export function createSeats() {
   // the camping chair on the kerb, and the two seats by the scooter
   seat('table', -0.55, 8.55, 0, -0.17, [-0.55, 0.61 - RISE, 9.12], [[-0.55, 8.55], [-1.3, 8.3], W].concat(PORCH), { porch: true, where: '門口' });
   // the beanbag in the nook outside the storeroom door, its cup on the block shelf beside it
-  seat('table', 2.45, 4.78, -Math.PI / 2, -0.24, [2.62, 0.625, 4.2], [[2.45, 4.78], [1.5, 4.75], [0.05, 4.7]].concat(PORCH), { porch: true, where: '倉庫門口的懶骨頭' });
+  seat('table', 2.5, 4.86, -Math.PI / 2, -0.27, [2.55, 0.625, 4.2], [[2.5, 4.86], [1.5, 4.75], [0.05, 4.7]].concat(PORCH), { porch: true, where: '倉庫門口的懶骨頭' });
   // (the pair and their block table sit 0.35 m left of where they were first drawn)
   seat('table', -0.85, 7.75, Math.PI, -0.1, [-0.47, 0.61, 7.7], [[-0.85, 7.75], [-0.6, 7.3], [-0.45, 4.7]].concat(PORCH), { porch: true, where: '機車旁' });
   seat('table', 0.03, 7.75, Math.PI, -0.1, [-0.35, 0.61, 7.8], [[0.03, 7.75], [0.03, 7.3], [-0.45, 7.3], [-0.45, 4.7]].concat(PORCH), { porch: true, where: '機車旁' });
