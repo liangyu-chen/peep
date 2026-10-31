@@ -9,10 +9,15 @@ const DESCRIPTION = [
   '店休會發在每日限動上沒發店休通知就是有開',
 ].join('\n');
 
+// the picture link previews show: the two hands, white on black as on the loading screen, with the name (public/og.png)
+const SHARE_IMAGE = { url: '/og.png', width: 1200, height: 630, alt: '窺視咖啡' };
+
 export const metadata: Metadata = {
+  metadataBase: new URL('https://peep-hazel.vercel.app'),
   title: '窺視咖啡',
   description: DESCRIPTION,
-  openGraph: { title: '窺視咖啡', description: DESCRIPTION },
+  openGraph: { title: '窺視咖啡', description: DESCRIPTION, images: [SHARE_IMAGE], type: 'website' },
+  twitter: { card: 'summary_large_image', title: '窺視咖啡', description: DESCRIPTION, images: [SHARE_IMAGE.url] },
 };
 
 export const viewport: Viewport = { width: 'device-width', initialScale: 1, themeColor: '#141218' };
