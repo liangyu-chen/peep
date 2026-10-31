@@ -94,7 +94,9 @@ export function crateTable(x, z, color) { crate(x, 0, z, 'blue'); crate(x, 0.3, 
 export function stump(x, z, h = 0.42) { cyl(0.2, 0.22, h, mat(0x7a5232, { roughness: 1 }), x, h / 2, z, ctx.scene, 14); cyl(0.19, 0.19, 0.01, mat(0xc49a6c), x, h + 0.005, z, ctx.scene, 14); }
 export function highStool(x, z, parent = ctx.scene, y = 0) {
   cyl(0.16, 0.16, 0.05, mat(0x8a8f96, { metalness: 0.6, roughness: 0.3 }), x, y + 0.645, z, parent, 14);
-  [[0.1, 0.1], [-0.1, 0.1], [0.1, -0.1], [-0.1, -0.1]].forEach(([a, b]) => { const l = cyl(0.012, 0.012, 0.64, steel, x + a, y + 0.32, z + b, parent, 5); l.rotation.set(b * 0.6, 0, -a * 0.6); });
+  // four straight legs under the seat, with a ring round them to rest your feet on
+  [[0.1, 0.1], [-0.1, 0.1], [0.1, -0.1], [-0.1, -0.1]].forEach(([a, b]) => cyl(0.012, 0.012, 0.64, steel, x + a, y + 0.32, z + b, parent, 6));
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.141, 0.008, 6, 24), steel); ring.rotation.x = Math.PI / 2; ring.position.set(x, y + 0.24, z); parent.add(ring);
 }
 // round metal stools stacked one in another, each turned a little, each sitting a few centimetres higher than the one under it
 export function stoolStack(x, z, n) {
