@@ -2,12 +2,34 @@
 import * as THREE from 'three';
 import { ctx, mat, box, cyl, canvasTex, plane, pixelArt } from '../engine.js';
 import { rand, pick } from '../util.js';
+import { S } from '../state.js';
 import { ART, PAL } from '../art.js';
 
 export const woodM = mat(0x5a3a24, { roughness: 0.6 });
 export const darkWood = mat(0x3a2a1e, { roughness: 0.5 });
 export const steel = mat(0x9aa0a6, { roughness: 0.3, metalness: 0.8 });
 export const blackM = mat(0x161616, { roughness: 0.5 });
+
+// a straight run of black ceiling track from (x0,z0) to (x1,z1), with spots hanging off it every `every` metres, angled down and out
+export function trackRun(x0, z0, x1, z1, y = 2.75, every = 1.5) {
+  const len = Math.hypot(x1 - x0, z1 - z0), along = new THREE.Vector2(x1 - x0, z1 - z0).normalize();
+  const t = box(0.05, 0.04, len, blackM, (x0 + x1) / 2, y, (z0 + z1) / 2); t.rotation.y = Math.atan2(along.x, along.y);
+  const n = Math.max(1, Math.round(len / every));
+  for (let i = 0; i < n; i++) {
+    const k = (i + 0.5) / n, sx = x0 + (x1 - x0) * k, sz = z0 + (z1 - z0) * k;
+    cyl(0.008, 0.008, 0.08, blackM, sx, y - 0.05, sz, ctx.scene, 6);
+    const s = cyl(0.05, 0.06, 0.16, blackM, sx, y - 0.13, sz, ctx.scene, 10); s.rotation.set(0.5 * along.x, 0, 0.5 * along.y);
+  }
+}
+
+// a three-blade ceiling fan hanging from a downrod; its blades turn in index.js
+export function ceilingFan(x, z, y = 2.62) {
+  const fan = new THREE.Group(); fan.position.set(x, y, z); ctx.scene.add(fan);
+  cyl(0.012, 0.012, 0.25, blackM, 0, 0.13, 0, fan, 6); cyl(0.07, 0.07, 0.07, mat(0x2a2a2a), 0, 0, 0, fan, 12);
+  const blades = new THREE.Group(); fan.add(blades);
+  for (let i = 0; i < 3; i++) { const b = box(0.5, 0.01, 0.09, mat(0x3a2a1e), 0.3, -0.02, 0, blades); const p = new THREE.Group(); p.rotation.y = i * Math.PI * 2 / 3; p.add(b); blades.add(p); }
+  (S.fans || (S.fans = [])).push(blades);
+}
 
 export const CRATE_ORANGE = 0xec6e0d;   // what the orange crates average out to (bright plastic plus the dark holes)
 export const GLOSS_ORANGE = 0xff4d00;   // the glossy fibreglass-orange shells along the arcade's grey wall

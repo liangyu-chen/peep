@@ -5,7 +5,7 @@ import { S } from '../state.js';
 import { rand, randi, pick, DOT } from '../util.js';
 import { TVX, TVZ, TVY, LW, LSEATS } from '../layout.js';
 import { buildMenuClipboard } from './menu.js';
-import { woodM, steel, blackM, cinderSeat, crate, crateTable, stump, highStool, figurine, framed } from './props.js';
+import { woodM, steel, blackM, cinderSeat, crate, crateTable, stump, highStool, figurine, framed, trackRun, ceilingFan } from './props.js';
 
 function ledgeAndTv() {
   // ledge under the neon: manga on the shelf, three high stools facing the wall
@@ -207,17 +207,16 @@ function decor() {
   });
   S.fontTex.push(neonTex);
   plane(0.95, 0.95, neonTex, 1.0, 1.95, -5.38, 0, true);
-  for (let i = 0; i < 6; i++) figurine(-0.9 + i * 0.5, 1.03, -5.22, 1.3);
+  [-0.3, 1.25, 2.4].forEach(x => figurine(x, 1.215, -5.42, 1.1));   // a few figurines standing on top of the manga, none in front of it
   // indoor AC above the sliding door
   box(1.15, 0.3, 0.24, mat(0xf2f2f0, { roughness: 0.4 }), -1.5, 2.45, -5.3);
   box(1.05, 0.02, 0.02, mat(0x9aa0a6), -1.5, 2.33, -5.17);                                                  // vent slot
   // conduit + track lights
   const conduitM = mat(0x2a2a2a, { roughness: 0.5 });
   const c1 = cyl(0.02, 0.02, 8.4, conduitM, -3.0, 2.62, -0.3, ctx.scene, 6); c1.rotation.x = Math.PI / 2;
-  [-1.0, 1.7].forEach(x => {
-    box(0.05, 0.04, 7.8, blackM, x, 2.75, -0.3);
-    for (let z = -3.8; z < 3.6; z += 1.5) { const s = cyl(0.05, 0.06, 0.16, blackM, x, 2.62, z, ctx.scene, 10); s.rotation.x = 0.5 * (x < 0 ? 1 : -1); s.rotation.z = (x < 0 ? -0.6 : 0.6); }
-  });
+  // the track lights run round a rectangle over the room: the two long runs and the two short ones closing it off
+  trackRun(-1.0, -4.2, -1.0, 3.6); trackRun(1.7, -4.2, 1.7, 3.6);
+  trackRun(-1.0, -4.2, 1.7, -4.2, 2.75, 1.0); trackRun(-1.0, 3.6, 1.7, 3.6, 2.75, 1.0);
   framed('hoop', -3.04, 1.9, -1.4, 0.55, 0.75, '#c0282d');
   framed('toys', -3.04, 2.0, -0.4, 0.5, 0.7, '#ffd23f', 0x7a1c1c);
   framed('eye', -3.04, 1.75, 0.25, 0.3, 0.25, '#ff4f7b', 0x7a1c1c);
@@ -226,12 +225,9 @@ function decor() {
   [[-4.4, 1.95], [-3.95, 1.6], [-3.5, 2.05], [-3.05, 1.65], [-2.6, 2.0], [0.65, 2.1], [0.95, 1.7], [1.2, 2.15], [3.68, 2.2]].forEach(([z, y], i) => {
     framed(['eye', 'hoop', 'toys'][i % 3], -3.04, y, z, 0.24, 0.3, pick(['#f4efe3', '#ffd23f', '#7ec8ff', '#ff4f7b']));
   });
-  // ceiling fan over the bar
-  const fan = new THREE.Group(); fan.position.set(0.6, 2.62, 1.6); ctx.scene.add(fan);
-  cyl(0.012, 0.012, 0.25, blackM, 0, 0.13, 0, fan, 6); cyl(0.07, 0.07, 0.07, mat(0x2a2a2a), 0, 0, 0, fan, 12);
-  const blades = new THREE.Group(); fan.add(blades);
-  for (let i = 0; i < 3; i++) { const b = box(0.5, 0.01, 0.09, mat(0x3a2a1e), 0.3, -0.02, 0, blades); const p = new THREE.Group(); p.rotation.y = i * Math.PI * 2 / 3; p.add(b); blades.add(p); }
-  S.fanBlades = blades;
+  // ceiling fans: one over the front end of the bar, toward the door, and one over the games corner
+  ceilingFan(0.6, 2.55);
+  ceilingFan(-1.5, -3.1);
 }
 
 export function buildInterior() {

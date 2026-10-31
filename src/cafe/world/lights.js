@@ -36,7 +36,8 @@ export function buildRoomLights() {
   [[-1.0, -1.2, 0.7], [-1.0, 1.8, 0.6], [0.8, -0.4, 0.8], [0.8, 1.8, 0.6], [2.2, 0.5, 0.4], [-1.6, -3.4, 0.35]].forEach(([x, z, p]) => {
     const l = new THREE.PointLight(0xffe2b8, p, 5.5, 2); l.position.set(x, 2.5, z); scene.add(l); S.bulbs.push({ pl: l, bm: null, base: p });
   });
-  bareBulb(-1.0, 6.2, 2.4, 0.7, 7);
+  // the arcade is lit from its track (in arcade.js), not a bare bulb
+  const arcadeLight = new THREE.PointLight(0xffe2b8, 0.7, 7, 2); arcadeLight.position.set(-1.0, 2.5, 5.6); scene.add(arcadeLight); S.bulbs.push({ pl: arcadeLight, bm: null, base: 0.7 });
   bareBulb(1.2, -8.7, 2.3, 0.35, 4); bareBulb(1.2, -6.8, 2.3, 0.3, 4); bareBulb(-1.9, -8, 2.3, 0.25, 4);
 }
 

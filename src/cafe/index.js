@@ -45,7 +45,7 @@ export function startCafe(root, content) {
     updateTops(sdt);
     updateSurroundings(dt);
     S.acFan.rotation.x += dt * 12;
-    S.fanBlades.rotation.y += dt * 4;
+    S.fans.forEach(f => { f.rotation.y += dt * 4; });
     // doors open when someone comes close
     S.slide.open += ((near(-1.5, -4.5, 1.3) ? 1 : 0) - S.slide.open) * Math.min(1, dt * 5);
     S.slideDoor.position.x = -1.5 - S.slide.open * 1.05;

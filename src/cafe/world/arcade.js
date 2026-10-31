@@ -5,7 +5,7 @@ import { ctx, mat, box, cyl, canvasTex, plane } from '../engine.js';
 import { S } from '../state.js';
 import { pick, DOT, K } from '../util.js';
 import { STRIP, RISE } from '../layout.js';
-import { blackM, cinderM, CRATE_ORANGE, GLOSS_ORANGE, cinderBlock, cinderSeat, blockStack, crate, linkedChairs, campChair, figurine } from './props.js';
+import { blackM, cinderM, CRATE_ORANGE, GLOSS_ORANGE, cinderBlock, cinderSeat, blockStack, crate, linkedChairs, campChair, figurine, trackRun, ceilingFan } from './props.js';
 
 const potM = () => mat(0xb5643c), leafM = () => mat(0x3f6b3a);
 function pottedPlant(x, y, z) {
@@ -269,6 +269,9 @@ export function buildArcade() {
   ashtray(-1.0, 0.6, STRIP.at(STRIP.crates[2]));           // on the inner crates, between the cups (the tops stadium goes nearer the street)
   ashtray(-0.31, 0.6, 7.66);                                // the block table between the two seats by the scooter, clear of their cups
   ashtray(-0.45, 0.6 - RISE, 9.12);                                // the camping chair's crates on the kerb
+  // overhead: one row of track lights straight across the arcade, and a ceiling fan over the middle table
+  trackRun(-2.9, 5.3, 0.85, 5.3, 2.75, 0.9);
+  ceilingFan(-1.0, 6.6);
   openStackAndSkate();
   openCorner();
   beanbagNook();

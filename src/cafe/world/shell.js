@@ -73,7 +73,14 @@ export function buildShell() {
   wall(-0.9, -5.5, 3.1, -5.5, WH, greyM);
   box(1.25, 0.6, 0.16, greyM, -1.5, 2.5, -5.5);
   box(2.6, 0.04, 0.06, mat(0x222222, { metalness: 0.6 }), -2.0, 2.2, -5.62);
-  S.slideDoor = box(1.25, 2.1, 0.05, mat(0x4d5a52, { roughness: 0.5 }), -1.5, 1.07, -5.62);
+  S.slideDoor = box(1.25, 2.1, 0.05, mat(0x3d3f42, { roughness: 0.5 }), -1.5, 1.07, -5.62);
+  // three frosted glass panes stacked up the door, each in a raised frame, on both faces
+  const frost = new THREE.MeshStandardMaterial({ color: 0xb3c0c6, roughness: 0.4, metalness: 0.1, emissive: 0x0e1214 });
+  const frameM = mat(0x2c2e31, { roughness: 0.5 });
+  [0.6, 0, -0.6].forEach(y => [-1, 1].forEach(f => {
+    const pane = new THREE.Mesh(new THREE.PlaneGeometry(0.62, 0.5), frost); pane.position.set(0.1, y, f * 0.027); if (f < 0) pane.rotation.y = Math.PI; S.slideDoor.add(pane);
+    [[0.7, 0.04, 0.1, y + 0.27], [0.7, 0.04, 0.1, y - 0.27], [0.04, 0.58, -0.25, y], [0.04, 0.58, 0.45, y]].forEach(([w, h, x, yy]) => box(w, h, 0.012, frameM, x, yy, f * 0.031, S.slideDoor));
+  }));
   box(0.04, 0.3, 0.06, mat(0xcccccc, { metalness: 0.8 }), 0.55, 0, 0.04, S.slideDoor).position.set(-0.52, 0, 0.04);
   S.slide = { open: 0 };
   // back of house partitions
