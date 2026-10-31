@@ -71,17 +71,17 @@ export function buildShell() {
   // neon wall between seating and storage, with a sliding door to the back
   wall(-3.1, -5.5, -2.1, -5.5, WH, greyM);
   wall(-0.9, -5.5, 3.1, -5.5, WH, greyM);
-  box(1.25, 0.6, 0.16, greyM, -1.5, 2.5, -5.5);
-  box(2.6, 0.04, 0.06, mat(0x222222, { metalness: 0.6 }), -2.0, 2.2, -5.62);
+  box(1.25, 0.4, 0.16, greyM, -1.5, 2.6, -5.5);          // a shallow lintel: the door runs up to 2.4 m
+  box(2.6, 0.04, 0.1, mat(0x222222, { metalness: 0.6 }), -2.0, 2.42, -5.63);   // the track, tight under it
   // two sliding panels on two tracks, one behind the other, each with three frosted panes stacked up it in raised frames:
   // the left one stays put, the right one slides left behind it to open the way into the back
   const frost = new THREE.MeshStandardMaterial({ color: 0xb3c0c6, roughness: 0.4, metalness: 0.1, emissive: 0x0e1214 });
   const frameM = mat(0x2c2e31, { roughness: 0.5 }), panelM = mat(0x3d3f42, { roughness: 0.5 });
   const panel = (x, z) => {
-    const p = box(0.64, 2.1, 0.04, panelM, x, 1.07, z);
-    [0.6, 0, -0.6].forEach(y => [-1, 1].forEach(f => {
-      const pane = new THREE.Mesh(new THREE.PlaneGeometry(0.42, 0.48), frost); pane.position.set(0, y, f * 0.022); if (f < 0) pane.rotation.y = Math.PI; p.add(pane);
-      [[0.5, 0.04, 0, y + 0.26], [0.5, 0.04, 0, y - 0.26], [0.04, 0.56, -0.23, y], [0.04, 0.56, 0.23, y]].forEach(([w, h, bx, by]) => box(w, h, 0.012, frameM, bx, by, f * 0.026, p));
+    const p = box(0.64, 2.39, 0.04, panelM, x, 1.205, z);   // floor to the track, no gap above
+    [0.68, 0, -0.68].forEach(y => [-1, 1].forEach(f => {
+      const pane = new THREE.Mesh(new THREE.PlaneGeometry(0.42, 0.56), frost); pane.position.set(0, y, f * 0.022); if (f < 0) pane.rotation.y = Math.PI; p.add(pane);
+      [[0.5, 0.04, 0, y + 0.3], [0.5, 0.04, 0, y - 0.3], [0.04, 0.64, -0.23, y], [0.04, 0.64, 0.23, y]].forEach(([w, h, bx, by]) => box(w, h, 0.012, frameM, bx, by, f * 0.026, p));
     }));
     return p;
   };
