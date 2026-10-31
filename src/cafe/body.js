@@ -159,6 +159,29 @@ const ribs = () => ribTex || (ribTex = (() => {
   const t = canvasTex(32, 8, g => { g.fillStyle = '#fff'; g.fillRect(0, 0, 32, 8); for (let x = 0; x < 32; x += 4) { g.fillStyle = 'rgba(0,0,0,0.22)'; g.fillRect(x, 0, 1.5, 8); } });
   t.wrapS = t.wrapT = THREE.RepeatWrapping; return t;
 })());
+// a sneaker, shaped from a sphere: long, wider at the toe than the heel, flat underneath, the toe lifted a little.
+// The sole is the same outline, a touch bigger, as a thin flat slab under it. Units are local to the shoe's centre.
+const SHOE = { w: 0.062, h: 0.052, l: 0.128, fwd: 0.035, flat: -0.016 };
+const shoeShape = (x, y, z) => {
+  const t = z;                                                            // -1 at the heel, 1 at the toe
+  const X = x * SHOE.w * (1 + 0.14 * Math.max(0, t) - 0.08 * Math.max(0, -t));
+  const Z = t * SHOE.l + SHOE.fwd;
+  let Y = y * SHOE.h * (1 - 0.35 * Math.max(0, t) ** 2);                  // lower over the toes
+  Y = Math.max(SHOE.flat, Y) + 0.012 * Math.max(0, t) ** 3;               // flat under the foot, the toe turned up
+  return [X, Y, Z];
+};
+const shoeGeo = sole => geo(`shoe:${sole}`, () => {
+  const g = new THREE.SphereGeometry(1, 28, 18), p = g.attributes.position;
+  for (let i = 0; i < p.count; i++) {
+    const x = p.getX(i), y = p.getY(i), z = p.getZ(i);
+    if (!sole) { const [X, Y, Z] = shoeShape(x, y, z); p.setXYZ(i, X, Y, Z); }
+    else { const [X, , Z] = shoeShape(x * 1.04, 0, z * 1.03); p.setXYZ(i, X, (y > 0 ? SHOE.flat + 0.004 : SHOE.flat - 0.012) + 0.012 * Math.max(0, z) ** 3, Z); }
+  }
+  g.computeVertexNormals(); return g;
+});
+// the height of the top of the shoe above its centre, a distance z forward (for laying the laces on it)
+const shoeTop = z => SHOE.h * Math.sqrt(Math.max(0, 1 - ((z - SHOE.fwd) / SHOE.l) ** 2)) * (1 - 0.35 * Math.max(0, (z - SHOE.fwd) / SHOE.l) ** 2);
+const laceM = mat(0xeeeeea, { roughness: 0.7 });
 // curls in a hair surface, like the ringlets lower down: wavy locks running out from the crown, each waving from side
 // to side and bulging where it curls; they smooth out right at the crown so they don't bunch up where they all meet
 const curlLumps = amp => u => {
@@ -228,11 +251,10 @@ export function buildBody(look, seed = '') {
     const b = mk(cy(0.088 * W, 0.082 * W, 0.09, 14), skirted ? mat(0xf2efe9, { roughness: 0.9 }) : pants, 0, -0.03, 0, knee, false); b.visible = false; bunch.push(b);
     mk(cy(skirted ? 0.066 : 0.07 * W, skirted ? 0.052 : flare, 0.23, 14), legM, 0, -0.115, 0, knee);   // shin
     if (!skirted) mk(cy(flare + 0.006, flare + 0.006, 0.025, 14), pantsDark, 0, -0.225, 0, knee, false);   // turned-up hem
-    mk(bx(0.125, 0.06, 0.17), shoe, 0, -0.27, 0.015, knee);                                     // shoe, with a rounded toe
-    mk(sp(0.064, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2), shoe, 0, -0.3, 0.1, knee).scale.set(0.98, 0.95, 1.05);
-    // the sole follows the shoe's outline exactly (a block under the heel, a disc under the rounded toe), so nothing pokes out
-    mk(bx(0.123, 0.016, 0.17), soleM, 0, -0.309, 0.015, knee, false);
-    mk(cy(0.062, 0.062, 0.016, 16), soleM, 0, -0.309, 0.1, knee, false).scale.z = 1.05;
+    // the shoe: one rounded piece on a sole that follows its outline, with laces across the top
+    mk(shoeGeo(false), shoe, 0, -0.287, 0, knee);
+    mk(shoeGeo(true), soleM, 0, -0.287, 0, knee, false);
+    [0.03, 0.055, 0.08].forEach(z => mk(bx(0.05, 0.006, 0.01), laceM, 0, -0.287 + shoeTop(z) + 0.002, z, knee, false));
     return { hip, knee };
   });
   const seat = mk(cy(0.222, 0.215, 0.16, 20), pants, 0, 0.6 + LEG_EXTRA, 0); seat.scale.z = 0.64;   // hips
