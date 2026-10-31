@@ -13,6 +13,7 @@ export type Look = {
   number?: string; longSleeve?: boolean;
   hat?: string; hatColor?: number;             // a hat worn over whatever the hair is (older looks: hairStyle 'cap'/'bucket' + cap, or beanie)
   hairLength?: string; hairCurl?: string; hairFront?: string; hairTie?: string;   // the hair, chosen part by part (older looks: hairStyle alone)
+  bottom?: string; pantsFit?: string;          // pants or a skirt (in the pants colour), and how wide the pants are
   glasses?: boolean | string;                  // older looks stored true for square frames
   faceShape?: string; eyes?: string; eyeColor?: number; brows?: string; nose?: string; mouth?: string;
   facialHair?: string; blush?: boolean;
@@ -259,6 +260,15 @@ export function hairLabel(h: Hair): string {
   if (h.length === 'bald' || h.length === 'buzz') return l('length', h.length);
   return [l('length', h.length), h.curl !== 'straight' && l('curl', h.curl), h.front !== 'none' && l('front', h.front), h.tie !== 'none' && l('tie', h.tie)].filter(Boolean).join('・');
 }
+// what's worn below the waist: pants or a skirt, and for pants how wide they are
+export const CLOTHES: Record<'bottom' | 'fit', Option[]> = {
+  bottom: [{ value: 'pants', label: '褲子' }, { value: 'skirt', label: '裙子' }],
+  fit: [{ value: 'slim', label: '窄管' }, { value: 'regular', label: '一般' }, { value: 'wide', label: '寬褲' }],
+};
+const clothesValid = (key: keyof typeof CLOTHES, v: unknown) => typeof v === 'string' && CLOTHES[key].some(o => o.value === v);
+export function clothesOf(look: Look): { bottom: string; fit: string } {
+  return { bottom: clothesValid('bottom', look.bottom) ? (look.bottom as string) : 'pants', fit: clothesValid('fit', look.pantsFit) ? (look.pantsFit as string) : 'regular' };
+}
 // a hat is its own choice, put on over the hair
 export const HAT_STYLES: Option[] = [
   { value: 'none', label: '不戴' }, { value: 'cap', label: '棒球帽' }, { value: 'bucket', label: '漁夫帽' }, { value: 'beanie', label: '毛帽' },
@@ -323,12 +333,14 @@ export function parseLook(get: (k: string) => string | null, prev?: Look): Look 
   const face = faceOf(base, String(get('name') ?? ''));
   const hairNow = hairOf(base), hairPart = (key: keyof typeof HAIR, field: string, now: string) => { const v = get(field); return hairValid(key, v) ? (v as string) : now; };
   const hatNow = hatOf(base), hat = get('hat') ?? hatNow.hat;
+  const clothesNow = clothesOf(base), clothesPart = (key: keyof typeof CLOTHES, field: string, now: string) => { const v = get(field); return clothesValid(key, v) ? (v as string) : now; };
   const number = (get('number') ?? '').trim().slice(0, 2);
   const look: Look = {
     ...base,
     skin: hex('skin', base.skin), hair: hex('hair', base.hair), shirt: hex('shirt', base.shirt), pants: hex('pants', base.pants),
     hairLength: hairPart('length', 'hairLength', hairNow.length), hairCurl: hairPart('curl', 'hairCurl', hairNow.curl),
     hairFront: hairPart('front', 'hairFront', hairNow.front), hairTie: hairPart('tie', 'hairTie', hairNow.tie),
+    bottom: clothesPart('bottom', 'bottom', clothesNow.bottom), pantsFit: clothesPart('fit', 'pantsFit', clothesNow.fit),
     hat: HAT_STYLES.some(h => h.value === hat) ? hat : 'none', hatColor: hex('hatColor', hatNow.color),
     faceShape: opt('faceShape', face.faceShape), eyes: opt('eyes', face.eyes), brows: opt('brows', face.brows),
     nose: opt('nose', face.nose), mouth: opt('mouth', face.mouth), facialHair: opt('facialHair', face.facialHair), beard: opt('beard', face.beard),

@@ -1,4 +1,4 @@
-import { COLOR_PRESETS, FACE, HAIR, HAT_STYLES, faceOf, hairOf, hatOf, type Look } from '@/src/content/catalog';
+import { CLOTHES, COLOR_PRESETS, FACE, HAIR, HAT_STYLES, clothesOf, faceOf, hairOf, hatOf, type Look } from '@/src/content/catalog';
 import ColorField from './ColorField';
 
 function Pick({ name, label, value, options }: { name: string; label: string; value: string; options: { value: string; label: string }[] }) {
@@ -15,7 +15,7 @@ function Pick({ name, label, value, options }: { name: string; label: string; va
 // the 捏臉 fields shared by the regulars' editor and the owner's page; parseLook() reads them back
 export default function LookFields({ look, seed }: { look: Look; seed: string }) {
   const f = faceOf(look, seed);
-  const hat = hatOf(look), hair = hairOf(look);
+  const hat = hatOf(look), hair = hairOf(look), clothes = clothesOf(look);
   return (
     <>
       <section className="panel-block">
@@ -42,10 +42,12 @@ export default function LookFields({ look, seed }: { look: Look; seed: string })
         <Pick name="hairFront" label="前額" value={hair.front} options={HAIR.front} />
         <Pick name="hairTie" label="綁髮（中長髮、長髮）" value={hair.tie} options={HAIR.tie} />
         <Pick name="hat" label="帽子" value={hat.hat} options={HAT_STYLES} />
+        <Pick name="bottom" label="下身" value={clothes.bottom} options={CLOTHES.bottom} />
+        <Pick name="pantsFit" label="褲子寬度" value={clothes.fit} options={CLOTHES.fit} />
         <div className="colors">
           <ColorField name="hair" label="髮色" value={look.hair} presets={COLOR_PRESETS.hair} />
           <ColorField name="shirt" label="上衣" value={look.shirt} presets={COLOR_PRESETS.clothes} />
-          <ColorField name="pants" label="褲子" value={look.pants} presets={COLOR_PRESETS.clothes} />
+          <ColorField name="pants" label="褲子／裙子" value={look.pants} presets={COLOR_PRESETS.clothes} />
           <ColorField name="hatColor" label="帽子顏色" value={hat.color} presets={COLOR_PRESETS.clothes} />
         </div>
         <div className="colors">

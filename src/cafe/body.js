@@ -3,7 +3,10 @@
 import * as THREE from 'three';
 import { mat, canvasTex } from './engine.js';
 import { PIX } from './util.js';
-import { faceOf, hairOf, hatOf } from '../content/catalog';
+import { faceOf, hairOf, hatOf, clothesOf } from '../content/catalog';
+
+// how much longer the legs are than first drawn: the hips sit this much higher (people.js lowers sitting and squatting to match)
+export const LEG_EXTRA = 0.08;
 
 // ---------------------------------------------------------------- shared geometry and materials
 // geometries are shared between everyone; materials stay per person since their colours differ
@@ -209,33 +212,46 @@ export function buildBody(look, seed = '') {
   const mk = (geom, m, x, y, z, par = g, shadow = true) => { const me = new THREE.Mesh(geom, m); me.position.set(x, y, z); me.castShadow = shadow; me.receiveShadow = shadow; par.add(me); return me; };
 
   // ---------------------------------------------------------------- legs and hips
+  // the legs are LEG_EXTRA longer than first drawn (thigh and shin), the hips raised by that much and the torso
+  // shortened to match, so shoulders, arms and head stay where every pose was tuned
+  const { bottom, fit } = clothesOf(look), skirted = bottom === 'skirt';
+  const legM = skirted ? skin : pants;                    // bare legs under a skirt
+  const W = { slim: 0.85, regular: 1, wide: 1.28 }[fit] || 1, flare = fit === 'wide' ? 0.098 : 0.062 * W;
   const bare = [];   // what shows skin when the pants come down (thighs, knees, hips)
   const bunch = [];  // the pants bunched round the shins, only seen then
+  const THIGH = 0.32, HIP_Y = 0.55 + LEG_EXTRA;
   const legs = [-0.105, 0.105].map(x => {
-    const hip = new THREE.Group(); hip.position.set(x, 0.55, 0); g.add(hip);
-    bare.push(mk(cy(0.085, 0.074, 0.28, 14), pants, 0, -0.13, 0, hip));                        // thigh
-    const knee = new THREE.Group(); knee.position.set(0, -0.27, 0); hip.add(knee);
-    bare.push(mk(sp(0.074, 12, 8), pants, 0, 0, 0, knee));                                     // knee, so a bent leg stays joined
-    const b = mk(cy(0.088, 0.082, 0.09, 14), pants, 0, -0.03, 0, knee, false); b.visible = false; bunch.push(b);
-    mk(cy(0.07, 0.062, 0.2, 14), pants, 0, -0.1, 0, knee);                                     // shin
-    mk(cy(0.068, 0.068, 0.025, 14), pantsDark, 0, -0.195, 0, knee, false);                     // turned-up hem
-    mk(bx(0.125, 0.06, 0.17), shoe, 0, -0.24, 0.015, knee);                                     // shoe, with a rounded toe
-    mk(sp(0.064, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2), shoe, 0, -0.27, 0.1, knee).scale.set(0.98, 0.95, 1.05);
+    const hip = new THREE.Group(); hip.position.set(x, HIP_Y, 0); g.add(hip);
+    const thigh = mk(cy(0.085 * W, 0.074 * W, THIGH + 0.01, 14), legM, 0, -THIGH / 2 + 0.005, 0, hip); if (!skirted) bare.push(thigh);
+    const knee = new THREE.Group(); knee.position.set(0, -THIGH, 0); hip.add(knee);
+    const kn = mk(sp(0.074 * W, 12, 8), legM, 0, 0, 0, knee); if (!skirted) bare.push(kn);   // knee, so a bent leg stays joined
+    const b = mk(cy(0.088 * W, 0.082 * W, 0.09, 14), skirted ? mat(0xf2efe9, { roughness: 0.9 }) : pants, 0, -0.03, 0, knee, false); b.visible = false; bunch.push(b);
+    mk(cy(skirted ? 0.066 : 0.07 * W, skirted ? 0.052 : flare, 0.23, 14), legM, 0, -0.115, 0, knee);   // shin
+    if (!skirted) mk(cy(flare + 0.006, flare + 0.006, 0.025, 14), pantsDark, 0, -0.225, 0, knee, false);   // turned-up hem
+    mk(bx(0.125, 0.06, 0.17), shoe, 0, -0.27, 0.015, knee);                                     // shoe, with a rounded toe
+    mk(sp(0.064, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2), shoe, 0, -0.3, 0.1, knee).scale.set(0.98, 0.95, 1.05);
     // the sole follows the shoe's outline exactly (a block under the heel, a disc under the rounded toe), so nothing pokes out
-    mk(bx(0.123, 0.016, 0.17), soleM, 0, -0.279, 0.015, knee, false);
-    mk(cy(0.062, 0.062, 0.016, 16), soleM, 0, -0.279, 0.1, knee, false).scale.z = 1.05;
+    mk(bx(0.123, 0.016, 0.17), soleM, 0, -0.309, 0.015, knee, false);
+    mk(cy(0.062, 0.062, 0.016, 16), soleM, 0, -0.309, 0.1, knee, false).scale.z = 1.05;
     return { hip, knee };
   });
-  const seat = mk(cy(0.212, 0.2, 0.16, 20), pants, 0, 0.6, 0); seat.scale.z = 0.62;            // hips
+  const seat = mk(cy(0.222, 0.215, 0.16, 20), pants, 0, 0.6 + LEG_EXTRA, 0); seat.scale.z = 0.64;   // hips
   bare.push(seat);
-  const belt = mk(cy(0.214, 0.214, 0.035, 22), beltM, 0, 0.675, 0, g, false); belt.scale.z = 0.63;
-  mk(bx(0.045, 0.03, 0.012), buckleM, 0, 0.675, 0.136, g, false);
+  // a skirt: knee length, A-line, hanging from the waist; a pivot at the waist so it can drape over the lap when sitting
+  let skirt = null;
+  if (skirted) {
+    skirt = new THREE.Group(); skirt.position.set(0, 0.72 + LEG_EXTRA, 0); g.add(skirt);
+    const sm = mat(look.pants, { roughness: 0.85, side: THREE.DoubleSide });
+    mk(lathe('skirt', [[0.226, 0.02], [0.236, -0.04], [0.256, -0.13], [0.282, -0.23], [0.304, -0.32], [0.3, -0.33]], 28), sm, 0, 0, 0, skirt).scale.z = 0.72;
+  }
+  const belt = mk(cy(0.224, 0.224, 0.035, 22), beltM, 0, 0.675 + LEG_EXTRA, 0, g, false); belt.scale.z = 0.65;
+  mk(bx(0.045, 0.03, 0.012), buckleM, 0, 0.675 + LEG_EXTRA, 0.144, g, false);
 
   // ---------------------------------------------------------------- torso: waist, chest and sloping shoulders
-  const torso = mk(lathe('torso', [[0.2, 0.64], [0.205, 0.72], [0.214, 0.85], [0.226, 0.98], [0.23, 1.08], [0.222, 1.15], [0.196, 1.21], [0.14, 1.25], [0.075, 1.268], [0, 1.27]], 28), shirt, 0, 0, 0);
-  torso.scale.z = 0.64;
-  mk(cy(0.204, 0.204, 0.03, 24), shirtDark, 0, 0.655, 0, g, false).scale.z = 0.645;            // shirt hem
-  [-1, 1].forEach(s => mk(sp(0.06, 12, 10), shirt, s * 0.245, 1.185, 0).scale.set(0.95, 0.72, 0.85));   // shoulder caps over the arm joint
+  // waist, chest and shoulders close to the same width, so it isn't an inverted triangle; it starts higher, over the longer legs
+  const torso = mk(lathe('torso2', [[0.216, 0.64 + LEG_EXTRA], [0.214, 0.79], [0.212, 0.88], [0.215, 0.98], [0.217, 1.07], [0.21, 1.14], [0.19, 1.2], [0.14, 1.245], [0.075, 1.266], [0, 1.27]], 28), shirt, 0, 0, 0);
+  torso.scale.z = 0.66;
+  mk(cy(0.22, 0.22, 0.03, 24), shirtDark, 0, 0.655 + LEG_EXTRA, 0, g, false).scale.z = 0.665;   // shirt hem
   const collar = mk(cy(0.085, 0.1, 0.04, 18), shirtDark, 0, 1.262, 0, g, false); collar.scale.z = 0.82;
   if (look.number) {
     const t = canvasTex(32, 32, (c) => { c.fillStyle = '#fff'; c.font = `16px ${PIX}`; c.textAlign = 'center'; c.fillText(look.number, 16, 24); }, true);
@@ -351,12 +367,15 @@ export function buildBody(look, seed = '') {
 
   // ---------------------------------------------------------------- arms: shoulder -> elbow -> hand
   const elbows = [];
-  const arms = [-0.28, 0.28].map(x => {
+  const arms = [-0.262, 0.262].map(x => {
     const s = Math.sign(x);
     const sh = new THREE.Group(); sh.position.set(x, 1.19, 0); g.add(sh);
     const sleeveM = look.longSleeve ? shirt : skin;
     mk(cy(0.058, 0.052, 0.27, 12), sleeveM, 0, -0.135, 0, sh);                                     // upper arm
     if (!look.longSleeve) { mk(cy(0.07, 0.065, 0.16, 12), shirt, 0, -0.07, 0, sh); mk(cy(0.067, 0.067, 0.02, 12), shirtDark, 0, -0.15, 0, sh, false); }
+    // the top of the shoulder: a low dome just the width of the sleeve, turning with the arm, so there's no ball sitting on it
+    const top = look.longSleeve ? 0.058 : 0.07;
+    mk(sp(top, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), shirt, 0, look.longSleeve ? 0 : 0.01, 0, sh).scale.y = 0.55;
     const elbow = new THREE.Group(); elbow.position.set(0, -0.27, 0); sh.add(elbow); elbows.push(elbow);
     mk(sp(0.053, 10, 8), sleeveM, 0, 0, 0, elbow);
     mk(cy(0.051, 0.044, 0.24, 12), sleeveM, 0, -0.12, 0, elbow);                                   // forearm
@@ -373,7 +392,7 @@ export function buildBody(look, seed = '') {
   mk(bx(0.04, 0.012, 0.03), mat(0x3ddc97), 0.05, 0.026, 0, pad, false);
   [-1, 1].forEach(s => mk(cy(0.012, 0.012, 0.012, 8), mat(0x333333), s * 0.03, 0.026, 0.012, pad, false));         // sticks
   pad.position.set(0, 0.95, 0.43); pad.visible = false; g.add(pad);
-  return { g, legs, arms, elbows, head, hand, handL, pad, eyes, mouth, skinM: skin, strip: { bare, bunch, pants, skin } };
+  return { g, legs, arms, elbows, head, hand, handL, pad, eyes, mouth, skirt, skinM: skin, strip: { bare, bunch, pants, skin } };
 }
 
 // hats, each a shell round its own tipped crown down to a front edge `elev` above the eyes; own is the hat's own thickness

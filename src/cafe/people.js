@@ -1,7 +1,7 @@
 // People in the café: animation poses, speech bubble and name tag, walking along plan-coordinate paths (the body is body.js).
 import * as THREE from 'three';
 import { ctx, mat, cyl } from './engine.js';
-import { buildBody, tickFace } from './body.js';
+import { buildBody, tickFace, LEG_EXTRA } from './body.js';
 import { S } from './state.js';
 import { K } from './util.js';
 import { KERB, RISE } from './layout.js';
@@ -136,7 +136,7 @@ function makeMosaic() {
   sp.scale.set(0.34, 0.34, 1); sp.renderOrder = 5;
   return sp;
 }
-const MOSAIC_AT = new THREE.Vector3(0, 0.5, 0.02), _cam = new THREE.Vector3();
+const MOSAIC_AT = new THREE.Vector3(0, 0.5 + LEG_EXTRA, 0.02), _cam = new THREE.Vector3();
 
 export class Person {
   constructor(profile, role) {
@@ -170,6 +170,7 @@ export class Person {
     const { bare, bunch, pants, skin } = this.strip;
     bare.forEach(m => { m.material = down ? skin : pants; });
     bunch.forEach(m => { m.visible = down; });
+    if (this.skirt) this.skirt.visible = !down;   // a skirt is lifted out of the way
     if (down && !this.mosaic) { this.mosaic = makeMosaic(); this.g.add(this.mosaic); this.mosaicT = 0; }
     if (!down && this.mosaic) { this.g.remove(this.mosaic); this.mosaic.material.map.dispose(); this.mosaic.material.dispose(); this.mosaic = null; }
   }
@@ -231,8 +232,10 @@ export class Person {
     const s = Math.sin(this.walkPhase);
     let y = 0, hipL = 0, hipR = 0, kL = 0, kR = 0, armLx = 0, armLy = 0, armRx = 0, armRy = 0, armLz = 0.06, armRz = -0.06, bob = 0, elL = -0.12, elR = -0.12;
     if (moving) { hipL = s * 0.55; hipR = -s * 0.55; kL = Math.max(0, -s) * 0.6; kR = Math.max(0, s) * 0.6; armLx = -s * 0.45; armRx = s * 0.45; elL = -0.3 + Math.min(0, s) * 0.2; elR = -0.3 - Math.max(0, s) * 0.2; bob = Math.abs(Math.cos(this.walkPhase)) * 0.04; }
-    else if (squat) { y = -0.35; hipL = hipR = -1.9; kL = kR = 1.95; armLx = armRx = -0.55; elL = elR = -0.95; armLz = 0.12; armRz = -0.12; }   // squatting over the pan, forearms on the knees
-    else if (sitting) { y = this.seat ? this.seat.sitY : -0.1; hipL = hipR = -Math.PI / 2; kL = kR = this.seat && this.seat.floor ? 0.25 : Math.PI / 2; armLx = armRx = -0.25; elL = elR = -0.7; }   // hands resting on the lap
+    else if (squat) { y = -0.425;   // the longer legs fold up higher, so the body goes down further to keep the hips over the pan
+      hipL = hipR = -1.9; kL = kR = 1.95; armLx = armRx = -0.55; elL = elR = -0.95; armLz = 0.12; armRz = -0.12; }   // squatting over the pan, forearms on the knees
+    else if (sitting) { y = (this.seat ? this.seat.sitY : -0.1) - LEG_EXTRA + 0.02;   // hips on the seat, though they sit higher on the longer legs
+      hipL = hipR = -Math.PI / 2; kL = kR = this.seat && this.seat.floor ? 0.25 : Math.PI / 2; armLx = armRx = -0.25; elL = elR = -0.7; }   // hands resting on the lap
     else { armLx = Math.sin(this.walkPhase * 0.7) * 0.04; armRx = -armLx; }
     if (this.cup && this.cup.parent === this.hand && !this.act) { const P = DRINK_POSE[this.role === 'owner' ? 'high' : moving ? 'walk' : 'carry']; armRx = P.x; armRz = P.z; elR = P.el; }   // cup carried in front
     this.pad.visible = this.pose === 'game';
@@ -268,12 +271,16 @@ export class Person {
     if (this.cup && this.cup.parent === this.hand) gripCup(this, this.act === 'sip' ? sipPose(this.cup).tilt * Math.min(1, (1.4 - this.actT) * 3) : 0);
     this.groundY = (this.groundY || 0) + ((this.g.position.z > KERB ? -RISE : 0) - (this.groundY || 0)) * Math.min(1, dt * 14);   // a step down off the kerb
     this.g.position.y = this.groundY + y + bob;
+    if (this.skirt) {   // sitting, a skirt rides up and lies forward over the lap
+      const lap = sitting || squat;
+      this.skirt.scale.set(1, lap ? 0.5 : 1, lap ? 1.5 : 1); this.skirt.position.z = lap ? 0.07 : 0;
+    }
     this.head.rotation.y = this.pose === 'game' ? 0 : ph ? turn : Math.sin(this.walkPhase * 0.31) * 0.2;
     this.head.rotation.x = pitch;
     if (this.mosaic) {   // kept between the hips and the camera, so it covers from any side
       this.mosaicT -= dt; if (this.mosaicT <= 0) { this.mosaicT = 0.35; this.mosaic.material.map.shuffle(); }
       this.g.worldToLocal(_cam.copy(ctx.camera.position));
-      const at = this.mosaic.position.copy(MOSAIC_AT); if (squat) at.y = 0.55;
+      const at = this.mosaic.position.copy(MOSAIC_AT); if (squat) at.y = 0.625;
       _cam.sub(at); _cam.y = 0; if (_cam.lengthSq() > 1e-6) at.addScaledVector(_cam.normalize(), 0.2);
     }
     if (this.exhaleT > 0 && !this.bubbleT) this.mouth.scale.set(0.55, 2.4, 1); else this.mouth.scale.x = 1;   // an O while blowing smoke
