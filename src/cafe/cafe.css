@@ -70,6 +70,22 @@ body:has(.cafe-root){margin:0;overflow:hidden;background:#141218}
 .cafe-root .tileMenu.on{background:#ffe27a}
 .cafe-root .tileIg{background:linear-gradient(135deg,#f58529 0 34%,#dd2a7b 34% 67%,#8134af 67% 100%);color:#fff;text-shadow:1px 1px 0 #3a1240}
 .cafe-root .tile:focus-visible{outline:3px solid #fff;outline-offset:4px}
+/* the game tiles, labelled in Chinese in the dot font */
+.cafe-root .tileFight,.cafe-root .tileDarts,.cafe-root .tileTops{color:#fff;text-shadow:1px 1px 0 #000}
+.cafe-root .tileFight span,.cafe-root .tileDarts span,.cafe-root .tileTops span{font-family:var(--f-dot);font-size:10px;letter-spacing:0}
+.cafe-root .tileFight{background:#1c4fd6}
+.cafe-root .tileDarts{background:#2e8b57}
+.cafe-root .tileTops{background:#c0282d}
+/* a game's window, over the café with it dimmed behind; the canvas keeps its 16:9 and fits the screen */
+.cafe-root .gameSheet{position:absolute;inset:0;z-index:20;display:grid;place-items:center;background:rgba(10,8,16,.66);padding:16px}
+.cafe-root .gameWin{position:relative;width:min(760px,100%);padding:12px 14px;display:grid;gap:10px;max-height:100%;overflow:auto}
+.cafe-root .gameHead{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.cafe-root .gameHead h2{margin:0;font-family:var(--f-dot);font-size:18px;color:var(--gold);letter-spacing:0}
+.cafe-root .gameClose{padding:2px 8px}
+.cafe-root .gameWin canvas{width:100%;aspect-ratio:16/9;display:block;image-rendering:pixelated;background:#000;box-shadow:0 0 0 3px #000;touch-action:none;cursor:crosshair}
+.cafe-root .gameHelp{margin:0;font-size:13px;color:var(--muted);line-height:1.5}
+.cafe-root .gamePad{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
+.cafe-root .gamePad button{min-width:64px;min-height:48px;font-size:18px;touch-action:none;user-select:none;-webkit-user-select:none}
 .cafe-root .adminLink{margin-left:auto;font-size:12px;color:var(--muted);padding:4px 2px;text-decoration:underline;text-underline-offset:3px}
 .cafe-root .adminLink:hover{color:var(--gold)}
 .cafe-root .adminLink:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
@@ -107,6 +123,9 @@ body:has(.cafe-root){margin:0;overflow:hidden;background:#141218}
   .cafe-root #controls{top:auto;bottom:calc(16px + env(safe-area-inset-bottom,0px));left:calc(16px + env(safe-area-inset-left,0px));right:calc(16px + env(safe-area-inset-right,0px));max-width:none}
   .cafe-root #tvCard{bottom:auto;top:calc(16px + env(safe-area-inset-top,0px));width:150px;padding:8px 10px}
   .cafe-root #tvCard .team,.cafe-root #results,.cafe-root #tvCard h2{display:none}
+  .cafe-root .gameSheet{padding:8px}
+  .cafe-root .gamePad{gap:8px}
+  .cafe-root .gamePad button{min-width:52px}
   .cafe-root #card{top:auto;bottom:calc(150px + env(safe-area-inset-bottom,0px));transform:none;left:calc(16px + env(safe-area-inset-left,0px));width:auto}
 }
 @media (prefers-reduced-motion:reduce){.cafe-root .bubble{transition:none}}

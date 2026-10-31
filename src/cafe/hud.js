@@ -9,6 +9,7 @@ import { fmtTime } from './feed.js';
 import { matchClock } from './tv.js';
 import { DAYS, canJoinTv } from './sim.js';
 import { tvGames, GAME_LABEL } from './profiles.js';
+import { openGame, closeGame } from './games.js';
 
 export function updateHUD() {
   $('clock').textContent = fmtTime(S.minutes); $('day').textContent = DAYS[S.dow];
@@ -86,6 +87,8 @@ export function bindHUD(root, stage) {
     fillCard();
   });
   root.querySelectorAll('[data-cam]').forEach(b => on(b, 'click', () => setCam(b.dataset.cam)));
+  root.querySelectorAll('[data-game]').forEach(b => on(b, 'click', () => openGame(b.dataset.game, root)));
+  off.push(closeGame);
   root.querySelectorAll('[data-speed]').forEach(b => on(b, 'click', () => {
     S.speed = +b.dataset.speed; root.querySelectorAll('[data-speed]').forEach(x => x.classList.toggle('on', x === b));
   }));

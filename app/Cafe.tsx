@@ -10,6 +10,12 @@ const CUP = ['...#..#.....', '..#..#......', '...#..#.....', '............', '.#
   '.#.......#.#', '.#.......###', '..#.....#...', '...#####....', '############'];
 const CAMERA = ['.##########.', '#..........#', '#.......##.#', '#.......##.#', '#...####...#', '#..#....#..#', '#..#....#..#',
   '#..#....#..#', '#...####...#', '#..........#', '#..........#', '.##########.'];
+const PAD = ['............', '............', '.##########.', '#..........#', '#.#.....#..#', '###.....#.##', '#.#..#.....#',
+  '#...###.#..#', '#....#.....#', '.##########.', '............', '............'];
+const BOARD = ['....####....', '..##....##..', '.#..####..#.', '.#.#....#.#.', '#.#..##..#.#', '#.#.####.#.#', '#.#.####.#.#',
+  '#.#..##..#.#', '.#.#....#.#.', '.#..####..#.', '..##....##..', '....####....'];
+const TOP = ['.....##.....', '.....##.....', '....####....', '.##########.', '############', '#.##.##.##.#', '############',
+  '.##########.', '...######...', '....####....', '.....##.....', '.....##.....'];
 function PixelIcon({ rows }: { rows: string[] }) {
   return (
     <svg viewBox={`0 0 ${rows[0].length} ${rows.length}`} shapeRendering="crispEdges" aria-hidden="true">
@@ -61,6 +67,12 @@ export default function Cafe({ content }: { content: CafeContent }) {
           <PixelIcon rows={CAMERA} />
           <span>INSTAGRAM</span>
         </a>
+      </nav>
+      {/* little games to play, each opening in a window over the café */}
+      <nav className="quick" aria-label="小遊戲">
+        <button data-game="fight" className="tile tileFight" aria-label="玩電動"><PixelIcon rows={PAD} /><span>玩電動</span></button>
+        <button data-game="darts" className="tile tileDarts" aria-label="射飛鏢"><PixelIcon rows={BOARD} /><span>射飛鏢</span></button>
+        <button data-game="tops" className="tile tileTops" aria-label="戰鬥陀螺"><PixelIcon rows={TOP} /><span>戰鬥陀螺</span></button>
       </nav>
       </div>
 

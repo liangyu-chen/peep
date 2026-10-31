@@ -24,6 +24,9 @@ function side(person, fighter, x, dir) {
   };
 }
 
+// a side for a match a visitor plays in the game window, named however the window likes
+export const fighterSide = (name, fighter, x, dir) => ({ ...side(null, fighter, x, dir), name });
+
 export function startFight(h, a) {
   const roster = FIGHTER_NAMES;
   const hf = h.p.fighter || pick(roster);
