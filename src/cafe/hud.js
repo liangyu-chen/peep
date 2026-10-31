@@ -113,7 +113,8 @@ const PLAY = {
 function playAt(kind, root) {
   const s = PLAY[kind], { camera, controls } = ctx;
   const half = Math.tan(camera.fov * Math.PI / 360);
-  const dist = Math.min(2.4, 1.22 * Math.max(s.h / 2 / half, s.w / 2 / (half * camera.aspect)));   // a narrow phone can't get all of it in
+  // (the TV can be backed off from a fair way, across the room, so an upright tablet still gets all of it in; a phone can't)
+  const dist = Math.min(kind === 'tv' ? 3.6 : 2.4, 1.22 * Math.max(s.h / 2 / half, s.w / 2 / (half * camera.aspect)));
   let tt, dir = s.dir;
   if (s.at) tt = new THREE.Vector3(s.at[0] * K, s.at[1], s.at[2]);
   else { tt = S.stadium.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0, 0.04, 0)); if (tt.z > -4.6) dir = [0, 0.85, 0.6]; }

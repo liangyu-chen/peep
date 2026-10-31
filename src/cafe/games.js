@@ -61,10 +61,10 @@ export function openGame(kind, root, onClose) {
     G = GAMES[k]; ctl.clear(); keys.clear();
     sheet.querySelector('h2').textContent = G.title; sheet.querySelector('.gameHelp').textContent = G.help;
     sheet.querySelector('.gameWin').setAttribute('aria-label', G.title);
-    // a TV game shows on the TV itself; on a wide screen, where the TV fills the view, the window shrinks to the
-    // controls along the bottom (a narrow phone keeps its own picture too)
+    // a TV game shows on the TV itself; wherever the whole TV fits in view (anything but a phone held upright), the
+    // window shrinks to the controls along the bottom (on a phone it keeps its own picture too)
     mirrorTV(G.tv ? canvas : null);
-    sheet.classList.toggle('onTV', !!G.tv && innerWidth / innerHeight >= 1.2);
+    sheet.classList.toggle('onTV', !!G.tv && innerWidth / innerHeight >= 0.7);
     root.classList.toggle('playing', sheet.classList.contains('onTV'));   // the rest of the HUD steps aside
     game = G.start(ctl);
   };
