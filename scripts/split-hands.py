@@ -17,7 +17,7 @@ def poly(pts):
 # right of the left thumb tip (x 637) just under the finger
 right = poly([(630, 0), (W, 0), (W, H), (630, H), (630, 445), (637, 445), (637, 380), (621, 380), (621, 338), (615, 338), (615, 318), (630, 318)])
 # its fingertip, showing through the ring
-tip = poly([(540, 331), (480, 333), (459, 339), (448, 357), (449, 384), (465, 399), (500, 404), (530, 401), (540, 398)])
+tip = poly([(514, 331), (480, 333), (459, 339), (448, 357), (449, 384), (465, 399), (490, 405), (514, 404)])   # up to where its outline is still level
 # the hole in the ring (traced just inside its outline): see-through on the left hand
 hole = poly([(436, 328), (455, 322), (478, 318), (512, 327), (545, 336), (545, 392), (520, 402), (495, 410), (470, 418),
              (445, 420), (420, 414), (402, 402), (393, 385), (394, 366), (406, 350), (420, 338)])
@@ -26,6 +26,8 @@ rgb = np.asarray(src).copy()
 rgb[np.asarray(src.convert('L')) > 232] = 255   # the paper made pure white, matching the page, so no cut edge shows against it
 # only the paper inside that outline is see-through, so the ring's own ink stays put; the fingertip goes with the right hand
 hole = (hole & (np.asarray(src.convert('L')) > 190)) | tip
+# between the fingertip and the left fingertip the finger's own marks go too (the left fingertip's curved edge below them stays)
+hole |= poly([(514, 333), (545, 333), (545, 382), (514, 382)])
 def save(mask, name):
     Image.fromarray(np.dstack([rgb, np.where(mask, 255, 0).astype(np.uint8)])).save(name)
 save(~right & ~hole, 'public/loading/hand-left.png')
@@ -34,13 +36,13 @@ save(right | tip, 'public/loading/hand-right.png')
 # the bit of the right finger hidden behind the left fingertip, filled back in so the finger is whole on its own (when
 # the hands meet, the left fingertip covers it again). It is made from the visible stretch of the same finger just
 # right of the gap (x 644..684, clear of the left thumb tip), mirrored back and forth so the texture runs on without a seam, with each column
-# stretched between the finger's edges: level with the tip at the left, rising to the knuckle at the right
+# stretched between the finger's edges: as thick as the tip at the left (measured at x 510), easing into the knuckle at the right
 gray = np.asarray(src.convert('L')).astype(np.float32)
 def edge_at(x):   # centre of the finger's top and bottom ink lines in a column of the drawing
     col = gray[:, x]
     top = [y for y in range(305, 336) if col[y] < 110]; bot = [y for y in range(386, 403) if col[y] < 110]
     return (sum(top) / len(top), sum(bot) / len(bot))
-GX0, GX1, SX0, SX1 = 538, 640, 644, 684   # mirrored at x 644 and 684, columns with no pencil marks, so no stroke folds back on itself
+GX0, GX1, SX0, SX1 = 512, 640, 644, 684   # mirrored at x 644 and 684, columns with no pencil marks, so no stroke folds back on itself
 # straight lines fitted through those edges, so the copied strip's outline runs smooth instead of wobbling column to column
 _xs = np.arange(SX0, SX1 + 1); _e = np.array([edge_at(x) for x in _xs])
 _ft, _fb = np.polyfit(_xs, _e[:, 0], 1), np.polyfit(_xs, _e[:, 1], 1)
@@ -51,7 +53,7 @@ X0, Y0 = GX0, 316
 patch = np.zeros((96, GX1 - GX0, 4), np.float32)
 for x in range(GX0, GX1):
     t = (x - GX0) / (GX1 - GX0)
-    tt, tb = bez(336.8, 331.0, 324.5, t), bez(392.0, 393.0, 397.0, t)          # the target edges here
+    tt, tb = bez(335.5, 331.5, 324.5, t), bez(402.0, 401.0, 397.0, t)          # the target edges here: the tip's own thickness, easing into the knuckle's
     d = (GX1 - 1 - x) % (2 * (SX1 - SX0)); sx = SX0 + (d if d < SX1 - SX0 else 2 * (SX1 - SX0) - d)
     st, sb = edges(sx)
     for y in range(int(tt) - 3, int(tb) + 4):
