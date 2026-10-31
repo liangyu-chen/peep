@@ -112,7 +112,7 @@ const capGeo = (shape, key, edge, thick, bump = null, groove = null) => geo(`cap
 const partGeo = (shape, phi0, p0, p1) => geo(`part:${shape},${phi0},${p0.toFixed(3)},${p1.toFixed(3)}`, () => {
   const h = HEADS[shape], N = 24, pos = [], idx = [], v = new THREE.Vector3(), u = new THREE.Vector3();
   for (let j = 0; j <= N; j++) {
-    const t = j / N, p = p0 + (p1 - p0) * t, w = (0.004 + 0.012 * t) / Math.max(0.3, Math.sin(p));
+    const t = j / N, p = p0 + (p1 - p0) * t, w = (0.008 + 0.016 * t) / Math.max(0.3, Math.sin(p));
     for (const s of [-1, 1]) {
       const phi = phi0 + s * w;
       u.set(Math.sin(p) * Math.sin(phi), Math.cos(p), Math.sin(p) * Math.cos(phi));
@@ -427,6 +427,8 @@ const HATS = { cap: { tilt: 0.25, elev: 0.4, own: 0.012 }, bucket: { tilt: 0.1, 
 const line = phi => -0.16 + 0.66 * Math.cos(phi);                          // just above the brows, past the temples, down the nape
 const lobe = (phi, at0, p) => Math.max(0, Math.cos(phi - at0)) ** p;      // a bump centred on angle at0
 const ang = phi => Math.atan2(Math.sin(phi), Math.cos(phi));               // -π..π, 0 straight ahead
+// a parting at angle at0: cut deep down the middle, the hair either side standing up a little, so it shows clearly
+const parting = (at0, depth) => phi => { const d = ang(phi - at0); return depth * Math.exp(-((d / 0.07) ** 2)) - 0.008 * Math.exp(-(((Math.abs(d) - 0.12) / 0.05) ** 2)); };
 const FRONTS = {
   // no fringe: combed back off the forehead, the hairline well up so the forehead shows
   none: { edge: phi => line(phi) + 0.26 * lobe(phi, 0, 2), thick: () => 0.012, lift: 0.012 },
@@ -435,16 +437,16 @@ const FRONTS = {
   // parted in the middle: the hairline lifts at the centre of the forehead and the hair falls away to both sides,
   // fuller over the temples, with a shallow parting line running back from the front
   center: {
-    edge: phi => line(phi) + 0.12 * lobe(phi, 0, 8) - 0.05 * (lobe(phi, 0.55, 6) + lobe(phi, -0.55, 6)),
-    thick: phi => 0.014 + 0.008 * (lobe(phi, 0.6, 3) + lobe(phi, -0.6, 3)), lift: 0.022,
-    part: 0, groove: phi => 0.012 * Math.exp(-((ang(phi) / 0.05) ** 2)),
+    edge: phi => line(phi) + 0.16 * Math.exp(-((ang(phi) / 0.16) ** 2)) - 0.05 * (lobe(phi, 0.55, 6) + lobe(phi, -0.55, 6)),
+    thick: phi => 0.016 + 0.008 * (lobe(phi, 0.6, 3) + lobe(phi, -0.6, 3)), lift: 0.026,
+    part: 0, groove: parting(0, 0.03),
   },
   // parted on one side: a clear parting over one eye, the hair swept over from it, low and full over the other brow,
   // short and close on the parting's side, with a notch in the hairline where the parting meets it
   side: {
-    edge: phi => line(phi) - 0.18 * lobe(phi, -0.5, 3) + 0.06 * lobe(phi, 0.75, 3) + 0.1 * Math.exp(-(((ang(phi) - 0.45) / 0.06) ** 2)),
-    thick: phi => 0.012 + 0.02 * lobe(phi, -0.4, 2), lift: 0.03,
-    part: 0.45, groove: phi => 0.03 * Math.exp(-(((ang(phi) - 0.45) / 0.045) ** 2)),
+    edge: phi => line(phi) - 0.18 * lobe(phi, -0.5, 3) + 0.06 * lobe(phi, 0.75, 3) + 0.14 * Math.exp(-(((ang(phi) - 0.45) / 0.09) ** 2)),
+    thick: phi => 0.014 + 0.02 * lobe(phi, -0.4, 2), lift: 0.034,
+    part: 0.45, groove: parting(0.45, 0.04),
   },
 };
 const CURL_TOP = 0.018;     // how far curls stand out of the top of the head
@@ -504,7 +506,7 @@ function buildHair(hairParts, shape, head, hairM, mk, at, look) {
     mk(capGeo(shape, `${front}${curly ? `:waves${amp}` : ''}`, F.edge, F.thick, curly ? curlLumps(amp) : null, F.groove), hairM, 0, 0, 0, head);
     if (F.part != null && !curly) {                     // the scalp showing along the parting
       const reach = Math.PI / 2 - F.edge(F.part);
-      mk(partGeo(shape, F.part, reach * 0.3, reach - 0.01), mat(look.skin, { roughness: 0.7 }), 0, 0, 0, head, false);
+      mk(partGeo(shape, F.part, reach * 0.12, reach - 0.01), mat(new THREE.Color(look.skin).lerp(new THREE.Color(0xffffff), 0.12).getHex(), { roughness: 0.7 }), 0, 0, 0, head, false);
     }
     lift = F.lift + (curly ? 0.02 : 0);
     if (curl === 'spiky') {
