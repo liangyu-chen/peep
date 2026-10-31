@@ -67,8 +67,14 @@ function signTex(lines, bg) {
   const fg = bg === '#f2efe6' ? '#b8232b' : '#ffffff';
   const t = canvasTex(256, 96, (g, w, h) => {
     g.fillStyle = bg; g.fillRect(0, 0, w, h); g.strokeStyle = fg; g.lineWidth = 4; g.strokeRect(5, 5, w - 10, h - 10);
-    g.fillStyle = fg; g.textAlign = 'center'; g.font = 'bold 40px "Noto Sans TC", sans-serif'; g.fillText(lines[0], w / 2, lines[1] ? 46 : 62);
-    if (lines[1]) { g.font = '26px "Noto Sans TC", sans-serif'; g.fillText(lines[1], w / 2, 80); }
+    // each line as big as it's meant to be, or smaller if it would run past the border
+    const fit = (text, size, weight, y) => {
+      g.font = `${weight}${size}px "Noto Sans TC", sans-serif`;
+      const s = Math.min(size, Math.floor(size * (w - 28) / g.measureText(text).width));
+      g.font = `${weight}${s}px "Noto Sans TC", sans-serif`; g.fillText(text, w / 2, y);
+    };
+    g.fillStyle = fg; g.textAlign = 'center'; fit(lines[0], 40, 'bold ', lines[1] ? 46 : 62);
+    if (lines[1]) fit(lines[1], 26, '', 80);
   });
   S.fontTex.push(t); return t;
 }
