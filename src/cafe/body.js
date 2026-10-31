@@ -321,7 +321,7 @@ export function buildBody(look, seed = '') {
 const HATS = { cap: { tilt: 0.25, elev: 0.4, own: 0.012 }, bucket: { tilt: 0.1, elev: 0.5, own: 0.014 }, beanie: { tilt: 0.35, elev: 0.45, own: 0.016 } };
 // how far each hairstyle stands off the head where a hat goes, so the hat is made that much bigger and never cuts into it
 // (spikes, buns and ponytails that would sit under a hat are left out or moved below its edge instead)
-const HAIR_LIFT = { bald: 0, buzz: 0.004, short: 0.012, spiky: 0.012, curly: 0.032, side: 0.024, medium: 0.021, long: 0.021, longCurly: 0.04, bun: 0.021, ponytail: 0.021 };
+const HAIR_LIFT = { bald: 0, buzz: 0.004, short: 0.012, spiky: 0.012, curly: 0.032, side: 0.024, medium: 0.022, long: 0.021, longCurly: 0.04, bun: 0.021, ponytail: 0.021 };
 
 // the hair first, then the hat (if any) put on over it
 function buildHair(style, shape, head, hairM, mk, at, look) {
@@ -372,11 +372,15 @@ function buildHair(style, shape, head, hairM, mk, at, look) {
   switch (style) {
     case 'bald': break;
     case 'buzz': hair(0.004, 0.5, 0.55); break;
-    case 'medium':
-      // 中長髮: down to the jaw, the ends turned under a little
-      fringe();
-      curtain('medium', (w, y0) => [[w + 0.004, y0 - 0.06], [w + 0.01, y0 - 0.13], [w + 0.014, y0 - 0.17], [w + 0.006, y0 - 0.195], [w - 0.008, y0 - 0.2]]);
+    case 'medium': {
+      // 中長髮: down to the shoulders, parted in the middle: the hairline lifts at the centre of the forehead and the
+      // hair falls away to both sides, fuller over the temples, with a shallow parting line running back from the front
+      const ang = phi => Math.atan2(Math.sin(phi), Math.cos(phi));                     // -π..π, 0 straight ahead
+      mk(capGeo(shape, 'centrePart', phi => line(phi) + 0.12 * lobe(phi, 0, 8) - 0.05 * (lobe(phi, 0.55, 6) + lobe(phi, -0.55, 6)),
+        phi => 0.014 + 0.008 * (lobe(phi, 0.6, 3) + lobe(phi, -0.6, 3)) - 0.006 * Math.exp(-((ang(phi) / 0.05) ** 2))), hairM, 0, 0, 0, head);
+      curtain('medium', (w, y0) => [[w + 0.004, y0 - 0.07], [w + 0.01, y0 - 0.15], [w + 0.016, y0 - 0.22], [w + 0.018, y0 - 0.26], [w + 0.006, y0 - 0.285], [w - 0.008, y0 - 0.29]]);
       break;
+    }
     case 'long':
       fringe();
       curtain('long', (w, y0) => [[w + 0.004, y0 - 0.08], [w + 0.012, y0 - 0.19], [w + 0.026, y0 - 0.29], [w + 0.008, y0 - 0.33]]);
