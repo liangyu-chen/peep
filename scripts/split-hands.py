@@ -13,11 +13,11 @@ W, H = src.size
 def poly(pts):
     m = Image.new('L', (W, H), 0); ImageDraw.Draw(m).polygon(pts, fill=255); return np.asarray(m) > 0
 
-# the right hand's side of the cut: right of x 630, right of the left fingertip (x 616) where its finger runs, and
+# the right hand's side of the cut: right of x 630, right of the left fingertip (x 621) where its finger runs, and
 # right of the left thumb tip (x 637) just under the finger
-right = poly([(630, 0), (W, 0), (W, H), (630, H), (630, 445), (637, 445), (637, 380), (616, 380), (616, 318), (630, 318)])
+right = poly([(630, 0), (W, 0), (W, H), (630, H), (630, 445), (637, 445), (637, 380), (621, 380), (621, 338), (615, 338), (615, 318), (630, 318)])
 # its fingertip, showing through the ring
-tip = poly([(543, 331), (480, 333), (459, 339), (448, 357), (449, 384), (465, 399), (500, 404), (530, 401), (543, 398)])
+tip = poly([(540, 331), (480, 333), (459, 339), (448, 357), (449, 384), (465, 399), (500, 404), (530, 401), (540, 398)])
 # the hole in the ring (traced just inside its outline): see-through on the left hand
 hole = poly([(436, 328), (455, 322), (478, 318), (512, 327), (545, 336), (545, 392), (520, 402), (495, 410), (470, 418),
              (445, 420), (420, 414), (402, 402), (393, 385), (394, 366), (406, 350), (420, 338)])
@@ -31,27 +31,36 @@ def save(mask, name):
 save(~right & ~hole, 'public/loading/hand-left.png')
 save(right | tip, 'public/loading/hand-right.png')
 
-# the bit of the right finger hidden behind the left fingertip, drawn back in so the finger is whole on its own
-# (when the hands meet, the left fingertip covers it again): its two edges continue the original ink lines (measured
-# either side: the top is level with the tip and rises to the knuckle; the underside drops a little as the finger widens), with a knuckle crease in the same scratchy style; drawn 4x up and scaled down so it's smooth
-S, X0, Y0, PW, PH = 4, 536, 316, 110, 90
-def bez(p0, p1, p2, n=24):
-    return [((1 - t) ** 2 * p0[0] + 2 * (1 - t) * t * p1[0] + t * t * p2[0], (1 - t) ** 2 * p0[1] + 2 * (1 - t) * t * p1[1] + t * t * p2[1])
-            for t in (i / n for i in range(n + 1))]
-top = bez((538, 336.8), (580, 330.5), (626, 327.2))
-bot = bez((544, 392), (590, 393), (640, 397))
-up = lambda pts: [((x - X0) * S, (y - Y0) * S) for x, y in pts]
-patch = Image.new('RGBA', (PW * S, PH * S), (0, 0, 0, 0)); d = ImageDraw.Draw(patch)
-d.polygon(up(top + bot[::-1]), fill=(255, 255, 255, 255))
-ink = (22, 22, 22, 255)
-d.line(up(top), fill=ink, width=3 * S, joint='curve'); d.line(up(bot), fill=ink, width=5 * S, joint='curve')
-d.line(up(bez((584, 341), (581, 349), (585, 356))), fill=ink, width=2 * S)       # knuckle crease
-d.line(up(bez((588, 372), (585, 378), (589, 385))), fill=ink, width=2 * S)
-d.line(up([(568, 362), (574, 360)]), fill=(60, 60, 60, 255), width=1 * S)         # a hatch mark or two
-d.line(up([(603, 350), (608, 352)]), fill=(60, 60, 60, 255), width=1 * S)
-for (x0, y0, x1, y1) in [(548, 342, 566, 340), (552, 380, 572, 381), (594, 334, 612, 332), (598, 390, 616, 391), (560, 352, 563, 357)]:
-    d.line(up([(x0, y0), (x1, y1)]), fill=(150, 150, 150, 255), width=1 * S)   # the faint pencil shading the rest of the finger has
-patch = patch.resize((PW, PH), Image.LANCZOS)
+# the bit of the right finger hidden behind the left fingertip, filled back in so the finger is whole on its own (when
+# the hands meet, the left fingertip covers it again). It is made from the visible stretch of the same finger just
+# right of the gap (x 644..684, clear of the left thumb tip), mirrored back and forth so the texture runs on without a seam, with each column
+# stretched between the finger's edges: level with the tip at the left, rising to the knuckle at the right
+gray = np.asarray(src.convert('L')).astype(np.float32)
+def edge_at(x):   # centre of the finger's top and bottom ink lines in a column of the drawing
+    col = gray[:, x]
+    top = [y for y in range(305, 336) if col[y] < 110]; bot = [y for y in range(386, 403) if col[y] < 110]
+    return (sum(top) / len(top), sum(bot) / len(bot))
+GX0, GX1, SX0, SX1 = 538, 640, 644, 684   # mirrored at x 644 and 684, columns with no pencil marks, so no stroke folds back on itself
+# straight lines fitted through those edges, so the copied strip's outline runs smooth instead of wobbling column to column
+_xs = np.arange(SX0, SX1 + 1); _e = np.array([edge_at(x) for x in _xs])
+_ft, _fb = np.polyfit(_xs, _e[:, 0], 1), np.polyfit(_xs, _e[:, 1], 1)
+edges = lambda x: (np.polyval(_ft, x), np.polyval(_fb, x))
+def bez(p0, p1, p2, t):
+    return (1 - t) ** 2 * p0 + 2 * (1 - t) * t * p1 + t * t * p2
+X0, Y0 = GX0, 316
+patch = np.zeros((96, GX1 - GX0, 4), np.float32)
+for x in range(GX0, GX1):
+    t = (x - GX0) / (GX1 - GX0)
+    tt, tb = bez(336.8, 331.0, 324.5, t), bez(392.0, 393.0, 397.0, t)          # the target edges here
+    d = (GX1 - 1 - x) % (2 * (SX1 - SX0)); sx = SX0 + (d if d < SX1 - SX0 else 2 * (SX1 - SX0) - d)
+    st, sb = edges(sx)
+    for y in range(int(tt) - 3, int(tb) + 4):
+        sy = st + (y - tt) * (sb - st) / (tb - tt)
+        y0 = int(np.floor(sy)); f = sy - y0
+        v = gray[y0, sx] * (1 - f) + gray[y0 + 1, sx] * f
+        v = 255.0 if v > 232 else v                                             # paper as pure white, like the rest
+        patch[y - Y0, x - GX0] = (v, v, v, 255)
+patch = Image.fromarray(np.clip(patch, 0, 255).astype(np.uint8))
 r = Image.open('public/loading/hand-right.png'); r.alpha_composite(patch, (X0, Y0))
 # wherever the right hand already has its own drawing, keep the original, so the hands meet exactly as drawn
 a = np.asarray(r).copy(); keep = right | tip
