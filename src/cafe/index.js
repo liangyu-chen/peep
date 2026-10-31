@@ -54,9 +54,13 @@ export function startCafe(root, content) {
     S.frontDoor.rotation.y += ((doorOpen ? 1.45 : 0) - S.frontDoor.rotation.y) * Math.min(1, dt * 5);
     // fade the outer walls the camera is behind
     const cp = ctx.camera.position;
-    // while a visitor plays on the TV, nobody gets between them and the screen
+    // while a visitor plays on the TV, nobody stands or walks between them and the screen (those sitting playing it stay,
+    // below the view)
     const w = S.watch;
-    S.people.forEach(p => { const q = p.g.position; p.g.visible = !(w && q.x > w.x + 0.2 && q.x < cp.x + 0.6 && Math.abs(q.z - w.z) < 1.5); });
+    S.people.forEach(p => {
+      const q = p.g.position, seated = p.pose === 'sit' && p.seat && p.seat.type === 'game';
+      p.g.visible = !(w && !seated && q.x > w.x + 0.2 && q.x < cp.x + 0.6 && Math.abs(q.z - w.z) < 1.5);
+    });
     S.fadeWalls.forEach(w => {
       const behind = (w.side === 'L' && cp.x < -3.1 * K) || (w.side === 'R' && cp.x > 3.1 * K) || (w.side === 'B' && cp.z < -8.35);
       w.me.material.opacity += ((behind ? 0.12 : 1) - w.me.material.opacity) * Math.min(1, dt * 8);

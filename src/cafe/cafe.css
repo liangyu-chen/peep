@@ -85,7 +85,7 @@ body:has(.cafe-root){margin:0;overflow:hidden;background:#141218}
 .cafe-root .gameWin canvas{width:100%;aspect-ratio:16/9;display:block;image-rendering:pixelated;background:#000;box-shadow:0 0 0 3px #000;touch-action:none;cursor:crosshair}
 .cafe-root .gameHelp{margin:0;font-size:13px;color:var(--muted);line-height:1.5}
 /* a TV game on a wide screen: the game is on the TV, so the window is just the controls, docked at the bottom */
-.cafe-root .gameSheet.onTV{background:none;place-items:end center;pointer-events:none}
+.cafe-root .gameSheet.onTV{background:none;place-items:end center}
 .cafe-root .gameSheet.onTV .gameWin{pointer-events:auto;width:min(620px,100%);gap:6px;padding:8px 12px}
 .cafe-root .gameSheet.onTV canvas{display:none}
 .cafe-root .gameSheet.onTV .gameHelp{font-size:12px}

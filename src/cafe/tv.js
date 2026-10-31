@@ -144,6 +144,15 @@ function arcPts(cx, cy, rx, ry, a0, a1, n = 16) { const r = []; for (let i = 0; 
 // a game a visitor is playing in its window (games.js) shows on the TV instead, while it lasts
 let mirror = null;
 export const mirrorTV = canvas => { mirror = canvas; };
+// where a tap on the page lands on the TV's picture, in the game's 640x360, or null if it misses the screen
+const tapRay = new THREE.Raycaster(), tapNdc = new THREE.Vector2();
+export function tvPoint(clientX, clientY) {
+  const r = ctx.renderer.domElement.getBoundingClientRect();
+  tapNdc.set((clientX - r.left) / r.width * 2 - 1, -(clientY - r.top) / r.height * 2 + 1);
+  tapRay.setFromCamera(tapNdc, ctx.camera);
+  const h = tapRay.intersectObject(S.tvScreen, false)[0];
+  return h && h.uv ? [h.uv.x * 640, (1 - h.uv.y) * 360] : null;
+}
 export function drawTV() {
   if (mirror && tvCtx) { tvCtx.setTransform(1, 0, 0, 1, 0, 0); tvCtx.drawImage(mirror, 0, 0, TVW, TVH); tvTex.needsUpdate = true; return; }
   const tv = S.tv, g = tvCtx, W = 640, H = 360;

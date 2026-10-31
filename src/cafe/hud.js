@@ -102,8 +102,9 @@ export function updateCamera(dt) {
 // the view, then the game opens; closing it goes back to where the camera was
 const PLAY = {
   // (a little from above: the orbit controls won't let the camera sit level)
-  // the TV framed high, with room under it for the game's controls
-  tv: { at: [TVX + 0.075, TVY - 0.22, TVZ], dir: [1, 0.1, 0], w: 1.62, h: 1.4 },
+  // the TV framed high, with room under it for the game's controls, seen from a little above, over the heads of anyone
+  // sitting playing in front of it
+  tv: { at: [TVX + 0.075, TVY - 0.22, TVZ], dir: [1, 0.35, 0], w: 1.62, h: 1.4 },
   darts: { at: [-2.97, 1.55, 3.06], dir: [1, 0.1, 0], w: 0.62, h: 0.7 },
   // the stadium, wherever it is: put away on the crates in the back corridor, seen from along it, or out on the porch crates, seen from the street
   tops: { at: null, dir: [0.35, 0.85, 0.45], w: 0.5, h: 0.42 },
@@ -119,8 +120,9 @@ function playAt(kind, root) {
   const from = { p: camera.position.clone(), t: controls.target.clone() };
   closeCard(); closeGame(); stopWallDarts(); sfx('swoosh');
   document.querySelectorAll('[data-cam]').forEach(b => b.classList.remove('on'));
-  S.watch = kind === 'tv' ? { x: tt.x, z: tt.z } : null;   // anyone standing between the camera and the TV steps out of the picture
-  const back = () => { S.watch = null; camTween ={ fp: camera.position.clone(), ft: controls.target.clone(), tp: from.p, tt: from.t, t: 0 }; };
+  S.watch = kind === 'tv' || kind === 'darts' ? { x: tt.x, z: tt.z } : null;   // anyone between the camera and the TV or the board steps out of the picture
+  controls.enabled = false;   // the camera holds still (no orbiting or zooming) until the game is closed
+  const back = () => { S.watch = null; controls.enabled = true; camTween = { fp: camera.position.clone(), ft: controls.target.clone(), tp: from.p, tt: from.t, t: 0 }; };
   // darts are thrown at the board on the wall itself; the others open in a window
   camTween = { fp: from.p.clone(), ft: from.t.clone(), tp, tt, t: 0, done: () => (kind === 'darts' ? playWallDarts(root, back) : openGame(kind, root, back)) };
 }

@@ -6,7 +6,7 @@ import { drawFight, fighterSide } from './fight.js';
 import { FIGHTER_NAMES } from '../content/catalog';
 import { hoopsPlayer, crowd } from './hoops.js';
 import { sfx, sfxMuted, toggleSfx } from './sfx.js';
-import { mirrorTV } from './tv.js';
+import { mirrorTV, tvPoint } from './tv.js';
 
 const W = 640, H = 360;
 let open = null;   // the game showing now
@@ -43,7 +43,14 @@ export function openGame(kind, root, onClose) {
   const toCanvas = e => { const r = canvas.getBoundingClientRect(); return [(e.clientX - r.left) * W / r.width, (e.clientY - r.top) * H / r.height]; };
   listen(canvas, 'pointermove', e => { ctl.pointer = toCanvas(e); });
   listen(canvas, 'pointerdown', e => { e.preventDefault(); ctl.pointer = toCanvas(e); game.tap?.(ctl.pointer); });
-  listen(sheet, 'pointerdown', e => { if (e.target === sheet && !sheet.classList.contains('onTV')) close(); });
+  // round the window: closes it; but while the game is on the TV, a tap on the TV's picture is a tap in the game
+  const onTV = () => sheet.classList.contains('onTV');
+  listen(sheet, 'pointermove', e => { if (e.target === sheet && onTV()) ctl.pointer = tvPoint(e.clientX, e.clientY) || ctl.pointer; });
+  listen(sheet, 'pointerdown', e => {
+    if (e.target !== sheet) return;
+    if (!onTV()) { close(); return; }
+    const p = tvPoint(e.clientX, e.clientY); if (p) { e.preventDefault(); ctl.pointer = p; game.tap?.(p); }
+  });
   listen(sheet.querySelector('.gameClose'), 'click', () => close());
   const soundBtn = sheet.querySelector('.gameSound'), showSound = () => { soundBtn.textContent = sfxMuted() ? '🔇' : '🔊'; };
   showSound(); listen(soundBtn, 'click', () => { toggleSfx(); showSound(); });
