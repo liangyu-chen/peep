@@ -119,6 +119,43 @@ const partGeo = (shape, phi0, p0, p1) => geo(`part:${shape},${phi0},${p0.toFixed
   for (let j = 0; j < N; j++) { const a = j * 2; idx.push(a, a + 2, a + 1, a + 1, a + 2, a + 3); }
   const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals(); return g;
 });
+// a hat as one piece: rings round its own crown direction n, each ring [a, thick, out, down]: a is the angle from the
+// crown (the ring sits on the head there, pushed out by thick), and out / down then carry it horizontally away from the
+// head and down, for a brim. Rings past the hat's edge (same a, smaller out) fold back underneath, so a brim or cuff has
+// thickness, and a last ring tucks the edge back in to the hair. `rings(front)` gets 0..1 for how much that side of the
+// hat faces forward, so a cap can grow its peak only at the front. The uv's u runs round the hat, v down it.
+const hatGeo = (shape, key, n, rings) => geo(`hat:${shape},${key}`, () => {
+  const h = HEADS[shape], NA = 96, q = new THREE.Quaternion().setFromUnitVectors(UP, n), v = new THREE.Vector3(), d = new THREE.Vector3(), e = new THREE.Vector3();
+  const pos = [], uv = [], idx = [];
+  let NR = 0;
+  for (let i = 0; i <= NA; i++) {
+    const psi = (i / NA) * Math.PI * 2;
+    const ringsHere = rings(null), aEdge = ringsHere[ringsHere.length - 1][0];
+    e.set(Math.sin(aEdge) * Math.sin(psi), Math.cos(aEdge), Math.sin(aEdge) * Math.cos(psi)).applyQuaternion(q);
+    const front = Math.max(0, e.z / (Math.hypot(e.x, e.z) || 1)) ** 2;
+    const rs = rings(front); NR = rs.length;
+    rs.forEach(([a, th, out, down], j) => {
+      d.set(Math.sin(a) * Math.sin(psi), Math.cos(a), Math.sin(a) * Math.cos(psi)).applyQuaternion(q);
+      deform(h, v.copy(d)).addScaledVector(d, th);
+      const hl = Math.hypot(d.x, d.z) || 1;
+      v.x += (d.x / hl) * out; v.z += (d.z / hl) * out; v.y -= down;
+      pos.push(v.x, v.y, v.z); uv.push(i / NA * 24, j / (rs.length - 1));
+    });
+  }
+  for (let i = 0; i < NA; i++) for (let j = 0; j < NR - 1; j++) {
+    const a = i * NR + j, b = a + NR;
+    idx.push(a, b, a + 1, b, b + 1, a + 1);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  g.setIndex(idx); g.computeVertexNormals(); return g;
+});
+// knitted ribs for a beanie
+let ribTex = null;
+const ribs = () => ribTex || (ribTex = (() => {
+  const t = canvasTex(32, 8, g => { g.fillStyle = '#fff'; g.fillRect(0, 0, 32, 8); for (let x = 0; x < 32; x += 4) { g.fillStyle = 'rgba(0,0,0,0.22)'; g.fillRect(x, 0, 1.5, 8); } });
+  t.wrapS = t.wrapT = THREE.RepeatWrapping; return t;
+})());
 // curls in a hair surface, like the ringlets lower down: wavy locks running out from the crown, each waving from side
 // to side and bulging where it curls; they smooth out right at the crown so they don't bunch up where they all meet
 const curlLumps = amp => u => {
@@ -449,26 +486,41 @@ function buildHair(hairParts, shape, head, hairM, mk, at, look) {
   }
 
   if (!H) return;
-  // the hat, made bigger by however far this hairstyle stands off the head, so it sits on the hair, not through it
-  const T = lift + H.own;
-  const shell = (thick, from, to, m) => mk(shellGeo(shape, thick, hatN, from, to), m, 0, 0, 0, head);
+  // the hat, made bigger by however far this hairstyle stands off the head, so it sits on the hair, not through it.
+  // Each is one piece: crown, brim or cuff and the edge tucked back in to the hair, with no seams between parts
+  const T = lift + H.own, A = hatA, tuck = [A + 0.03, lift + 0.002, 0, 0];
+  const steps = (n, f) => Array.from({ length: n }, (_, k) => f(k / (n - 1)));
   if (hatStyle === 'cap') {
-    const capM = mat(hatColor, { roughness: 0.8 });
-    shell(T, 0, hatA, capM);
-    const top = at(0, 1, -0.25); mk(sp(0.016, 8, 6), capM, top.x, top.y + 0.01 + T, top.z, head);
-    const front = at(0, Math.sin(H.elev), Math.cos(H.elev));
-    const brim = mk(cy(0.15 + lift, 0.15 + lift, 0.012, 28, false, -Math.PI / 2, Math.PI), capM, 0, front.y + 0.006 + lift * 0.4, front.z - 0.035 + lift, head);
-    brim.scale.z = 0.92; brim.rotation.x = 0.16;
+    // a six-panel cap: rounded crown, and a peak at the front only, curving down a little, with an underside
+    const capM = mat(hatColor, { roughness: 0.8, side: THREE.DoubleSide });
+    mk(hatGeo(shape, `cap:${T.toFixed(3)}`, hatN, fr => [
+      ...steps(10, t => [t * (A - 0.02), T, 0, 0]),
+      [A, T, 0, 0],
+      [A, T, 0.04 * (fr || 0), 0.006 * (fr || 0)], [A, T, 0.09 * (fr || 0), 0.016 * (fr || 0)], [A, T, 0.125 * (fr || 0), 0.028 * (fr || 0)],
+      [A, T - 0.008, 0.125 * (fr || 0), 0.032 * (fr || 0)], [A, T - 0.008, 0.08 * (fr || 0), 0.02 * (fr || 0)], [A, T - 0.008, 0.01 * (fr || 0), 0.006 * (fr || 0)],
+      tuck,
+    ]), capM, 0, 0, 0, head);
+    const top = at(0, 1, -0.25), up = new THREE.Vector3(0, 1, -0.25).normalize();
+    mk(sp(0.014, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2), capM, top.x + up.x * T, top.y + up.y * T - 0.002, top.z + up.z * T, head);   // the button, sitting on the crown
   } else if (hatStyle === 'bucket') {
+    // a bucket hat: soft crown, the brim turning out and down all the way round, with an underside and a rolled edge
     const capM = mat(hatColor, { roughness: 0.9, side: THREE.DoubleSide });
-    shell(T, 0, hatA, capM);
-    const edge = at(0, Math.tan(H.elev), 1), w = Math.max(at(1, Math.tan(H.elev), 0).x, edge.z) + T - 0.004;
-    mk(lathe(`brim${w.toFixed(3)}`, [[w, 0.004], [w + 0.032, -0.008], [w + 0.056, -0.022], [w + 0.057, -0.03], [w, -0.006]], 32), capM, 0, edge.y, 0, head);
+    mk(hatGeo(shape, `bucket:${T.toFixed(3)}`, hatN, () => [
+      ...steps(10, t => [t * A, T, 0, 0]),
+      [A, T, 0.012, 0.004], [A, T, 0.032, 0.014], [A, T, 0.052, 0.028], [A, T - 0.002, 0.06, 0.036],
+      [A, T - 0.008, 0.056, 0.038], [A, T - 0.008, 0.03, 0.02], [A, T - 0.008, 0.006, 0.006],
+      tuck,
+    ]), capM, 0, 0, 0, head);
   } else {
-    const bm = mat(hatColor, { roughness: 1 });
-    shell(T, 0, hatA, bm);
-    shell(T + 0.014, hatA - 0.2, hatA, bm);            // the rolled cuff
-    const top = at(0, 1, -0.35); mk(sp(0.03, 8, 6), bm, top.x, top.y + 0.018 + T, top.z, head);
+    // a beanie: knitted, the crown rising to a soft point, the cuff rolled up thick at the bottom
+    const bm = new THREE.MeshStandardMaterial({ color: new THREE.Color(hatColor), map: ribs(), roughness: 1, side: THREE.DoubleSide });
+    mk(hatGeo(shape, `beanie2:${T.toFixed(3)}`, hatN, () => [
+      [0, T + 0.01, 0, 0], ...steps(9, t => [0.08 + t * (A - 0.34), T + 0.004 * (1 - t), 0, 0]),
+      [A - 0.22, T + 0.002, 0, 0], [A - 0.18, T + 0.007, 0, 0], [A - 0.1, T + 0.009, 0, 0], [A - 0.03, T + 0.008, 0, 0], [A, T + 0.003, 0, 0.002],   // the cuff, hugging the head
+      tuck,
+    ]), bm, 0, 0, 0, head);
+    const top = at(0, 1, -0.35), up = new THREE.Vector3(0, 1, -0.35).normalize();
+    mk(sp(0.03, 10, 8), bm, top.x + up.x * (T + 0.03), top.y + up.y * (T + 0.03), top.z + up.z * (T + 0.03), head);   // the pompom, sunk into the crown
   }
 }
 
