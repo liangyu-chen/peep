@@ -5,6 +5,19 @@ import type { CafeContent } from '@/src/content/catalog';
 import '@/src/cafe/cafe.css';
 import LoadingHands from './LoadingHands';
 
+// little pixel-art icons for the tiles: '#' is a lit pixel, drawn in the tile's text colour with hard edges
+const CUP = ['...#..#.....', '..#..#......', '...#..#.....', '............', '.#########..', '.#.......###', '.#.......#.#',
+  '.#.......#.#', '.#.......###', '..#.....#...', '...#####....', '############'];
+const CAMERA = ['.##########.', '#..........#', '#.......##.#', '#.......##.#', '#...####...#', '#..#....#..#', '#..#....#..#',
+  '#..#....#..#', '#...####...#', '#..........#', '#..........#', '.##########.'];
+function PixelIcon({ rows }: { rows: string[] }) {
+  return (
+    <svg viewBox={`0 0 ${rows[0].length} ${rows.length}`} shapeRendering="crispEdges" aria-hidden="true">
+      {rows.flatMap((r, y) => [...r].map((c, x) => (c === '#' ? <rect key={`${x},${y}`} x={x} y={y} width={1} height={1} fill="currentColor" /> : null)))}
+    </svg>
+  );
+}
+
 // The HUD markup the 3D scene drives by id; the scene itself is loaded in the browser only.
 export default function Cafe({ content }: { content: CafeContent }) {
   const root = useRef<HTMLDivElement>(null);
@@ -40,13 +53,13 @@ export default function Cafe({ content }: { content: CafeContent }) {
       </section>
       {/* the menu and the shop's Instagram: two square tiles side by side under the name panel, in their own colours */}
       <nav className="quick" aria-label="捷徑">
-        <button data-cam="menu" className="tile tileMenu">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h12v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5z" /><path d="M16 10h1.5a2.5 2.5 0 0 1 0 5H16" /><path d="M8 3c0 1.5 1.2 1.5 1.2 3M12 3c0 1.5 1.2 1.5 1.2 3" /></svg>
-          <span>菜單</span>
+        <button data-cam="menu" className="tile tileMenu" aria-label="菜單">
+          <PixelIcon rows={CUP} />
+          <span>MENU</span>
         </button>
-        <a className="tile tileIg" href="https://www.instagram.com/peep20190401" target="_blank" rel="noreferrer">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="5" /><circle cx="12" cy="12" r="4" /><circle cx="17.2" cy="6.8" r="0.9" fill="currentColor" stroke="none" /></svg>
-          <span>Instagram</span>
+        <a className="tile tileIg" href="https://www.instagram.com/peep20190401" target="_blank" rel="noreferrer" aria-label="Instagram">
+          <PixelIcon rows={CAMERA} />
+          <span>INSTAGRAM</span>
         </a>
       </nav>
       </div>

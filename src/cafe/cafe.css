@@ -59,15 +59,17 @@ body:has(.cafe-root){margin:0;overflow:hidden;background:#141218}
 .cafe-root #topLeft{position:absolute;top:calc(16px + env(safe-area-inset-top,0px));left:calc(16px + env(safe-area-inset-left,0px));display:grid;gap:12px;justify-items:start;z-index:3}
 .cafe-root #topLeft #brand{position:relative;top:auto;left:auto}
 .cafe-root #topLeft .quick{display:flex;gap:10px}
-.cafe-root .tile{width:68px;height:62px;display:grid;place-items:center;align-content:center;gap:5px;padding:0;text-decoration:none;font-family:var(--f-dot);
-  box-shadow:0 0 0 3px #000,inset -3px -3px 0 0 rgba(0,0,0,.25),inset 3px 3px 0 0 rgba(255,255,255,.35)}
-.cafe-root .tile svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
-.cafe-root .tile span{font-size:11px;line-height:1}
-.cafe-root .tileMenu{background:var(--gold);color:#1f1c27}
-.cafe-root .tileMenu:hover,.cafe-root .tileMenu.on{background:#ffe27a}
-.cafe-root .tileIg{background:linear-gradient(45deg,#f58529,#dd2a7b 55%,#8134af);color:#fff}
-.cafe-root .tileIg:hover{filter:brightness(1.1)}
-.cafe-root .tile:focus-visible{outline:3px solid #fff;outline-offset:3px}
+/* 8-bit tiles: flat colours with hard bands, a chunky pixel bevel, pixel icons and pixel lettering; pressed, they drop */
+.cafe-root .tile{width:78px;height:64px;display:grid;place-items:center;align-content:center;gap:7px;padding:0;text-decoration:none;cursor:pointer;
+  box-shadow:0 0 0 3px #000,inset -4px -4px 0 0 rgba(0,0,0,.32),inset 4px 4px 0 0 rgba(255,255,255,.45),5px 5px 0 0 #000;transition:none}
+.cafe-root .tile svg{width:24px;height:24px;image-rendering:pixelated}
+.cafe-root .tile span{font-family:var(--f-pixel);font-size:7px;letter-spacing:.04em;line-height:1}
+.cafe-root .tile:hover{transform:translate(1px,1px);box-shadow:0 0 0 3px #000,inset -4px -4px 0 0 rgba(0,0,0,.32),inset 4px 4px 0 0 rgba(255,255,255,.45),4px 4px 0 0 #000}
+.cafe-root .tile:active,.cafe-root .tile.on{transform:translate(4px,4px);box-shadow:0 0 0 3px #000,inset 4px 4px 0 0 rgba(0,0,0,.32),inset -4px -4px 0 0 rgba(255,255,255,.25),1px 1px 0 0 #000}
+.cafe-root .tileMenu{background:#ffd23f;color:#1f1c27}
+.cafe-root .tileMenu.on{background:#ffe27a}
+.cafe-root .tileIg{background:linear-gradient(135deg,#f58529 0 34%,#dd2a7b 34% 67%,#8134af 67% 100%);color:#fff;text-shadow:1px 1px 0 #3a1240}
+.cafe-root .tile:focus-visible{outline:3px solid #fff;outline-offset:4px}
 .cafe-root .adminLink{margin-left:auto;font-size:12px;color:var(--muted);padding:4px 2px;text-decoration:underline;text-underline-offset:3px}
 .cafe-root .adminLink:hover{color:var(--gold)}
 .cafe-root .adminLink:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
