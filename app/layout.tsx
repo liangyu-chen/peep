@@ -1,8 +1,18 @@
 import type { Metadata, Viewport } from 'next';
 
+// the description is what search results and link previews (LINE, Facebook…) show under the title
+const DESCRIPTION = [
+  '你有需要喝咖啡，尿尿，打發無聊的時間時，也許你就會找到這裡',
+  '週五六營業時間15：00-22：00',
+  '其餘時段至15:00-21:00',
+  '店休時間不固定',
+  '店休會發在每日限動上沒發店休通知就是有開',
+].join('\n');
+
 export const metadata: Metadata = {
-  title: '窺視珈琲 3D',
-  description: '台北窺視珈琲的 3D 小店：熟客、老闆小鬍子，還有一台一直在打 NBA 2K 的電視。',
+  title: '窺視咖啡',
+  description: DESCRIPTION,
+  openGraph: { title: '窺視咖啡', description: DESCRIPTION },
 };
 
 export const viewport: Viewport = { width: 'device-width', initialScale: 1, themeColor: '#141218' };
