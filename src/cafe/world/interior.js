@@ -27,7 +27,7 @@ function ledgeAndTv() {
   box(0.31, 0.04, 0.12, mat(0x111111, { roughness: 0.3 }), TVX - 0.04, 0.48, TVZ);
   box(0.01, 0.01, 0.06, 0x7ec8ff, TVX + 0.11, 0.505, TVZ + 0.12).castShadow = false;
   S.tvFrame = box(0.07, 0.98, 1.72, mat(0x0c0c0c, { roughness: 0.3 }), TVX + 0.03, TVY, TVZ);
-  stoolStack(-2.6, TVZ + 0.95, 4);   // to the TV's left as you face it: spare round metal stools, stacked
+  stoolStack(-2.62, TVZ + 1.2, 3);   // to the TV's left as you face it, clear of its edge: spare round metal stools, stacked
   [-3.6, -2.7].forEach(z => highStool(-0.45, z));   // the two 2K seats: round metal stools like at the manga ledge
 }
 
@@ -63,7 +63,6 @@ function purpleWall() {
     const f1 = box(0.04, 0.035, 0.005, mat(c), -2.84, 1.56 + dy, 3.06 + dz), f2 = box(0.04, 0.005, 0.035, mat(c), -2.84, 1.56 + dy, 3.06 + dz);
     f1.castShadow = f2.castShadow = false; S.boardDarts.push(d, f1, f2);
   });
-  box(0.16, rand(0.2, 0.32), 0.24, mat(pick([0x2a2f6b, 0x8a1d1d, 0x1d1d1d, 0xe6c34a])), -2.9, 0.15, -1.72);   // a toy box on the floor along the wall, clear of the stacked stools by the TV
 }
 
 

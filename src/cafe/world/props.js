@@ -96,11 +96,11 @@ export function highStool(x, z, parent = ctx.scene, y = 0) {
   cyl(0.16, 0.16, 0.05, mat(0x8a8f96, { metalness: 0.6, roughness: 0.3 }), x, y + 0.645, z, parent, 14);
   [[0.1, 0.1], [-0.1, 0.1], [0.1, -0.1], [-0.1, -0.1]].forEach(([a, b]) => { const l = cyl(0.012, 0.012, 0.64, steel, x + a, y + 0.32, z + b, parent, 5); l.rotation.set(b * 0.6, 0, -a * 0.6); });
 }
-// round metal stools stacked one in another, each turned a little, each sitting a hand higher than the one under it
+// round metal stools stacked one in another, each turned a little, each sitting a few centimetres higher than the one under it
 export function stoolStack(x, z, n) {
   for (let k = 0; k < n; k++) {
     const g = new THREE.Group(); g.position.set(x, 0, z); g.rotation.y = k * 0.35; ctx.scene.add(g);
-    highStool(0, 0, g, k * 0.1);
+    highStool(0, 0, g, k * 0.055);
   }
 }
 export function shellChair(x, z, ry, color, parent = ctx.scene) {
