@@ -1,7 +1,7 @@
 // The outdoor area (戶外區, under the arcade): linked plastic chairs down both sides, the block-and-crate table down the middle, the Open stack,
 // the skateboard, the scooter seats and the kerb camping chair.
 import * as THREE from 'three';
-import { ctx, mat, box, cyl, canvasTex, plane } from '../engine.js';
+import { ctx, mat, box, cyl, canvasTex, plane, LOW_POWER } from '../engine.js';
 import { S } from '../state.js';
 import { pick, rand, DOT, K } from '../util.js';
 import { STRIP, RISE } from '../layout.js';
@@ -247,7 +247,8 @@ function storeroomWall() {
   bulb.position.set(lx, 1.92, lz); ctx.scene.add(bulb);
   for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2, w = cyl(0.003, 0.003, 0.12, mat(0x2a2a2a), lx + Math.sin(a) * 0.045, 1.92, lz + Math.cos(a) * 0.045, ctx.scene, 4); w.castShadow = false; }
   cyl(0.05, 0.05, 0.006, mat(0x2a2a2a), lx, 1.86, lz, ctx.scene, 10);
-  const lamp = new THREE.PointLight(0xffb24a, 0.5, 3, 2); lamp.position.set(lx - 0.08, 1.9, lz); ctx.scene.add(lamp);
+  const lamp = new THREE.PointLight(0xffb24a, 0.5, 3, 2); lamp.position.set(lx - 0.08, 1.9, lz);
+  if (!LOW_POWER) ctx.scene.add(lamp);   // a tablet makes do with the glowing bulb
   S.bulbs && S.bulbs.push({ pl: lamp, bm: null, base: 0.5 });
   // the underside of the stairs above, cutting across the wall as a slanted edge
   const stair = box(0.03, 0.04, 1.7, mat(0x76736e, { roughness: 0.9 }), X - 0.015, 1.7, 5.95); stair.rotation.x = -0.62;   // to the left of the poster

@@ -1,6 +1,6 @@
 // Entry point: startCafe(root, content) builds the café inside root and returns a function that tears it down.
 // root must contain the HUD markup (see app/Cafe.tsx); content is { menu, lines } from the back office.
-import { ctx, createEngine, disposeEngine } from './engine.js';
+import { ctx, createEngine, disposeEngine, LOW_POWER } from './engine.js';
 import { S, resetState } from './state.js';
 import { K, PIX } from './util.js';
 import { createSeats } from './layout.js';
@@ -14,8 +14,6 @@ import { renderResults } from './feed.js';
 import { createStadium, updateTops } from './tops.js';
 import { SMOKE_POSE, DRINK_POSE } from './people.js';
 import { updateSurroundings } from './world/surroundings.js';
-import { ambient } from './sfx.js';
-
 export function startCafe(root, content) {
   resetState(content);
   const stage = root.querySelector('#stage');
@@ -51,10 +49,8 @@ export function startCafe(root, content) {
     S.slide.open += ((near(-1.84, -4.5, 1.3) ? 1 : 0) - S.slide.open) * Math.min(1, dt * 5);
     S.slideDoor.position.x = -1.86 - S.slide.open * 0.76;   // slides left in front of the fixed panel
     S.toiletDoor.rotation.y += ((near(-0.8, -7.7, 1.1) ? -Math.PI / 2 : 0) - S.toiletDoor.rotation.y) * Math.min(1, dt * 5);   // swings in, flat to the toilet's front wall
-    // (held shut while someone plays darts: it swings in right across the board); the bell rings as it opens
+    // (held shut while someone plays darts: it swings in right across the board)
     const doorOpen = near(-1.7, 4.0, 1.3) && !S.darting;
-    if (doorOpen && !S.doorWasOpen) ambient('chime');
-    S.doorWasOpen = doorOpen;
     S.frontDoor.rotation.y += ((doorOpen ? 1.45 : 0) - S.frontDoor.rotation.y) * Math.min(1, dt * 5);
     // fade the outer walls the camera is behind
     const cp = ctx.camera.position;
@@ -68,14 +64,21 @@ export function startCafe(root, content) {
       w.me.castShadow = !behind;
     });
   }
+  // a tablet or phone draws every other frame (30 a second), and the shadows, which only people and doors change, are
+  // redrawn every few frames rather than every one
+  const minGap = LOW_POWER ? 1000 / 30 - 4 : 0, shadowEvery = LOW_POWER ? 3 : 2;
+  let shadowN = 0;
+  ctx.renderer.shadowMap.needsUpdate = true;
   function frame(now) {
     if (S.stopped) return;
+    if (now - last < minGap) { raf = requestAnimationFrame(frame); return; }
     const dt = Math.min(0.05, (now - last) / 1000); last = now;
     simulate(dt, dt * S.speed);
     if ((tvFrameN = (tvFrameN + 1) % 2) === 0) drawTV();
 
     updateCamera(dt);
     ctx.controls.update();
+    if ((shadowN = (shadowN + 1) % shadowEvery) === 0) ctx.renderer.shadowMap.needsUpdate = true;
     ctx.renderer.render(ctx.scene, ctx.camera);
     updateLabels(dt, stage.clientWidth || window.innerWidth, stage.clientHeight || window.innerHeight);
     raf = requestAnimationFrame(frame);
@@ -95,7 +98,7 @@ export function startCafe(root, content) {
     // move the camera along (a tween to a preset or a close-up) and draw, for when the page isn't getting frames
     view: (secs = 1.5, dt = 0.05) => {
       for (let t = 0; t < secs; t += dt) updateCamera(dt);
-      ctx.controls.update(); ctx.renderer.render(ctx.scene, ctx.camera);
+      ctx.controls.update(); ctx.renderer.shadowMap.needsUpdate = true; ctx.renderer.render(ctx.scene, ctx.camera);
     },
   };
 

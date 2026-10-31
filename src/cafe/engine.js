@@ -4,12 +4,18 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 // the live three.js objects for the one café on the page
 export const ctx = { scene: null, camera: null, renderer: null, controls: null };
 
+// a tablet or phone (or a slow computer): drawn at 30 frames a second, at most 1.5 pixels per CSS pixel, with plainer
+// shadows and fewer lights, to go easier on the battery
+export const LOW_POWER = typeof window !== 'undefined' && (window.matchMedia('(pointer: coarse)').matches || (navigator.hardwareConcurrency || 8) <= 4);
+
 export function createEngine(stage) {
-  const renderer = new THREE.WebGLRenderer({ antialias: true });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  const dpr = window.devicePixelRatio || 1;
+  const renderer = new THREE.WebGLRenderer({ antialias: dpr < 1.5, powerPreference: LOW_POWER ? 'low-power' : 'default' });   // on a sharp screen the extra smoothing isn't worth it
+  renderer.setPixelRatio(Math.min(dpr, LOW_POWER ? 1.5 : 2));
   renderer.setSize(stage.clientWidth || window.innerWidth, stage.clientHeight || window.innerHeight);
   renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.shadowMap.type = LOW_POWER ? THREE.PCFShadowMap : THREE.PCFSoftShadowMap;
+  renderer.shadowMap.autoUpdate = false;   // redrawn every few frames by the loop (index.js): only people and doors move
   renderer.outputEncoding = THREE.sRGBEncoding;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.1;

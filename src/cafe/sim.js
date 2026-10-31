@@ -10,8 +10,6 @@ import { doTops } from './tops.js';
 import { sayLine, priceOf, drinkFor, pickVariant, orderName } from './content.js';
 import { log, floatText } from './feed.js';
 import { closeCard } from './hud.js';
-import { ambient } from './sfx.js';
-
 export const DAYS = ['週日', '週一', '週二', '週三', '週四', '週五', '週六'];
 // open 15:00; closes 22:00 Fri/Sat, 20:00 other days
 export const closeHour = () => (S.dow === 5 || S.dow === 6) ? 22 : 20;
@@ -97,8 +95,7 @@ async function ownerLoop(owner) {
     c.hold(cup); owner.cup = null;
     const price = priceOf(drink, variant);
     S.revenue += price; S.cupsSold++;
-    floatText('coin', `+$${price}`, new THREE.Vector3(0.6, 1.5, c.spot.z)); ambient('coin');
-    c.resolveServed();
+    floatText('coin', `+$${price}`, new THREE.Vector3(0.6, 1.5, c.spot.z));    c.resolveServed();
     await sleep(0.4);
   }
 }

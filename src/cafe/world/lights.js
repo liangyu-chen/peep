@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { ctx, cyl } from '../engine.js';
+import { ctx, cyl, LOW_POWER } from '../engine.js';
 import { S } from '../state.js';
 
 // sky and the sun, created first so the world builders can skip them when shifting and squeezing the set
@@ -8,7 +8,7 @@ export function buildSky() {
   S.hemi = new THREE.HemisphereLight(0xffe9cf, 0x4a423a, 0.45); scene.add(S.hemi);
   const sun = new THREE.DirectionalLight(0xfff0dc, 0.7);
   sun.position.set(9, 16, 10); sun.castShadow = true;
-  sun.shadow.mapSize.set(2048, 2048);
+  sun.shadow.mapSize.setScalar(LOW_POWER ? 1024 : 2048);
   Object.assign(sun.shadow.camera, { left: -14, right: 14, top: 14, bottom: -14, near: 1, far: 50 });
   sun.shadow.bias = -0.0005;
   scene.add(sun);
@@ -16,13 +16,15 @@ export function buildSky() {
   S.bulbs = [];
 }
 
-function bareBulb(x, z, y = 2.15, power = 0.7, dist = 6) {
+// (minor: one of the back-of-house bulbs, under a ceiling and hardly seen; a low-power device lights them without a lamp)
+function bareBulb(x, z, y = 2.15, power = 0.7, dist = 6, minor = false) {
   const scene = ctx.scene;
   cyl(0.006, 0.006, 2.8 - y, 0x111111, x, (2.8 + y) / 2 + 0.05, z, scene, 4).castShadow = false;
   cyl(0.03, 0.03, 0.07, 0x3a2a1a, x, y + 0.08, z, scene, 8);
   const bm = new THREE.MeshStandardMaterial({ color: 0xffe0a8, emissive: 0xffb44a, emissiveIntensity: 2 });
   const b = new THREE.Mesh(new THREE.SphereGeometry(0.06, 10, 8), bm); b.position.set(x, y, z); scene.add(b);
-  const pl = new THREE.PointLight(0xffb15c, power, dist, 2); pl.position.set(x, y - 0.1, z); scene.add(pl);
+  const pl = new THREE.PointLight(0xffb15c, power, dist, 2); pl.position.set(x, y - 0.1, z);
+  if (minor && LOW_POWER) pl.visible = false; else scene.add(pl);
   S.bulbs.push({ pl, bm, base: power });
 }
 
@@ -39,7 +41,7 @@ export function buildRoomLights() {
   });
   // the arcade is lit from its track (in arcade.js), not a bare bulb
   const arcadeLight = new THREE.PointLight(0xffe2b8, 0.7, 7, 2); arcadeLight.position.set(-1.0, 2.5, 5.6); scene.add(arcadeLight); S.bulbs.push({ pl: arcadeLight, bm: null, base: 0.7 });
-  bareBulb(1.2, -8.7, 2.3, 0.35, 4); bareBulb(1.2, -6.8, 2.3, 0.3, 4); bareBulb(-1.9, -8, 2.3, 0.25, 4);
+  bareBulb(1.2, -8.7, 2.3, 0.35, 4, true); bareBulb(1.2, -6.8, 2.3, 0.3, 4, true); bareBulb(-1.9, -8, 2.3, 0.25, 4, true);
 }
 
 // ---------------------------------------------------------------- day/night
