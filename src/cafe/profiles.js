@@ -67,6 +67,7 @@ export function newProfile() {
         faceShape: pickFace('faceShape'), eyes: pickFace('eyes'), brows: pickFace('brows'), nose: pickFace('nose'), mouth: pickFace('mouth'),
         glasses: Math.random() < 0.15 ? pick(['round', 'square']) : 'none',
         facialHair: !female && Math.random() < 0.25 ? pick(['stubble', 'mustache', 'goatee', 'full']) : 'none',
+        beard: pick(['light', 'normal', 'normal', 'thick']),
         blush: female && Math.random() < 0.3,
       })
   };

@@ -83,14 +83,16 @@ const shellGeo = (shape, thick, n, from, to, xMax = 9) => geo(`shell:${shape},${
 // edge(φ) all the way round, φ being the angle from straight ahead toward +x; thick(φ) lets the fringe stand out
 // more than the back (at the edge; it fades out toward the crown). Built on its own grid, so the hairline is a smooth curve however it's shaped.
 // bump(u) adds a lumpy surface (curls) on top; it needs a much finer grid to show.
-const capGeo = (shape, key, edge, thick, bump = null) => geo(`cap:${shape},${key}`, () => {
-  const h = HEADS[shape], NA = bump ? 180 : 72, NT = bump ? 54 : 20, pos = [], uv = [], idx = [], v = new THREE.Vector3(), u = new THREE.Vector3();
+// groove(φ) cuts a parting into it, as deep at the crown end as at the front.
+const capGeo = (shape, key, edge, thick, bump = null, groove = null) => geo(`cap:${shape},${key}`, () => {
+  const h = HEADS[shape], NA = bump ? 180 : 160, NT = bump ? 54 : 24, pos = [], uv = [], idx = [], v = new THREE.Vector3(), u = new THREE.Vector3();
   for (let i = 0; i <= NA; i++) {
     const phi = (i / NA) * Math.PI * 2, polar = Math.PI / 2 - edge(phi), th0 = thick(0.5 * Math.PI), th1 = thick(phi);
     for (let j = 0; j <= NT; j++) {
       const p = (j / NT) * polar, th = th0 + (th1 - th0) * (j / NT) ** 1.5;   // any extra fullness grows toward the edge, so the crown stays one point
       u.set(Math.sin(p) * Math.sin(phi), Math.cos(p), Math.sin(p) * Math.cos(phi));
-      deform(h, v.copy(u)).addScaledVector(u, th + (bump ? bump(u) * Math.min(1, (NT - j) / 3) : 0));   // bumps settle down right at the hairline
+      const cut = groove ? groove(phi) * Math.min(1, (j / NT) * 4) : 0;   // the parting fades out only right at the crown
+      deform(h, v.copy(u)).addScaledVector(u, Math.max(0.0015, th - cut) + (bump ? bump(u) * Math.min(1, (NT - j) / 3) : 0));   // bumps settle down right at the hairline
       pos.push(v.x, v.y, v.z); uv.push(i / NA * 6, j / NT);
     }
   }
@@ -102,11 +104,31 @@ const capGeo = (shape, key, edge, thick, bump = null) => geo(`cap:${shape},${key
   g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
   g.setIndex(idx); g.computeVertexNormals(); return g;
 });
-// curls in a hair surface: rounded lumps packed over the head, from a few crossed waves so they don't line up in rows
-const curlLumps = (amp, f = 24) => u => {
-  const a = Math.sin(f * u.x + 1.3) * Math.sin(f * u.y + 0.7) * Math.sin(f * u.z + 2.1);
-  const b = Math.sin(0.7 * f * (u.x + u.y) + 0.4) * Math.sin(0.7 * f * (u.z - u.y) + 1.9);
-  return amp * (0.35 + 0.65 * Math.max(0, 0.6 * a + 0.4 * b) ** 0.6);
+// the scalp showing along a parting: a thin strip along angle phi0, from partway up the head down to the hairline,
+// widest at the front, lying in the bottom of the parting's groove
+const partGeo = (shape, phi0, p0, p1) => geo(`part:${shape},${phi0},${p0.toFixed(3)},${p1.toFixed(3)}`, () => {
+  const h = HEADS[shape], N = 24, pos = [], idx = [], v = new THREE.Vector3(), u = new THREE.Vector3();
+  for (let j = 0; j <= N; j++) {
+    const t = j / N, p = p0 + (p1 - p0) * t, w = (0.004 + 0.012 * t) / Math.max(0.3, Math.sin(p));
+    for (const s of [-1, 1]) {
+      const phi = phi0 + s * w;
+      u.set(Math.sin(p) * Math.sin(phi), Math.cos(p), Math.sin(p) * Math.cos(phi));
+      deform(h, v.copy(u)).addScaledVector(u, 0.0022); pos.push(v.x, v.y, v.z);
+    }
+  }
+  for (let j = 0; j < N; j++) { const a = j * 2; idx.push(a, a + 2, a + 1, a + 1, a + 2, a + 3); }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals(); return g;
+});
+// curls in a hair surface: round curls packed evenly over the head (each a smooth dome round one of a few hundred
+// evenly spread points, a little bigger or smaller than its neighbours), creased where they meet
+const CURL_PTS = (() => { const n = 340, pts = []; for (let i = 0; i < n; i++) { const y = 1 - (2 * (i + 0.5)) / n, r = Math.sqrt(1 - y * y), a = i * 2.39996; pts.push([Math.cos(a) * r, y, Math.sin(a) * r, 0.75 + 0.25 * Math.abs(Math.sin(i * 12.9898) * 43758.5453 % 1)]); } return pts; })();
+const curlLumps = (amp, size = 0.012) => u => {
+  let m = 0;
+  for (const [x, y, z, k] of CURL_PTS) {
+    const d = 1 - (u.x * x + u.y * y + u.z * z);              // about half the squared angle to the curl's centre
+    if (d < size) { const h = (1 - d / size) ** 1.5 * k; if (h > m) m = h; }
+  }
+  return amp * (0.2 + 0.8 * m);
 };
 // a lathe whose surface is pushed out into ringlets: separate locks hanging down it, each waving from side to side and
 // bulging where it curls, deeper toward the ends
@@ -244,9 +266,12 @@ export function buildBody(look, seed = '') {
     button: () => fm(sp(0.026, 12, 10), skinShade, 0, NY - 0.008, nz + 0.002),
   }[f.nose] || (() => {}))();
   // beard first: the mouth sits on top of it
-  const beardThick = f.facialHair === 'full' ? 0.014 : f.facialHair === 'stubble' ? 0.002 : 0;
+  // how dense the facial hair is: light is see-through and a little smaller, thick is fuller
+  const BD = { light: { k: 0.8, a: 0.5, stub: 0.2 }, normal: { k: 1, a: 1, stub: 0.35 }, thick: { k: 1.3, a: 1, stub: 0.6 } }[f.beard] || { k: 1, a: 1, stub: 0.35 };
+  const beardM = BD.a < 1 ? mat(look.hair, { roughness: 0.9, transparent: true, opacity: BD.a, depthWrite: false }) : hairM;
+  const beardThick = f.facialHair === 'full' ? 0.014 * BD.k : f.facialHair === 'stubble' ? 0.002 : 0;
   if (beardThick) {
-    const m = f.facialHair === 'full' ? hairM : mat(look.hair, { roughness: 1, transparent: true, opacity: 0.35, depthWrite: false });
+    const m = f.facialHair === 'full' ? beardM : mat(look.hair, { roughness: 1, transparent: true, opacity: BD.stub, depthWrite: false });
     const n = new THREE.Vector3(0, -0.9, 0.44).normalize();   // from just under the nose, round the jaw
     mk(shellGeo(shape, beardThick, n, 0, f.facialHair === 'full' ? 0.9 : 0.85), m, 0, 0, 0, head, false);
   }
@@ -264,10 +289,10 @@ export function buildBody(look, seed = '') {
   // moustache and goatee
   if (['mustache', 'both', 'full'].includes(f.facialHair)) {
     const z = surf(0, -0.056) + beardThick;
-    fm(bx(0.1, 0.022, 0.03), hairM, 0, -0.056, z + 0.004);
-    [-1, 1].forEach(s => fm(bx(0.02, 0.035, 0.024), hairM, s * 0.052, -0.07, surf(s * 0.052, -0.07) + beardThick + 0.002));
+    fm(bx(0.1, 0.022 * BD.k, 0.03), beardM, 0, -0.056, z + 0.004);
+    [-1, 1].forEach(s => fm(bx(0.02 * BD.k, 0.035 * BD.k, 0.024), beardM, s * 0.052, -0.07, surf(s * 0.052, -0.07) + beardThick + 0.002));
   }
-  if (f.facialHair === 'goatee' || f.facialHair === 'both') fm(bx(0.05, 0.055, 0.04), hairM, 0, -0.128, surf(0, -0.128) - 0.004);
+  if (f.facialHair === 'goatee' || f.facialHair === 'both') fm(bx(0.05 * BD.k, 0.055 * BD.k, 0.04), beardM, 0, -0.128, surf(0, -0.128) - 0.004);
   // glasses
   if (f.glasses !== 'none') {
     const gy = EY + 0.002, gz = Math.max(surf(EX, EY), surf(0, NY) - 0.01) + 0.03;
@@ -325,17 +350,24 @@ const line = phi => -0.16 + 0.66 * Math.cos(phi);                          // ju
 const lobe = (phi, at0, p) => Math.max(0, Math.cos(phi - at0)) ** p;      // a bump centred on angle at0
 const ang = phi => Math.atan2(Math.sin(phi), Math.cos(phi));               // -π..π, 0 straight ahead
 const FRONTS = {
-  none: { edge: line, thick: () => 0.012, lift: 0.012 },
-  // a fringe comes a touch lower over the forehead and stands out a little more there, blending into the rest of the hair
-  bangs: { edge: phi => line(phi) - 0.07 * lobe(phi, 0, 4), thick: phi => 0.012 + 0.009 * lobe(phi, 0, 2), lift: 0.021 },
+  // no fringe: combed back off the forehead, the hairline well up so the forehead shows
+  none: { edge: phi => line(phi) + 0.26 * lobe(phi, 0, 2), thick: () => 0.012, lift: 0.012 },
+  // a fringe: down to the brows and cut almost straight across, standing out full over the forehead
+  bangs: { edge: phi => line(phi) + (0.4 - line(phi)) * lobe(phi, 0, 4), thick: phi => 0.012 + 0.014 * lobe(phi, 0, 1.5), lift: 0.026 },
   // parted in the middle: the hairline lifts at the centre of the forehead and the hair falls away to both sides,
   // fuller over the temples, with a shallow parting line running back from the front
   center: {
     edge: phi => line(phi) + 0.12 * lobe(phi, 0, 8) - 0.05 * (lobe(phi, 0.55, 6) + lobe(phi, -0.55, 6)),
-    thick: phi => 0.014 + 0.008 * (lobe(phi, 0.6, 3) + lobe(phi, -0.6, 3)) - 0.006 * Math.exp(-((ang(phi) / 0.05) ** 2)), lift: 0.022,
+    thick: phi => 0.014 + 0.008 * (lobe(phi, 0.6, 3) + lobe(phi, -0.6, 3)), lift: 0.022,
+    part: 0, groove: phi => 0.012 * Math.exp(-((ang(phi) / 0.05) ** 2)),
   },
-  // swept to one side: lower and fuller over one brow, rising toward the other
-  side: { edge: phi => line(phi) - 0.16 * lobe(phi, -0.55, 3) + 0.04 * lobe(phi, 0.6, 3), thick: phi => 0.012 + 0.012 * lobe(phi, -0.45, 2), lift: 0.024 },
+  // parted on one side: a clear parting over one eye, the hair swept over from it, low and full over the other brow,
+  // short and close on the parting's side, with a notch in the hairline where the parting meets it
+  side: {
+    edge: phi => line(phi) - 0.18 * lobe(phi, -0.5, 3) + 0.06 * lobe(phi, 0.75, 3) + 0.1 * Math.exp(-(((ang(phi) - 0.45) / 0.06) ** 2)),
+    thick: phi => 0.012 + 0.02 * lobe(phi, -0.4, 2), lift: 0.03,
+    part: 0.45, groove: phi => 0.03 * Math.exp(-(((ang(phi) - 0.45) / 0.045) ** 2)),
+  },
 };
 const CURL_TOP = 0.018;     // how far curls stand out of the top of the head
 // the hair hanging round the back and sides for each length, as a profile below the widest part of the head (w, y0)
@@ -391,7 +423,11 @@ function buildHair(hairParts, shape, head, hairM, mk, at, look) {
     // the top of the head: shaped by the front, with curls in its surface if it's curly
     const F = FRONTS[front] || FRONTS.none, curly = curl === 'curly';
     const amp = length === 'short' ? 0.02 : CURL_TOP;
-    mk(capGeo(shape, `${front}${curly ? `:curly${amp}` : ''}`, F.edge, F.thick, curly ? curlLumps(amp) : null), hairM, 0, 0, 0, head);
+    mk(capGeo(shape, `${front}${curly ? `:curly${amp}` : ''}`, F.edge, F.thick, curly ? curlLumps(amp) : null, F.groove), hairM, 0, 0, 0, head);
+    if (F.part != null && !curly) {                     // the scalp showing along the parting
+      const reach = Math.PI / 2 - F.edge(F.part);
+      mk(partGeo(shape, F.part, reach * 0.3, reach - 0.01), mat(look.skin, { roughness: 0.7 }), 0, 0, 0, head, false);
+    }
     lift = F.lift + (curly ? 0.02 : 0);
     if (curl === 'spiky') {
       scatter(1.0, 0.4, (u, p) => {                     // spikes stick out a long way, so keep them well clear of a hat's edge and brim

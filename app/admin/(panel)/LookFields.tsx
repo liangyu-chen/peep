@@ -31,6 +31,7 @@ export default function LookFields({ look, seed }: { look: Look; seed: string })
         <Pick name="nose" label="鼻子" value={f.nose} options={FACE.nose} />
         <Pick name="mouth" label="嘴巴" value={f.mouth} options={FACE.mouth} />
         <Pick name="facialHair" label="鬍子" value={f.facialHair} options={FACE.facialHair} />
+        <Pick name="beard" label="鬍子濃淡" value={f.beard} options={FACE.beard} />
         <Pick name="glasses" label="眼鏡" value={f.glasses} options={FACE.glasses} />
       </section>
 
