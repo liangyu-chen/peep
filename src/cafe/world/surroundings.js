@@ -20,6 +20,7 @@ const LANE_W = 4.8;                // the lane is narrow: a car and a scooter ca
 const OPP = FRONT + LANE_W;        // the lane's far edge
 const LANE_Z = FRONT + LANE_W / 2;
 const ONE_WAY = 1;                 // the lane is one-way: everything drives toward +x
+const CROSS0 = 13.6, CROSS1 = 19.6; // a cross street meets the lane there (right of the shop, seen from the lane)
 
 // ---------------------------------------------------------------- textures
 const TEX = {};
@@ -116,8 +117,10 @@ function fixtures(K) {
   });
 }
 
-// one row house: ground floor shop (shutter or open front), `floors` upper floors, a flat roof (maybe a tin shed on it)
-function rowHouse(x0, x1, frontZ, facing, floors, depth) {
+// one row house: ground floor shop (shutter or open front), `floors` upper floors, a flat roof (maybe a tin shed on it).
+// `corner` (+1 / -1) is the side that faces a cross street: that side gets windows too, and the corner shop's ground floor
+// is open with its goods out and its sign on both faces
+function rowHouse(x0, x1, frontZ, facing, floors, depth, corner = 0, shop = null) {
   const w = x1 - x0, K = fixtures(kit());
   const g = new THREE.Group(); g.position.set((x0 + x1) / 2, 0, frontZ); g.rotation.y = facing > 0 ? 0 : Math.PI; env.add(g);
   const faceTex = Math.random() < 0.6
@@ -128,7 +131,10 @@ function rowHouse(x0, x1, frontZ, facing, floors, depth) {
   bx(g, w, H, depth, face, 0, H / 2, -depth / 2);
   // ground floor: a roller shutter (mostly down), or an open front with a door and a caged window; maybe a sign
   bx(g, w, 0.35, 0.25, K.slab, 0, GF - 0.05, 0.12);                          // the floor slab edge over the front
-  if (Math.random() < 0.55) {
+  if (shop) {
+    pl(g, w - 0.5, GF - 0.4, K.dark, 0, (GF - 0.4) / 2, 0.02);
+    for (let i = 0; i < 9; i++) { const h = rand(0.25, 0.7); bx(g, rand(0.3, 0.6), h, rand(0.3, 0.5), K.m(pick([0xd94a2b, 0x3f6db3, 0xe8c547, 0x5b8c4a, 0xd8d4c8, 0x6b5a48])), rand(-w / 2 + 0.5, w / 2 - 0.5), h / 2, rand(-0.6, 0.4)); }   // goods stacked out front
+  } else if (Math.random() < 0.55) {
     const st = K.own(new THREE.MeshStandardMaterial({ map: shutterTex(), roughness: 0.6, metalness: 0.3 }));
     const down = Math.random() < 0.7 ? 1 : rand(0.35, 0.6), sh = GF - 0.35;
     pl(g, w - 0.5, sh * down, st, 0, GF - 0.25 - sh * down / 2, 0.03);
@@ -139,10 +145,19 @@ function rowHouse(x0, x1, frontZ, facing, floors, depth) {
     bx(g, 0.9, 2.1, 0.05, K.m(pick([0x8d8f88, 0x6b5a48, 0xb8b2a4])), -w / 4, 1.05, 0.06);                 // door
     windowUnit(g, K, w / 4, 1.5, Math.min(1.4, w / 3), 1.0, { cage: true });
   }
-  if (Math.random() < 0.45 && signDeck.length) {
-    const sm = K.own(new THREE.MeshStandardMaterial({ map: signTex(signDeck.pop(), pick(['#1f4f9a', '#b8232b', '#f2efe6', '#1c6a43'])), roughness: 0.7 }));
+  const name = shop || (Math.random() < 0.45 && signDeck.pop());
+  if (name) {
+    const sm = K.own(new THREE.MeshStandardMaterial({ map: signTex(name, pick(['#1f4f9a', '#b8232b', '#f2efe6', '#1c6a43'])), roughness: 0.7 }));
     const sw = Math.min(1.6, w * 0.45);
-    bx(g, sw, sw * 0.375, 0.06, sm, rand(-w / 4, w / 4), GF + 0.38, 0.3);
+    bx(g, sw, sw * 0.375, 0.06, sm, shop ? 0 : rand(-w / 4, w / 4), GF + 0.38, 0.3);
+    if (shop) bx(g, 0.06, sw * 0.375, sw, sm, corner * (w / 2 + 0.3), GF + 0.38, -sw / 2 - 0.3);   // round the corner too
+  }
+  if (corner) {   // the side on the cross street, built in its own frame: front out toward the street, x running back along it
+    const sg = new THREE.Group(); sg.position.set(corner * w / 2, 0, 0); sg.rotation.y = corner * Math.PI / 2; g.add(sg);
+    bx(sg, depth, 0.12, 0.1, K.slab, corner * depth / 2, GF, 0.03, false);
+    if (shop) pl(sg, 2.4, GF - 0.4, K.dark, corner * 1.6, (GF - 0.4) / 2, 0.02);
+    else windowUnit(sg, K, corner * 2.2, 1.5, 1.2, 1.0, { cage: true });
+    for (let f = 0; f < floors; f++) [2.2, 6.0, 10.5].forEach(d => windowUnit(sg, K, corner * d, GF + f * FH + 1.45, 1.3, 1.2, { cage: Math.random() < 0.6, ac: Math.random() < 0.3 }));
   }
   // upper floors
   for (let f = 0; f < floors; f++) {
@@ -306,28 +321,39 @@ export function buildSurroundings() {
   lane.rotation.x = -Math.PI / 2; lane.position.set(0, -0.015, LANE_Z); lane.receiveShadow = true; env.add(lane);
   // a white edge line on the far side, and 慢 painted big across the lane, read by drivers coming down the one-way lane
   const paint = new THREE.MeshStandardMaterial({ color: col(0xe8e6e0), roughness: 0.8 });
-  const edge = new THREE.Mesh(new THREE.PlaneGeometry(96, 0.12), paint); edge.rotation.x = -Math.PI / 2; edge.position.set(0, -0.01, OPP - 0.35); env.add(edge);
+  [[-48, CROSS0], [CROSS1, 48]].forEach(([a, b]) => { const e = new THREE.Mesh(new THREE.PlaneGeometry(b - a, 0.12), paint); e.rotation.x = -Math.PI / 2; e.position.set((a + b) / 2, -0.01, OPP - 0.35); env.add(e); });
+  // the cross street, running back past the end of the shop's row, and a stop line across the lane before it
+  const ct = asphaltTex(); ct.repeat.set(2, 24);
+  const cross = new THREE.Mesh(new THREE.PlaneGeometry(CROSS1 - CROSS0, 96), new THREE.MeshStandardMaterial({ map: ct, roughness: 0.95 }));
+  cross.rotation.x = -Math.PI / 2; cross.position.set((CROSS0 + CROSS1) / 2, -0.02, LANE_Z); cross.receiveShadow = true; env.add(cross);
+  const stop = new THREE.Mesh(new THREE.PlaneGeometry(0.3, LANE_W - 0.3), paint); stop.rotation.x = -Math.PI / 2; stop.position.set(CROSS0 - 0.5, -0.008, LANE_Z); env.add(stop);
   const slow = canvasTex(256, 256, (g, w) => { g.fillStyle = '#ece9e2'; g.font = 'bold 220px "Noto Sans TC", sans-serif'; g.textAlign = 'center'; g.fillText('慢', w / 2, 210); });
   S.fontTex.push(slow);
-  [-10, 12].forEach(x => {
+  [-10, 10.6].forEach(x => {
     const m = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 2.6), new THREE.MeshStandardMaterial({ map: slow, transparent: true, roughness: 0.8, depthWrite: false }));
     m.rotation.set(-Math.PI / 2, 0, -ONE_WAY * Math.PI / 2); m.position.set(x, -0.005, LANE_Z); env.add(m);   // its top points the way they drive
   });
   // our row either side of the shop: each as deep as the shop, two or three storeys
-  let x = 2.3;
-  while (x < 40) { const w = rand(3.6, 5.2), f = FRONT - rand(0, 0.3); rowHouse(x, x + w, f, 1, randi(1, 2), f - BACK); x += w; }
-  x = -2.3;
+  // to the right, two houses then the corner shop at the cross street; past it, two or three more and the row ends
+  const front = () => FRONT - rand(0, 0.3);
+  const cw = rand(4.3, 5), hw = (CROSS0 - 2.3 - cw) / 2;
+  [0, 1].forEach(i => { const f = front(); rowHouse(2.3 + i * hw, 2.3 + (i + 1) * hw, f, 1, randi(1, 2), f - BACK); });
+  const corner = signDeck.splice(signDeck.findIndex(n => n[0].endsWith('五金行')), 1)[0];
+  rowHouse(CROSS0 - cw, CROSS0, FRONT, 1, 2, FRONT - BACK, 1, corner);
+  let end = CROSS1;
+  for (let i = randi(2, 3); i > 0; i--) { const w = rand(3.6, 5.2), f = front(); rowHouse(end, end + w, f, 1, randi(1, 2), f - BACK, end === CROSS1 ? -1 : 0); end += w; }
+  let x = -2.3;
   while (x > -40) { const w = rand(3.6, 5.2), f = FRONT - rand(0, 0.3); rowHouse(x - w, x, f, 1, randi(1, 2), f - BACK); x -= w; }
   shopUpstairs();
   // nothing across the lane or behind: just the lane and the row either side, so nothing hides the shop
-  wires(FRONT + 0.25, 3.45, -40, 40);
+  wires(FRONT + 0.25, 3.45, -40, CROSS0); wires(FRONT + 0.25, 3.45, CROSS1, end);
   // parked scooters and bikes, pot plants and crates along both sides, clear of the shop front
   const park = (px, pz, ry, thing) => { thing.position.set(px, 0, pz); thing.rotation.y = ry; thing.traverse(o => { if (o.isMesh) o.castShadow = true; }); env.add(thing); };
   const vehicle = () => (Math.random() < 0.7 ? scooterModel(pick(SCOOTER_COLS)) : bike(pick([0xd94a7a, 0x9aa0a6, 0x2f6fb0])));
-  [-5.2, -5.9, -9.6, -13.5, 4.9, 7.8, 12.2, 17.5].forEach(px => park(px, FRONT + 0.75, rand(-0.15, 0.15) + (Math.random() < 0.5 ? 0 : Math.PI), vehicle()));
+  [-5.2, -5.9, -9.6, -13.5, 4.9, 7.8, 11.6, 21.2].forEach(px => park(px, FRONT + 0.75, rand(-0.15, 0.15) + (Math.random() < 0.5 ? 0 : Math.PI), vehicle()));
   for (let i = 0; i < 14; i++) {
     const pz = FRONT + 0.25, px = rand(-30, 30);
-    if (Math.abs(px) < 2.8) continue;
+    if (Math.abs(px) < 2.8 || (px > CROSS0 - 0.4 && px < CROSS1 + 0.4) || px > end) continue;
     const pot = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.12, 0.26, 10), mat(pick([0xb06a45, 0x3d6a91, 0xe6e3dc]))); pot.position.set(px, 0.13, pz); env.add(pot);
     const leaf = new THREE.Mesh(new THREE.IcosahedronGeometry(0.22, 0), mat(pick([0x5f8f55, 0x6f9f5c, 0x7fae66]), { flatShading: true })); leaf.position.set(px, 0.42, pz); env.add(leaf);
   }
