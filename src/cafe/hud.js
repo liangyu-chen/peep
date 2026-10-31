@@ -52,6 +52,27 @@ export function fillCard() {
   $('cInvite').hidden = !(s.role === 'customer' && tvGames(p).length && s.seat && s.seat.type === 'table' && !s.invited && !s.tops && !S.closing);
 }
 
+// ---------------------------------------------------------------- the neon sign, worked by the fourth switch outside
+// off, it's dark glass and the red wash on the wall goes; back on, it stutters a few times before it holds, as neon does
+let neonTimers = [];
+function lightNeon(lit) {
+  const n = S.neon; if (!n) return;
+  n.sign.material.map = lit ? n.on : n.off; n.sign.material.needsUpdate = true;
+  if (S.neonLight) S.neonLight.intensity = lit ? 1.6 : 0;
+}
+function toggleNeon() {
+  const n = S.neon, sw = S.neonSwitch; if (!n || !sw) return;
+  neonTimers.forEach(clearTimeout); neonTimers = [];
+  n.lit = !n.lit;
+  sw.lever.position.y = 1.98 + (n.lit ? 0.01 : -0.01);
+  sfx('flick');
+  if (!n.lit) { lightNeon(false); return; }
+  let t = 0;
+  [[true, 70], [false, 120], [true, 50], [false, 260], [true, 90], [false, 80], [true, 0]].forEach(([on, ms]) => {
+    neonTimers.push(setTimeout(() => { if (n.lit) { lightNeon(on); if (on && ms === 0) sfx('buzz'); } }, t)); t += ms;
+  });
+}
+
 // ---------------------------------------------------------------- camera presets
 const CAMS = {
   overview: { pos: [9, 13, 11], target: [0, 0.5, -1.5] },
@@ -119,7 +140,7 @@ export function bindHUD(root, stage) {
   });
   root.querySelectorAll('[data-cam]').forEach(b => on(b, 'click', () => setCam(b.dataset.cam)));
   root.querySelectorAll('[data-game]').forEach(b => on(b, 'click', () => playAt(b.dataset.game, root)));
-  off.push(closeGame, stopWallDarts);
+  off.push(closeGame, stopWallDarts, () => { neonTimers.forEach(clearTimeout); neonTimers = []; });
   root.querySelectorAll('[data-speed]').forEach(b => on(b, 'click', () => {
     S.speed = +b.dataset.speed; root.querySelectorAll('[data-speed]').forEach(x => x.classList.toggle('on', x === b));
   }));
@@ -144,9 +165,10 @@ export function bindHUD(root, stage) {
     ray.setFromCamera(ndc, ctx.camera);
     const stadium = S.stadium && S.stadium.visible ? S.stadium.children : [], menu = [];
     S.menuClip?.traverse(o => { if (o.isMesh) menu.push(o); });
-    const targets = []; S.people.forEach(p => p.g.traverse(o => { if (o.isMesh) targets.push(o); })); targets.push(S.tvScreen, S.tvFrame, S.dartboard, ...stadium, ...menu);
+    const targets = []; S.people.forEach(p => p.g.traverse(o => { if (o.isMesh) targets.push(o); })); targets.push(S.tvScreen, S.tvFrame, S.dartboard, S.neonSwitch?.hit, ...stadium, ...menu);
     const h = ray.intersectObjects(targets.filter(Boolean), false)[0];
     if (!h) return null;
+    if (h.object === S.neonSwitch?.hit) return 'neon';
     if (menu.includes(h.object)) return 'menu';
     if (h.object === S.tvScreen || h.object === S.tvFrame) return 'tv';
     if (h.object === S.dartboard) return 'darts';
@@ -159,6 +181,7 @@ export function bindHUD(root, stage) {
     if (!downAt || Math.hypot(e.clientX - downAt[0], e.clientY - downAt[1]) > 6) return;
     const h = hit(e);
     if (h === 'menu') setCam('menu');   // the clipboard on the bar: lean over and read it
+    else if (h === 'neon') toggleNeon();
     else if (typeof h === 'string') playAt(h, root); else if (h) openCard(h); else closeCard();
   });
   on(canvas, 'pointermove', e => {

@@ -202,14 +202,17 @@ function decor() {
     g.restore();
   });
   plane(2.4, 1.5, brickTex, 1.0, 1.85, -5.41);
-  const neonTex = canvasTex(256, 256, (g, w, h) => {
-    g.shadowColor = '#ff3a2a'; g.shadowBlur = 22; g.strokeStyle = '#ffb59a'; g.lineWidth = 9;
+  // the neon, lit, and as it looks switched off (the 4th switch outside, by the linked chairs): bare glass tubes
+  const neonDraw = lit => (g, w, h) => {
+    if (lit) { g.shadowColor = '#ff3a2a'; g.shadowBlur = 22; }
+    g.strokeStyle = lit ? '#ffb59a' : '#6e5650'; g.lineWidth = 9;
     g.beginPath(); g.arc(w / 2, h / 2, 104, 0, Math.PI * 2); g.stroke();
-    g.fillStyle = '#ffd0b8'; g.textAlign = 'center'; g.font = `70px ${DOT}`;
+    g.fillStyle = lit ? '#ffd0b8' : '#6e5650'; g.textAlign = 'center'; g.font = `70px ${DOT}`;
     g.fillText('窺視', w / 2, h / 2 - 12); g.fillText('珈琲', w / 2, h / 2 + 66);
-  });
-  S.fontTex.push(neonTex);
-  plane(0.95, 0.95, neonTex, 1.0, 1.95, -5.38, 0, true);
+  };
+  const neonTex = canvasTex(256, 256, neonDraw(true)), neonOff = canvasTex(256, 256, neonDraw(false));
+  S.fontTex.push(neonTex, neonOff);
+  S.neon = { sign: plane(0.95, 0.95, neonTex, 1.0, 1.95, -5.38, 0, true), on: neonTex, off: neonOff, lit: true };
   [-0.3, 1.25, 2.4].forEach(x => figurine(x, 1.215, -5.42, 1.1));   // a few figurines standing on top of the manga, none in front of it
   // indoor AC above the sliding door
   box(1.3, 0.3, 0.24, mat(0xf2f2f0, { roughness: 0.4 }), -2.24, 2.64, -5.3);   // over the sliding door, clear of its top

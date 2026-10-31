@@ -70,6 +70,8 @@ const SOUNDS = {
   boop: () => { tone(440, 700, 0.09, { type: 'sine', vol: 0.08 }); tone(990, 1100, 0.08, { type: 'sine', vol: 0.05, at: 0.08 }); },
   swoosh: () => { noise(0.3, { freq: 700, vol: 0.05, type: 'lowpass' }); tone(260, 620, 0.25, { type: 'sine', vol: 0.03 }); },
   chime: () => { tone(1319, 1319, 0.5, { type: 'sine', vol: 0.05 }); tone(1047, 1047, 0.7, { type: 'sine', vol: 0.05, at: 0.2 }); },
+  flick: () => { noise(0.03, { freq: 3000, vol: 0.12, type: 'highpass' }); tone(1500, 900, 0.04, { type: 'triangle', vol: 0.07 }); },
+  buzz: () => tone(118, 120, 0.5, { type: 'sawtooth', vol: 0.025 }),
   coin: () => { tone(1319, 1319, 0.06, { type: 'triangle', vol: 0.05 }); tone(1976, 1976, 0.16, { type: 'triangle', vol: 0.045, at: 0.06 }); },
 };
 
