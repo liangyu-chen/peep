@@ -1,6 +1,6 @@
-// Little 8-bit games a visitor can play, each in a window over the café: 快打旋風 against the computer (the same
-// match the TV shows), darts at a board like the one on the purple wall, and a spinning-top battle. Opened from the
-// tiles under the shop's name; one at a time.
+// Little 8-bit games a visitor can play, each in a window over the café once the camera has closed in on the thing
+// played: the TV (pick 快打旋風 against the computer, the same match the TV shows, or a 2K three-point contest), the
+// dartboard on the purple wall, and the spinning-top stadium put away on the back shelf. One at a time.
 import { DOT, PIX, rand, pick } from './util.js';
 import { drawFight, fighterSide } from './fight.js';
 import { FIGHTER_NAMES } from '../content/catalog';
@@ -10,13 +10,14 @@ let open = null;   // the game showing now
 
 export function closeGame() { if (open) open.close(); }
 
-export function openGame(kind, root) {
+// kind: 'tv' (the TV's game list), 'fight', 'nba', 'darts' or 'tops'; onClose runs when the window goes
+export function openGame(kind, root, onClose) {
   closeGame();
-  const G = { fight: FIGHT, darts: DARTS, tops: TOPS }[kind]; if (!G) return;
+  let G = GAMES[kind]; if (!G) return;
   const sheet = document.createElement('div'); sheet.className = 'gameSheet';
-  sheet.innerHTML = `<section class="win gameWin" role="dialog" aria-label="${G.title}">
-    <div class="gameHead"><h2>${G.title}</h2><button class="gameClose" aria-label="關閉">✕</button></div>
-    <canvas width="${W}" height="${H}"></canvas><p class="gameHelp">${G.help}</p><div class="gamePad"></div></section>`;
+  sheet.innerHTML = `<section class="win gameWin" role="dialog">
+    <div class="gameHead"><h2></h2><button class="gameClose" aria-label="關閉">✕</button></div>
+    <canvas width="${W}" height="${H}"></canvas><p class="gameHelp"></p><div class="gamePad"></div></section>`;
   root.appendChild(sheet);
   const canvas = sheet.querySelector('canvas'), g = canvas.getContext('2d'), pad = sheet.querySelector('.gamePad');
   const offs = [], keys = new Set();
@@ -28,7 +29,7 @@ export function openGame(kind, root) {
     if (onUp) ['pointerup', 'pointercancel', 'pointerleave'].forEach(ev => listen(b, ev, onUp));
     pad.appendChild(b); return b;
   };
-  const ctl = { keys, button, pointer: null, restart: null, clear: () => { pad.textContent = ''; } };
+  const ctl = { keys, button, pointer: null, restart: null, play: null, clear: () => { pad.textContent = ''; } };
   listen(window, 'keydown', e => {
     if (e.key === 'Escape') { close(); return; }
     if (!G.keys.includes(e.key)) return;
@@ -41,15 +42,23 @@ export function openGame(kind, root) {
   listen(canvas, 'pointerdown', e => { e.preventDefault(); ctl.pointer = toCanvas(e); game.tap?.(ctl.pointer); });
   listen(sheet, 'pointerdown', e => { if (e.target === sheet) close(); });
   listen(sheet.querySelector('.gameClose'), 'click', () => close());
-  let game = G.start(ctl), raf = 0, last = performance.now();
-  ctl.restart = () => { ctl.clear(); game = G.start(ctl); };
+  let game = null, raf = 0, last = performance.now();
+  // start a game in this window (the TV's list switches to the one picked)
+  ctl.play = k => {
+    G = GAMES[k]; ctl.clear(); keys.clear();
+    sheet.querySelector('h2').textContent = G.title; sheet.querySelector('.gameHelp').textContent = G.help;
+    sheet.querySelector('.gameWin').setAttribute('aria-label', G.title);
+    game = G.start(ctl);
+  };
+  ctl.restart = () => ctl.play(Object.keys(GAMES).find(k => GAMES[k] === G));
+  ctl.play(kind);
   const frame = now => {
     const dt = Math.min(0.05, (now - last) / 1000); last = now;
     game.step(dt, now / 1000); game.draw(g, now / 1000);
     raf = requestAnimationFrame(frame);
   };
   raf = requestAnimationFrame(frame);
-  function close() { cancelAnimationFrame(raf); offs.forEach(f => f()); sheet.remove(); if (open === api) open = null; }
+  function close() { cancelAnimationFrame(raf); offs.forEach(f => f()); sheet.remove(); if (open === api) { open = null; onClose?.(); } }
   const api = { close }; open = api;
 }
 
@@ -356,3 +365,129 @@ const TOPS = {
     };
   },
 };
+
+// ---------------------------------------------------------------- the TV's game list
+const TV_GAMES = [['fight', '快打旋風', '一對一，三戰兩勝', '#ff4f7b'], ['nba', 'NBA 2K', '三分球大賽', '#ffd23f']];
+const PICKER = {
+  title: '電視：選擇遊戲',
+  help: '點遊戲，或用 ↑ ↓ 選、Enter 開始',
+  keys: ['ArrowUp', 'ArrowDown', 'Enter', ' '],
+  start(ctl) {
+    let sel = 0, t = 0;
+    TV_GAMES.forEach(([k, name]) => ctl.button(name, () => ctl.play(k), null, 'hot'));
+    const box = i => [120, 110 + i * 100, 400, 80];
+    return {
+      key(k) { if (k === 'ArrowUp' || k === 'ArrowDown') sel = (sel + 1) % TV_GAMES.length; else ctl.play(TV_GAMES[sel][0]); },
+      tap([x, y]) { TV_GAMES.forEach((gm, i) => { const [bx, by, bw, bh] = box(i); if (x > bx && x < bx + bw && y > by && y < by + bh) ctl.play(gm[0]); }); },
+      step(dt) {
+        t += dt;
+        const p = ctl.pointer; if (p) TV_GAMES.forEach((gm, i) => { const [bx, by, bw, bh] = box(i); if (p[0] > bx && p[0] < bx + bw && p[1] > by && p[1] < by + bh) sel = i; });
+      },
+      draw(g) {
+        g.fillStyle = '#1f1c27'; g.fillRect(0, 0, W, H);
+        for (let i = 0; i < 40; i++) { g.fillStyle = i % 2 ? '#2c2838' : '#1f1c27'; g.fillRect(0, i * 9 + (t * 20) % 18 - 18, W, 9); }
+        text(g, 'SELECT GAME', 320, 70, 26, '#ff4f7b');
+        TV_GAMES.forEach(([, name, sub, c], i) => {
+          const [x, y, w, h] = box(i), on = i === sel;
+          g.fillStyle = '#000'; g.fillRect(x - 4, y - 4, w + 8, h + 8);
+          g.fillStyle = on ? c : '#3d3850'; g.fillRect(x, y, w, h);
+          g.font = `30px ${DOT}`; g.textAlign = 'left'; g.fillStyle = on ? '#1f1c27' : '#f4efe3'; g.fillText(name, x + 24, y + 40);
+          g.font = `16px ${DOT}`; g.fillStyle = on ? '#1f1c27' : '#a9a3b8'; g.fillText(sub, x + 24, y + 66);
+          if (on && Math.floor(t * 2) % 2 === 0) text(g, '▶', x - 30, y + 50, 24, '#ffd23f', 'center', DOT);
+        });
+      },
+    };
+  },
+};
+
+// ---------------------------------------------------------------- NBA 2K three-point contest: five racks of five
+const HOOP = [520, 150];
+const NBA = {
+  title: '玩電動：NBA 2K 三分球大賽',
+  help: '投籃條在跑，跑到綠色區按「投籃」（或空白鍵）就是空心。五個點、每點五顆，最後一顆彩球算 2 分，限時 60 秒',
+  keys: [' '],
+  start(ctl) {
+    const low = lowRes();
+    const s = { rack: 0, ball: 0, score: 0, time: 60, meter: 0, mt: 0, shot: null, pop: null, done: false, best: 0 };
+    const spots = [[110, 300], [150, 262], [200, 245], [150, 262], [110, 300]];   // round the arc, corner to corner
+    const zone = () => [0.72 - s.rack * 0.015, 0.84 - s.rack * 0.025];          // the green window narrows rack by rack
+    const shoot = () => {
+      if (s.done || s.shot) return;
+      const [a, b] = zone(), m = s.meter, money = s.ball === 4;
+      const good = m >= a && m <= b, close = !good && m > a - 0.1 && m < b + 0.08;
+      s.shot = { t: 0, made: good || (close && Math.random() < 0.35), money, miss: m < a ? -1 : 1 };
+    };
+    ctl.button('投籃', shoot, null, 'hot');
+    return {
+      key: shoot,
+      tap: shoot,
+      step(dt) {
+        if (s.pop) { s.pop.t -= dt; if (s.pop.t <= 0) s.pop = null; }
+        if (s.done) return;
+        s.time -= dt;
+        s.mt += dt; s.meter = 0.5 - 0.5 * Math.cos(s.mt * 3.4);
+        if (s.shot) {
+          s.shot.t += dt / 0.85;
+          if (s.shot.t >= 1) {
+            if (s.shot.made) { s.score += s.shot.money ? 2 : 1; s.pop = { label: s.shot.money ? 'MONEY! +2' : 'SWISH +1', t: 0.8 }; }
+            else s.pop = { label: s.shot.miss < 0 ? '太短了' : '太大力', t: 0.8 };
+            s.shot = null; s.ball++; s.mt = 0;
+            if (s.ball >= 5) { s.ball = 0; s.rack++; }
+          }
+        }
+        if (s.rack >= 5 || s.time <= 0) {
+          s.done = true; s.time = Math.max(0, s.time); s.best = best('peep.nba.best', s.score);
+          ctl.clear(); ctl.button('再投一次', () => ctl.restart(), null, 'hot');
+        }
+      },
+      draw(g) {
+        const d = low.g;
+        d.fillStyle = '#120d12'; d.fillRect(0, 0, W, H);
+        for (let i = 0; i < 140; i++) { d.fillStyle = ['#ff4f7b', '#ffd23f', '#7ec8ff', '#f4efe3', '#3ddc97'][(i * 7) % 5]; d.fillRect(((i * 97) % 79) * 8, 50 + ((i * 31) % 11) * 12, 6, 6); }   // the crowd
+        d.fillStyle = '#c99256'; d.fillRect(0, 200, W, 160);                                                // the floor
+        d.fillStyle = '#b07e46'; for (let x = 0; x < W; x += 40) d.fillRect(x, 200, 3, 160);
+        d.strokeStyle = '#fff'; d.lineWidth = 4; d.beginPath(); d.ellipse(560, 280, 470, 70, 0, Math.PI * 0.5, Math.PI * 1.5); d.stroke();   // the three-point arc
+        // the hoop: pole, backboard, rim, net
+        d.fillStyle = '#555'; d.fillRect(590, 120, 10, 200);
+        d.fillStyle = '#f4efe3'; d.fillRect(560, 90, 12, 90); d.fillStyle = '#c0282d'; d.fillRect(560, 128, 12, 24);
+        d.fillStyle = '#ff6a1a'; d.fillRect(HOOP[0] - 26, HOOP[1] - 3, 46, 6);
+        d.fillStyle = '#f4efe3'; for (let i = 0; i < 5; i++) d.fillRect(HOOP[0] - 22 + i * 9, HOOP[1] + 3, 3, 26 - (i % 2) * 4);
+        // the shooter: a little 8-bit player at this rack's spot
+        const [px, py] = spots[Math.min(4, s.rack)], up = s.shot && s.shot.t < 0.25;
+        d.fillStyle = 'rgba(0,0,0,.3)'; d.fillRect(px - 18, py - 4, 36, 8);
+        d.fillStyle = '#1f1c27'; d.fillRect(px - 10, py - 30, 8, 30); d.fillRect(px + 2, py - 30, 8, 30);
+        d.fillStyle = '#552583'; d.fillRect(px - 14, py - 70, 28, 42); d.fillStyle = '#fdb927'; d.fillRect(px - 4, py - 62, 8, 10);
+        d.fillStyle = '#c68a5e'; d.fillRect(px - 9, py - 90, 18, 20); d.fillStyle = '#111'; d.fillRect(px - 9, py - 92, 18, 6);
+        d.fillStyle = '#c68a5e'; if (up) d.fillRect(px + 10, py - 104, 8, 36); else d.fillRect(px + 12, py - 66, 8, 26);
+        // the ball: in hand, or in the air on its arc
+        let bx = px + 18, by = up ? py - 112 : py - 44;
+        if (s.shot && !up) {
+          const k = (s.shot.t - 0.25) / 0.75, fx = px + 14, fy = py - 108;
+          const tx = s.shot.made ? HOOP[0] - 4 : HOOP[0] + s.shot.miss * 30, ty = HOOP[1] - 8;
+          bx = fx + (tx - fx) * k; by = fy + (ty - fy) * k - Math.sin(k * Math.PI) * 130;
+          if (s.shot.made && k > 0.85) by += (k - 0.85) * 200;   // dropping through the net
+        }
+        if (!s.done) { d.fillStyle = '#000'; d.fillRect(bx - 11, by - 11, 22, 22); d.fillStyle = s.ball === 4 && !s.shot ? '#f4efe3' : '#ff7a1f'; d.fillRect(bx - 9, by - 9, 18, 18); d.fillStyle = '#4a1d05'; d.fillRect(bx - 1, by - 9, 2, 18); }
+        // the meter beside the shooter, with its green window
+        const [a, b] = zone(), mx = 30, my = 110, mh = 160;
+        d.fillStyle = '#000'; d.fillRect(mx - 4, my - 4, 26, mh + 8); d.fillStyle = '#3a2a1e'; d.fillRect(mx, my, 18, mh);
+        d.fillStyle = '#3ddc97'; d.fillRect(mx, my + mh * (1 - b), 18, mh * (b - a));
+        d.fillStyle = '#ffd23f'; d.fillRect(mx - 4, my + mh * (1 - s.meter) - 3, 26, 6);
+        // the score, the clock, the rack
+        text(d, `SCORE ${s.score}`, 20, 36, 16, '#ffd23f', 'left');
+        text(d, `${Math.ceil(Math.max(0, s.time))}`, 320, 36, 20, s.time < 10 ? '#ff4f7b' : '#f4efe3');
+        text(d, `RACK ${Math.min(5, s.rack + 1)}/5`, 620, 36, 16, '#ffd23f', 'right');
+        for (let i = 0; i < 5; i++) { d.fillStyle = '#000'; d.fillRect(248 + i * 30, 328, 24, 24); d.fillStyle = i < s.ball ? '#3d3850' : i === 4 ? '#f4efe3' : '#ff7a1f'; d.fillRect(250 + i * 30, 330, 20, 20); }
+        if (s.pop) text(d, s.pop.label, 320, 90, 22, s.pop.label.includes('+') ? '#3ddc97' : '#ff4f7b', 'center', DOT);
+        if (s.done) {
+          d.fillStyle = 'rgba(0,0,0,.6)'; d.fillRect(140, 120, 360, 120);
+          text(d, `總分 ${s.score}`, 320, 170, 34, '#ffd23f', 'center', DOT);
+          text(d, `最高紀錄 ${s.best}`, 320, 214, 20, '#f4efe3', 'center', DOT);
+        }
+        blowUp(g, low);
+      },
+    };
+  },
+};
+
+const GAMES = { tv: PICKER, fight: FIGHT, nba: NBA, darts: DARTS, tops: TOPS };

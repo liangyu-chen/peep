@@ -84,6 +84,11 @@ export function startCafe(root, content) {
       for (let t = 0; t < secs && !S.stopped; t += dt) { simulate(dt, dt); for (let k = 0; k < 12; k++) await null; }
       drawTV(); updateHUD();
     },
+    // move the camera along (a tween to a preset or a close-up) and draw, for when the page isn't getting frames
+    view: (secs = 1.5, dt = 0.05) => {
+      for (let t = 0; t < secs; t += dt) updateCamera(dt);
+      ctx.controls.update(); ctx.renderer.render(ctx.scene, ctx.camera);
+    },
   };
 
   return function stopCafe() {

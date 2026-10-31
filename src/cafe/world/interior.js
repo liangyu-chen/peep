@@ -59,6 +59,7 @@ function purpleWall() {
   });
   const board = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 0.045, 32), [mat(0x1a1a1a), new THREE.MeshStandardMaterial({ map: dartTex, roughness: 0.8 }), mat(0x1a1a1a)]);
   board.rotation.z = -Math.PI / 2; board.position.set(-2.995, 1.55, 3.06); board.castShadow = true; ctx.scene.add(board);   // round dartboard
+  S.dartboard = board;                                                                                            // click it to play darts
   [[0.06, 0.03, 0xc0282d], [-0.09, -0.05, 0x1c4fd6], [0.02, -0.12, 0xffd23f]].forEach(([dy, dz, c]) => {   // darts stuck in it
     const d = cyl(0.006, 0.004, 0.13, mat(0x9aa0a6, { metalness: 0.8 }), -2.91, 1.55 + dy, 3.06 + dz, ctx.scene, 6); d.rotation.z = Math.PI / 2 + 0.15;
     box(0.04, 0.035, 0.005, mat(c), -2.84, 1.56 + dy, 3.06 + dz).castShadow = false; box(0.04, 0.005, 0.035, mat(c), -2.84, 1.56 + dy, 3.06 + dz).castShadow = false;

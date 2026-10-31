@@ -15,8 +15,10 @@ const SPOTS = [
   { path: [[-1.62, TABLE.z], [-1.75, 4.75]].concat(PORCH), face: Math.PI / 2 },
   { path: [[-0.4, TABLE.z], [-0.45, 4.7]].concat(PORCH), face: -Math.PI / 2 },
 ];
-// the stadium lives on the shelves in the back
-const FETCH = [[1.0, -5.5], [-0.3, -5.5], [-1.85, -5.5], [-1.85, -3.95], [HUBX, -3.6]];
+// the stadium lives in the back: put away on top of the crates stacked by the AC in the back corridor, where it can
+// be seen from above (and clicked)
+const SHELF = { x: -2.74, z: -7.75, y: 0.9 };
+const FETCH = [[-2.15, -7.75], [-2.0, -6.5], [-1.85, -5.5], [-1.85, -3.95], [HUBX, -3.6]];
 const TOP_COLS = [[0xc0282d, 0xffd23f], [0x1c4fd6, 0x7ec8ff]];
 
 export function createStadium() {
@@ -27,8 +29,7 @@ export function createStadium() {
   const base = new THREE.Mesh(new THREE.CylinderGeometry(0.19, 0.2, 0.014, 36), mat(0x1f1c27, { roughness: 0.6 })); base.position.y = 0.007;
   const rim = new THREE.Mesh(new THREE.TorusGeometry(0.207, 0.009, 6, 40), mat(0xff4d00, { roughness: 0.4 })); rim.rotation.x = Math.PI / 2; rim.position.y = 0.07;
   [bowl, base, rim].forEach(m => { m.castShadow = true; m.receiveShadow = true; g.add(m); });
-  g.visible = false; ctx.scene.add(g);
-  S.stadium = g;
+  S.stadium = g; stow();
   S.tops = TOP_COLS.map(([c1, c2]) => {
     const t = new THREE.Group(), spinner = new THREE.Group(); t.add(spinner);
     const tip = new THREE.Mesh(new THREE.CylinderGeometry(0.032, 0.004, 0.03, 14), mat(0x9aa0a6, { metalness: 0.8, roughness: 0.3 })); tip.position.y = 0.015;
@@ -56,7 +57,7 @@ function tryStart() {
 
 const carry = c => { c.g.add(S.stadium); S.stadium.position.set(0, 0.98, 0.34); S.stadium.rotation.set(0, 0, 0); S.stadium.visible = true; };
 const place = () => { ctx.scene.add(S.stadium); S.stadium.position.set(TABLE.x * K, TABLE.y, TABLE.z); S.stadium.rotation.set(0, 0, 0); };
-const stow = () => { ctx.scene.add(S.stadium); S.stadium.visible = false; };
+const stow = () => { ctx.scene.add(S.stadium); S.stadium.position.set(SHELF.x * K, SHELF.y, SHELF.z); S.stadium.rotation.set(0, 0, 0); S.stadium.visible = true; };
 
 // one player's part in a session; returns the zone they end up in
 export async function doTops(c, zone) {
@@ -65,7 +66,7 @@ export async function doTops(c, zone) {
   if (i === 0) {
     c.status = '去後面搬戰鬥盤';
     await walk(c, route(zone, FETCH));
-    c.face(Math.PI); await sleep(1);
+    c.face(-Math.PI / 2); await sleep(1);   // turned to the crates
     carry(c); c.gesture('carry', 600);
     c.status = '把戰鬥盤搬到戶外區';
     await walk(c, route(FETCH, spot.path));

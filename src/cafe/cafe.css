@@ -77,7 +77,7 @@ body:has(.cafe-root){margin:0;overflow:hidden;background:#141218}
 .cafe-root .tileDarts{background:#2e8b57}
 .cafe-root .tileTops{background:#c0282d}
 /* a game's window, over the café with it dimmed behind; the canvas keeps its 16:9 and fits the screen */
-.cafe-root .gameSheet{position:absolute;inset:0;z-index:20;display:grid;place-items:center;background:rgba(10,8,16,.66);padding:16px}
+.cafe-root .gameSheet{position:absolute;inset:0;z-index:20;display:grid;place-items:center;background:rgba(10,8,16,.4);padding:16px}
 .cafe-root .gameWin{position:relative;width:min(760px,100%);padding:12px 14px;display:grid;gap:10px;max-height:100%;overflow:auto}
 .cafe-root .gameHead{display:flex;justify-content:space-between;align-items:center;gap:8px}
 .cafe-root .gameHead h2{margin:0;font-family:var(--f-dot);font-size:18px;color:var(--gold);letter-spacing:0}

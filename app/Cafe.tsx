@@ -68,9 +68,9 @@ export default function Cafe({ content }: { content: CafeContent }) {
           <span>INSTAGRAM</span>
         </a>
       </nav>
-      {/* little games to play, each opening in a window over the café */}
+      {/* little games: the same as clicking the TV, the dartboard or the stadium in the scene; the camera closes in, then the game opens */}
       <nav className="quick" aria-label="小遊戲">
-        <button data-game="fight" className="tile tileFight" aria-label="玩電動"><PixelIcon rows={PAD} /><span>玩電動</span></button>
+        <button data-game="tv" className="tile tileFight" aria-label="玩電動"><PixelIcon rows={PAD} /><span>玩電動</span></button>
         <button data-game="darts" className="tile tileDarts" aria-label="射飛鏢"><PixelIcon rows={BOARD} /><span>射飛鏢</span></button>
         <button data-game="tops" className="tile tileTops" aria-label="戰鬥陀螺"><PixelIcon rows={TOP} /><span>戰鬥陀螺</span></button>
       </nav>
@@ -119,7 +119,7 @@ export default function Cafe({ content }: { content: CafeContent }) {
         <button id="cInvite" className="primary" hidden>▶ 邀去打電動</button>
       </aside>
 
-      <div id="hint">拖曳旋轉 · 滾輪縮放 · 點人物看資料 · 點電視看比賽</div>
+      <div id="hint">拖曳旋轉 · 滾輪縮放 · 點人物看資料 · 點電視、飛鏢靶、戰鬥盤可以玩</div>
       {loading && <LoadingHands ready={ready} onDone={done} />}
     </div>
   );
