@@ -481,6 +481,7 @@ const NBA = {
         // the shot meter, standing beside him the way the game shows it
         const [a, b] = zone(), mx = px + 8 * u, mh = 26 * u, my = py - 24 * u;
         if (!s.done && !sh) {
+          d.fillStyle = 'rgba(13,10,18,.85)'; d.fillRect(mx - 12, my - 12, 36, mh + 24);   // a dark panel behind it, so it reads against the crowd
           d.fillStyle = '#000'; d.fillRect(mx - 3, my - 3, 18, mh + 6); d.fillStyle = '#3a2a1e'; d.fillRect(mx, my, 12, mh);
           d.fillStyle = '#3ddc97'; d.fillRect(mx, my + mh * (1 - b), 12, mh * (b - a));
           d.fillStyle = s.meter >= a && s.meter <= b ? '#ffffff' : '#ffd23f'; d.fillRect(mx - 5, my + mh * (1 - s.meter) - 3, 22, 6);

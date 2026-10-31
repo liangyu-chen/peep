@@ -92,7 +92,7 @@ function setCam(name) {
 }
 export function updateCamera(dt) {
   if (!camTween) return;
-  camTween.t = Math.min(1, camTween.t + dt / 1.2);
+  camTween.t = Math.min(1, camTween.t + dt / (camTween.dur || 1.2));
   const e = 1 - Math.pow(1 - camTween.t, 3);
   ctx.camera.position.lerpVectors(camTween.fp, camTween.tp, e);
   ctx.controls.target.lerpVectors(camTween.ft, camTween.tt, e);
@@ -100,7 +100,7 @@ export function updateCamera(dt) {
 }
 
 // ---------------------------------------------------------------- the things you can play: the camera closes in until it fills
-// the view, then the game opens; closing it goes back to where the camera was
+// the view, then the game opens; closing it goes back
 const PLAY = {
   // (a little from above: the orbit controls won't let the camera sit level)
   // the TV framed high, with room under it for the game's controls, seen from a little above, over the heads of anyone
@@ -123,11 +123,14 @@ function playAt(kind, root) {
   document.querySelectorAll('[data-cam]').forEach(b => b.classList.remove('on'));
   S.watch = kind === 'tv' || kind === 'darts' ? { x: tt.x, z: tt.z } : null;   // anyone between the camera and the TV or the board steps out of the picture
   controls.enabled = false;   // the camera holds still (no orbiting or zooming) until the game is closed
-  const back = () => { S.watch = null; controls.enabled = true; camTween = { fp: camera.position.clone(), ft: controls.target.clone(), tp: from.p, tt: from.t, t: 0 }; };
-  // darts are thrown at the board on the wall itself, once the camera is there (it aims by where the board ends up on
-  // screen); the others open in a window straight away, the camera flying in behind
-  camTween = { fp: from.p.clone(), ft: from.t.clone(), tp, tt, t: 0, done: kind === 'darts' ? () => playWallDarts(root, back) : null };
-  if (kind !== 'darts') openGame(kind, root, back);
+  // leaving: back where the camera was, except from the TV, which goes to the TV view so the match really on can be watched
+  const back = () => {
+    S.watch = null; controls.enabled = true;
+    if (kind === 'tv') { setCam('tv'); return; }
+    camTween = { fp: camera.position.clone(), ft: controls.target.clone(), tp: from.p, tt: from.t, t: 0 };
+  };
+  // a quick flight in, then the game: darts on the board on the wall itself, the others in a window
+  camTween = { fp: from.p.clone(), ft: from.t.clone(), tp, tt, t: 0, dur: 0.6, done: () => (kind === 'darts' ? playWallDarts(root, back) : openGame(kind, root, back)) };
 }
 
 // ---------------------------------------------------------------- wiring the buttons and the canvas; returns an unbind function

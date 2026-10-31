@@ -37,7 +37,7 @@ export function hoopsPlayer(g, x, y, u, kit, pose = 'stand', t = 0, face = 1) {
 
 // rows of fans in the stands between x0 and x1 from y0 down: a dark tier, heads and shirts; they bob when excited (0..1)
 export function crowd(g, x0, x1, y0, rows, s, t, excite = 0) {
-  const SHIRTS = ['#ff4f7b', '#ffd23f', '#7ec8ff', '#f4efe3', '#3ddc97', '#9b6bff', '#f08a24'], SKINS = ['#f1c9a5', '#e0ac80', '#c68a5e', '#8d5a3b'];
+  const SHIRTS = ['#ff4f7b', '#ffd23f', '#7ec8ff', '#f4efe3', '#c9c4d6', '#9b6bff', '#f08a24']   // no green: that's the shot meter's, SKINS = ['#f1c9a5', '#e0ac80', '#c68a5e', '#8d5a3b'];
   for (let r = 0; r < rows; r++) {
     const y = y0 + r * s * 3.2;
     g.fillStyle = r % 2 ? '#1a1420' : '#221a2a'; g.fillRect(x0, y + s * 1.2, x1 - x0, s * 3.2);   // the tier
