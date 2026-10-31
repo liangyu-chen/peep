@@ -1,4 +1,4 @@
-// The TV: an NBA 2K match or 快打旋風 (fight.js), each a tiny simulation drawn at 320x180 for the 8-bit look.
+// The TV: an NBA 2K match or 快打旋風 (fight.js), each a tiny simulation drawn in chunky 8-bit pixels.
 import * as THREE from 'three';
 import { ctx } from './engine.js';
 import { S } from './state.js';
@@ -11,14 +11,14 @@ import { startFight, stepFight, drawFight, fightClock } from './fight.js';
 import { hoopsPlayer, crowd as stands } from './hoops.js';
 
 export const QLEN = 30;   // simulated seconds per quarter
-const TVW = 320, TVH = 180;
+const TVW = 640, TVH = 360;   // drawn at full size, so the words on it stay sharp
 let tvCtx, tvTex;
 
 // the screen itself; built with the rest of the set so it gets squeezed with it
 export function createTvScreen() {
   const canvas = document.createElement('canvas'); canvas.width = TVW; canvas.height = TVH;
   tvCtx = canvas.getContext('2d'); tvCtx.imageSmoothingEnabled = false;
-  tvTex = new THREE.CanvasTexture(canvas); tvTex.encoding = THREE.sRGBEncoding; tvTex.magFilter = THREE.NearestFilter; tvTex.minFilter = THREE.NearestFilter; tvTex.generateMipmaps = false;
+  tvTex = new THREE.CanvasTexture(canvas); tvTex.encoding = THREE.sRGBEncoding; tvTex.magFilter = THREE.NearestFilter; tvTex.minFilter = THREE.LinearFilter;   // from afar, smoothed instead of sparkling tvTex.generateMipmaps = false;
   S.tvScreen = new THREE.Mesh(new THREE.PlaneGeometry(1.62, 0.91), new THREE.MeshBasicMaterial({ map: tvTex, toneMapped: false }));
   S.tvScreen.position.set(TVX + 0.075, TVY, TVZ); S.tvScreen.rotation.y = Math.PI / 2; ctx.scene.add(S.tvScreen);
   const tvGlow = new THREE.PointLight(0x7fb0ff, 0.45, 4, 2); tvGlow.position.set(-2.3, 1.5, TVZ); ctx.scene.add(tvGlow);
