@@ -381,20 +381,21 @@ export function buildSurroundings() {
     const pot = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.12, 0.26, 10), mat(pick([0xb06a45, 0x3d6a91, 0xe6e3dc]))); pot.position.set(px, 0.13 - RISE, pz); env.add(pot);
     const leaf = new THREE.Mesh(new THREE.IcosahedronGeometry(0.22, 0), mat(pick([0x5f8f55, 0x6f9f5c, 0x7fae66]), { flatShading: true })); leaf.position.set(px, 0.42 - RISE, pz); env.add(leaf);
   }
-  // next door's shutter, as in the photos: bicycles left leaning against it, a long old wooden bench with splayed legs
-  // by the blue post at its edge, running out toward the street, and a tree stump on the street side with a pot on it
-  [[-3.4, 0x6f8f5a], [-4.25, 0xb8bcc0], [-5.15, 0x2b2f36]].forEach(([bxp, c]) => {
-    const b = bike(c); b.position.set(bxp, -RISE, FRONT + 0.32); b.rotation.set(-0.13, Math.PI / 2 + rand(-0.12, 0.12), 0);
+  // as in the photos: bicycles left standing against next door's shutter (far enough apart that their wheels don't
+  // run into each other, and just off the shutter), a long old wooden bench with splayed legs in front of the shop's
+  // left side, running out from the shop front toward the street, and a tree stump in line with it past its end
+  [[-3.05, 0.5, 0x6f8f5a], [-4.3, 0.62, 0xb8bcc0], [-5.45, 0.5, 0x2b2f36]].forEach(([bxp, bz, c]) => {
+    const b = bike(c); b.position.set(bxp, -RISE, FRONT + bz); b.rotation.set(-0.06, Math.PI / 2 + rand(-0.06, 0.06), 0);
     b.traverse(o => { if (o.isMesh) o.castShadow = true; }); env.add(b);
   });
   const wood = mat(0x9a7a56, { roughness: 0.85 }), woodDark = mat(0x7a5c3e, { roughness: 0.9 });
-  const bench = new THREE.Group(); bench.position.set(-2.62, -RISE, 8.95); bench.rotation.y = Math.PI / 2; env.add(bench);
+  const bench = new THREE.Group(); bench.position.set(-1.76, -RISE, 8.9); bench.rotation.y = Math.PI / 2; env.add(bench);
   const piece = (w, h, d, m, x, y, z, rz = 0, rx = 0) => { const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); b.position.set(x, y, z); b.rotation.set(rx, 0, rz); b.castShadow = b.receiveShadow = true; bench.add(b); return b; };
   piece(1.5, 0.05, 0.24, wood, 0, 0.47, 0);                                                // the seat plank
   [-1, 1].forEach(sx => [-1, 1].forEach(sz => piece(0.05, 0.48, 0.05, woodDark, sx * 0.6, 0.23, sz * 0.07, sx * 0.12, -sz * 0.18)));   // legs, splayed out
   [-1, 1].forEach(sx => piece(0.04, 0.04, 0.2, woodDark, sx * 0.62, 0.16, 0));            // a rung between each pair
   piece(1.18, 0.04, 0.03, woodDark, 0, 0.36, 0.02);                                         // and a stretcher along under the seat
-  const stump = new THREE.Group(); stump.position.set(-2.98, -RISE, 9.82); env.add(stump);   // out level with the bench's street end, just beside it
+  const stump = new THREE.Group(); stump.position.set(-1.76, -RISE, 10.0); env.add(stump);   // in line with the bench, just past its street end
   const bark = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.23, 0.5, 14), mat(0x5e4532, { roughness: 1 })); bark.position.y = 0.25; bark.castShadow = true; stump.add(bark);
   const rings = new THREE.Mesh(new THREE.CylinderGeometry(0.19, 0.19, 0.01, 14), mat(0xb08a62, { roughness: 0.9 })); rings.position.y = 0.505; stump.add(rings);
   const pot = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.06, 0.11, 12), mat(0xb5643c, { roughness: 0.8 })); pot.position.set(-0.02, 0.565, 0.02); pot.castShadow = true; stump.add(pot);
