@@ -19,8 +19,9 @@ const FRONT = 8.1;                 // our row's frontage (the shop's arcade edge
 const BACK = -8.35;                // and its back, in line with the shop's back wall
 const LANE_W = 4.8;                // the lane is narrow: a car and a scooter can just pass
 // the row's frontage is raised: a concrete step out to the kerb, the lane RISE below it
-const OPP = KERB + LANE_W;         // the lane's far edge
-const LANE_Z = KERB + LANE_W / 2;
+const LANE0 = 9.6;                 // the lane's near edge, a strip of street in front of the kerb
+const OPP = LANE0 + LANE_W;        // the lane's far edge
+const LANE_Z = LANE0 + LANE_W / 2;
 const ONE_WAY = 1;                 // the lane is one-way: everything drives toward +x
 const CROSS0 = 13.6, CROSS1 = 19.6; // a cross street meets the lane there (right of the shop, seen from the lane)
 
@@ -358,14 +359,14 @@ export function buildSurroundings() {
   // nothing across the lane or behind: just the lane and the row either side, so nothing hides the shop
   wires(FRONT + 0.25, 3.45, -40, CROSS0); wires(FRONT + 0.25, 3.45, CROSS1, end);
   // parked scooters and bikes, pot plants and crates along both sides, clear of the shop front
-  const park = (px, pz, ry, thing) => { thing.position.set(px, 0, pz); thing.rotation.y = ry; thing.traverse(o => { if (o.isMesh) o.castShadow = true; }); env.add(thing); };
+  const park = (px, pz, ry, thing) => { thing.position.set(px, -RISE, pz); thing.rotation.y = ry; thing.traverse(o => { if (o.isMesh) o.castShadow = true; }); env.add(thing); };
   const vehicle = () => (Math.random() < 0.7 ? scooterModel(pick(SCOOTER_COLS)) : bike(pick([0xd94a7a, 0x9aa0a6, 0x2f6fb0])));
   [-5.2, -5.9, -9.6, -13.5, 4.9, 7.8, 11.6, 21.2].forEach(px => park(px, FRONT + 0.75, rand(-0.15, 0.15) + (Math.random() < 0.5 ? 0 : Math.PI), vehicle()));
   for (let i = 0; i < 14; i++) {
     const pz = FRONT + 0.25, px = rand(-30, 30);
     if (Math.abs(px) < 2.8 || (px > CROSS0 - 0.4 && px < CROSS1 + 0.4) || px > end) continue;
-    const pot = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.12, 0.26, 10), mat(pick([0xb06a45, 0x3d6a91, 0xe6e3dc]))); pot.position.set(px, 0.13, pz); env.add(pot);
-    const leaf = new THREE.Mesh(new THREE.IcosahedronGeometry(0.22, 0), mat(pick([0x5f8f55, 0x6f9f5c, 0x7fae66]), { flatShading: true })); leaf.position.set(px, 0.42, pz); env.add(leaf);
+    const pot = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.12, 0.26, 10), mat(pick([0xb06a45, 0x3d6a91, 0xe6e3dc]))); pot.position.set(px, 0.13 - RISE, pz); env.add(pot);
+    const leaf = new THREE.Mesh(new THREE.IcosahedronGeometry(0.22, 0), mat(pick([0x5f8f55, 0x6f9f5c, 0x7fae66]), { flatShading: true })); leaf.position.set(px, 0.42 - RISE, pz); env.add(leaf);
   }
-  [[-4.3, FRONT + 0.3], [8.6, FRONT + 0.3]].forEach(([px, pz]) => { const c = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.3, 0.4), mat(0x2f8a4a, { roughness: 0.6 })); c.position.set(px, 0.15, pz); c.castShadow = true; env.add(c); });   // green crates
+  [[-4.3, FRONT + 0.3], [8.6, FRONT + 0.3]].forEach(([px, pz]) => { const c = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.3, 0.4), mat(0x2f8a4a, { roughness: 0.6 })); c.position.set(px, 0.15 - RISE, pz); c.castShadow = true; env.add(c); });   // green crates
 }

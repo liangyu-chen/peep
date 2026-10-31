@@ -5,7 +5,7 @@ import { K } from './util.js';
 
 export const WH = 2.8;            // wall height
 export const BACK_SHIFT = 1.0;
-export const KERB = 9.6, RISE = 0.18;   // the shop front is raised RISE above the lane, out to the kerb at z = KERB
+export const KERB = 8.0, RISE = 0.18;   // the shop front is raised RISE above the street, out to the kerb at z = KERB (the Vespa and the kerb camping chair stand below it)
 export const HUBX = -1.6;          // the main walkway runs along this x
 
 export const TVX = -2.6, TVZ = -3.15, TVY = 1.3;   // the TV on its rolling cart
@@ -50,7 +50,9 @@ export function createSeats() {
   [5.5, 6.0, 6.5].forEach(z => seat('table', -2.72, z, Math.PI / 2, -0.1, crateCup(z, -1), [[-2.72, z], [-2.05, z], [-1.9, 4.75]].concat(PORCH), { porch: true }));
   [6.1, 6.6, 7.1].forEach(z => seat('table', 0.62, z, -Math.PI / 2, -0.1, crateCup(z, 1), [[0.62, z], [0.05, z], [0.05, 4.7]].concat(PORCH), { porch: true }));
   // the camping chair on the kerb, and the two seats by the scooter
-  seat('table', -0.55, 8.55, 0, -0.17, [-0.55, 0.61, 9.12], [[-0.55, 8.55], [-1.3, 8.3], W].concat(PORCH), { porch: true, where: '門口' });
+  seat('table', -0.55, 8.55, 0, -0.17, [-0.55, 0.61 - RISE, 9.12], [[-0.55, 8.55], [-1.3, 8.3], W].concat(PORCH), { porch: true, where: '門口' });
+  // the beanbag in the nook outside the storeroom door, its cup on the block shelf beside it
+  seat('table', 2.45, 4.78, -Math.PI / 2, -0.24, [2.62, 0.625, 4.2], [[2.45, 4.78], [1.5, 4.75], [0.05, 4.7]].concat(PORCH), { porch: true, where: '倉庫門口的懶骨頭' });
   // (the pair and their block table sit 0.35 m left of where they were first drawn)
   seat('table', -0.85, 7.75, Math.PI, -0.1, [-0.47, 0.61, 7.7], [[-0.85, 7.75], [-0.6, 7.3], [-0.45, 4.7]].concat(PORCH), { porch: true, where: '機車旁' });
   seat('table', 0.03, 7.75, Math.PI, -0.1, [-0.35, 0.61, 7.8], [[0.03, 7.75], [0.03, 7.3], [-0.45, 7.3], [-0.45, 4.7]].concat(PORCH), { porch: true, where: '機車旁' });

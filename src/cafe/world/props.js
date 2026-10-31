@@ -93,6 +93,7 @@ export function campChair(x, z, ry, color) {
   const f = mat(color, { roughness: 1 }), fr = mat(0x222222, { metalness: 0.5 });
   box(0.48, 0.03, 0.42, f, 0, 0.38, 0, ch); box(0.48, 0.42, 0.03, f, 0, 0.62, -0.22, ch).rotation.x = -0.2;
   [-0.25, 0.25].forEach(a => { box(0.03, 0.03, 0.4, fr, a, 0.58, 0, ch); const l1 = cyl(0.01, 0.01, 0.55, fr, a, 0.27, 0, ch, 5); l1.rotation.x = 0.7; const l2 = cyl(0.01, 0.01, 0.55, fr, a, 0.27, 0, ch, 5); l2.rotation.x = -0.7; });
+  return ch;
 }
 
 // ---------------------------------------------------------------- figurines and framed art

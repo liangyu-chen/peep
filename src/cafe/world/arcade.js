@@ -3,8 +3,8 @@
 import * as THREE from 'three';
 import { ctx, mat, box, cyl, canvasTex, plane } from '../engine.js';
 import { S } from '../state.js';
-import { pick, DOT } from '../util.js';
-import { STRIP } from '../layout.js';
+import { pick, DOT, K } from '../util.js';
+import { STRIP, RISE } from '../layout.js';
 import { blackM, cinderM, CRATE_ORANGE, GLOSS_ORANGE, cinderBlock, cinderSeat, blockStack, crate, linkedChairs, campChair, figurine } from './props.js';
 
 const potM = () => mat(0xb5643c), leafM = () => mat(0x3f6b3a);
@@ -76,14 +76,14 @@ function street() {
   vespa(0.55, 8.75, 0.1);
   box(4.0, 0.3, 0.12, mat(0x2a4f8a), -1.05, 2.62, 8.2);                                  // blue lintel over the opening
   [[-3.0, 1.8], [0.95, 1.6]].forEach(([x, y]) => box(0.18, 0.22, 0.08, mat(0xd9d9d0), x, y, 8.22));   // electricity meters
-  campChair(-0.55, 8.55, 0, 0xc4a27e);                                                    // one milk-tea camping chair facing the street
-  crate(-0.55, 0, 9.15, 'blue'); crate(-0.55, 0.3, 9.15, 'orange');                       // two stacked crates as its table
+  campChair(-0.55, 8.55, 0, 0xc4a27e).position.y = -RISE;                                                    // one milk-tea camping chair facing the street
+  crate(-0.55, -RISE, 9.15, 'blue'); crate(-0.55, 0.3 - RISE, 9.15, 'orange');                       // two stacked crates as its table
 }
 
 // the old Vespa parked out front, after the photo: weathered silver-grey body, bulging side cowls, a brown bench seat,
 // rust-orange floorboard, the round headlight on the handlebars, mirrors on stalks, up on its centre stand
 function vespa(x, z, ry) {
-  const g = new THREE.Group(); g.position.set(x, 0, z); g.rotation.y = ry; ctx.scene.add(g);
+  const g = new THREE.Group(); g.position.set(x, -RISE, z); g.rotation.y = ry; ctx.scene.add(g);   // down on the street, below the kerb
   const bodyM = mat(0x8e8b82, { roughness: 0.55, metalness: 0.3 }), seatM = mat(0x6e4c3b, { roughness: 0.8 });
   const rustM = mat(0xb5602d, { roughness: 0.85 }), chrome = mat(0xc9c9c9, { metalness: 0.9, roughness: 0.2 }), amber = mat(0xe07a2a, { roughness: 0.4 });
   const add = (geo, m, px, py, pz) => { const me = new THREE.Mesh(geo, m); me.position.set(px, py, pz); me.castShadow = true; g.add(me); return me; };
@@ -118,6 +118,57 @@ function vespa(x, z, ry) {
   });
   // up on its centre stand
   [-1, 1].forEach(sd => { const l = cyl(0.01, 0.01, 0.3, chrome, sd * 0.1, 0.15, -0.05, g, 6); l.rotation.x = 0.25; });
+}
+
+// the nook between the front wall and the storeroom, outside its door: a patterned beanbag in the corner, a burlap coffee
+// sack hung on the wall over it, a block shelf with a plant and toys beside it, a longboard leaning behind, a bag in the corner
+function beanbagNook() {
+  // dark fabric with a small white star-and-flower print
+  const print = canvasTex(128, 128, (g, w, h) => {
+    g.fillStyle = '#2b2b2e'; g.fillRect(0, 0, w, h); g.fillStyle = '#e9e6de'; g.strokeStyle = '#e9e6de'; g.lineWidth = 1.5;
+    for (let r = 0; r < 6; r++) for (let c = 0; c < 6; c++) {
+      const x = c * 21.3 + (r % 2) * 10.6 + 5, y = r * 21.3 + 10, k = (r + c) % 3;
+      if (k === 0) { g.beginPath(); for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4, rr = i % 2 ? 2 : 6; g.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr); } g.fill(); }
+      else if (k === 1) { for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2; g.beginPath(); g.arc(x + Math.cos(a) * 3, y + Math.sin(a) * 3, 2.2, 0, Math.PI * 2); g.fill(); } }
+      else { g.beginPath(); g.arc(x, y, 4.5, 0, Math.PI * 2); g.stroke(); g.beginPath(); g.arc(x, y, 1.4, 0, Math.PI * 2); g.fill(); }
+    }
+  });
+  print.wrapS = print.wrapT = THREE.RepeatWrapping; print.repeat.set(5, 3);
+  const fabric = new THREE.MeshStandardMaterial({ map: print, roughness: 0.85 });
+  // built round, then stretched back out by 1/K so the squeeze leaves it round
+  const bag = new THREE.Group(); bag.position.set(2.45, 0, 4.78); bag.scale.x = 1 / K; ctx.scene.add(bag);
+  const blob = (r, sx, sy, sz, x, y, z) => { const m = new THREE.Mesh(new THREE.SphereGeometry(r, 20, 14), fabric); m.scale.set(sx, sy, sz); m.position.set(x, y, z); m.castShadow = m.receiveShadow = true; bag.add(m); };
+  blob(0.4, 1, 0.5, 1.05, 0, 0.2, 0);              // the seat, slumped
+  blob(0.36, 0.45, 0.95, 1.05, 0.27, 0.48, 0);      // the back, against the wall
+  [-1, 1].forEach(sd => blob(0.16, 1.4, 0.75, 0.8, -0.02, 0.36, sd * 0.32));   // the sides puffed up into arms
+  // the burlap sack on the wall above: a playing-card frame, a grinning jester and the line under it
+  const sack = canvasTex(240, 320, (g, w, h) => {
+    g.fillStyle = '#b8873e'; g.fillRect(0, 0, w, h);
+    for (let i = 0; i < 1400; i++) { g.fillStyle = Math.random() < 0.5 ? 'rgba(90,60,20,.18)' : 'rgba(230,190,120,.18)'; g.fillRect(Math.random() * w, Math.random() * h, 2, 1); }   // weave
+    g.strokeStyle = '#1b1b1b'; g.lineWidth = 4; g.beginPath(); g.roundRect(26, 20, w - 52, h - 50, 16); g.stroke();
+    g.fillStyle = '#1b1b1b'; g.font = 'bold 18px sans-serif'; g.save(); g.translate(44, 40); g.rotate(Math.PI / 2); g.fillText('JESTER', 0, 0); g.restore();
+    g.save(); g.translate(w - 44, h - 70); g.rotate(-Math.PI / 2); g.fillText('JESTER', 0, 0); g.restore();
+    g.fillStyle = '#5f7a3a'; g.beginPath(); g.moveTo(95, 70); g.lineTo(120, 40); g.lineTo(150, 62); g.lineTo(170, 48); g.lineTo(160, 95); g.lineTo(100, 100); g.fill();   // the cap
+    g.fillStyle = '#e8e2d4'; g.beginPath(); g.ellipse(130, 125, 34, 42, -0.2, 0, Math.PI * 2); g.fill(); g.stroke();             // the face
+    g.fillStyle = '#1b1b1b'; g.beginPath(); g.arc(118, 112, 4, 0, Math.PI * 2); g.arc(142, 108, 4, 0, Math.PI * 2); g.fill();
+    g.fillStyle = '#b8232b'; g.beginPath(); g.moveTo(108, 138); g.quadraticCurveTo(132, 168, 156, 128); g.quadraticCurveTo(132, 146, 108, 138); g.fill();   // the grin
+    g.fillStyle = '#1b1b1b'; g.textAlign = 'center'; g.font = 'bold 15px sans-serif'; g.fillText('Honduran Coffee,', w / 2, 215); g.fillText("ain't no joke!", w / 2, 235);
+  });
+  plane(0.62, 0.85, sack, 3.0, 1.62, 4.75, -Math.PI / 2);
+  box(0.02, 0.02, 0.66, mat(0x5a4a32), 3.0, 2.06, 4.75);                         // the stick it hangs from
+  // the block shelf beside it against the front wall: three high, a plant and a little box on top, toys in the holes
+  [0.1, 0.3, 0.5].forEach(y => cinderBlock(0.4, 0.2, 0.2, 2.62, y, 4.2));
+  pottedPlant(2.5, 0.6, 4.2);
+  box(0.12, 0.04, 0.09, mat(0x6a3fc0), 2.75, 0.62, 4.2);                         // a little boxed something
+  [[2.52, 0.1], [2.72, 0.3]].forEach(([x, y]) => figurine(x, y - 0.06, 4.24, 0.9));
+  // a longboard leaning on the back wall behind the shelf
+  const board = new THREE.Group(); board.position.set(2.98, 0, 4.25); board.rotation.z = 0.12; ctx.scene.add(board);
+  box(0.016, 0.95, 0.22, mat(0xe86ca0, { roughness: 0.5 }), 0, 0.55, 0, board);
+  box(0.017, 0.4, 0.2, mat(0xf2c23a, { roughness: 0.5 }), 0, 0.3, 0, board);
+  [0.2, 0.9].forEach(y => [-0.08, 0.08].forEach(z => { const wl = cyl(0.03, 0.03, 0.035, mat(0xd8c08a), -0.04, y, z, board, 12); wl.rotation.z = Math.PI / 2; }));
+  // a dark tote hanging in the far corner by the door
+  box(0.12, 0.42, 0.3, mat(0x2a2624, { roughness: 0.9 }), 2.98, 1.05, 5.2);
+  box(0.01, 0.25, 0.02, mat(0x7a4a2a), 2.98, 1.38, 5.2);
 }
 
 // smoking is allowed outside: an ashtray (a couple of butts in it) on some of the tables
@@ -200,9 +251,10 @@ export function buildArcade() {
   middleStrip();
   ashtray(-1.0, 0.6, STRIP.at(STRIP.crates[2]));           // on the inner crates, between the cups (the tops stadium goes nearer the street)
   ashtray(-0.31, 0.6, 7.66);                                // the block table between the two seats by the scooter, clear of their cups
-  ashtray(-0.45, 0.6, 9.12);                                // the camping chair's crates on the kerb
+  ashtray(-0.45, 0.6 - RISE, 9.12);                                // the camping chair's crates on the kerb
   openStackAndSkate();
   openCorner();
+  beanbagNook();
   street();
   gallery();
   // a stack of blocks with a plant just past the street end of the seats, toys in its holes
