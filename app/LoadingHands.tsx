@@ -49,14 +49,18 @@ export default function LoadingHands({ ready, onDone }: { ready: boolean; onDone
   }, [onDone]);
 
   return (
-    <div className="loading-hands" ref={root} data-state="loading" role="status" aria-label="窺視珈琲載入中">
+    <div className="loading-hands" ref={root} data-state="loading" role="status" aria-label="窺視咖啡 萬全淨土淨化中">
       <div className="lh-stage" style={{ transformOrigin: `${RING.x * 100}% ${RING.y * 100}%` }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img className="lh-right" src="/loading/hand-right.png" alt="" draggable={false} />
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img className="lh-left" src="/loading/hand-left.png" alt="" draggable={false} />
       </div>
-      <p className="lh-caption"><b>窺視珈琲</b><small>PEEP COFFEE</small><span className="lh-wait">準備中…</span><span className="lh-go">請進</span></p>
+      <p className="lh-caption">
+        <b>窺視咖啡</b>
+        <span className="lh-wait">萬全淨土淨化中<i className="lh-dots"><i>.</i><i>.</i><i>.</i></i></span>
+        <span className="lh-go">淨化完成</span>
+      </p>
     </div>
   );
 }
