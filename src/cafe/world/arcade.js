@@ -3,7 +3,7 @@
 import * as THREE from 'three';
 import { ctx, mat, box, cyl, canvasTex, plane } from '../engine.js';
 import { S } from '../state.js';
-import { pick, DOT, K } from '../util.js';
+import { pick, rand, DOT, K } from '../util.js';
 import { STRIP, RISE } from '../layout.js';
 import { blackM, cinderM, CRATE_ORANGE, GLOSS_ORANGE, cinderBlock, cinderSeat, blockStack, crate, linkedChairs, campChair, figurine, trackRun, ceilingFan } from './props.js';
 
@@ -145,6 +145,33 @@ function beanbagNook() {
   blob(0.24, 1.2, 0.6, 1.6, -0.3, 0.2, 0);                // its rounded front lip
   blob(0.42, 0.45, 1.05, 1.05, 0.24, 0.55, 0, -0.16);     // the tall back, as wide as the seat, leaning toward the wall
   [-1, 1].forEach(sd => blob(0.2, 1.8, 1.35, 0.85, -0.02, 0.4, sd * 0.35));   // the rolled arms
+  // the orange bone-shaped neck cushion on top of its back
+  const bone = mat(0xe0661f, { roughness: 0.95 });
+  const pillow = new THREE.Group(); pillow.position.set(0.3, 0.98, 0); pillow.rotation.z = -0.25; bag.add(pillow);
+  [[0, 0, 0, 0.09, 1.4, 0.5, 1.9]].concat([-1, 1].flatMap(sd => [[0, 0, sd * 0.17, 0.07, 1.0, 0.6, 1.0], [0, 0.03, sd * 0.2, 0.06, 1.0, 0.6, 1.0]])).forEach(([x, y, z, r, sx, sy, sz]) => {
+    const m = new THREE.Mesh(new THREE.SphereGeometry(r, 16, 12), bone); m.position.set(x, y, z); m.scale.set(sx * 0.6, sy, sz); m.castShadow = true; pillow.add(m);
+  });
+  // in front of it, a little table of cinder blocks with a Halloween-print cloth over it, a tin robot and a dinosaur on top
+  const cloth = canvasTex(128, 96, (g, w, h) => {
+    g.fillStyle = '#1b1612'; g.fillRect(0, 0, w, h); g.fillStyle = '#e8762a'; g.fillRect(10, 10, w - 20, h - 20);
+    g.fillStyle = '#1b1612';
+    for (let i = 0; i < 9; i++) { const x = 18 + (i % 3) * 34, y = 18 + Math.floor(i / 3) * 24; g.beginPath(); g.moveTo(x, y + 8); g.quadraticCurveTo(x + 8, y - 4, x + 16, y + 8); g.quadraticCurveTo(x + 8, y + 2, x, y + 8); g.fill(); }   // bats and witches
+    for (let x = 0; x < w; x += 8) { g.fillStyle = '#f2efe6'; g.fillRect(x, 4, 4, 2); g.fillRect(x, h - 6, 4, 2); }   // the film-strip border
+    g.fillStyle = '#e8762a'; [[6, h - 6], [w - 6, h - 6]].forEach(([x, y]) => { g.beginPath(); g.arc(x, y, 5, 0, Math.PI * 2); g.fill(); });   // pumpkins in the corners
+  });
+  const tbl = new THREE.Group(); tbl.position.set(1.5, 0, 4.93); tbl.scale.x = 1 / K; ctx.scene.add(tbl);   // kept square, not squeezed
+  [0.1, 0.3].forEach(y => cinderBlock(0.2, 0.2, 0.4, 0, y, 0, tbl));
+  const cm = new THREE.MeshStandardMaterial({ map: cloth, roughness: 0.9 });
+  box(0.34, 0.01, 0.48, cm, 0, 0.405, 0, tbl);
+  [-1, 1].forEach(sd => { box(0.34, 0.12, 0.01, cm, 0, 0.35, sd * 0.24, tbl); box(0.01, 0.1, 0.48, cm, sd * 0.17, 0.36, 0, tbl); });   // hanging down all round
+  const robot = new THREE.Group(); robot.position.set(-0.04, 0.41, -0.14); robot.rotation.y = -0.5; tbl.add(robot);
+  const tin = mat(0xb9bcbd, { metalness: 0.7, roughness: 0.35 });
+  box(0.05, 0.06, 0.04, tin, 0, 0.05, 0, robot); box(0.04, 0.035, 0.035, tin, 0, 0.1, 0, robot);
+  box(0.03, 0.02, 0.005, mat(0xc0282d), 0, 0.055, 0.021, robot); [-1, 1].forEach(s => box(0.012, 0.02, 0.012, tin, s * 0.015, 0.012, 0, robot));
+  const dino = new THREE.Group(); dino.position.set(0.04, 0.41, 0.12); dino.rotation.y = 0.8; tbl.add(dino);
+  const scales = mat(0x3a3530, { roughness: 0.8 });
+  box(0.04, 0.05, 0.1, scales, 0, 0.05, 0, dino); box(0.03, 0.04, 0.05, scales, 0, 0.09, 0.05, dino); box(0.02, 0.02, 0.09, scales, 0, 0.03, -0.08, dino);
+  [-1, 1].forEach(s => box(0.012, 0.03, 0.015, scales, s * 0.015, 0.015, 0.01, dino));
   // the burlap sack on the wall above: a playing-card frame, a grinning jester and the line under it
   const sack = canvasTex(240, 320, (g, w, h) => {
     g.fillStyle = '#b8873e'; g.fillRect(0, 0, w, h);
@@ -186,6 +213,40 @@ function beanbagNook() {
     const hanger = cyl(0.01, 0.01, 0.17, truckM, -0.04, y, 0, board, 8); hanger.rotation.x = Math.PI / 2;
     [-0.085, 0.085].forEach(z => { const wl = cyl(0.032, 0.032, 0.038, wheelM, -0.045, y, z, board, 16); wl.rotation.x = Math.PI / 2; });
   });
+}
+
+// the storeroom wall behind the three linked chairs, as in the photo: a poster, an old row of four switches, the
+// breaker box up near the ceiling with conduit running from it, a caged work light hanging on its flex, and the
+// line where the stairs above cut across the wall
+function storeroomWall() {
+  const X = 0.915, FACE = -Math.PI / 2;                     // the wall's arcade face, everything turned to face the chairs
+  const onWall = (w, h, m, y, z, dx = 0) => { const p = new THREE.Mesh(new THREE.PlaneGeometry(w, h), m); p.position.set(X - dx, y, z); p.rotation.y = FACE; ctx.scene.add(p); return p; };
+  const poster = canvasTex(60, 84, (g, w, h) => {
+    g.fillStyle = '#f2efe6'; g.fillRect(0, 0, w, h); g.fillStyle = '#2f5fb3'; g.font = 'bold 13px sans-serif'; g.fillText('ADVENTURE', 4, 16);
+    g.fillStyle = '#e8762a'; g.beginPath(); g.arc(30, 44, 12, 0, Math.PI * 2); g.fill(); g.fillStyle = '#1b1b1b'; g.fillRect(24, 26, 12, 6); g.fillRect(22, 56, 16, 14);
+    g.fillStyle = '#ffd23f'; g.fillRect(4, h - 12, w - 8, 6);
+  });
+  onWall(0.32, 0.45, new THREE.MeshStandardMaterial({ map: poster, roughness: 0.8 }), 1.55, 6.5);
+  const steel = mat(0xb4b7b9, { metalness: 0.6, roughness: 0.4 });
+  for (let i = 0; i < 4; i++) {                              // the switches, each in its own small box
+    box(0.04, 0.09, 0.08, steel, X - 0.02, 1.98, 6.85 + i * 0.12);
+    box(0.012, 0.025, 0.012, mat(0x2a2a2a), X - 0.045, 1.98, 6.85 + i * 0.12);
+  }
+  box(0.12, 0.28, 0.32, mat(0xc9c6bd, { roughness: 0.7 }), X - 0.06, 2.4, 7.28);   // the breaker box
+  const pipe = mat(0x9a9a98, { metalness: 0.4, roughness: 0.5 });
+  const run = (z0, y0, z1, y1) => { const len = Math.hypot(z1 - z0, y1 - y0), p = cyl(0.012, 0.012, len, pipe, X - 0.03, (y0 + y1) / 2, (z0 + z1) / 2, ctx.scene, 6); p.rotation.x = Math.atan2(z1 - z0, y1 - y0); };
+  run(5.75, 2.48, 7.12, 2.48); run(7.3, 2.26, 7.3, 2.03); run(7.42, 2.26, 7.42, 1.2); run(7.6, 2.62, 7.6, 2.3);
+  // the work light: a flex down from the ceiling, a bare warm bulb in a wire cage, lit
+  const lx = X - 0.12, lz = 7.62;
+  cyl(0.005, 0.005, 0.85, mat(0x8a3a1e), lx, 2.4, lz, ctx.scene, 4);
+  const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.035, 12, 10), new THREE.MeshStandardMaterial({ color: 0xfff1c4, emissive: 0xffb24a, emissiveIntensity: 2.2 }));
+  bulb.position.set(lx, 1.92, lz); ctx.scene.add(bulb);
+  for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2, w = cyl(0.003, 0.003, 0.12, mat(0x2a2a2a), lx + Math.sin(a) * 0.045, 1.92, lz + Math.cos(a) * 0.045, ctx.scene, 4); w.castShadow = false; }
+  cyl(0.05, 0.05, 0.006, mat(0x2a2a2a), lx, 1.86, lz, ctx.scene, 10);
+  const lamp = new THREE.PointLight(0xffb24a, 0.5, 3, 2); lamp.position.set(lx - 0.08, 1.9, lz); ctx.scene.add(lamp);
+  S.bulbs && S.bulbs.push({ pl: lamp, bm: null, base: 0.5 });
+  // the underside of the stairs above, cutting across the wall as a slanted edge
+  const stair = box(0.03, 0.04, 1.7, mat(0x76736e, { roughness: 0.9 }), X - 0.015, 1.7, 5.95); stair.rotation.x = -0.62;   // to the left of the poster
 }
 
 // smoking is allowed outside: an ashtray (a couple of butts in it) on some of the tables
@@ -275,6 +336,7 @@ export function buildArcade() {
   openStackAndSkate();
   openCorner();
   beanbagNook();
+  storeroomWall();
   street();
   gallery();
   // a stack of blocks with a plant just past the street end of the seats, toys in its holes

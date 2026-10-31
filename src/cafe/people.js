@@ -237,6 +237,7 @@ export class Person {
     else if (sitting) { y = (this.seat ? this.seat.sitY : -0.1) - LEG_EXTRA + 0.02;   // hips on the seat, though they sit higher on the longer legs
       hipL = hipR = -Math.PI / 2; kL = kR = this.seat && this.seat.floor ? 0.25 : Math.PI / 2; armLx = armRx = -0.25; elL = elR = -0.7; }   // hands resting on the lap
     else { armLx = Math.sin(this.walkPhase * 0.7) * 0.04; armRx = -armLx; }
+    if (sitting && this.seat && this.seat.lounge && !moving) { armLz = -0.45; armRz = 0.45; armLx = armRx = -0.3; elL = elR = -0.6; }   // arms out along a beanbag's rolled arms
     if (this.cup && this.cup.parent === this.hand && !this.act) { const P = DRINK_POSE[this.role === 'owner' ? 'high' : moving ? 'walk' : 'carry']; armRx = P.x; armRz = P.z; elR = P.el; }   // cup carried in front
     this.pad.visible = this.pose === 'game';
     if (this.pose === 'game' && !moving) { armLx = armRx = -0.55 + Math.sin(this.walkPhase * 6) * 0.04; elL = elR = -1.0; armLz = 0.3; armRz = -0.3; bob = Math.sin(this.walkPhase * 3) * 0.01; }
