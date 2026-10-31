@@ -43,7 +43,7 @@ async function ownerLoop(owner) {
     if (!S.orderQueue.length) {
       if (Math.random() < 0.08 && !S.closing) {
         owner.status = '去倉庫拿豆子';
-        const back = [[LANE, -2.3], [0.6, -3.4], [-1.2, -3.95], [-1.2, -5.8], [-0.3, -5.8], [1.0, -5.8]];
+        const back = [[LANE, -2.3], [0.6, -3.4], [-1.2, -3.95], [-2.0, -4.1], [-2.0, -5.8], [-0.3, -5.8], [1.0, -5.8]];
         await ownerTo(owner, LANE, null, back);
         owner.face(Math.PI); await sleep(1.5);
         owner.gesture('carry', 30);

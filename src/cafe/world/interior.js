@@ -209,8 +209,8 @@ function decor() {
   plane(0.95, 0.95, neonTex, 1.0, 1.95, -5.38, 0, true);
   [-0.3, 1.25, 2.4].forEach(x => figurine(x, 1.215, -5.42, 1.1));   // a few figurines standing on top of the manga, none in front of it
   // indoor AC above the sliding door
-  box(1.15, 0.28, 0.24, mat(0xf2f2f0, { roughness: 0.4 }), -1.5, 2.64, -5.3);   // up clear of the taller door
-  box(1.05, 0.02, 0.02, mat(0x9aa0a6), -1.5, 2.53, -5.17);                                                  // vent slot
+  box(1.0, 0.28, 0.24, mat(0xf2f2f0, { roughness: 0.4 }), -2.36, 2.64, -5.3);   // over the sliding door, clear of its top
+  box(0.9, 0.02, 0.02, mat(0x9aa0a6), -2.36, 2.53, -5.17);                                                  // vent slot
   // conduit + track lights
   const conduitM = mat(0x2a2a2a, { roughness: 0.5 });
   const c1 = cyl(0.02, 0.02, 8.4, conduitM, -3.0, 2.62, -0.3, ctx.scene, 6); c1.rotation.x = Math.PI / 2;
@@ -222,7 +222,7 @@ function decor() {
   framed('eye', -3.04, 1.75, 0.25, 0.3, 0.25, '#ff4f7b', 0x7a1c1c);
   framed('wave', -3.04, 1.9, 1.9, 0.95, 0.72, '#f4efe3', 0x1a1410);   // kept clear of the dartboard
   // a cluster of small black frames, like the gallery seen from the sliding door
-  [[-4.4, 1.95], [-3.95, 1.6], [-3.5, 2.05], [-3.05, 1.65], [-2.6, 2.0], [0.65, 2.1], [0.95, 1.7], [1.2, 2.15], [3.68, 2.2]].forEach(([z, y], i) => {
+  [[-4.15, 1.95], [-3.7, 1.6], [-3.25, 2.05], [-2.8, 1.65], [-2.35, 2.0], [0.65, 2.1], [0.95, 1.7], [1.2, 2.15], [3.68, 2.2]].forEach(([z, y], i) => {
     framed(['eye', 'hoop', 'toys'][i % 3], -3.04, y, z, 0.24, 0.3, pick(['#f4efe3', '#ffd23f', '#7ec8ff', '#ff4f7b']));
   });
   // ceiling fans: one over the front end of the bar, toward the door, and one over the games corner
