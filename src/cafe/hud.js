@@ -123,11 +123,13 @@ function playAt(kind, root) {
   document.querySelectorAll('[data-cam]').forEach(b => b.classList.remove('on'));
   S.watch = kind === 'tv' || kind === 'darts' ? { x: tt.x, z: tt.z } : null;   // anyone between the camera and the TV or the board steps out of the picture
   controls.enabled = false;   // the camera holds still (no orbiting or zooming) until the game is closed
-  // leaving: back where the camera was, except from the TV, which goes to the TV view so the match really on can be watched
+  // leaving: back where the camera was, except from the TV: square on to it, a step further back, so the match really on
+  // can be watched
   const back = () => {
     S.watch = null; controls.enabled = true;
-    if (kind === 'tv') { setCam('tv'); return; }
-    camTween = { fp: camera.position.clone(), ft: controls.target.clone(), tp: from.p, tt: from.t, t: 0 };
+    let p = from.p, t = from.t;
+    if (kind === 'tv') { t = new THREE.Vector3((TVX + 0.075) * K, TVY, TVZ); p = t.clone().addScaledVector(new THREE.Vector3(1, 0.3, 0).normalize(), dist * 1.15); }   // over the players' heads
+    camTween = { fp: camera.position.clone(), ft: controls.target.clone(), tp: p, tt: t, t: 0, dur: 0.7 };
   };
   // a quick flight in, then the game: darts on the board on the wall itself, the others in a window
   camTween = { fp: from.p.clone(), ft: from.t.clone(), tp, tt, t: 0, dur: 0.6, done: () => (kind === 'darts' ? playWallDarts(root, back) : openGame(kind, root, back)) };
