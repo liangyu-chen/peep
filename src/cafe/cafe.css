@@ -59,17 +59,6 @@ body:has(.cafe-root){margin:0;overflow:hidden;background:#141218}
 .cafe-root .btnLink{font-size:13px;color:var(--ink);background:#2c2838;padding:4px 9px;text-decoration:none;box-shadow:inset -3px -3px 0 0 #15131c,inset 3px 3px 0 0 #4a4458}
 .cafe-root .btnLink:hover{background:#373245}
 .cafe-root .btnLink:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
-/* the menu, over the café */
-.cafe-root .menuSheet{position:fixed;inset:0;z-index:40;display:grid;place-items:center;background:rgba(10,8,14,.55);padding:16px}
-.cafe-root .menuSheet .win{position:relative;width:min(440px,100%);max-height:min(80vh,640px);overflow:auto;padding:14px 16px;background:#1b1824}
-.cafe-root .menuSheet .head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
-.cafe-root .menuSheet .head h2{margin:0}
-.cafe-root .menuSheet h3{margin:12px 0 4px;font-family:var(--f-pixel);font-size:9px;font-weight:400;color:var(--gold);letter-spacing:.06em}
-.cafe-root .menuSheet p{margin:0;display:grid;grid-template-columns:1fr 3.2em 3.2em;align-items:baseline;gap:6px;padding:4px 0;border-bottom:1px dashed rgba(255,255,255,.08)}
-.cafe-root .menuSheet p span small{display:block;font-size:11px;color:var(--muted)}
-.cafe-root .menuSheet p b{font-weight:400;text-align:right;font-family:var(--f-pixel);font-size:10px;color:var(--gold)}
-.cafe-root .menuSheet .cols{border:0;padding:0}
-.cafe-root .menuSheet .cols b{font-family:var(--f-dot);font-size:12px;color:var(--muted)}
 .cafe-root .adminLink{margin-left:auto;font-size:12px;color:var(--muted);padding:4px 2px;text-decoration:underline;text-underline-offset:3px}
 .cafe-root .adminLink:hover{color:var(--gold)}
 .cafe-root .adminLink:focus-visible{outline:3px solid var(--gold);outline-offset:2px}

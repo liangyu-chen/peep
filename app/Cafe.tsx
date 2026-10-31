@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { MENU_SECTIONS, type CafeContent } from '@/src/content/catalog';
+import type { CafeContent } from '@/src/content/catalog';
 import '@/src/cafe/cafe.css';
 import LoadingHands from './LoadingHands';
 
@@ -10,7 +10,6 @@ export default function Cafe({ content }: { content: CafeContent }) {
   const root = useRef<HTMLDivElement>(null);
   const [ready, setReady] = useState(false);     // the scene is built and has drawn its first frames
   const [loading, setLoading] = useState(true);  // the loading screen is still up
-  const [menuOpen, setMenuOpen] = useState(false);
   const done = useCallback(() => setLoading(false), []);
 
   useEffect(() => {
@@ -55,7 +54,7 @@ export default function Cafe({ content }: { content: CafeContent }) {
           <button id="tagToggle" className="on">名牌</button>
         </div>
         <div className="row"><span></span>
-          <button className="primary" onClick={() => setMenuOpen(true)}>觀看菜單</button>
+          <button className="primary" data-cam="menu">觀看菜單</button>
           <a className="btnLink" href="https://www.instagram.com/peep20190401" target="_blank" rel="noreferrer">Instagram ↗</a>
           <a href="/admin" className="adminLink">後台登入</a>
         </div>
@@ -87,25 +86,6 @@ export default function Cafe({ content }: { content: CafeContent }) {
       </aside>
 
       <div id="hint">拖曳旋轉 · 滾輪縮放 · 點人物看資料 · 點電視看比賽</div>
-      {menuOpen && (
-        <div className="menuSheet" role="dialog" aria-label="菜單" onClick={() => setMenuOpen(false)}>
-          <section className="win" onClick={e => e.stopPropagation()}>
-            <div className="head"><h2>MENU 菜單</h2><button onClick={() => setMenuOpen(false)} aria-label="關閉">✕</button></div>
-            <p className="cols"><span /><b>熱</b><b>冰</b></p>
-            {MENU_SECTIONS.map(sec => {
-              const items = content.menu.filter(m => m.section === sec);
-              return items.length ? (
-                <div key={sec} className="sec">
-                  <h3>{sec}</h3>
-                  {items.map(m => (
-                    <p key={m.name}><span>{m.name}<small>{m.en}</small></span><b>{m.hot || '－'}</b><b>{m.ice || '－'}</b></p>
-                  ))}
-                </div>
-              ) : null;
-            })}
-          </section>
-        </div>
-      )}
       {loading && <LoadingHands ready={ready} onDone={done} />}
     </div>
   );
