@@ -216,8 +216,7 @@ function beanbagNook() {
 }
 
 // the storeroom wall behind the three linked chairs, as in the photo: a poster, an old row of four switches, the
-// breaker box up near the ceiling with conduit running from it, a caged work light hanging on its flex, and the
-// line where the stairs above cut across the wall
+// breaker box up near the ceiling with conduit running from it, and a caged work light hanging on its flex
 function storeroomWall() {
   const X = 0.915, FACE = -Math.PI / 2;                     // the wall's arcade face, everything turned to face the chairs
   const onWall = (w, h, m, y, z, dx = 0) => { Object.assign(m, DECAL); const p = new THREE.Mesh(new THREE.PlaneGeometry(w, h), m); p.position.set(X - dx, y, z); p.rotation.y = FACE; ctx.scene.add(p); return p; };
@@ -250,8 +249,6 @@ function storeroomWall() {
   const lamp = new THREE.PointLight(0xffb24a, 0.5, 3, 2); lamp.position.set(lx - 0.08, 1.9, lz);
   if (!LOW_POWER) ctx.scene.add(lamp);   // a tablet makes do with the glowing bulb
   S.bulbs && S.bulbs.push({ pl: lamp, bm: null, base: 0.5 });
-  // the underside of the stairs above, cutting across the wall as a slanted edge
-  const stair = box(0.03, 0.04, 1.7, mat(0x76736e, { roughness: 0.9 }), X - 0.015, 1.7, 5.95); stair.rotation.x = -0.62;   // to the left of the poster
 }
 
 // smoking is allowed outside: an ashtray (a couple of butts in it) on some of the tables
