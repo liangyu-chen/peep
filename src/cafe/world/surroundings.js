@@ -362,9 +362,25 @@ export function buildSurroundings() {
   [-5.2, -5.9, -9.6, -13.5, 4.9, 7.8, 11.6, 21.2].forEach(px => park(px, FRONT + 0.75, rand(-0.15, 0.15) + (Math.random() < 0.5 ? 0 : Math.PI), vehicle()));
   for (let i = 0; i < 14; i++) {
     const pz = FRONT + 0.25, px = rand(-30, 30);
-    if (Math.abs(px) < 2.8 || (px > CROSS0 - 0.4 && px < CROSS1 + 0.4) || px > end) continue;
+    if (Math.abs(px) < 2.8 || (px > CROSS0 - 0.4 && px < CROSS1 + 0.4) || px > end || (px > -3.95 && px < -1.8)) continue;
     const pot = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.12, 0.26, 10), mat(pick([0xb06a45, 0x3d6a91, 0xe6e3dc]))); pot.position.set(px, 0.13 - RISE, pz); env.add(pot);
     const leaf = new THREE.Mesh(new THREE.IcosahedronGeometry(0.22, 0), mat(pick([0x5f8f55, 0x6f9f5c, 0x7fae66]), { flatShading: true })); leaf.position.set(px, 0.42 - RISE, pz); env.add(leaf);
   }
+  // in front of the shutter next door on the left, as in the photo: a long old wooden bench with splayed legs, and a
+  // tree stump beside it with a potted plant on top
+  const wood = mat(0x9a7a56, { roughness: 0.85 }), woodDark = mat(0x7a5c3e, { roughness: 0.9 });
+  const bench = new THREE.Group(); bench.position.set(-2.6, -RISE, FRONT + 0.42); env.add(bench);
+  const piece = (w, h, d, m, x, y, z, rz = 0, rx = 0) => { const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); b.position.set(x, y, z); b.rotation.set(rx, 0, rz); b.castShadow = b.receiveShadow = true; bench.add(b); return b; };
+  piece(1.5, 0.05, 0.24, wood, 0, 0.47, 0);                                                // the seat plank
+  [-1, 1].forEach(sx => [-1, 1].forEach(sz => piece(0.05, 0.48, 0.05, woodDark, sx * 0.6, 0.23, sz * 0.07, sx * 0.12, -sz * 0.18)));   // legs, splayed out
+  [-1, 1].forEach(sx => piece(0.04, 0.04, 0.2, woodDark, sx * 0.62, 0.16, 0));            // a rung between each pair
+  piece(1.18, 0.04, 0.03, woodDark, 0, 0.36, 0.02);                                         // and a stretcher along under the seat
+  const stump = new THREE.Group(); stump.position.set(-3.68, -RISE, FRONT + 0.45); env.add(stump);
+  const bark = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.23, 0.5, 14), mat(0x5e4532, { roughness: 1 })); bark.position.y = 0.25; bark.castShadow = true; stump.add(bark);
+  const rings = new THREE.Mesh(new THREE.CylinderGeometry(0.19, 0.19, 0.01, 14), mat(0xb08a62, { roughness: 0.9 })); rings.position.y = 0.505; stump.add(rings);
+  const pot = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.06, 0.11, 12), mat(0xb5643c, { roughness: 0.8 })); pot.position.set(-0.02, 0.565, 0.02); pot.castShadow = true; stump.add(pot);
+  [[0, 0.68, 0, 0.1], [0.06, 0.66, 0.04, 0.07], [-0.06, 0.65, -0.03, 0.07], [0.02, 0.74, -0.04, 0.06]].forEach(([x, y, z, r]) => {
+    const leaf = new THREE.Mesh(new THREE.IcosahedronGeometry(r, 0), mat(pick([0x4f8a45, 0x5f9a50, 0x6aa85a]), { flatShading: true })); leaf.position.set(x - 0.02, y, z + 0.02); leaf.castShadow = true; stump.add(leaf);
+  });
   [[-4.3, FRONT + 0.3], [8.6, FRONT + 0.3]].forEach(([px, pz]) => { const c = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.3, 0.4), mat(0x2f8a4a, { roughness: 0.6 })); c.position.set(px, 0.15 - RISE, pz); c.castShadow = true; env.add(c); });   // green crates
 }
