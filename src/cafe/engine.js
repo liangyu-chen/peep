@@ -15,7 +15,6 @@ export function createEngine(stage) {
   renderer.setSize(stage.clientWidth || window.innerWidth, stage.clientHeight || window.innerHeight);
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = LOW_POWER ? THREE.PCFShadowMap : THREE.PCFSoftShadowMap;
-  renderer.shadowMap.autoUpdate = false;   // redrawn every few frames by the loop (index.js): only people and doors move
   renderer.outputEncoding = THREE.sRGBEncoding;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.1;

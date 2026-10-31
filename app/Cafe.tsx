@@ -91,7 +91,7 @@ export default function Cafe({ content }: { content: CafeContent }) {
           <button data-speed="4">4x</button>
           <button id="tagToggle" className="on">名牌</button>
         </div>
-        <div className="row"><span>聲音</span><button id="sfxToggle" className="on">音效</button><a href="/admin" className="adminLink">後台登入</a></div>
+        <div className="row"><span>聲音</span><button id="sfxToggle" className="on">音效</button><button id="musicToggle" className="on">音樂</button><a href="/admin" className="adminLink">後台登入</a></div>
       </section>
 
       <section id="log" className="win" aria-label="店內動態">

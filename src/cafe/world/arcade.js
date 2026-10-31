@@ -230,8 +230,8 @@ function storeroomWall() {
   const steel = mat(0xb4b7b9, { metalness: 0.6, roughness: 0.4 });
   for (let i = 0; i < 4; i++) {                              // the switches, each in its own small box
     box(0.04, 0.09, 0.08, steel, X - 0.02, 1.98, 6.85 + i * 0.12);
-    const lever = box(0.012, 0.025, 0.012, mat(0x2a2a2a), X - 0.045, i === 3 ? 1.99 : 1.98, 6.85 + i * 0.12);
-    if (i === 3) {   // the fourth works the neon sign inside: click it (a bigger, unseen box takes the click); lever up is on
+    const lever = box(0.012, 0.025, 0.012, mat(0x2a2a2a), X - 0.045, i === 0 ? 1.99 : 1.98, 6.85 + i * 0.12);
+    if (i === 0) {   // the fourth counting from the breaker box end works the neon sign inside: click it (a bigger, unseen box takes the click); lever up is on
       const hit = box(0.06, 0.14, 0.12, mat(0x000000), X - 0.03, 1.98, 6.85 + i * 0.12); hit.visible = false;
       S.neonSwitch = { lever, hit };
     }

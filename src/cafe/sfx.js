@@ -10,7 +10,7 @@ export function toggleSfx() {
   return muted;
 }
 
-function audio() {
+export function audio() {
   if (!ac) {
     const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return null;
     ac = new AC();

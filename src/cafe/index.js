@@ -68,11 +68,9 @@ export function startCafe(root, content) {
       w.me.castShadow = !behind;
     });
   }
-  // a tablet or phone draws every other frame (30 a second), and the shadows, which only people and doors change, are
-  // redrawn every few frames rather than every one
-  const minGap = LOW_POWER ? 1000 / 30 - 4 : 0, shadowEvery = LOW_POWER ? 3 : 2;
-  let shadowN = 0;
-  ctx.renderer.shadowMap.needsUpdate = true;
+  // a tablet or phone draws every other frame (30 a second). (The shadows are redrawn every frame: skipping some made the
+  // lit walls and posters flicker between frames.)
+  const minGap = LOW_POWER ? 1000 / 30 - 4 : 0;
   function frame(now) {
     if (S.stopped) return;
     if (now - last < minGap) { raf = requestAnimationFrame(frame); return; }
@@ -82,7 +80,6 @@ export function startCafe(root, content) {
 
     updateCamera(dt);
     ctx.controls.update();
-    if ((shadowN = (shadowN + 1) % shadowEvery) === 0) ctx.renderer.shadowMap.needsUpdate = true;
     ctx.renderer.render(ctx.scene, ctx.camera);
     updateLabels(dt, stage.clientWidth || window.innerWidth, stage.clientHeight || window.innerHeight);
     raf = requestAnimationFrame(frame);
@@ -102,7 +99,7 @@ export function startCafe(root, content) {
     // move the camera along (a tween to a preset or a close-up) and draw, for when the page isn't getting frames
     view: (secs = 1.5, dt = 0.05) => {
       for (let t = 0; t < secs; t += dt) updateCamera(dt);
-      ctx.controls.update(); ctx.renderer.shadowMap.needsUpdate = true; ctx.renderer.render(ctx.scene, ctx.camera);
+      ctx.controls.update(); ctx.renderer.render(ctx.scene, ctx.camera);
     },
   };
 

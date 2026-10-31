@@ -12,6 +12,7 @@ import { tvGames, GAME_LABEL } from './profiles.js';
 import { openGame, closeGame } from './games.js';
 import { playWallDarts, stopWallDarts } from './wallDarts.js';
 import { sfx, sfxMuted, toggleSfx } from './sfx.js';
+import { startMusic, stopMusic, toggleMusic, musicOn } from './music.js';
 import { TVX, TVY, TVZ } from './layout.js';
 
 export function updateHUD() {
@@ -155,6 +156,11 @@ export function bindHUD(root, stage) {
   });
   const sfxBtn = $('sfxToggle'), showSfx = () => sfxBtn?.classList.toggle('on', !sfxMuted());
   showSfx(); on(sfxBtn, 'click', () => { toggleSfx(); showSfx(); sfx('pop'); });
+  // the background music: starts with the first touch anywhere (browsers won't play before one), and its own switch
+  const musicBtn = $('musicToggle'), showMusic = () => musicBtn?.classList.toggle('on', musicOn());
+  showMusic(); on(musicBtn, 'click', () => { toggleMusic(); showMusic(); });
+  on(root, 'pointerdown', () => startMusic());
+  off.push(stopMusic);
   on($('tvCard'), 'click', () => setCam('tv'));
   const stopTween = () => { camTween = null; root.querySelectorAll('[data-cam]').forEach(b => b.classList.remove('on')); };
   ctx.controls.addEventListener('start', stopTween); off.push(() => ctx.controls.removeEventListener('start', stopTween));
