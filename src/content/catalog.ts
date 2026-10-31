@@ -7,10 +7,11 @@ export type MenuItem = { name: string; en: string; section: string; hot: string;
 export const MENU_SECTIONS = ['Original', 'Coffee late', 'Something special', 'Not coffee'];
 
 // how a person looks; colours are 0xRRGGBB numbers. Face fields left out are filled in by faceOf().
-// Anything the editor doesn't know (cap colour, long sleeves…) is kept as it is.
+// Anything the editor doesn't know (long sleeves…) is kept as it is.
 export type Look = {
   skin: number; hair: number; hairStyle: string; shirt: number; pants: number;
-  number?: string; cap?: number; longSleeve?: boolean;
+  number?: string; longSleeve?: boolean;
+  hat?: string; hatColor?: number;             // a hat worn over whatever the hair is (older looks: hairStyle 'cap'/'bucket' + cap, or beanie)
   glasses?: boolean | string;                  // older looks stored true for square frames
   faceShape?: string; eyes?: string; eyeColor?: number; brows?: string; nose?: string; mouth?: string;
   facialHair?: string; blush?: boolean;
@@ -219,9 +220,28 @@ type Option = { value: string; label: string };
 export const HAIR_STYLES: Option[] = [
   { value: 'short', label: '短髮' }, { value: 'buzz', label: '平頭' }, { value: 'side', label: '旁分' },
   { value: 'spiky', label: '刺蝟頭' }, { value: 'curly', label: '捲髮' }, { value: 'long', label: '長髮' },
-  { value: 'ponytail', label: '馬尾' }, { value: 'bun', label: '包頭' },
-  { value: 'cap', label: '棒球帽' }, { value: 'bucket', label: '漁夫帽' }, { value: 'bald', label: '光頭' },
+  { value: 'longCurly', label: '長捲髮' }, { value: 'ponytail', label: '馬尾' }, { value: 'bun', label: '包頭' },
+  { value: 'bald', label: '光頭' },
 ];
+// a hat is its own choice, put on over the hair
+export const HAT_STYLES: Option[] = [
+  { value: 'none', label: '不戴' }, { value: 'cap', label: '棒球帽' }, { value: 'bucket', label: '漁夫帽' }, { value: 'beanie', label: '毛帽' },
+];
+const HAT_COLOR: Record<string, number> = { cap: 0xf08a24, bucket: 0x2f2f2f, beanie: 0xd08a1e };
+// the hair and the hat of a look, reading the older ways hats were stored: as a hairstyle (with its colour in `cap`,
+// short hair under it) or as a beanie colour
+export function hairOf(look: Look): string {
+  return look.hairStyle === 'cap' || look.hairStyle === 'bucket' ? 'short' : look.hairStyle;
+}
+export function hatOf(look: Look): { hat: string; color: number } {
+  const hat = HAT_STYLES.some(h => h.value === look.hat) ? (look.hat as string)
+    : look.hairStyle === 'cap' || look.hairStyle === 'bucket' ? look.hairStyle
+    : typeof look.beanie === 'number' ? 'beanie' : 'none';
+  const color = typeof look.hatColor === 'number' ? look.hatColor
+    : look.hat == null && (look.hairStyle === 'cap' || look.hairStyle === 'bucket') && typeof look.cap === 'number' ? look.cap
+    : look.hat == null && typeof look.beanie === 'number' ? look.beanie : HAT_COLOR[hat] ?? 0xd08a1e;
+  return { hat, color };
+}
 
 // ---------------------------------------------------------------- faces (捏臉)
 export const FACE: Record<'faceShape' | 'eyes' | 'brows' | 'nose' | 'mouth' | 'facialHair' | 'glasses', Option[]> = {
@@ -267,17 +287,19 @@ export function parseLook(get: (k: string) => string | null, prev?: Look): Look 
   const opt = (k: keyof typeof FACE, fallback: string) => { const v = get(k); return valid(k, v) ? (v as string) : fallback; };
   const face = faceOf(base, String(get('name') ?? ''));
   const hairStyle = get('hairStyle') ?? '';
+  const hatNow = hatOf(base), hat = get('hat') ?? hatNow.hat;
   const number = (get('number') ?? '').trim().slice(0, 2);
   const look: Look = {
     ...base,
     skin: hex('skin', base.skin), hair: hex('hair', base.hair), shirt: hex('shirt', base.shirt), pants: hex('pants', base.pants),
-    hairStyle: HAIR_STYLES.some(h => h.value === hairStyle) ? hairStyle : base.hairStyle,
+    hairStyle: HAIR_STYLES.some(h => h.value === hairStyle) ? hairStyle : hairOf(base),
+    hat: HAT_STYLES.some(h => h.value === hat) ? hat : 'none', hatColor: hex('hatColor', hatNow.color),
     faceShape: opt('faceShape', face.faceShape), eyes: opt('eyes', face.eyes), brows: opt('brows', face.brows),
     nose: opt('nose', face.nose), mouth: opt('mouth', face.mouth), facialHair: opt('facialHair', face.facialHair),
     glasses: opt('glasses', face.glasses), eyeColor: hex('eyeColor', face.eyeColor), blush: get('blush') === 'on',
   };
   delete look.mustache; delete look.goatee;   // superseded by facialHair
-  if (get('beanie') === 'on') look.beanie = hex('beanieColor', typeof base.beanie === 'number' ? base.beanie : 0xd08a1e); else delete look.beanie;
+  delete look.beanie; delete look.cap;          // superseded by hat / hatColor
   if (number) look.number = number; else delete look.number;
   return look;
 }
@@ -308,14 +330,14 @@ const look = (skin: number, hair: number, hairStyle: string, shirt: number, pant
 export const DEFAULT_REGULARS: Regular[] = [
   { name: '阿凱', job: '軟體工程師', drink: '美式', team: '勇士', visits: 214, look: look(0xe0ac80, 0x111111, 'short', 0x1D428A, 0x2b2b2b, { glasses: true, number: '30' }), plays2k: true, playsFight: false, fighter: '', playsTops: false, smokes: false, quirk: '每天下班一定來打一場' },
   { name: '美美', job: '平面設計師', drink: '卡布', team: '湖人', visits: 167, look: look(0xf6d7bd, 0x3b2618, 'long', 0xf1d27a, 0x3a3f5c), plays2k: true, playsFight: true, fighter: '春麗', playsTops: false, smokes: false, quirk: '自稱店內 2K 女王' },
-  { name: '大頭', job: '大學生', drink: '榛果拿鐵', team: '公牛', visits: 98, look: look(0xf1c9a5, 0x1b1410, 'cap', 0xCE1141, 0x222222, { cap: 0x111111, number: '23' }), plays2k: true, playsFight: true, fighter: '隆', playsTops: true, smokes: false, quirk: '翹課來打電動' },
+  { name: '大頭', job: '大學生', drink: '榛果拿鐵', team: '公牛', visits: 98, look: look(0xf1c9a5, 0x1b1410, 'short', 0xCE1141, 0x222222, { hat: 'cap', hatColor: 0x111111, number: '23' }), plays2k: true, playsFight: true, fighter: '隆', playsTops: true, smokes: false, quirk: '翹課來打電動' },
   { name: '阿嘉', job: '外送員', drink: '林美如', team: '塞爾提克', visits: 131, look: look(0xc68a5e, 0x111111, 'short', 0x2e8b57, 0x334455), plays2k: false, playsFight: false, fighter: '', playsTops: true, smokes: true, quirk: '送單空檔會在戶外區坐一下' },
   { name: '小胖', job: '研究生', drink: '朱古力', team: '熱火', visits: 76, look: look(0xf1c9a5, 0x3b2618, 'short', 0x98002E, 0x555555, { glasses: true }), plays2k: true, playsFight: true, fighter: '桑吉爾夫', playsTops: true, smokes: false, quirk: '論文寫不出來就來這' },
   { name: 'Jason', job: '隔壁五金行少東', drink: '別害羞', team: '獨行俠', visits: 120, look: look(0xe0ac80, 0x6b4423, 'short', 0xf2f2f2, 0x1f2a44, { longSleeve: true }), plays2k: true, playsFight: false, fighter: '', playsTops: true, smokes: true, quirk: '顧店空檔溜過來' },
   { name: '阿翔', job: '健身教練', drink: '康保藍', team: '金塊', visits: 88, look: look(0x8d5a3b, 0x111111, 'bald', 0x0E2240, 0x111111), plays2k: true, playsFight: true, fighter: '古烈', playsTops: false, smokes: false, quirk: '輸了會去戶外區做伏地挺身' },
   { name: '小雨', job: '插畫家', drink: '拿鐵', team: '公鹿', visits: 143, look: look(0xf6d7bd, 0x111111, 'bun', 0x7fae8b, 0xd9c7a4), plays2k: false, playsFight: false, fighter: '', playsTops: false, smokes: false, quirk: '最愛台式茶杯裡的拉花' },
   { name: '老陳', job: '退休老師', drink: '拿鐵', team: '塞爾提克', visits: 302, look: look(0xe0ac80, 0x8a8a8a, 'short', 0x8b6b4a, 0x4a4a4a, { glasses: true, longSleeve: true }), plays2k: true, playsFight: false, fighter: '', playsTops: false, smokes: false, quirk: '從萬華店就跟過來的元老' },
-  { name: '阿德', job: '廚師', drink: '一起搖擺', team: '太陽', visits: 65, look: look(0xd9a27c, 0x1b1410, 'cap', 0xE56020, 0x2b2b2b, { cap: 0x1D1160 }), plays2k: false, playsFight: true, fighter: '肯', playsTops: true, smokes: true, quirk: '休假日整天泡在這' },
+  { name: '阿德', job: '廚師', drink: '一起搖擺', team: '太陽', visits: 65, look: look(0xd9a27c, 0x1b1410, 'short', 0xE56020, 0x2b2b2b, { hat: 'cap', hatColor: 0x1D1160 }), plays2k: false, playsFight: true, fighter: '肯', playsTops: true, smokes: true, quirk: '休假日整天泡在這' },
   { name: '欣欣', job: '護理師', drink: '榛果拿鐵', team: '尼克', visits: 91, look: look(0xf6d7bd, 0x6b4423, 'long', 0x006BB6, 0x2b2b2b), plays2k: true, playsFight: false, fighter: '', playsTops: false, smokes: false, quirk: '大夜班下班來放鬆' },
   { name: '球哥', job: '前校隊後衛', drink: '林美如', team: '公牛', visits: 188, look: look(0xc68a5e, 0x111111, 'short', 0x111111, 0xCE1141, { number: '1' }), plays2k: true, playsFight: true, fighter: '達爾錫', playsTops: true, smokes: true, quirk: '嘴上說不玩，坐下就不走' },
 ];
@@ -339,7 +361,7 @@ export const FIGHTER_NAMES = SF_FIGHTERS.map(f => f.name);
 
 export const DEFAULT_OWNER: Owner = {
   name: '小鬍子', job: '老闆兼咖啡師，拉花和雕花是招牌',
-  look: look(0xe0ac80, 0x1b1410, 'long', 0x1e1e22, 0x1f1f1f, { facialHair: 'both', beanie: 0xd08a1e, glasses: 'square', longSleeve: true }),
+  look: look(0xe0ac80, 0x1b1410, 'long', 0x1e1e22, 0x1f1f1f, { facialHair: 'both', hat: 'beanie', hatColor: 0xd08a1e, glasses: 'square', longSleeve: true }),
 };
 
 // ---------------------------------------------------------------- first-timers' random values

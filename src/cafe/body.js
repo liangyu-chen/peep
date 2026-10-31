@@ -3,7 +3,7 @@
 import * as THREE from 'three';
 import { mat, canvasTex } from './engine.js';
 import { PIX } from './util.js';
-import { faceOf } from '../content/catalog';
+import { faceOf, hairOf, hatOf } from '../content/catalog';
 
 // ---------------------------------------------------------------- shared geometry and materials
 // geometries are shared between everyone; materials stay per person since their colours differ
@@ -177,7 +177,7 @@ export function buildBody(look, seed = '') {
   const face = new THREE.Group(); head.add(face);
   const fm = (geom, m, x, y, z, par = face) => mk(geom, m, x, y, z, par, false);
 
-  buildHair(look.hairStyle, shape, head, hairM, mk, at, look);
+  buildHair(hairOf(look), shape, head, hairM, mk, at, look);
 
   // eyes: each in its own group so it can blink
   const EX = 0.062 * H.s[0], EY = 0.025;
@@ -290,6 +290,13 @@ export function buildBody(look, seed = '') {
   return { g, legs, arms, elbows, head, hand, handL, pad, eyes, mouth, skinM: skin, strip: { bare, bunch, pants, skin } };
 }
 
+// hats, each a shell round its own tipped crown down to a front edge `elev` above the eyes; own is the hat's own thickness
+const HATS = { cap: { tilt: 0.25, elev: 0.4, own: 0.012 }, bucket: { tilt: 0.1, elev: 0.5, own: 0.014 }, beanie: { tilt: 0.35, elev: 0.45, own: 0.016 } };
+// how far each hairstyle stands off the head where a hat goes, so the hat is made that much bigger and never cuts into it
+// (curls, spikes and buns that would sit under a hat are left out or moved below its edge instead)
+const HAIR_LIFT = { bald: 0, buzz: 0.004, short: 0.012, spiky: 0.012, curly: 0.012, side: 0.024, long: 0.021, longCurly: 0.024, bun: 0.021, ponytail: 0.021 };
+
+// the hair first, then the hat (if any) put on over it
 function buildHair(style, shape, head, hairM, mk, at, look) {
   const hair = (thick, tilt, elev, xMax) => mk(shellGeo(shape, thick, crown(tilt), 0, coverFor(tilt, elev), xMax), hairM, 0, 0, 0, head);
   const TILT = 0.66, FRONT = 0.5;                       // the hairline: front edge just above the brows, back edge down the nape
@@ -302,30 +309,67 @@ function buildHair(style, shape, head, hairM, mk, at, look) {
   const fringe = () => mk(capGeo(shape, 'fringe', phi => line(phi) - 0.07 * lobe(phi, 0, 4), phi => 0.012 + 0.009 * lobe(phi, 0, 2)), hairM, 0, 0, 0, head);
   // swept to one side: lower and fuller over one brow, rising toward the other
   const sweep = () => mk(capGeo(shape, 'sweep', phi => line(phi) - 0.16 * lobe(phi, -0.55, 3) + 0.04 * lobe(phi, 0.6, 3), phi => 0.012 + 0.012 * lobe(phi, -0.45, 2)), hairM, 0, 0, 0, head);
-  const hat = (thick, tilt, elev, m) => mk(shellGeo(shape, thick, crown(tilt), 0, coverFor(tilt, elev)), m, 0, 0, 0, head);
-  // spread small pieces evenly over the part of the head the hair covers
-  const scatter = (limit, place) => FIB.forEach(u => { const a = Math.acos(u.dot(crown(TILT))); if (a < limit) place(u, at(u.x, u.y, u.z)); });
+
+  // the hat this person wears, worked out first so the hair can keep out from under it
+  const { hat: hatStyle, color: hatColor } = hatOf(look);
+  const H = HATS[hatStyle];
+  const hatN = H ? crown(H.tilt) : null, hatA = H ? coverFor(H.tilt, H.elev) : 0;
+  const underHat = (u, margin) => !!H && Math.acos(Math.max(-1, Math.min(1, u.dot(hatN)))) < hatA + margin;
+  const hatBack = H ? Math.PI / 2 - hatA - H.tilt : 9;  // the height (radians) of the hat's edge straight behind
+  const backAt = e => at(0, Math.sin(e), -Math.cos(e)); // the point at height e straight behind
+
+  // spread small pieces evenly over the part of the head the hair covers, skipping any a hat would sit on
+  const scatter = (limit, margin, place) => FIB.forEach(u => {
+    const a = Math.acos(u.dot(crown(TILT)));
+    if (a < limit && !underHat(u, margin)) place(u, at(u.x, u.y, u.z));
+  });
+  const curls = () => scatter(coverFor(TILT, FRONT) - 0.12, 0.15, (u, p) => mk(sp(0.03, 8, 6), hairM, p.x + u.x * 0.018, p.y + u.y * 0.018, p.z + u.z * 0.018, head, false));
+  // a curtain round the back and sides, open at the face; its top follows the head's own outline right up to the
+  // crown, lying just over the cap, so the back of the head is one surface. tail(w, y0) gives the profile below
+  const curtain = (key, tail) => {
+    const prof = [];
+    for (let k = 0; k <= 6; k++) {
+      const t = 0.12 + k * (1.55 - 0.12) / 6, ps = at(Math.sin(t), Math.cos(t), 0), pb = at(0, Math.cos(t), -Math.sin(t));
+      prof.push([Math.max(ps.x, -pb.z) + 0.0135 + 0.005 * (k / 6), (ps.y + pb.y) / 2]);
+    }
+    const [w, y0] = prof[prof.length - 1];
+    prof.push(...tail(w, y0));
+    mk(lathe(`curtain:${shape}:${key}`, prof, 32, 0.85, Math.PI * 2 - 1.7), hairM, 0, 0, 0, head);
+    return prof;
+  };
+
   switch (style) {
     case 'bald': break;
     case 'buzz': hair(0.004, 0.5, 0.55); break;
-    case 'long': {
+    case 'long':
       fringe();
-      // a curtain of hair round the back and sides, open at the face, flaring out a little at the ends. Its top follows
-      // the head's own outline right up to the crown, lying just over the cap, so the back of the head is one surface
-      const prof = [];
-      for (let k = 0; k <= 6; k++) {
-        const t = 0.12 + k * (1.55 - 0.12) / 6, ps = at(Math.sin(t), Math.cos(t), 0), pb = at(0, Math.cos(t), -Math.sin(t));
-        prof.push([Math.max(ps.x, -pb.z) + 0.0135 + 0.005 * (k / 6), (ps.y + pb.y) / 2]);
+      curtain('long', (w, y0) => [[w + 0.004, y0 - 0.08], [w + 0.012, y0 - 0.19], [w + 0.026, y0 - 0.29], [w + 0.008, y0 - 0.33]]);
+      break;
+    case 'longCurly': {
+      // long curls: a full curtain, fuller toward the ends, with curls over the crown and clusters of curls down its length
+      fringe(); curls();
+      const prof = curtain('curly', (w, y0) => [[w + 0.012, y0 - 0.06], [w + 0.02, y0 - 0.13], [w + 0.03, y0 - 0.2], [w + 0.04, y0 - 0.27], [w + 0.046, y0 - 0.33], [w + 0.03, y0 - 0.37], [w + 0.006, y0 - 0.38]]);
+      const radiusAt = y => {
+        for (let k = 1; k < prof.length; k++) { const [r0, ya] = prof[k - 1], [r1, yb] = prof[k]; if (y <= ya && y >= yb) return r0 + (r1 - r0) * (ya - y) / (ya - yb); }
+        return prof[prof.length - 1][0];
+      };
+      const y0 = prof[6][1];
+      for (let j = 0; j < 5; j++) {
+        const y = y0 - 0.07 - j * 0.065, r = radiusAt(y) + 0.006;
+        for (let phi = 1.0 + (j % 2) * 0.19; phi < Math.PI * 2 - 1.0; phi += 0.38) mk(sp(0.03 + j * 0.003, 8, 6), hairM, r * Math.sin(phi), y, r * Math.cos(phi), head, false);
       }
-      const [w, y0] = prof[prof.length - 1];
-      prof.push([w + 0.004, y0 - 0.08], [w + 0.012, y0 - 0.19], [w + 0.026, y0 - 0.29], [w + 0.008, y0 - 0.33]);
-      mk(lathe(`curtain:${shape}`, prof, 32, 0.85, Math.PI * 2 - 1.7), hairM, 0, 0, 0, head);
       break;
     }
-    case 'bun': fringe(); { const p = at(0, 0.75, -0.65); mk(sp(0.075, 14, 12), hairM, p.x, p.y + 0.03, p.z - 0.04, head); } break;
+    case 'bun': {
+      fringe();
+      // up on the crown, or, under a hat, a low bun below its edge at the back
+      const e = H ? Math.min(0.86, hatBack - 0.3) : 0.86, p = backAt(e), out = new THREE.Vector3(0, Math.sin(e), -Math.cos(e));
+      mk(sp(0.075, 14, 12), hairM, p.x + out.x * 0.05, p.y + out.y * 0.05, p.z + out.z * 0.05, head);
+      break;
+    }
     case 'ponytail': {
       fringe();
-      const p = at(0, 0.15, -1);
+      const p = backAt(H ? Math.min(0.15, hatBack - 0.22) : 0.15);
       mk(cy(0.038, 0.038, 0.03, 12), mat(0xff4f7b), p.x, p.y, p.z - 0.012, head).rotation.x = Math.PI / 2;
       const tail = mk(lathe('tail', [[0.001, 0.02], [0.04, 0], [0.05, -0.08], [0.035, -0.2], [0.012, -0.28], [0, -0.29]], 14), hairM, p.x, p.y - 0.01, p.z - 0.04, head);
       tail.rotation.x = 0.35; break;
@@ -333,40 +377,36 @@ function buildHair(style, shape, head, hairM, mk, at, look) {
     case 'side': sweep(); break;                       // a side-swept fringe over one brow
     case 'spiky':
       base();
-      scatter(1.0, (u, p) => {
+      scatter(1.0, 0.4, (u, p) => {                   // spikes stick out a long way, so keep them well clear of a hat's edge and brim
         const s = mk(cy(0, 0.04, 0.11, 6), hairM, p.x + u.x * 0.05, p.y + u.y * 0.05, p.z + u.z * 0.05, head);
         s.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), u);
       });
       break;
-    case 'curly':
-      base();
-      scatter(coverFor(TILT, FRONT) - 0.12, (u, p) => mk(sp(0.03, 8, 6), hairM, p.x + u.x * 0.018, p.y + u.y * 0.018, p.z + u.z * 0.018, head, false));
-      break;
-    case 'cap': {
-      base();
-      const capM = mat(look.cap || 0xf08a24, { roughness: 0.8 });
-      hat(0.024, 0.25, 0.4, capM);
-      const top = at(0, 1, -0.25); mk(sp(0.016, 8, 6), capM, top.x, top.y + 0.022, top.z, head);
-      const front = at(0, Math.sin(0.4), Math.cos(0.4));
-      const brim = mk(cy(0.15, 0.15, 0.012, 28, false, -Math.PI / 2, Math.PI), capM, 0, front.y + 0.006, front.z - 0.035, head);
-      brim.scale.z = 0.92; brim.rotation.x = 0.16; break;
-    }
-    case 'bucket': {
-      base();
-      const capM = mat(look.cap || 0x2f2f2f, { roughness: 0.9, side: THREE.DoubleSide });
-      const E = 0.5;                                    // brim sits on the forehead, well above the eyes
-      hat(0.026, 0.1, E, capM);
-      const edge = at(0, Math.tan(E), 1), w = Math.max(at(1, Math.tan(E), 0).x, edge.z) + 0.022;
-      mk(lathe(`brim${w.toFixed(3)}`, [[w, 0.004], [w + 0.032, -0.008], [w + 0.056, -0.022], [w + 0.057, -0.03], [w, -0.006]], 32), capM, 0, edge.y, 0, head);
-      break;
-    }
+    case 'curly': base(); curls(); break;
     default: base();   // short
   }
-  if (look.beanie) {
-    const bm = mat(look.beanie, { roughness: 1 });
-    hat(0.028, 0.35, 0.45, bm);
-    mk(shellGeo(shape, 0.042, crown(0.35), coverFor(0.35, 0.45) - 0.2, coverFor(0.35, 0.45)), bm, 0, 0, 0, head);   // rolled cuff
-    const top = at(0, 1, -0.35); mk(sp(0.03, 8, 6), bm, top.x, top.y + 0.03, top.z, head);
+
+  if (!H) return;
+  // the hat, made bigger by however far this hairstyle stands off the head, so it sits on the hair, not through it
+  const lift = HAIR_LIFT[style] ?? 0.012, T = lift + H.own;
+  const shell = (thick, from, to, m) => mk(shellGeo(shape, thick, hatN, from, to), m, 0, 0, 0, head);
+  if (hatStyle === 'cap') {
+    const capM = mat(hatColor, { roughness: 0.8 });
+    shell(T, 0, hatA, capM);
+    const top = at(0, 1, -0.25); mk(sp(0.016, 8, 6), capM, top.x, top.y + 0.01 + T, top.z, head);
+    const front = at(0, Math.sin(H.elev), Math.cos(H.elev));
+    const brim = mk(cy(0.15 + lift, 0.15 + lift, 0.012, 28, false, -Math.PI / 2, Math.PI), capM, 0, front.y + 0.006 + lift * 0.4, front.z - 0.035 + lift, head);
+    brim.scale.z = 0.92; brim.rotation.x = 0.16;
+  } else if (hatStyle === 'bucket') {
+    const capM = mat(hatColor, { roughness: 0.9, side: THREE.DoubleSide });
+    shell(T, 0, hatA, capM);
+    const edge = at(0, Math.tan(H.elev), 1), w = Math.max(at(1, Math.tan(H.elev), 0).x, edge.z) + T - 0.004;
+    mk(lathe(`brim${w.toFixed(3)}`, [[w, 0.004], [w + 0.032, -0.008], [w + 0.056, -0.022], [w + 0.057, -0.03], [w, -0.006]], 32), capM, 0, edge.y, 0, head);
+  } else {
+    const bm = mat(hatColor, { roughness: 1 });
+    shell(T, 0, hatA, bm);
+    shell(T + 0.014, hatA - 0.2, hatA, bm);            // the rolled cuff
+    const top = at(0, 1, -0.35); mk(sp(0.03, 8, 6), bm, top.x, top.y + 0.018 + T, top.z, head);
   }
 }
 

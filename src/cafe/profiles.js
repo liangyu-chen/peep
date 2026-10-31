@@ -50,10 +50,10 @@ export function newProfile() {
     name, regular: false, visits: 1, job: pick(job),
     drink: pick(menuNames()), team: pick(TEAM_NAMES), fighter: pick(FIGHTER_NAMES), wins: 0, losses: 0, quirk: '第一次來',
     plays2k: Math.random() < 0.35, playsFight: Math.random() < 0.2, playsTops: false, smokes: Math.random() < 0.2,
-    look: L(pick(SKINS), pick(HAIRS), female ? pick(['long', 'bun', 'ponytail', 'short', 'curly']) : pick(['short', 'short', 'buzz', 'side', 'spiky', 'cap', 'bald']),
+    look: L(pick(SKINS), pick(HAIRS), female ? pick(['long', 'longCurly', 'bun', 'ponytail', 'short', 'curly']) : pick(['short', 'short', 'buzz', 'side', 'spiky', 'curly', 'bald']),
       new THREE.Color().setHSL(Math.random(), rand(0.3, 0.6), rand(0.35, 0.6)).getHex(), pick([0x2b2b2b, 0x334455, 0x5a4a3a, 0x1f2a44]),
       {
-        cap: new THREE.Color().setHSL(Math.random(), 0.5, 0.45).getHex(), longSleeve: Math.random() < 0.4,
+        hat: Math.random() < 0.3 ? pick(['cap', 'cap', 'bucket', 'beanie']) : 'none', hatColor: new THREE.Color().setHSL(Math.random(), 0.5, 0.45).getHex(), longSleeve: Math.random() < 0.4,
         faceShape: pickFace('faceShape'), eyes: pickFace('eyes'), brows: pickFace('brows'), nose: pickFace('nose'), mouth: pickFace('mouth'),
         glasses: Math.random() < 0.15 ? pick(['round', 'square']) : 'none',
         facialHair: !female && Math.random() < 0.25 ? pick(['stubble', 'mustache', 'goatee', 'full']) : 'none',

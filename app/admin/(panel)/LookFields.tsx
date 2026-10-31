@@ -1,4 +1,4 @@
-import { COLOR_PRESETS, FACE, HAIR_STYLES, faceOf, type Look } from '@/src/content/catalog';
+import { COLOR_PRESETS, FACE, HAIR_STYLES, HAT_STYLES, faceOf, hairOf, hatOf, type Look } from '@/src/content/catalog';
 import ColorField from './ColorField';
 
 function Pick({ name, label, value, options }: { name: string; label: string; value: string; options: { value: string; label: string }[] }) {
@@ -15,7 +15,7 @@ function Pick({ name, label, value, options }: { name: string; label: string; va
 // the 捏臉 fields shared by the regulars' editor and the owner's page; parseLook() reads them back
 export default function LookFields({ look, seed }: { look: Look; seed: string }) {
   const f = faceOf(look, seed);
-  const beanie = typeof look.beanie === 'number' ? look.beanie : null;
+  const hat = hatOf(look);
   return (
     <>
       <section className="panel-block">
@@ -36,15 +36,15 @@ export default function LookFields({ look, seed }: { look: Look; seed: string })
 
       <section className="panel-block">
         <h2>髮型與穿著</h2>
-        <Pick name="hairStyle" label="髮型" value={look.hairStyle} options={HAIR_STYLES} />
+        <Pick name="hairStyle" label="髮型" value={hairOf(look)} options={HAIR_STYLES} />
+        <Pick name="hat" label="帽子" value={hat.hat} options={HAT_STYLES} />
         <div className="colors">
           <ColorField name="hair" label="髮色" value={look.hair} presets={COLOR_PRESETS.hair} />
           <ColorField name="shirt" label="上衣" value={look.shirt} presets={COLOR_PRESETS.clothes} />
           <ColorField name="pants" label="褲子" value={look.pants} presets={COLOR_PRESETS.clothes} />
+          <ColorField name="hatColor" label="帽子顏色" value={hat.color} presets={COLOR_PRESETS.clothes} />
         </div>
         <div className="colors">
-          <label className="check"><input type="checkbox" name="beanie" defaultChecked={beanie != null} /><span>戴毛帽</span></label>
-          <ColorField name="beanieColor" label="毛帽顏色" value={beanie ?? 0xd08a1e} presets={COLOR_PRESETS.clothes} />
           <label className="short">背號<input name="number" defaultValue={look.number ?? ''} maxLength={2} placeholder="無" /></label>
         </div>
       </section>
