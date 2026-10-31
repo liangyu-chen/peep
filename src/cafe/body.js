@@ -169,6 +169,16 @@ const shoeGeo = sole => geo(`shoe:${sole}`, () => {
 // the height of the top of the shoe above its centre, a distance z forward (for laying the laces on it)
 const shoeTop = z => SHOE.h * Math.sqrt(Math.max(0, 1 - ((z - SHOE.fwd) / SHOE.l) ** 2)) * (1 - 0.35 * Math.max(0, (z - SHOE.fwd) / SHOE.l) ** 2);
 const laceM = mat(0xeeeeea, { roughness: 0.7 });
+// the torso: slices up the body, each an oval [y, half-width, half-depth]; it narrows a little to the waist, widens to
+// the shoulders and then slopes up to the neck in one curve
+const TORSO = [[0.71, 0.202, 0.15], [0.76, 0.2, 0.148], [0.84, 0.197, 0.146], [0.94, 0.198, 0.146], [1.02, 0.206, 0.146], [1.07, 0.222, 0.145],
+  [1.11, 0.248, 0.142], [1.145, 0.27, 0.136], [1.175, 0.272, 0.126], [1.2, 0.252, 0.112], [1.225, 0.205, 0.095], [1.245, 0.145, 0.077], [1.26, 0.085, 0.06], [1.27, 0, 0]];
+const torsoGeo = () => geo('torso6', () => {
+  const N = 40, pos = [], idx = [];
+  TORSO.forEach(([y, rx, rz]) => { for (let i = 0; i <= N; i++) { const a = (i / N) * Math.PI * 2; pos.push(Math.sin(a) * rx, y, Math.cos(a) * rz); } });
+  for (let r = 0; r < TORSO.length - 1; r++) for (let i = 0; i < N; i++) { const a = r * (N + 1) + i, b = a + N + 1; idx.push(a, a + 1, b, b, a + 1, b + 1); }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals(); return g;
+});
 // curls in a hair surface, like the ringlets lower down: wavy locks running out from the crown, each waving from side
 // to side and bulging where it curls; they smooth out right at the crown so they don't bunch up where they all meet
 const curlLumps = amp => u => {
@@ -247,7 +257,8 @@ export function buildBody(look, seed = '') {
     [0.03, 0.055, 0.08].forEach(z => mk(bx(0.05, 0.006, 0.01), laceM, 0, -0.287 + shoeTop(z) + 0.002, z, knee, false));
     return { hip, knee };
   });
-  const seat = mk(cy(0.204, 0.198, 0.15, 20), pants, 0, 0.645, 0); seat.scale.z = 0.72;   // hips, all under the shirt's hem
+  // hips: rounded, tapering from the waist down into the tops of the legs, so pants run on from waist to thigh
+  const seat = mk(lathe('hips2', [[0, 0.588], [0.16, 0.588], [0.182, 0.606], [0.195, 0.645], [0.2, 0.69], [0.2, 0.725]], 24), pants, 0, 0, 0); seat.scale.z = 0.72;   // flat underneath at the crotch, the legs filling out the sides
   bare.push(seat);
   // a skirt: knee length, A-line, hanging from the waist; a pivot at the waist so it can drape over the lap when sitting
   let skirt = null;
@@ -256,18 +267,18 @@ export function buildBody(look, seed = '') {
     const sm = mat(look.pants, { roughness: 0.85, side: THREE.DoubleSide });
     mk(lathe('skirt2', [[0.21, 0.02], [0.22, -0.04], [0.24, -0.13], [0.266, -0.23], [0.288, -0.32], [0.284, -0.33]], 28), sm, 0, 0, 0, skirt).scale.z = 0.78;
   }
-  const belt = mk(cy(0.208, 0.208, 0.03, 22), beltM, 0, 0.695, 0, g, false); belt.scale.z = 0.73;   // a sliver of it showing under the shirt
-  mk(bx(0.045, 0.026, 0.012), buckleM, 0, 0.69, 0.153, g, false);
+  const belt = mk(cy(0.204, 0.204, 0.026, 22), beltM, 0, 0.698, 0, g, false); belt.scale.z = 0.73;   // a sliver of it showing under the shirt
+  mk(bx(0.045, 0.024, 0.012), buckleM, 0, 0.697, 0.15, g, false);
 
   // ---------------------------------------------------------------- torso: waist, chest and sloping shoulders
   // waist, chest and shoulders close to the same width, so it isn't an inverted triangle; it starts higher, over the longer legs
   // slimmer side to side and deeper front to back than first drawn, so the arms hang closer in, and the shoulders
   // slope down from the neck in one long curve rather than squaring off
-  // the shirt hangs loose: it flares out a little at the bottom, over the top of the hips, so pants and shirt meet
-  // under its hem; the shoulders run down from the neck in one long, gentle curve
-  const torso = mk(lathe('torso4', [[0.214, 0.705], [0.21, 0.74], [0.201, 0.8], [0.196, 0.88], [0.196, 0.98], [0.195, 1.04], [0.19, 1.09], [0.179, 1.135], [0.161, 1.175], [0.136, 1.208], [0.106, 1.235], [0.072, 1.256], [0, 1.27]], 32), shirt, 0, 0, 0);
-  torso.scale.z = 0.74;
-  mk(cy(0.217, 0.215, 0.026, 28, true), shirtDark, 0, 0.716, 0, g, false).scale.z = 0.745;   // the hem   // shirt hem: an open band, no flat edge on top to flicker
+  // the shirt comes straight down to its hem over the top of the hips. Its slices are ovals, wider side to side than
+  // front to back, and side to side it widens out at the top into the shoulders, so the slope from the neck runs
+  // straight on into the arms with no join
+  const torso = mk(torsoGeo(), shirt, 0, 0, 0);
+  mk(cy(0.204, 0.203, 0.022, 28, true), shirtDark, 0, 0.716, 0, g, false).scale.z = 0.745;   // the hem   // shirt hem: an open band, no flat edge on top to flicker
   const collar = mk(cy(0.085, 0.1, 0.04, 18), shirtDark, 0, 1.262, 0, g, false); collar.scale.z = 0.82;
   if (look.number) {
     const t = canvasTex(32, 32, (c) => { c.fillStyle = '#fff'; c.font = `16px ${PIX}`; c.textAlign = 'center'; c.fillText(look.number, 16, 24); }, true);
@@ -391,7 +402,7 @@ export function buildBody(look, seed = '') {
     if (!look.longSleeve) { mk(cy(0.065, 0.061, 0.16, 12), shirt, 0, -0.07, 0, sh); mk(cy(0.063, 0.063, 0.02, 12), shirtDark, 0, -0.15, 0, sh, false); }
     // the top of the shoulder: a low dome just the width of the sleeve, turning with the arm, so there's no ball sitting on it
     const top = look.longSleeve ? 0.058 : 0.065;
-    mk(sp(top, 18, 10, 0, Math.PI * 2, 0, Math.PI / 2), shirt, 0, look.longSleeve ? 0 : 0.01, 0, sh).scale.y = 1.05;   // a fully rounded top, running on from the slope
+    mk(sp(top, 18, 10, 0, Math.PI * 2, 0, Math.PI / 2), shirt, 0, look.longSleeve ? 0 : 0.01, 0, sh).scale.y = 0.3;   // the arm's rounded top, kept inside the shoulder
     const elbow = new THREE.Group(); elbow.position.set(0, -0.27, 0); sh.add(elbow); elbows.push(elbow);
     mk(sp(0.05, 14, 10), sleeveM, 0, 0, 0, elbow);                                                 // fills the elbow only when it bends
     mk(cy(0.052, 0.044, 0.24, 14, true), sleeveM, 0, -0.12, 0, elbow);                             // forearm, the same width where they meet
