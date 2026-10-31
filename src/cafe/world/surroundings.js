@@ -394,7 +394,7 @@ export function buildSurroundings() {
   [-1, 1].forEach(sx => [-1, 1].forEach(sz => piece(0.05, 0.48, 0.05, woodDark, sx * 0.6, 0.23, sz * 0.07, sx * 0.12, -sz * 0.18)));   // legs, splayed out
   [-1, 1].forEach(sx => piece(0.04, 0.04, 0.2, woodDark, sx * 0.62, 0.16, 0));            // a rung between each pair
   piece(1.18, 0.04, 0.03, woodDark, 0, 0.36, 0.02);                                         // and a stretcher along under the seat
-  const stump = new THREE.Group(); stump.position.set(-3.15, -RISE, 9.7); env.add(stump);
+  const stump = new THREE.Group(); stump.position.set(-2.98, -RISE, 9.82); env.add(stump);   // out level with the bench's street end, just beside it
   const bark = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.23, 0.5, 14), mat(0x5e4532, { roughness: 1 })); bark.position.y = 0.25; bark.castShadow = true; stump.add(bark);
   const rings = new THREE.Mesh(new THREE.CylinderGeometry(0.19, 0.19, 0.01, 14), mat(0xb08a62, { roughness: 0.9 })); rings.position.y = 0.505; stump.add(rings);
   const pot = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.06, 0.11, 12), mat(0xb5643c, { roughness: 0.8 })); pot.position.set(-0.02, 0.565, 0.02); pot.castShadow = true; stump.add(pot);
