@@ -245,11 +245,14 @@ export function buildBody(look, seed = '') {
   const THIGH = 0.32, HIP_Y = 0.55 + LEG_EXTRA;
   const legs = [-0.105, 0.105].map(x => {
     const hip = new THREE.Group(); hip.position.set(x, HIP_Y, 0); g.add(hip);
-    const thigh = mk(cy(0.085 * W, 0.074 * W, THIGH + 0.01, 14), legM, 0, -THIGH / 2 + 0.005, 0, hip); if (!skirted) bare.push(thigh);
+    // thigh and shin are open tubes meeting exactly at the knee at the same width, so a straight leg has no seam; a
+    // slightly smaller ball fills the joint only when the knee bends
+    const RK = 0.074 * W;
+    const thigh = mk(cy(0.085 * W, RK, THIGH, 16, true), legM, 0, -THIGH / 2, 0, hip); if (!skirted) bare.push(thigh);
     const knee = new THREE.Group(); knee.position.set(0, -THIGH, 0); hip.add(knee);
-    const kn = mk(sp(0.074 * W, 12, 8), legM, 0, 0, 0, knee); if (!skirted) bare.push(kn);   // knee, so a bent leg stays joined
+    const kn = mk(sp(RK * 0.96, 16, 12), legM, 0, 0, 0, knee); if (!skirted) bare.push(kn);
     const b = mk(cy(0.088 * W, 0.082 * W, 0.09, 14), skirted ? mat(0xf2efe9, { roughness: 0.9 }) : pants, 0, -0.03, 0, knee, false); b.visible = false; bunch.push(b);
-    mk(cy(skirted ? 0.066 : 0.07 * W, skirted ? 0.052 : flare, 0.23, 14), legM, 0, -0.115, 0, knee);   // shin
+    mk(cy(RK, skirted ? 0.052 : flare, 0.25, 16, true), legM, 0, -0.125, 0, knee);   // shin, down into the shoe
     if (!skirted) mk(cy(flare + 0.006, flare + 0.006, 0.025, 14), pantsDark, 0, -0.225, 0, knee, false);   // turned-up hem
     // the shoe: one rounded piece on a sole that follows its outline, with laces across the top
     mk(shoeGeo(false), shoe, 0, -0.287, 0, knee);
@@ -266,14 +269,14 @@ export function buildBody(look, seed = '') {
     const sm = mat(look.pants, { roughness: 0.85, side: THREE.DoubleSide });
     mk(lathe('skirt', [[0.226, 0.02], [0.236, -0.04], [0.256, -0.13], [0.282, -0.23], [0.304, -0.32], [0.3, -0.33]], 28), sm, 0, 0, 0, skirt).scale.z = 0.72;
   }
-  const belt = mk(cy(0.224, 0.224, 0.035, 22), beltM, 0, 0.675 + LEG_EXTRA, 0, g, false); belt.scale.z = 0.65;
-  mk(bx(0.045, 0.03, 0.012), buckleM, 0, 0.675 + LEG_EXTRA, 0.144, g, false);
+  const belt = mk(cy(0.224, 0.224, 0.035, 22), beltM, 0, 0.62 + LEG_EXTRA, 0, g, false); belt.scale.z = 0.65;   // just below the shirt hem, not overlapping it
+  mk(bx(0.045, 0.03, 0.012), buckleM, 0, 0.62 + LEG_EXTRA, 0.144, g, false);
 
   // ---------------------------------------------------------------- torso: waist, chest and sloping shoulders
   // waist, chest and shoulders close to the same width, so it isn't an inverted triangle; it starts higher, over the longer legs
   const torso = mk(lathe('torso2', [[0.216, 0.64 + LEG_EXTRA], [0.214, 0.79], [0.212, 0.88], [0.215, 0.98], [0.217, 1.07], [0.21, 1.14], [0.19, 1.2], [0.14, 1.245], [0.075, 1.266], [0, 1.27]], 28), shirt, 0, 0, 0);
   torso.scale.z = 0.66;
-  mk(cy(0.22, 0.22, 0.03, 24), shirtDark, 0, 0.655 + LEG_EXTRA, 0, g, false).scale.z = 0.665;   // shirt hem
+  mk(cy(0.22, 0.22, 0.03, 24, true), shirtDark, 0, 0.655 + LEG_EXTRA, 0, g, false).scale.z = 0.665;   // shirt hem: an open band, no flat edge on top to flicker
   const collar = mk(cy(0.085, 0.1, 0.04, 18), shirtDark, 0, 1.262, 0, g, false); collar.scale.z = 0.82;
   if (look.number) {
     const t = canvasTex(32, 32, (c) => { c.fillStyle = '#fff'; c.font = `16px ${PIX}`; c.textAlign = 'center'; c.fillText(look.number, 16, 24); }, true);
@@ -393,14 +396,14 @@ export function buildBody(look, seed = '') {
     const s = Math.sign(x);
     const sh = new THREE.Group(); sh.position.set(x, 1.19, 0); g.add(sh);
     const sleeveM = look.longSleeve ? shirt : skin;
-    mk(cy(0.058, 0.052, 0.27, 12), sleeveM, 0, -0.135, 0, sh);                                     // upper arm
+    mk(cy(0.058, 0.052, 0.27, 14, true), sleeveM, 0, -0.135, 0, sh);                               // upper arm, open where it meets the forearm
     if (!look.longSleeve) { mk(cy(0.07, 0.065, 0.16, 12), shirt, 0, -0.07, 0, sh); mk(cy(0.067, 0.067, 0.02, 12), shirtDark, 0, -0.15, 0, sh, false); }
     // the top of the shoulder: a low dome just the width of the sleeve, turning with the arm, so there's no ball sitting on it
     const top = look.longSleeve ? 0.058 : 0.07;
     mk(sp(top, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), shirt, 0, look.longSleeve ? 0 : 0.01, 0, sh).scale.y = 0.55;
     const elbow = new THREE.Group(); elbow.position.set(0, -0.27, 0); sh.add(elbow); elbows.push(elbow);
-    mk(sp(0.053, 10, 8), sleeveM, 0, 0, 0, elbow);
-    mk(cy(0.051, 0.044, 0.24, 12), sleeveM, 0, -0.12, 0, elbow);                                   // forearm
+    mk(sp(0.05, 14, 10), sleeveM, 0, 0, 0, elbow);                                                 // fills the elbow only when it bends
+    mk(cy(0.052, 0.044, 0.24, 14, true), sleeveM, 0, -0.12, 0, elbow);                             // forearm, the same width where they meet
     if (look.longSleeve) mk(cy(0.05, 0.05, 0.03, 12), shirtDark, 0, -0.225, 0, elbow, false);      // cuff
     mk(sp(0.052, 12, 10), skin, 0, -0.285, 0.004, elbow).scale.set(0.82, 1.12, 0.68);              // hand
     mk(bx(0.024, 0.048, 0.028), skin, -s * 0.04, -0.27, 0.022, elbow, false).rotation.z = s * 0.45;   // thumb
