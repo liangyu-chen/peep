@@ -119,11 +119,12 @@ export function buildShell() {
   S.frontDoor = frontDoor;
   peepWindow();
   // storage room in the arcade (bottom right of sketch)
-  wall(1.0, 5.4, 3.1, 5.4, WH, greyM);
-  wall(1.0, 5.4, 1.0, 8, WH, greyM);
+  // its front wall sits 0.5 m back from where it was first drawn, leaving room for the beanbag nook outside its door
+  wall(1.0, 5.9, 3.1, 5.9, WH, greyM);
+  wall(1.0, 5.9, 1.0, 8, WH, greyM);
   // hidden door: same grey as the wall, only a thin seam gives it away (on the side facing the front wall)
-  [1.55, 2.45].forEach(x => box(0.012, 2.0, 0.012, mat(0x5e5c5a), x, 1.0, 5.315));
-  box(0.9, 0.012, 0.012, mat(0x5e5c5a), 2.0, 2.0, 5.315);
+  [1.55, 2.45].forEach(x => box(0.012, 2.0, 0.012, mat(0x5e5c5a), x, 1.0, 5.815));
+  box(0.9, 0.012, 0.012, mat(0x5e5c5a), 2.0, 2.0, 5.815);
   wall(1.0, 8, 3.1, 8, WH, greyM);
   box(6.4, 0.35, 0.3, greyM, 0, 2.95, 8.0);
   box(0.35, WH, 0.35, greyM, -2.95, WH / 2, 7.9);

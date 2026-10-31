@@ -139,7 +139,7 @@ function beanbagNook() {
   const fabric = new THREE.MeshStandardMaterial({ map: print, roughness: 0.8 });
   // a tall lounger beanbag, after the photo: a wide slumped seat, a high rounded back leaning on the wall and two
   // fat rolled arms; built round, then stretched back out by 1/K so the squeeze leaves it round. It faces -x, out of the nook
-  const bag = new THREE.Group(); bag.position.set(2.5, 0, 4.86); bag.scale.set(0.82 / K, 0.82, 0.82); ctx.scene.add(bag);   // sized to leave the nook some room
+  const bag = new THREE.Group(); bag.position.set(2.45, 0, 5.08); bag.scale.x = 1 / K; ctx.scene.add(bag);
   const blob = (r, sx, sy, sz, x, y, z, rz = 0) => { const m = new THREE.Mesh(new THREE.SphereGeometry(r, 24, 18), fabric); m.scale.set(sx, sy, sz); m.position.set(x, y, z); m.rotation.z = rz; m.castShadow = m.receiveShadow = true; bag.add(m); };
   blob(0.42, 1.05, 0.45, 1.05, -0.04, 0.18, 0);           // the seat, wide and low, pressed flat
   blob(0.24, 1.2, 0.6, 1.6, -0.3, 0.2, 0);                // its rounded front lip
@@ -158,8 +158,8 @@ function beanbagNook() {
     g.fillStyle = '#b8232b'; g.beginPath(); g.moveTo(108, 138); g.quadraticCurveTo(132, 168, 156, 128); g.quadraticCurveTo(132, 146, 108, 138); g.fill();   // the grin
     g.fillStyle = '#1b1b1b'; g.textAlign = 'center'; g.font = 'bold 15px sans-serif'; g.fillText('Honduran Coffee,', w / 2, 215); g.fillText("ain't no joke!", w / 2, 235);
   });
-  plane(0.48, 0.64, sack, 3.0, 1.5, 4.86, -Math.PI / 2);
-  box(0.02, 0.02, 0.52, mat(0x5a4a32), 3.0, 1.83, 4.86);                         // the stick it hangs from
+  plane(0.62, 0.85, sack, 3.0, 1.62, 5.08, -Math.PI / 2);
+  box(0.02, 0.02, 0.66, mat(0x5a4a32), 3.0, 2.06, 5.08);                         // the stick it hangs from
   // the block shelf beside it against the front wall: three high, a plant and a little box on top, toys in the holes
   [0.1, 0.3, 0.5].forEach(y => cinderBlock(0.4, 0.2, 0.2, 2.55, y, 4.2));
   pottedPlant(2.45, 0.6, 4.2);
