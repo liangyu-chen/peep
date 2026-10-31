@@ -8,11 +8,14 @@ import { buildMenuClipboard } from './menu.js';
 import { woodM, steel, blackM, cinderSeat, crate, crateTable, stump, highStool, figurine, framed, trackRun, ceilingFan } from './props.js';
 
 function ledgeAndTv() {
-  // ledge under the neon: manga on the shelf, three high stools facing the wall
-  box(3.4, 0.05, 0.34, woodM, 1.0, 1.0, -5.3);
-  [-0.5, 1.0, 2.5].forEach(x => box(0.04, 0.2, 0.25, blackM, x, 0.88, -5.36));
-  for (let i = 0; i < 58; i++) box(0.045, rand(0.17, 0.2), 0.12, mat(pick([0xd8d0c0, 0xf2f2f2, 0xc94a3a, 0x3a5fa8, 0xe6c34a, 0x2a2a2a])), -0.6 + i * 0.058, 1.12, -5.42);
-  [0.1, 1.0, 1.9].forEach(x => highStool(x, -4.95));
+  // ledge under the neon: from where the wall starts beside the sliding door right across to the side wall,
+  // manga along it, two high metal stools facing the wall
+  const L0 = -1.46, L1 = 3.02;
+  box(L1 - L0, 0.05, 0.34, woodM, (L0 + L1) / 2, 1.0, -5.3);
+  [L0 + 0.25, (L0 + L1) / 2, L1 - 0.25].forEach(x => box(0.04, 0.2, 0.25, blackM, x, 0.88, -5.36));
+  const nBooks = Math.floor((L1 - L0 - 0.1) / 0.058);
+  for (let i = 0; i < nBooks; i++) box(0.045, rand(0.17, 0.2), 0.12, mat(pick([0xd8d0c0, 0xf2f2f2, 0xc94a3a, 0x3a5fa8, 0xe6c34a, 0x2a2a2a])), L0 + 0.06 + i * 0.058, 1.12, -5.42);
+  [0.4, 1.6].forEach(x => highStool(x, -4.95));
   // the TV stands on a rolling TV cart near the purple wall, with a PS5 on the shelf underneath
   const cartM = mat(0x1b1b1d, { metalness: 0.6, roughness: 0.35 });
   box(0.5, 0.04, 0.9, cartM, TVX - 0.08, 0.08, TVZ);                                                        // base
@@ -209,8 +212,8 @@ function decor() {
   plane(0.95, 0.95, neonTex, 1.0, 1.95, -5.38, 0, true);
   [-0.3, 1.25, 2.4].forEach(x => figurine(x, 1.215, -5.42, 1.1));   // a few figurines standing on top of the manga, none in front of it
   // indoor AC above the sliding door
-  box(1.0, 0.28, 0.24, mat(0xf2f2f0, { roughness: 0.4 }), -2.36, 2.64, -5.3);   // over the sliding door, clear of its top
-  box(0.9, 0.02, 0.02, mat(0x9aa0a6), -2.36, 2.53, -5.17);                                                  // vent slot
+  box(1.3, 0.3, 0.24, mat(0xf2f2f0, { roughness: 0.4 }), -2.24, 2.64, -5.3);   // over the sliding door, clear of its top
+  box(1.2, 0.02, 0.02, mat(0x9aa0a6), -2.24, 2.52, -5.17);                                                  // vent slot
   // conduit + track lights
   const conduitM = mat(0x2a2a2a, { roughness: 0.5 });
   const c1 = cyl(0.02, 0.02, 8.4, conduitM, -3.0, 2.62, -0.3, ctx.scene, 6); c1.rotation.x = Math.PI / 2;

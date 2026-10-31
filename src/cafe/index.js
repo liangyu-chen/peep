@@ -47,8 +47,8 @@ export function startCafe(root, content) {
     S.acFan.rotation.x += dt * 12;
     S.fans.forEach(f => { f.rotation.y += dt * 4; });
     // doors open when someone comes close
-    S.slide.open += ((near(-2.0, -4.5, 1.3) ? 1 : 0) - S.slide.open) * Math.min(1, dt * 5);
-    S.slideDoor.position.x = -2.04 - S.slide.open * 0.6;   // slides left in front of the fixed panel
+    S.slide.open += ((near(-1.84, -4.5, 1.3) ? 1 : 0) - S.slide.open) * Math.min(1, dt * 5);
+    S.slideDoor.position.x = -1.86 - S.slide.open * 0.76;   // slides left in front of the fixed panel
     S.toiletDoor.rotation.y += ((near(-0.8, -7.7, 1.1) ? -Math.PI / 2 : 0) - S.toiletDoor.rotation.y) * Math.min(1, dt * 5);   // swings in, flat to the toilet's front wall
     S.frontDoor.rotation.y += ((near(-1.7, 4.0, 1.3) ? 1.45 : 0) - S.frontDoor.rotation.y) * Math.min(1, dt * 5);
     // fade the outer walls the camera is behind

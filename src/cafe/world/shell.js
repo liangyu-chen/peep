@@ -69,24 +69,24 @@ export function buildShell() {
   outerWall('R', 3.1, 4, 3.1, 8, greyM);
   outerWall('B', -3.1, -9.35, 3.1, -9.35, greyM);
   // neon wall between seating and storage, with a sliding door to the back right up against the purple wall
-  wall(-1.7, -5.5, 3.1, -5.5, WH, greyM);
-  box(1.32, 0.4, 0.16, greyM, -2.36, 2.6, -5.5);         // a shallow lintel: the door runs up to 2.4 m
-  box(1.32, 0.04, 0.1, mat(0x222222, { metalness: 0.6 }), -2.36, 2.42, -5.37);   // the track, tight under it, on the seating side
+  wall(-1.46, -5.5, 3.1, -5.5, WH, greyM);
+  box(1.56, 0.4, 0.16, greyM, -2.24, 2.6, -5.5);         // a shallow lintel: the door runs up to 2.4 m
+  box(1.56, 0.04, 0.1, mat(0x222222, { metalness: 0.6 }), -2.24, 2.42, -5.37);   // the track, tight under it, on the seating side
   // two sliding panels on two tracks on the seating side of the wall, each with three frosted panes stacked up it in
   // raised frames: the left one stays put against the wall, the right one slides left in front of it to open the way back
   const frost = new THREE.MeshStandardMaterial({ color: 0xb3c0c6, roughness: 0.4, metalness: 0.1, emissive: 0x0e1214 });
   const frameM = mat(0x2c2e31, { roughness: 0.5 }), panelM = mat(0x3d3f42, { roughness: 0.5 });
   const panel = (x, z) => {
-    const p = box(0.68, 2.39, 0.04, panelM, x, 1.205, z);   // floor to the track, no gap above
+    const p = box(0.8, 2.39, 0.04, panelM, x, 1.205, z);   // floor to the track, no gap above
     [0.68, 0, -0.68].forEach(y => [-1, 1].forEach(f => {
-      const pane = new THREE.Mesh(new THREE.PlaneGeometry(0.42, 0.56), frost); pane.position.set(0, y, f * 0.022); if (f < 0) pane.rotation.y = Math.PI; p.add(pane);
-      [[0.5, 0.04, 0, y + 0.3], [0.5, 0.04, 0, y - 0.3], [0.04, 0.64, -0.23, y], [0.04, 0.64, 0.23, y]].forEach(([w, h, bx, by]) => box(w, h, 0.012, frameM, bx, by, f * 0.026, p));
+      const pane = new THREE.Mesh(new THREE.PlaneGeometry(0.52, 0.56), frost); pane.position.set(0, y, f * 0.022); if (f < 0) pane.rotation.y = Math.PI; p.add(pane);
+      [[0.6, 0.04, 0, y + 0.3], [0.6, 0.04, 0, y - 0.3], [0.04, 0.64, -0.28, y], [0.04, 0.64, 0.28, y]].forEach(([w, h, bx, by]) => box(w, h, 0.012, frameM, bx, by, f * 0.026, p));
     }));
     return p;
   };
-  panel(-2.68, -5.4);                                        // the fixed one, against the purple wall, on the track against the wall
-  S.slideDoor = panel(-2.04, -5.34);                         // the one that slides, on the track nearer the room
-  box(0.025, 0.3, 0.05, mat(0xcccccc, { metalness: 0.8 }), 0.29, 0, 0, S.slideDoor);   // its pull, by the right edge
+  panel(-2.62, -5.4);                                        // the fixed one, against the purple wall, on the track against the wall
+  S.slideDoor = panel(-1.86, -5.34);                         // the one that slides, on the track nearer the room
+  box(0.025, 0.3, 0.05, mat(0xcccccc, { metalness: 0.8 }), 0.35, 0, 0, S.slideDoor);   // its pull, by the right edge
   S.slide = { open: 0 };
   // back of house partitions
   wall(-0.8, -9.35, -0.8, -9.2, WH, greyM);

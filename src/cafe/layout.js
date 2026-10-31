@@ -20,7 +20,7 @@ STRIP.at = z => (z - STRIP.from) * STRIP.scale + STRIP.to;   // plan z -> where 
 export const LANE = 1.9;                 // the owner's lane behind the bar
 export const MACHINE = [1.62, 1.5];      // where he stands to work the espresso machine (back far enough that he is not inside the bar top)
 
-export const TOILET = [[1.25, -7.7], [0.0, -7.7], [-2.0, -7.7], [-2.0, -5.0], [-2.0, -4.0], [HUBX, -3.6]];   // through the open (right) half of the sliding door
+export const TOILET = [[1.25, -7.7], [0.0, -7.7], [-1.85, -7.7], [-1.85, -5.0], [-1.85, -4.0], [HUBX, -3.6]];   // through the open (right) half of the sliding door
 export const DOOR = [[-1.75, 11], [-1.75, 4.75], [-1.6, 4.5], [HUBX, 3.6]];
 export const zoneSpot = s => [[s.x, s.z], [HUBX, s.z]];
 export const route = (from, to) => from.slice(1).concat(to.slice().reverse());
@@ -31,7 +31,7 @@ export function createSeats() {
   const seat = (type, x, z, face, sitY, cup, path, extra = {}) => { const s = Object.assign({ type, x, z, face, sitY, cup, path, occ: null }, extra); seats.push(s); return s; };
 
   // manga ledge stools facing the neon wall
-  [0.1, 1.0, 1.9].forEach(x => seat('table', x, -3.95, Math.PI, 0.12, [x, 1.03, -4.28], [[x, -3.95], [HUBX, -4.1]], { where: '霓虹燈下的漫畫吧檯' }));
+  [0.4, 1.6].forEach(x => seat('table', x, -3.95, Math.PI, 0.12, [x, 1.03, -4.28], [[x, -3.95], [HUBX, -4.1]], { where: '霓虹燈下的漫畫吧檯' }));
   // purple wall cinder seats, backs to the wall
   LSEATS.forEach(z => {
     const cz = LCUP[String(z)], onStump = Math.abs(cz - 0.35) < 0.1;
