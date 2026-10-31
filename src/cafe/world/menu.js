@@ -104,6 +104,7 @@ export function buildMenuClipboard() {
   tex.anisotropy = 8;
   S.fontTex.push(tex);
   const clip = new THREE.Group(); clip.position.set(0.6, 1.065, 2.3); clip.rotation.y = -Math.PI / 2 + 0.12; ctx.scene.add(clip);   // lying flat at the outer end, beside the machine
+  S.menuClip = clip;                                                                                                     // click it to read the menu
   // dark hardboard with a worn, slightly mottled face
   const boardTex = canvasTex(128, 192, (g, w, h) => {
     g.fillStyle = '#4a3428'; g.fillRect(0, 0, w, h);

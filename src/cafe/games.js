@@ -6,6 +6,7 @@ import { drawFight, fighterSide } from './fight.js';
 import { FIGHTER_NAMES } from '../content/catalog';
 import { hoopsPlayer, crowd } from './hoops.js';
 import { sfx, sfxMuted, toggleSfx } from './sfx.js';
+import { mirrorTV } from './tv.js';
 
 const W = 640, H = 360;
 let open = null;   // the game showing now
@@ -42,7 +43,7 @@ export function openGame(kind, root, onClose) {
   const toCanvas = e => { const r = canvas.getBoundingClientRect(); return [(e.clientX - r.left) * W / r.width, (e.clientY - r.top) * H / r.height]; };
   listen(canvas, 'pointermove', e => { ctl.pointer = toCanvas(e); });
   listen(canvas, 'pointerdown', e => { e.preventDefault(); ctl.pointer = toCanvas(e); game.tap?.(ctl.pointer); });
-  listen(sheet, 'pointerdown', e => { if (e.target === sheet) close(); });
+  listen(sheet, 'pointerdown', e => { if (e.target === sheet && !sheet.classList.contains('onTV')) close(); });
   listen(sheet.querySelector('.gameClose'), 'click', () => close());
   const soundBtn = sheet.querySelector('.gameSound'), showSound = () => { soundBtn.textContent = sfxMuted() ? '🔇' : '🔊'; };
   showSound(); listen(soundBtn, 'click', () => { toggleSfx(); showSound(); });
@@ -53,6 +54,11 @@ export function openGame(kind, root, onClose) {
     G = GAMES[k]; ctl.clear(); keys.clear();
     sheet.querySelector('h2').textContent = G.title; sheet.querySelector('.gameHelp').textContent = G.help;
     sheet.querySelector('.gameWin').setAttribute('aria-label', G.title);
+    // a TV game shows on the TV itself; on a wide screen, where the TV fills the view, the window shrinks to the
+    // controls along the bottom (a narrow phone keeps its own picture too)
+    mirrorTV(G.tv ? canvas : null);
+    sheet.classList.toggle('onTV', !!G.tv && innerWidth / innerHeight >= 1.2);
+    root.classList.toggle('playing', sheet.classList.contains('onTV'));   // the rest of the HUD steps aside
     game = G.start(ctl);
   };
   ctl.restart = () => ctl.play(Object.keys(GAMES).find(k => GAMES[k] === G));
@@ -63,7 +69,7 @@ export function openGame(kind, root, onClose) {
     raf = requestAnimationFrame(frame);
   };
   raf = requestAnimationFrame(frame);
-  function close() { cancelAnimationFrame(raf); offs.forEach(f => f()); sheet.remove(); if (open === api) { open = null; onClose?.(); } }
+  function close() { cancelAnimationFrame(raf); offs.forEach(f => f()); sheet.remove(); mirrorTV(null); root.classList.remove('playing'); if (open === api) { open = null; onClose?.(); } }
   const api = { close }; open = api;
 }
 
@@ -85,6 +91,7 @@ const best = (key, score) => {   // a high score kept in this browser
 
 // ---------------------------------------------------------------- 快打旋風: you against the computer, best of three
 const FIGHT = {
+  tv: true,
   title: '玩電動：快打旋風',
   help: '← → 或 A、D 移動；J 出拳、K 踢腿、按住 L 防禦。手機用下面的按鈕。先贏兩回合的獲勝',
   keys: ['ArrowLeft', 'ArrowRight', 'a', 'd', 'A', 'D', 'j', 'k', 'l', 'J', 'K', 'L'],
@@ -300,24 +307,25 @@ const TOPS = {
         });
         s.sparks.forEach(p => { d.fillStyle = p.t > 0.25 ? '#fff6c8' : '#ffd23f'; d.fillRect(sx(p.x) - 3, sy(p.y) - 14 - 3, 6, 6); });
         d.restore();
+        blowUp(g, low);
+        // the bars and words go on after, at full resolution, so they stay sharp
         const bar = (t, x, right) => {
-          text(d, t.name, right ? x + 160 : x, 30, 14, '#f4efe3', right ? 'right' : 'left', DOT);
-          d.fillStyle = '#000'; d.fillRect(x - 3, 38, 166, 18); d.fillStyle = '#c0282d'; d.fillRect(x, 41, 160, 12);
-          const w = Math.round(160 * Math.max(0, t.stamina)); d.fillStyle = t.col[1]; d.fillRect(right ? x + 160 - w : x, 41, w, 12);
+          text(g, t.name, right ? x + 160 : x, 30, 18, '#f4efe3', right ? 'right' : 'left', DOT);
+          g.fillStyle = '#000'; g.fillRect(x - 3, 38, 166, 18); g.fillStyle = '#c0282d'; g.fillRect(x, 41, 160, 12);
+          const w = Math.round(160 * Math.max(0, t.stamina)); g.fillStyle = t.col[1]; g.fillRect(right ? x + 160 - w : x, 41, w, 12);
         };
         bar(me, 20, false); bar(cpu, 460, true);
         if (s.phase === 'power') {
-          text(d, '抓時機發射！', 320, 92, 22, '#ffd23f', 'center', DOT);
-          d.fillStyle = '#000'; d.fillRect(197, 318, 246, 26); d.fillStyle = '#3a2a1e'; d.fillRect(200, 321, 240, 20);
-          d.fillStyle = s.power > 0.85 ? '#3ddc97' : '#ffd23f'; d.fillRect(200, 321, Math.round(240 * s.power), 20);
-          text(d, 'POWER', 320, 312, 12, '#f4efe3');
+          text(g, '抓時機發射！', 320, 96, 28, '#ffd23f', 'center', DOT);
+          g.fillStyle = '#000'; g.fillRect(197, 318, 246, 26); g.fillStyle = '#3a2a1e'; g.fillRect(200, 321, 240, 20);
+          g.fillStyle = s.power > 0.85 ? '#3ddc97' : '#ffd23f'; g.fillRect(200, 321, Math.round(240 * s.power), 20);
+          text(g, 'POWER', 320, 310, 12, '#f4efe3');
         }
-        if (s.go > 0) text(d, 'GO SHOOT!', 320 + (1 - s.go) * 20, 120, 32, '#ff4f7b');
+        if (s.go > 0) text(g, 'GO SHOOT!', 320 + (1 - s.go) * 20, 120, 32, '#ff4f7b');
         if (s.phase === 'over') {
-          d.fillStyle = 'rgba(0,0,0,.6)'; d.fillRect(100, 150, 440, 80);
-          text(d, s.result, 320, 200, 24, s.result.includes('你贏') ? '#ffd23f' : '#ff4f7b', 'center', DOT);
+          g.fillStyle = 'rgba(0,0,0,.65)'; g.fillRect(90, 150, 460, 80);
+          text(g, s.result, 320, 202, 28, s.result.includes('你贏') ? '#ffd23f' : '#ff4f7b', 'center', DOT);
         }
-        blowUp(g, low);
       },
     };
   },
@@ -326,6 +334,7 @@ const TOPS = {
 // ---------------------------------------------------------------- the TV's game list
 const TV_GAMES = [['fight', '快打旋風', '一對一，三戰兩勝', '#ff4f7b'], ['nba', 'NBA 2K', '三分球大賽', '#ffd23f']];
 const PICKER = {
+  tv: true,
   title: '電視：選擇遊戲',
   help: '點遊戲，或用 ↑ ↓ 選、Enter 開始',
   keys: ['ArrowUp', 'ArrowDown', 'Enter', ' '],
@@ -360,6 +369,7 @@ const PICKER = {
 // ---------------------------------------------------------------- NBA 2K three-point contest: five racks of five
 const HOOP = [520, 128];
 const NBA = {
+  tv: true,
   title: '玩電動：NBA 2K 三分球大賽',
   help: '投籃條在跑，跑到綠色區按「投籃」（或空白鍵）就是空心。五個點、每點五顆，最後一顆彩球算 2 分，限時 60 秒',
   keys: [' '],

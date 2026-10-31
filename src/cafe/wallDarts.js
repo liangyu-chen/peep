@@ -39,7 +39,7 @@ export function playWallDarts(root, onClose) {
     canvas.style.imageRendering = on ? 'pixelated' : '';
   };
   pixelate(true);
-  controls.enabled = false;
+  controls.enabled = false; S.darting = true;
   root.classList.add('playing');
   const labels = $('labels'); if (labels) labels.style.visibility = 'hidden';
   S.boardDarts?.forEach(m => { m.visible = false; });
@@ -128,7 +128,7 @@ export function playWallDarts(root, onClose) {
     if (active !== api) return;
     active = null;
     cancelAnimationFrame(raf); offs.forEach(f => f()); hud.remove(); clearDarts();
-    pixelate(false); controls.enabled = true; root.classList.remove('playing');
+    pixelate(false); controls.enabled = true; S.darting = false; root.classList.remove('playing');
     if (labels) labels.style.visibility = '';
     S.boardDarts?.forEach(m => { m.visible = true; });
     onClose?.();

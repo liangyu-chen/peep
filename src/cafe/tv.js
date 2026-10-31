@@ -141,7 +141,11 @@ export const matchClock = m => {
 function P(x, y) { const top = 92, bot = 334; const half = lerp(225, 305, y); return [320 + (x - 0.5) * 2 * half, top + (bot - top) * y]; }
 function poly(g, pts, close) { g.beginPath(); pts.forEach(([x, y], i) => { const [px, py] = P(x, y); i ? g.lineTo(px, py) : g.moveTo(px, py); }); if (close) g.closePath(); }
 function arcPts(cx, cy, rx, ry, a0, a1, n = 16) { const r = []; for (let i = 0; i <= n; i++) { const a = lerp(a0, a1, i / n); r.push([cx + Math.cos(a) * rx, cy + Math.sin(a) * ry]); } return r; }
+// a game a visitor is playing in its window (games.js) shows on the TV instead, while it lasts
+let mirror = null;
+export const mirrorTV = canvas => { mirror = canvas; };
 export function drawTV() {
+  if (mirror && tvCtx) { tvCtx.setTransform(1, 0, 0, 1, 0, 0); tvCtx.drawImage(mirror, 0, 0, TVW, TVH); tvTex.needsUpdate = true; return; }
   const tv = S.tv, g = tvCtx, W = 640, H = 360;
   g.setTransform(TVW / W, 0, 0, TVH / H, 0, 0);
   const m = tv.match;

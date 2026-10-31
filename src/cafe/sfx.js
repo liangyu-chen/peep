@@ -63,9 +63,26 @@ const SOUNDS = {
   clash: () => { noise(0.06, { freq: 3500, vol: 0.18 }); tone(1800, 700, 0.08, { vol: 0.08 }); },
   dash: () => tone(400, 900, 0.1, { vol: 0.08 }),
   ringout: () => tone(900, 120, 0.5, { vol: 0.12 }),
+  // the café itself, softer and rounder: bubbly pops for buttons, a swoosh as the camera moves, a boop for a customer's
+  // card, a two-note bell at the door, a little coin for a sale
+  pop: () => tone(520, 1180, 0.08, { type: 'sine', vol: 0.09 }),
+  popDown: () => tone(900, 380, 0.09, { type: 'sine', vol: 0.08 }),
+  boop: () => { tone(440, 700, 0.09, { type: 'sine', vol: 0.08 }); tone(990, 1100, 0.08, { type: 'sine', vol: 0.05, at: 0.08 }); },
+  swoosh: () => { noise(0.3, { freq: 700, vol: 0.05, type: 'lowpass' }); tone(260, 620, 0.25, { type: 'sine', vol: 0.03 }); },
+  chime: () => { tone(1319, 1319, 0.5, { type: 'sine', vol: 0.05 }); tone(1047, 1047, 0.7, { type: 'sine', vol: 0.05, at: 0.2 }); },
+  coin: () => { tone(1319, 1319, 0.06, { type: 'triangle', vol: 0.05 }); tone(1976, 1976, 0.16, { type: 'triangle', vol: 0.045, at: 0.06 }); },
 };
 
 export function sfx(name) {
   if (muted) return;
   try { SOUNDS[name]?.(); } catch { /* audio not available */ }
+}
+
+// a sound from the café going about its business (the door, a sale): only once a click has started the audio, only while
+// the page is in view, and never the same one twice in quick succession
+const lastAt = {};
+export function ambient(name) {
+  if (muted || !ac || ac.state !== 'running' || document.hidden) return;
+  const now = performance.now(); if (now - (lastAt[name] || 0) < 600) return;
+  lastAt[name] = now; sfx(name);
 }

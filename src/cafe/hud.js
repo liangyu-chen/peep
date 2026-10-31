@@ -11,6 +11,7 @@ import { DAYS, canJoinTv } from './sim.js';
 import { tvGames, GAME_LABEL } from './profiles.js';
 import { openGame, closeGame } from './games.js';
 import { playWallDarts, stopWallDarts } from './wallDarts.js';
+import { sfx, sfxMuted, toggleSfx } from './sfx.js';
 import { TVX, TVY, TVZ } from './layout.js';
 
 export function updateHUD() {
@@ -30,7 +31,7 @@ export function updateHUD() {
 }
 
 // ---------------------------------------------------------------- the person card
-export function openCard(p) { S.selected = p; $('card').hidden = false; fillCard(); }
+export function openCard(p) { S.selected = p; $('card').hidden = false; fillCard(); sfx('boop'); }
 export function closeCard() { S.selected = null; const card = $('card'); if (card) card.hidden = true; }
 export function fillCard() {
   const s = S.selected; if (!s) return;
@@ -65,6 +66,7 @@ function setCam(name) {
   const c = CAMS[name], { camera, controls } = ctx;
   camTween = { fp: camera.position.clone(), ft: controls.target.clone(), tp: new THREE.Vector3(c.pos[0] * K, c.pos[1], c.pos[2]), tt: new THREE.Vector3(c.target[0] * K, c.target[1], c.target[2]), t: 0 };
   document.querySelectorAll('[data-cam]').forEach(b => b.classList.toggle('on', b.dataset.cam === name));
+  sfx('swoosh');
 }
 export function updateCamera(dt) {
   if (!camTween) return;
@@ -79,7 +81,8 @@ export function updateCamera(dt) {
 // the view, then the game opens; closing it goes back to where the camera was
 const PLAY = {
   // (a little from above: the orbit controls won't let the camera sit level)
-  tv: { at: [TVX + 0.075, TVY, TVZ], dir: [1, 0.1, 0], w: 1.62, h: 0.91 },
+  // the TV framed high, with room under it for the game's controls
+  tv: { at: [TVX + 0.075, TVY - 0.22, TVZ], dir: [1, 0.1, 0], w: 1.62, h: 1.4 },
   darts: { at: [-2.97, 1.55, 3.06], dir: [1, 0.1, 0], w: 0.62, h: 0.7 },
   // the stadium, wherever it is: put away on the crates in the back corridor, seen from along it, or out on the porch crates, seen from the street
   tops: { at: null, dir: [0.35, 0.85, 0.45], w: 0.5, h: 0.42 },
@@ -93,9 +96,10 @@ function playAt(kind, root) {
   else { tt = S.stadium.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0, 0.04, 0)); if (tt.z > -4.6) dir = [0, 0.85, 0.6]; }
   const tp = tt.clone().addScaledVector(new THREE.Vector3(...dir).normalize(), dist);
   const from = { p: camera.position.clone(), t: controls.target.clone() };
-  closeCard(); closeGame(); stopWallDarts();
+  closeCard(); closeGame(); stopWallDarts(); sfx('swoosh');
   document.querySelectorAll('[data-cam]').forEach(b => b.classList.remove('on'));
-  const back = () => { camTween = { fp: camera.position.clone(), ft: controls.target.clone(), tp: from.p, tt: from.t, t: 0 }; };
+  S.watch = kind === 'tv' ? { x: tt.x, z: tt.z } : null;   // anyone standing between the camera and the TV steps out of the picture
+  const back = () => { S.watch = null; camTween ={ fp: camera.position.clone(), ft: controls.target.clone(), tp: from.p, tt: from.t, t: 0 }; };
   // darts are thrown at the board on the wall itself; the others open in a window
   camTween = { fp: from.p.clone(), ft: from.t.clone(), tp, tt, t: 0, done: () => (kind === 'darts' ? playWallDarts(root, back) : openGame(kind, root, back)) };
 }
@@ -120,6 +124,14 @@ export function bindHUD(root, stage) {
     S.speed = +b.dataset.speed; root.querySelectorAll('[data-speed]').forEach(x => x.classList.toggle('on', x === b));
   }));
   on($('tagToggle'), 'click', e => { S.showTags = !S.showTags; e.currentTarget.classList.toggle('on', S.showTags); });
+  // a soft pop for the HUD's buttons (camera moves swoosh instead; the games make their own sounds), and the sound switch
+  on(root, 'click', e => {
+    const b = e.target.closest('button, a.tile');
+    if (!b || b.closest('.gamePad, .dartsHud') || b.matches('[data-cam], [data-game], #sfxToggle, .gameSound')) return;
+    sfx(b.classList.contains('on') || b.id === 'closeCard' || b.classList.contains('gameClose') ? 'popDown' : 'pop');
+  });
+  const sfxBtn = $('sfxToggle'), showSfx = () => sfxBtn?.classList.toggle('on', !sfxMuted());
+  showSfx(); on(sfxBtn, 'click', () => { toggleSfx(); showSfx(); sfx('pop'); });
   on($('tvCard'), 'click', () => setCam('tv'));
   const stopTween = () => { camTween = null; root.querySelectorAll('[data-cam]').forEach(b => b.classList.remove('on')); };
   ctx.controls.addEventListener('start', stopTween); off.push(() => ctx.controls.removeEventListener('start', stopTween));
@@ -130,10 +142,12 @@ export function bindHUD(root, stage) {
     const r = canvas.getBoundingClientRect();
     ndc.set((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1);
     ray.setFromCamera(ndc, ctx.camera);
-    const stadium = S.stadium && S.stadium.visible ? S.stadium.children : [];
-    const targets = []; S.people.forEach(p => p.g.traverse(o => { if (o.isMesh) targets.push(o); })); targets.push(S.tvScreen, S.tvFrame, S.dartboard, ...stadium);
+    const stadium = S.stadium && S.stadium.visible ? S.stadium.children : [], menu = [];
+    S.menuClip?.traverse(o => { if (o.isMesh) menu.push(o); });
+    const targets = []; S.people.forEach(p => p.g.traverse(o => { if (o.isMesh) targets.push(o); })); targets.push(S.tvScreen, S.tvFrame, S.dartboard, ...stadium, ...menu);
     const h = ray.intersectObjects(targets.filter(Boolean), false)[0];
     if (!h) return null;
+    if (menu.includes(h.object)) return 'menu';
     if (h.object === S.tvScreen || h.object === S.tvFrame) return 'tv';
     if (h.object === S.dartboard) return 'darts';
     if (stadium.includes(h.object)) return 'tops';
@@ -144,7 +158,8 @@ export function bindHUD(root, stage) {
   on(canvas, 'pointerup', e => {
     if (!downAt || Math.hypot(e.clientX - downAt[0], e.clientY - downAt[1]) > 6) return;
     const h = hit(e);
-    if (typeof h === 'string') playAt(h, root); else if (h) openCard(h); else closeCard();
+    if (h === 'menu') setCam('menu');   // the clipboard on the bar: lean over and read it
+    else if (typeof h === 'string') playAt(h, root); else if (h) openCard(h); else closeCard();
   });
   on(canvas, 'pointermove', e => {
     if (e.pointerType !== 'mouse' || performance.now() - hoverT < 80) return;

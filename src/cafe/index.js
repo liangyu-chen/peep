@@ -14,6 +14,7 @@ import { renderResults } from './feed.js';
 import { createStadium, updateTops } from './tops.js';
 import { SMOKE_POSE, DRINK_POSE } from './people.js';
 import { updateSurroundings } from './world/surroundings.js';
+import { ambient } from './sfx.js';
 
 export function startCafe(root, content) {
   resetState(content);
@@ -50,9 +51,16 @@ export function startCafe(root, content) {
     S.slide.open += ((near(-1.84, -4.5, 1.3) ? 1 : 0) - S.slide.open) * Math.min(1, dt * 5);
     S.slideDoor.position.x = -1.86 - S.slide.open * 0.76;   // slides left in front of the fixed panel
     S.toiletDoor.rotation.y += ((near(-0.8, -7.7, 1.1) ? -Math.PI / 2 : 0) - S.toiletDoor.rotation.y) * Math.min(1, dt * 5);   // swings in, flat to the toilet's front wall
-    S.frontDoor.rotation.y += ((near(-1.7, 4.0, 1.3) ? 1.45 : 0) - S.frontDoor.rotation.y) * Math.min(1, dt * 5);
+    // (held shut while someone plays darts: it swings in right across the board); the bell rings as it opens
+    const doorOpen = near(-1.7, 4.0, 1.3) && !S.darting;
+    if (doorOpen && !S.doorWasOpen) ambient('chime');
+    S.doorWasOpen = doorOpen;
+    S.frontDoor.rotation.y += ((doorOpen ? 1.45 : 0) - S.frontDoor.rotation.y) * Math.min(1, dt * 5);
     // fade the outer walls the camera is behind
     const cp = ctx.camera.position;
+    // while a visitor plays on the TV, nobody gets between them and the screen
+    const w = S.watch;
+    S.people.forEach(p => { const q = p.g.position; p.g.visible = !(w && q.x > w.x + 0.2 && q.x < cp.x + 0.6 && Math.abs(q.z - w.z) < 1.5); });
     S.fadeWalls.forEach(w => {
       const behind = (w.side === 'L' && cp.x < -3.1 * K) || (w.side === 'R' && cp.x > 3.1 * K) || (w.side === 'B' && cp.z < -8.35);
       w.me.material.opacity += ((behind ? 0.12 : 1) - w.me.material.opacity) * Math.min(1, dt * 8);

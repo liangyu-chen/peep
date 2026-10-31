@@ -18,18 +18,34 @@ const SPOTS = [
 // the stadium lives in the back: put away on top of the crates stacked by the AC in the back corridor, where it can
 // be seen from above (and clicked)
 // (in the room as it stands, after the back of the set was moved BACK_SHIFT forward)
-const SHELF = { x: -2.74, z: -7.75 + BACK_SHIFT, y: 0.9 };
+const SHELF = { x: -2.68, z: -7.75 + BACK_SHIFT, y: 0.9 };   // a touch in from the crates' middle, clear of the wall
 const FETCH = [[-2.15, SHELF.z], [-1.95, -5.6], [-1.85, -5.5], [-1.85, -3.95], [HUBX, -3.6]];
 const TOP_COLS = [[0xc0282d, 0xffd23f], [0x1c4fd6, 0x7ec8ff]];
 
+// the stadium, like the real thing: a black outer shell, a clear blue bowl dipping to a raised centre with a ridge round
+// it, a black rim broken by three exit pockets (orange trays catching anything knocked out) and a cyan stripe inside
 export function createStadium() {
   const g = new THREE.Group();
-  const bowl = new THREE.Mesh(
-    new THREE.LatheGeometry([[0, 0.012], [0.12, 0.018], [0.17, 0.032], [0.2, 0.056], [0.212, 0.07], [0.2, 0.072]].map(([r, y]) => new THREE.Vector2(r, y)), 36),
-    mat(0xb9d4e6, { roughness: 0.25, metalness: 0.05, transparent: true, opacity: 0.9, side: THREE.DoubleSide }));
-  const base = new THREE.Mesh(new THREE.CylinderGeometry(0.19, 0.2, 0.014, 36), mat(0x1f1c27, { roughness: 0.6 })); base.position.y = 0.007;
-  const rim = new THREE.Mesh(new THREE.TorusGeometry(0.207, 0.009, 6, 40), mat(0xff4d00, { roughness: 0.4 })); rim.rotation.x = Math.PI / 2; rim.position.y = 0.07;
-  [bowl, base, rim].forEach(m => { m.castShadow = true; m.receiveShadow = true; g.add(m); });
+  const lathe = (pts, m) => new THREE.Mesh(new THREE.LatheGeometry(pts.map(([r, y]) => new THREE.Vector2(r, y)), 48), m);
+  const shell = lathe([[0.15, 0], [0.19, 0.004], [0.198, 0.04], [0.2, 0.078], [0.19, 0.082]], mat(0x18161d, { roughness: 0.5, side: THREE.DoubleSide }));
+  const bowl = lathe([[0, 0.022], [0.025, 0.02], [0.05, 0.016], [0.09, 0.022], [0.115, 0.03], [0.125, 0.036], [0.135, 0.032], [0.16, 0.05], [0.185, 0.074], [0.19, 0.08]],   // the bump in the middle, the ridge
+    mat(0x7fc4ea, { roughness: 0.15, metalness: 0.1, transparent: true, opacity: 0.88, side: THREE.DoubleSide }));
+  const floor = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.012, 40), mat(0x2a6f9e, { roughness: 0.4 })); floor.position.y = 0.008;   // seen through the clear bowl
+  const stripe = new THREE.Mesh(new THREE.TorusGeometry(0.168, 0.003, 4, 48), mat(0x36e0ff, { roughness: 0.3, emissive: 0x0a4a5a })); stripe.rotation.x = Math.PI / 2; stripe.position.y = 0.058;
+  const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.024, 0.006, 20), mat(0xff4d00, { roughness: 0.4 })); hub.position.y = 0.024;
+  [shell, bowl, floor, stripe, hub].forEach(m => g.add(m));
+  // the rim in three arcs, the gaps between them the exit pockets, each with a tray hanging off it
+  const rimM = mat(0x111014, { roughness: 0.45 }), trayM = mat(0xff6a1a, { roughness: 0.45 });
+  for (let i = 0; i < 3; i++) {
+    const arc = new THREE.Mesh(new THREE.TorusGeometry(0.197, 0.011, 6, 24, Math.PI * 2 / 3 - 0.42), rimM);
+    arc.rotation.set(Math.PI / 2, 0, i * Math.PI * 2 / 3 + 0.21); arc.position.y = 0.082; g.add(arc);
+    const ga = (i + 1) * Math.PI * 2 / 3;   // the middle of the gap after this arc (one points +x, the other two back toward -x only half as far)
+    const tray = new THREE.Group(); tray.position.set(Math.cos(ga) * 0.19, 0.05, Math.sin(ga) * 0.19); tray.rotation.y = -ga; g.add(tray);
+    const t1 = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.006, 0.06), trayM); t1.position.set(0.018, 0, 0); tray.add(t1);
+    [-1, 1].forEach(s => { const w = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.02, 0.005), trayM); w.position.set(0.018, 0.01, s * 0.03); tray.add(w); });
+    const back = new THREE.Mesh(new THREE.BoxGeometry(0.005, 0.02, 0.06), trayM); back.position.set(0.035, 0.01, 0); tray.add(back);
+  }
+  g.traverse(m => { if (m.isMesh) { m.castShadow = true; m.receiveShadow = true; } });
   S.stadium = g; stow();
   S.tops = TOP_COLS.map(([c1, c2]) => {
     const t = new THREE.Group(), spinner = new THREE.Group(); t.add(spinner);
@@ -128,7 +144,8 @@ export function updateTops(dt) {
     if (falling) { u.speed = Math.max(0, u.speed - dt * 0.8); u.tilt = Math.min(1.3, u.tilt + dt * 1.1); u.r = Math.min(0.15, u.r + dt * 0.05); }
     else u.r = 0.06 + Math.abs(Math.sin(u.ang * 0.9 + i)) * 0.07;   // circling and clashing toward the middle
     u.ang += dt * 2.6 * u.speed; u.spin += dt * 45 * u.speed;
-    t.position.set(TABLE.x * K + Math.cos(u.ang) * u.r, TABLE.y + 0.018 + u.tilt * 0.012, TABLE.z + Math.sin(u.ang) * u.r);
+    const floorY = 0.02 + Math.max(0, u.r - 0.09) * 0.5;   // riding up the bowl's slope toward the rim
+    t.position.set(TABLE.x * K + Math.cos(u.ang) * u.r, TABLE.y + floorY + u.tilt * 0.012, TABLE.z + Math.sin(u.ang) * u.r);
     t.rotation.set(u.tilt, 0, u.tilt * 0.5);
     u.spinner.rotation.y = u.spin;
   });

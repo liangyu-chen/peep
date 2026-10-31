@@ -84,9 +84,14 @@ body:has(.cafe-root){margin:0;overflow:hidden;background:#141218}
 .cafe-root .gameClose{padding:2px 8px}
 .cafe-root .gameWin canvas{width:100%;aspect-ratio:16/9;display:block;image-rendering:pixelated;background:#000;box-shadow:0 0 0 3px #000;touch-action:none;cursor:crosshair}
 .cafe-root .gameHelp{margin:0;font-size:13px;color:var(--muted);line-height:1.5}
+/* a TV game on a wide screen: the game is on the TV, so the window is just the controls, docked at the bottom */
+.cafe-root .gameSheet.onTV{background:none;place-items:end center;pointer-events:none}
+.cafe-root .gameSheet.onTV .gameWin{pointer-events:auto;width:min(620px,100%);gap:6px;padding:8px 12px}
+.cafe-root .gameSheet.onTV canvas{display:none}
+.cafe-root .gameSheet.onTV .gameHelp{font-size:12px}
 .cafe-root .gamePad{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
 /* playing darts on the wall board: the rest of the HUD steps aside; a pixel crosshair, the round and score along the top */
-.cafe-root.playing #topLeft,.cafe-root.playing #controls,.cafe-root.playing #log,.cafe-root.playing #tvCard,.cafe-root.playing #hint,.cafe-root.playing #card{display:none}
+.cafe-root.playing #labels,.cafe-root.playing #topLeft,.cafe-root.playing #controls,.cafe-root.playing #log,.cafe-root.playing #tvCard,.cafe-root.playing #hint,.cafe-root.playing #card{display:none}
 .cafe-root .dartsHud{position:absolute;inset:0;z-index:20;cursor:none;touch-action:none;user-select:none;-webkit-user-select:none}
 .cafe-root .dTop{position:absolute;top:calc(14px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);display:flex;gap:18px;align-items:center;
   font-family:var(--f-pixel);font-size:12px;color:var(--gold);background:var(--panel);padding:8px 14px;box-shadow:0 0 0 3px #000;white-space:nowrap}

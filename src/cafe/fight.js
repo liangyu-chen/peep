@@ -115,71 +115,145 @@ export const fightClock = m => (m.final > 0 ? 'FINAL' : `R${m.round} ${Math.max(
 
 // ---------------------------------------------------------------- drawing (640x360 coordinates)
 const FLOOR = 300, U = 6;   // feet line, and one sprite pixel in screen units
-function stage(g, t) {
+const shade = (hex, k) => {   // a colour made lighter (k > 0) or darker (k < 0)
+  const n = parseInt(hex.slice(1), 16), c = [n >> 16, (n >> 8) & 255, n & 255].map(v => Math.round(k > 0 ? v + (255 - v) * k : v * (1 + k)));
+  return `rgb(${c.join(',')})`;
+};
+// a temple courtyard at sunset: layered sky, far hills, the city with lit windows, a pagoda and a torii, a crowd behind the
+// rope cheering, paper lanterns swaying on a string, and a polished wooden floor
+function stage(g, t, cheer) {
   const sky = g.createLinearGradient(0, 0, 0, FLOOR);
-  sky.addColorStop(0, '#2a1d4a'); sky.addColorStop(0.6, '#a8436a'); sky.addColorStop(1, '#f08a24');
+  sky.addColorStop(0, '#1d1640'); sky.addColorStop(0.45, '#6a2f6e'); sky.addColorStop(0.8, '#e0604a'); sky.addColorStop(1, '#f6a03c');
   g.fillStyle = sky; g.fillRect(0, 0, 640, FLOOR);
-  g.fillStyle = '#ffd23f'; g.fillRect(470, 70, 48, 48);                                          // setting sun
-  g.fillStyle = '#3a2440';                                                                        // rooftops and a pagoda on the skyline
-  for (let x = 0; x < 640; x += 40) g.fillRect(x, 190 + ((x * 7) % 50), 38, 200);
-  g.fillRect(110, 120, 60, 80); g.fillRect(96, 116, 88, 8); g.fillRect(118, 92, 44, 28); g.fillRect(104, 88, 72, 6); g.fillRect(130, 70, 20, 22);
-  for (let i = 0; i < 6; i++) { g.fillStyle = Math.sin(t * 3 + i) > 0 ? '#ff4f7b' : '#c0282d'; g.fillRect(40 + i * 104, 150 + (i % 2) * 14, 10, 14); }   // lanterns
-  g.fillStyle = '#5a3a22'; g.fillRect(0, FLOOR, 640, 60);                                       // wooden floor
-  g.fillStyle = '#4a2e1a'; for (let x = 0; x < 640; x += 64) g.fillRect(x, FLOOR, 4, 60);
-  g.fillStyle = '#6b4a2e'; g.fillRect(0, FLOOR, 640, 4);
+  g.fillStyle = '#f4efe3'; for (let i = 0; i < 24; i++) if (Math.sin(t * 2 + i * 7) > -0.3) g.fillRect((i * 137) % 640, (i * 53) % 90, 3, 3);   // stars, twinkling
+  g.fillStyle = '#ffd23f'; g.beginPath(); g.arc(480, 150, 40, 0, Math.PI * 2); g.fill();                    // the setting sun, banded
+  g.fillStyle = '#f6a03c'; [158, 168, 176].forEach((y, i) => g.fillRect(436, y, 88, 3 + i));
+  g.fillStyle = '#8a3d6a'; g.beginPath(); g.moveTo(0, 200);                                                  // far hills
+  for (let x = 0; x <= 640; x += 32) g.lineTo(x, 175 + Math.sin(x / 70) * 18 + Math.sin(x / 23) * 6);
+  g.lineTo(640, 260); g.lineTo(0, 260); g.fill();
+  for (let x = 0; x < 640; x += 40) {                                                                         // the city, with windows lit
+    const h = 60 + ((x * 7) % 50); g.fillStyle = '#3a2440'; g.fillRect(x, FLOOR - h - 40, 38, h + 40);
+    g.fillStyle = '#ffcf6a'; for (let k = 0; k < 4; k++) if ((x * 13 + k * 7) % 5 < 2) g.fillRect(x + 6 + (k % 2) * 16, FLOOR - h - 30 + Math.floor(k / 2) * 18, 6, 8);
+  }
+  g.fillStyle = '#2a1a32';                                                                                    // the pagoda
+  [[120, 150, 64, 70], [112, 144, 80, 8], [124, 110, 56, 36], [108, 104, 88, 8], [132, 78, 40, 28], [118, 72, 68, 7], [148, 46, 8, 26]].forEach(([x, y, w, h]) => g.fillRect(x, y, w, h));
+  g.fillStyle = '#c0282d'; g.fillRect(560, 150, 10, 110); g.fillRect(610, 150, 10, 110); g.fillRect(548, 150, 84, 10); g.fillRect(542, 140, 96, 8); g.fillRect(556, 170, 68, 6);   // a torii
+  // the crowd behind the rope, jumping when there's something to cheer
+  for (let i = 0; i < 40; i++) {
+    const x = i * 16 + (i % 3) * 3, j = cheer && Math.sin(t * 12 + i * 1.7) > 0.3 ? 5 : Math.round(Math.sin(t * 2 + i) * 1);
+    g.fillStyle = ['#2b2340', '#3a2a52', '#1f1a30'][i % 3]; g.fillRect(x, 262 - j, 14, 38);
+    g.fillStyle = ['#c68a5e', '#e0ac80', '#8d5a3b', '#f1c9a5'][i % 4]; g.fillRect(x + 3, 252 - j, 9, 10);
+    if (cheer && i % 4 === 0) g.fillRect(x - 2, 240 - j, 3, 14);
+  }
+  g.fillStyle = '#c9a36a'; g.fillRect(0, 276, 640, 3);                                                         // the rope
+  // lanterns swaying on their string
+  g.strokeStyle = '#1a1020'; g.lineWidth = 2; g.beginPath(); g.moveTo(0, 30); g.quadraticCurveTo(320, 70, 640, 30); g.stroke();
+  for (let i = 0; i < 7; i++) {
+    const x = 40 + i * 93, y = 30 + Math.sin(x / 640 * Math.PI) * 20, sw = Math.sin(t * 2 + i) * 3;
+    g.fillStyle = '#1a1020'; g.fillRect(x + sw - 1, y, 2, 8);
+    g.fillStyle = Math.sin(t * 3 + i) > 0 ? '#ff4f7b' : '#e8343f'; g.fillRect(x + sw - 9, y + 8, 18, 22);
+    g.fillStyle = '#ffd23f'; g.fillRect(x + sw - 9, y + 8, 18, 3); g.fillRect(x + sw - 9, y + 27, 18, 3);
+  }
+  // the floor: planks running away, a sheen, the fighters' line
+  g.fillStyle = '#6b4226'; g.fillRect(0, FLOOR, 640, 60);
+  g.fillStyle = '#5a361e'; for (let x = -320; x < 960; x += 48) { g.beginPath(); g.moveTo(x, FLOOR); g.lineTo(x + 3, FLOOR); g.lineTo(320 + (x + 3 - 320) * 1.6, 360); g.lineTo(320 + (x - 320) * 1.6, 360); g.fill(); }
+  g.fillStyle = 'rgba(255,200,140,.12)'; g.fillRect(0, FLOOR + 10, 640, 8);
+  g.fillStyle = '#8a5a34'; g.fillRect(0, FLOOR, 640, 4);
 }
+
+// one fighter, an outlined 8-bit sprite: stance, walk, punch, kick, block, special, hit (flashing) and down
 function fighter(g, f, t) {
   const cx = 40 + f.x * 560, d = f.dir, [gi, trim, hair] = f.col;
-  const px = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(cx + (d > 0 ? x : -x - w) * U, FLOOR - (y + h) * U, w * U, h * U); };
-  g.fillStyle = 'rgba(0,0,0,.35)'; g.fillRect(cx - 5 * U, FLOOR - 4, 10 * U, 6);
-  if (f.act === 'ko') {   // flat on the floor
-    px(-7, 0, 14, 3, gi); px(7, 0, 4, 3, f.skin); px(9, 2, 3, 2, hair); px(-1, 0, 2, 3, trim); return;
+  const flash = f.act === 'hit' && Math.floor(t * 30) % 2 === 0;
+  const giD = flash ? '#ffffff' : shade(gi, -0.28), giL = flash ? '#ffffff' : gi, skin = flash ? '#ffffff' : f.skin, skinD = flash ? '#ffffff' : shade(f.skin, -0.2);
+  const tr = flash ? '#ffffff' : trim;
+  const rects = [];
+  const px = (x, y, w, h, c) => rects.push([cx + (d > 0 ? x : -x - w) * U, FLOOR - (y + h) * U, w * U, h * U, c]);
+  g.fillStyle = 'rgba(0,0,0,.35)'; g.beginPath(); g.ellipse(cx, FLOOR + 2, 7 * U, 1.4 * U, 0, 0, Math.PI * 2); g.fill();
+  if (f.act === 'ko') {   // flat on his back
+    px(-8, 0, 12, 2.5, giL); px(-8, 2, 12, 0.6, giD); px(-2, 0, 1, 2.5, tr); px(4, 0, 4, 3, skin); px(7, 1, 2, 2.5, hair); px(-11, 0, 3, 1.5, skin);
+  } else {
+    const a = f.act, bob = a === 'idle' ? Math.round(Math.sin(t * 6) * 0.5) : 0, lean = a === 'hit' ? -1.5 : a === 'kick' ? -1 : a === 'punch' ? 0.5 : 0;
+    const step = a === 'walk' ? Math.sin(f.walk) * 1.5 : 0, B = bob;
+    // legs: back one in shadow; a kick throws the front one out level
+    px(-5 + step, 0, 3, 1, skin); px(-4.5 + step, 1, 2.5, 7, giD);                              // back foot and leg
+    if (a === 'kick') { px(0, 8, 9, 2.5, giL); px(9, 8, 3, 2.5, skin); px(0.5, 7.5, 1.5, 3, giL); }
+    else { px(1 - step, 0, 3, 1, skin); px(1 - step, 1, 2.5, 7, giL); }
+    // hips, the belt with its knot and tails, the jacket with the chest showing
+    px(-4 + lean, 7 + B, 7, 2, giL); px(-3.5 + lean, 9 + B, 6.5, 1, tr); px(-4.5 + lean, 7.5 + B, 1, 2, tr);
+    px(-3.5 + lean, 10 + B, 6.5, 5, giL); px(-3.5 + lean, 10 + B, 1.5, 5, giD); px(0.5 + lean, 12 + B, 2, 3, skinD);
+    // head: face, eye, brow, hair with a spike, the headband and its tails streaming behind
+    const H = 15 + B, hx = lean + (a === 'hit' ? -0.5 : 0);
+    px(-1 + hx, H, 4, 4, skin); px(2 + hx, H + 1.8, 0.7, 0.8, '#111'); px(1.5 + hx, H + 2.8, 1.5, 0.4, '#111');
+    px(-1.5 + hx, H + 3.5, 4.5, 1.5, hair); px(-2 + hx, H + 2.5, 1, 2, hair); px(1 + hx, H + 5, 1.5, 0.8, hair);
+    px(-1.5 + hx, H + 3, 4.5, 0.8, tr);
+    const wave = Math.sin(t * 10) * 0.5;
+    px(-3.5 + hx, H + 2.6 + wave, 2, 0.6, tr); px(-5 + hx, H + 2.3 - wave, 1.5, 0.6, tr);
+    // arms
+    if (a === 'punch') { px(-2.5 + lean, 12 + B, 2, 2, giD); px(1 + lean, 12.5 + B, 8, 2, giL); px(9 + lean, 12 + B, 2.5, 3, tr); }
+    else if (a === 'special') { px(1, 11.5 + B, 7, 2, giL); px(1, 13.5 + B, 7, 2, giD); px(8, 11.5 + B, 2, 4, skin); }
+    else if (a === 'block') { px(1.5, 11 + B, 2, 6, giL); px(3, 15 + B, 2.5, 2.5, tr); px(2.5, 12 + B, 2.5, 2.5, tr); }
+    else if (a === 'hit') { px(-4 + lean, 11 + B, 2, 3.5, giD); px(1 + lean, 10.5 + B, 2, 3.5, giL); px(1 + lean, 9.5 + B, 2, 1.5, tr); }
+    else {   // guard: fists up
+      px(-2 + lean, 11.5 + B, 3, 2, giD); px(1 + lean, 13 + B, 2, 2.5, tr);
+      px(2 + lean, 11 + B, 3, 2, giL); px(4.5 + lean, 12.5 + B, 2.5, 2.5, tr);
+    }
   }
-  const bob = f.act === 'idle' ? Math.round(Math.sin(t * 6) * 0.5) : 0;
-  const lean = f.act === 'hit' ? -1 : 0;
-  const step = f.act === 'walk' ? Math.round(Math.sin(f.walk) * 1.5) : 0;
-  // legs
-  if (f.act === 'kick') { px(-2, 0, 2, 7, gi); px(0, 5, 9, 2, gi); px(9, 5, 2, 2, f.skin); }
-  else { px(-3 + step, 0, 2, 7, gi); px(1 - step, 0, 2, 7, gi); px(-3 + step, 0, 2, 1, '#1f1c27'); px(1 - step, 0, 2, 1, '#1f1c27'); }
-  // body, belt, head
-  px(-3 + lean, 7 + bob, 6, 7, gi); px(-3 + lean, 9 + bob, 6, 1, trim);
-  px(-2 + lean, 14 + bob, 4, 4, f.skin); px(-2 + lean, 17 + bob, 4, 2, hair); px(1 + lean, 15 + bob, 1, 1, '#111');
-  px(-3 + lean, 17 + bob, 6, 1, trim);                                                             // headband
-  // arms
-  const a = f.act;
-  if (a === 'punch') { px(2 + lean, 12 + bob, 7, 2, gi); px(9 + lean, 12 + bob, 2, 2, trim); px(-4 + lean, 10 + bob, 2, 3, trim); }
-  else if (a === 'special') { px(2, 11 + bob, 6, 2, gi); px(2, 13 + bob, 6, 2, gi); px(8, 11 + bob, 2, 4, trim); }
-  else if (a === 'block') { px(1, 12 + bob, 2, 5, trim); px(-1, 14 + bob, 4, 2, gi); }
-  else { px(2 + lean, 10 + bob, 2, 4, gi); px(3 + lean, 13 + bob, 2, 2, trim); px(-4 + lean, 10 + bob, 2, 4, gi); px(-4 + lean, 9 + bob, 2, 2, trim); }
+  g.fillStyle = '#0d0a12'; rects.forEach(([x, y, w, h]) => g.fillRect(x - 2, y - 2, w + 4, h + 4));   // the outline
+  rects.forEach(([x, y, w, h, c]) => { g.fillStyle = c; g.fillRect(x, y, w, h); });
+  if (f.act === 'punch' && f.actT > 0.1) { g.fillStyle = 'rgba(255,255,255,.7)'; for (let i = 0; i < 3; i++) g.fillRect(cx + d * (2 + i * 2) * U - (d < 0 ? 4 * U : 0), FLOOR - (12.8 + i * 0.6) * U, 4 * U, 3); }   // speed lines
 }
-function bar(g, x, w, hp, right, name, wins) {
-  g.fillStyle = '#000'; g.fillRect(x - 3, 15, w + 6, 22);
-  g.fillStyle = '#c0282d'; g.fillRect(x, 18, w, 16);
-  const fillW = Math.round(w * hp / 100);
-  g.fillStyle = hp > 30 ? '#ffd23f' : '#ff7a1f'; g.fillRect(right ? x + w - fillW : x, 18, fillW, 16);
-  g.font = `20px ${DOT}`; g.fillStyle = '#fff'; g.textAlign = right ? 'right' : 'left'; g.fillText(name, right ? x + w : x, 60);
-  for (let i = 0; i < 2; i++) { g.fillStyle = i < wins ? '#ffd23f' : '#3a2a1e'; g.fillRect(right ? x + w - 16 - i * 20 : x + i * 20, 68, 14, 10); }
+// a health bar: bevelled, the damage just taken showing red before it drains, the name and round wins under it
+function bar(g, f, x, w, right) {
+  f.lag = f.lag == null || f.lag < f.hp ? f.hp : Math.max(f.hp, f.lag - 0.6);
+  g.fillStyle = '#0d0a12'; g.fillRect(x - 4, 12, w + 8, 26);
+  g.fillStyle = '#4a1418'; g.fillRect(x, 16, w, 18);
+  const fill = v => Math.round(w * v / 100), at = v => (right ? x + w - fill(v) : x);
+  g.fillStyle = '#ff4f4f'; g.fillRect(at(f.lag), 16, fill(f.lag), 18);
+  g.fillStyle = f.hp > 30 ? '#ffd23f' : '#ff7a1f'; g.fillRect(at(f.hp), 16, fill(f.hp), 18);
+  g.fillStyle = 'rgba(255,255,255,.45)'; g.fillRect(at(f.hp), 16, fill(f.hp), 4);
+  g.font = `20px ${DOT}`; g.fillStyle = '#000'; g.textAlign = right ? 'right' : 'left';
+  g.fillText(f.fighter, (right ? x + w : x) + 2, 62); g.fillStyle = '#fff'; g.fillText(f.fighter, right ? x + w : x, 60);
+  for (let i = 0; i < 2; i++) {   // a V for each round won
+    const bx = right ? x + w - 18 - i * 22 : x + i * 22;
+    g.fillStyle = '#0d0a12'; g.fillRect(bx - 2, 66, 18, 14); g.fillStyle = i < f.score ? '#ffd23f' : '#3a2a1e'; g.fillRect(bx, 68, 14, 10);
+    if (i < f.score) { g.fillStyle = '#c0282d'; g.fillRect(bx + 3, 70, 2, 4); g.fillRect(bx + 9, 70, 2, 4); g.fillRect(bx + 5, 74, 4, 2); }
+  }
+}
+// a starburst where a blow lands
+function spark(g, x, y, k, c) {
+  g.fillStyle = c; for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4, r = (i % 2 ? 10 : 18) * k; g.fillRect(x + Math.cos(a) * r - 3, y + Math.sin(a) * r - 3, 6, 6); }
+  g.fillStyle = '#fff'; g.fillRect(x - 6 * k, y - 6 * k, 12 * k, 12 * k);
 }
 export function drawFight(g, m, t) {
-  stage(g, t);
-  m.shots.forEach(s => {
-    const x = 40 + s.x * 560, c = s.from.col[1], r = 10 + Math.sin(s.t * 30) * 2;
-    g.fillStyle = '#fff'; g.fillRect(x - r / 2, 212 - r / 2, r, r); g.fillStyle = c; g.fillRect(x - r, 212 - r * 0.6, r * 2, r * 1.2);
+  stage(g, t, m.ko > 0 || m.final > 0);
+  m.shots.forEach(s => {   // a fireball: a glowing core, flames trailing behind
+    const x = 40 + s.x * 560, c = s.from.col[1], r = 12 + Math.sin(s.t * 30) * 2;
+    for (let i = 1; i <= 4; i++) { g.globalAlpha = 0.5 - i * 0.1; g.fillStyle = c; g.fillRect(x - s.dir * i * 14 - r * 0.6, 216 - r * 0.6 + Math.sin(s.t * 40 + i) * 3, r * 1.2, r * 1.2); }
+    g.globalAlpha = 1;
+    g.fillStyle = '#0d0a12'; g.fillRect(x - r - 3, 216 - r * 0.7 - 3, r * 2 + 6, r * 1.4 + 6);
+    g.fillStyle = c; g.fillRect(x - r, 216 - r * 0.7, r * 2, r * 1.4); g.fillStyle = '#fff'; g.fillRect(x - r / 2, 216 - r * 0.35, r, r * 0.7);
   });
-  fighter(g, m.home, t); fighter(g, m.away, t);
-  m.sparks.forEach(s => { const x = 40 + s.x * 560, k = 1 + (0.25 - s.t) * 30; g.fillStyle = s.c; g.fillRect(x - 2, 210 - 4 * k, 4, 8 * k); g.fillRect(x - 4 * k, 208, 8 * k, 4); });
-  bar(g, 30, 250, m.home.hp, false, m.home.fighter, m.home.score);
-  bar(g, 360, 250, m.away.hp, true, m.away.fighter, m.away.score);
-  g.fillStyle = '#000'; g.fillRect(292, 10, 56, 34); g.fillStyle = '#ffd23f'; g.font = `20px ${PIX}`; g.textAlign = 'center';
-  g.fillText(m.final > 0 ? '--' : String(Math.max(0, Math.ceil(m.t))), 320, 38);
-  g.font = `22px ${DOT}`; g.fillStyle = '#fff';
+  [m.home, m.away].sort((a, b) => (a.act === 'ko') - (b.act === 'ko')).reverse().forEach(f => fighter(g, f, t));
+  m.sparks.forEach(s => spark(g, 40 + s.x * 560, 212, 1 + (0.25 - s.t) * 3, s.c));
+  bar(g, m.home, 26, 254, false); bar(g, m.away, 360, 254, true);
+  // the clock between the bars
+  g.fillStyle = '#0d0a12'; g.fillRect(288, 6, 64, 42); g.fillStyle = '#1f1c27'; g.fillRect(292, 10, 56, 34);
+  g.fillStyle = m.t < 10 && m.final <= 0 ? '#ff4f7b' : '#ffd23f'; g.font = `22px ${PIX}`; g.textAlign = 'center';
+  g.fillText(m.final > 0 ? '--' : String(Math.max(0, Math.ceil(m.t))).padStart(2, '0'), 320, 38);
+  g.font = `20px ${DOT}`; g.fillStyle = '#fff';
   g.textAlign = 'left'; g.fillText('1P ' + m.home.name, 12, 352); g.textAlign = 'right'; g.fillText(m.away.name + ' 2P', 628, 352);
   let text = '';
   if (m.final > 0) text = `${(m.home.score > m.away.score ? m.home : m.away).fighter} WINS`;
   else if (m.ko > 0) text = m.koText;
   else if (m.intro > 0) text = m.intro > 0.7 ? `ROUND ${m.round}` : 'FIGHT!';
   if (text) {
-    g.textAlign = 'center'; g.font = m.final > 0 ? `40px ${DOT}` : `44px ${PIX}`;
-    g.fillStyle = '#000'; g.fillText(text, 324, 174); g.fillStyle = m.ko > 0 ? '#ff4f7b' : '#ffd23f'; g.fillText(text, 320, 170);
+    const big = m.ko > 0 && m.koText === 'K.O.';
+    g.textAlign = 'center'; g.font = m.final > 0 ? `40px ${DOT}` : `${big ? 64 : 44}px ${PIX}`;
+    const y = big ? 190 : 170, k = big ? 1 + Math.max(0, m.ko - 1.8) : 1;
+    g.save(); g.translate(320, y); g.scale(k, k);
+    g.fillStyle = '#0d0a12'; for (const [ox, oy] of [[-4, 0], [4, 0], [0, -4], [0, 4], [5, 5]]) g.fillText(text, ox, oy);
+    g.fillStyle = m.ko > 0 ? '#ff4f7b' : '#ffd23f'; g.fillText(text, 0, 0);
+    g.restore();
   }
 }
