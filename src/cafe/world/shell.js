@@ -74,7 +74,7 @@ export function buildShell() {
   box(1.25, 0.4, 0.16, greyM, -1.5, 2.6, -5.5);          // a shallow lintel: the door runs up to 2.4 m
   box(2.6, 0.04, 0.1, mat(0x222222, { metalness: 0.6 }), -2.0, 2.42, -5.63);   // the track, tight under it
   // two sliding panels on two tracks, one behind the other, each with three frosted panes stacked up it in raised frames:
-  // the left one stays put, the right one slides left behind it to open the way into the back
+  // the left one stays put, the right one slides left in front of it to open the way into the back
   const frost = new THREE.MeshStandardMaterial({ color: 0xb3c0c6, roughness: 0.4, metalness: 0.1, emissive: 0x0e1214 });
   const frameM = mat(0x2c2e31, { roughness: 0.5 }), panelM = mat(0x3d3f42, { roughness: 0.5 });
   const panel = (x, z) => {
@@ -85,8 +85,8 @@ export function buildShell() {
     }));
     return p;
   };
-  panel(-1.78, -5.6);                                        // the fixed one, on the inner track
-  S.slideDoor = panel(-1.22, -5.66);                         // the one that slides, on the outer track
+  panel(-1.78, -5.66);                                       // the fixed one, on the track further back
+  S.slideDoor = panel(-1.22, -5.6);                          // the one that slides, on the track nearer the room
   box(0.025, 0.3, 0.05, mat(0xcccccc, { metalness: 0.8 }), 0.27, 0, 0, S.slideDoor);   // its pull, by the right edge
   S.slide = { open: 0 };
   // back of house partitions
