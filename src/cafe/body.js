@@ -119,16 +119,13 @@ const partGeo = (shape, phi0, p0, p1) => geo(`part:${shape},${phi0},${p0.toFixed
   for (let j = 0; j < N; j++) { const a = j * 2; idx.push(a, a + 2, a + 1, a + 1, a + 2, a + 3); }
   const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals(); return g;
 });
-// curls in a hair surface: round curls packed evenly over the head (each a smooth dome round one of a few hundred
-// evenly spread points, a little bigger or smaller than its neighbours), creased where they meet
-const CURL_PTS = (() => { const n = 340, pts = []; for (let i = 0; i < n; i++) { const y = 1 - (2 * (i + 0.5)) / n, r = Math.sqrt(1 - y * y), a = i * 2.39996; pts.push([Math.cos(a) * r, y, Math.sin(a) * r, 0.75 + 0.25 * Math.abs(Math.sin(i * 12.9898) * 43758.5453 % 1)]); } return pts; })();
-const curlLumps = (amp, size = 0.012) => u => {
-  let m = 0;
-  for (const [x, y, z, k] of CURL_PTS) {
-    const d = 1 - (u.x * x + u.y * y + u.z * z);              // about half the squared angle to the curl's centre
-    if (d < size) { const h = (1 - d / size) ** 1.5 * k; if (h > m) m = h; }
-  }
-  return amp * (0.2 + 0.8 * m);
+// curls in a hair surface, like the ringlets lower down: wavy locks running out from the crown, each waving from side
+// to side and bulging where it curls; they smooth out right at the crown so they don't bunch up where they all meet
+const curlLumps = amp => u => {
+  const phi = Math.atan2(u.x, u.z), p = Math.acos(Math.max(-1, Math.min(1, u.y)));
+  const lock = 0.5 + 0.5 * Math.sin(22 * phi + 1.6 * Math.sin(9 * p + 3 * phi));
+  const curl = 0.6 + 0.4 * Math.sin(14 * p + 5 * phi);
+  return amp * (0.25 + 0.75 * lock * curl) * Math.min(1, p / 0.45);
 };
 // a lathe whose surface is pushed out into ringlets: separate locks hanging down it, each waving from side to side and
 // bulging where it curls, deeper toward the ends
@@ -423,7 +420,7 @@ function buildHair(hairParts, shape, head, hairM, mk, at, look) {
     // the top of the head: shaped by the front, with curls in its surface if it's curly
     const F = FRONTS[front] || FRONTS.none, curly = curl === 'curly';
     const amp = length === 'short' ? 0.02 : CURL_TOP;
-    mk(capGeo(shape, `${front}${curly ? `:curly${amp}` : ''}`, F.edge, F.thick, curly ? curlLumps(amp) : null, F.groove), hairM, 0, 0, 0, head);
+    mk(capGeo(shape, `${front}${curly ? `:waves${amp}` : ''}`, F.edge, F.thick, curly ? curlLumps(amp) : null, F.groove), hairM, 0, 0, 0, head);
     if (F.part != null && !curly) {                     // the scalp showing along the parting
       const reach = Math.PI / 2 - F.edge(F.part);
       mk(partGeo(shape, F.part, reach * 0.3, reach - 0.01), mat(look.skin, { roughness: 0.7 }), 0, 0, 0, head, false);
