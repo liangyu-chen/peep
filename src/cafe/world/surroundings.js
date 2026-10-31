@@ -330,16 +330,18 @@ export function buildSurroundings() {
   S.envWindows = []; S.envBlocks = [];
   S.traffic = traffic; S.spawnVehicle = spawn;   // handy from the console
   ctx.scene.fog = new THREE.Fog(0xd9dcdc, 45, 140);
-  // ground: asphalt all over outside, the lane on top of it
-  const gt = asphaltTex().clone(); gt.needsUpdate = true; gt.repeat.set(50, 50);   // asphalt everywhere outside, not only the lane
-  const ground = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), new THREE.MeshStandardMaterial({ map: gt, roughness: 0.95 }));
+  // ground: concrete, with the roads asphalt on top of it, so the lane and the cross street read as roads
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), mat(0x6f6b65, { roughness: 1 }));
   ground.rotation.x = -Math.PI / 2; ground.position.y = -0.05; ground.receiveShadow = true;
   // everything at street level sits RISE down, below the raised frontage
   const low = new THREE.Group(); low.position.y = -RISE; env.add(low); low.add(ground);
-  const at = asphaltTex().clone(); at.needsUpdate = true; at.repeat.set(24, 2);
-  const lane = new THREE.Mesh(new THREE.PlaneGeometry(96, LANE_W + 0.6), new THREE.MeshStandardMaterial({ map: at, roughness: 0.95 }));
-  lane.rotation.x = -Math.PI / 2; lane.position.set(0, -0.015, LANE_Z); lane.receiveShadow = true; low.add(lane);
-  // a white edge line on the far side, and 慢 painted big across the lane, read by drivers coming down the one-way lane
+  // the lane: asphalt right up to the fronts of the houses, no pavement, as in the photos
+  const ROAD0 = FRONT - 0.4, ROAD1 = OPP + 0.3;
+  const at = asphaltTex().clone(); at.needsUpdate = true; at.repeat.set(24, 2.6);
+  const lane = new THREE.Mesh(new THREE.PlaneGeometry(96, ROAD1 - ROAD0), new THREE.MeshStandardMaterial({ map: at, roughness: 0.95 }));
+  lane.rotation.x = -Math.PI / 2; lane.position.set(0, -0.015, (ROAD0 + ROAD1) / 2); lane.receiveShadow = true; low.add(lane);
+  // a white edge line on the far side, 慢 painted big across the lane up the way, and before the crossroads 停 and
+  // 消防通道, stacked to be read by drivers coming down the one-way lane
   const paint = new THREE.MeshStandardMaterial({ color: col(0xe8e6e0), roughness: 0.8 });
   [[-48, CROSS0], [CROSS1, 48]].forEach(([a, b]) => { const e = new THREE.Mesh(new THREE.PlaneGeometry(b - a, 0.12), paint); e.rotation.x = -Math.PI / 2; e.position.set((a + b) / 2, -0.01, OPP - 0.35); low.add(e); });
   // the cross street, running back past the end of the shop's row, and a stop line across the lane before it
@@ -347,12 +349,16 @@ export function buildSurroundings() {
   const cross = new THREE.Mesh(new THREE.PlaneGeometry(CROSS1 - CROSS0, 96), new THREE.MeshStandardMaterial({ map: ct, roughness: 0.95 }));
   cross.rotation.x = -Math.PI / 2; cross.position.set((CROSS0 + CROSS1) / 2, -0.02, LANE_Z); cross.receiveShadow = true; low.add(cross);
   const stop = new THREE.Mesh(new THREE.PlaneGeometry(0.3, LANE_W - 0.3), paint); stop.rotation.x = -Math.PI / 2; stop.position.set(CROSS0 - 0.5, -0.008, LANE_Z); low.add(stop);
-  const slow = canvasTex(256, 256, (g, w) => { g.fillStyle = '#ece9e2'; g.font = 'bold 220px "Noto Sans TC", sans-serif'; g.textAlign = 'center'; g.fillText('慢', w / 2, 210); });
-  S.fontTex.push(slow);
-  [-10, 10.6].forEach(x => {
-    const m = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 2.6), new THREE.MeshStandardMaterial({ map: slow, transparent: true, roughness: 0.8, depthWrite: false }));
+  const roadWord = (ch, x, across, along) => {
+    const t = canvasTex(256, 256, (g, w) => { g.fillStyle = '#ece9e2'; g.font = 'bold 220px "Noto Sans TC", sans-serif'; g.textAlign = 'center'; g.fillText(ch, w / 2, 210); });
+    S.fontTex.push(t);
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(across, along), new THREE.MeshStandardMaterial({ map: t, transparent: true, roughness: 0.8, depthWrite: false }));
     m.rotation.set(-Math.PI / 2, 0, -ONE_WAY * Math.PI / 2); m.position.set(x, -0.005, LANE_Z); low.add(m);   // its top points the way they drive
-  });
+  };
+  roadWord('慢', -10, 2.6, 2.6);
+  // drawn long along the road, as road lettering is, and read top to bottom as you drive up to the junction: 停 nearest it
+  roadWord('停', CROSS0 - 1.3, 1.4, 1.3);
+  ['消', '防', '通', '道'].forEach((ch, i) => roadWord(ch, CROSS0 - 3.0 - i * 1.75, 2.2, 1.6));
   // our row either side of the shop: each as deep as the shop, two or three storeys
   // to the right, two houses then the corner shop at the cross street; past it, two or three more and the row ends
   const front = () => FRONT - rand(0, 0.3);
