@@ -61,7 +61,7 @@ const asphaltTex = () => TEX.asphalt || (TEX.asphalt = (() => {
 
 // the lane is mostly hardware shops; each name is used once (dealt from a shuffled deck, no sign once it runs out)
 const SIGNS = [['永興五金行', '水電材料'], ['大同五金行', '工具 螺絲'], ['協益五金行', ''], ['金順五金行', '油漆 塗料'], ['振昌五金行', '鎖匙 門鎖'],
-  ['合發五金行', ''], ['新泰五金行', '水電器材'], ['東昇五金行', '五金百貨'], ['萬全五金行', ''], ['致泰', '各式零件承製'], ['大同鐵工', '鐵窗鐵門']];
+  ['合發五金行', ''], ['新泰五金行', '水電器材'], ['東昇五金行', '五金百貨'], ['萬全五金行', ''], ['大同鐵工', '鐵窗鐵門']];
 let signDeck = [];
 function signTex(lines, bg) {
   const fg = bg === '#f2efe6' ? '#b8232b' : '#ffffff';
@@ -123,7 +123,9 @@ function fixtures(K) {
 // one row house: ground floor shop (shutter or open front), `floors` upper floors, a flat roof (maybe a tin shed on it).
 // `corner` (+1 / -1) is the side that faces a cross street: that side gets windows too, and the corner shop's ground floor
 // is open with its goods out and its sign on both faces
-function rowHouse(x0, x1, frontZ, facing, floors, depth, corner = 0, shop = null) {
+// `nextDoor` is the house right beside the shop, after the photos: a blue roller shutter pulled down, a steel door
+// with a grille in it to its left, and its blue sign
+function rowHouse(x0, x1, frontZ, facing, floors, depth, corner = 0, shop = null, nextDoor = false) {
   const w = x1 - x0, K = fixtures(kit());
   const g = new THREE.Group(); g.position.set((x0 + x1) / 2, -RISE, frontZ); g.rotation.y = facing > 0 ? 0 : Math.PI; env.add(g);   // on the street; only our shop is raised
   const faceTex = Math.random() < 0.6
@@ -134,7 +136,19 @@ function rowHouse(x0, x1, frontZ, facing, floors, depth, corner = 0, shop = null
   bx(g, w, H, depth, face, 0, H / 2, -depth / 2);
   // ground floor: a roller shutter (mostly down), or an open front with a door and a caged window; maybe a sign
   bx(g, w, 0.35, 0.25, K.slab, 0, GF - 0.05, 0.12);                          // the floor slab edge over the front
-  if (shop) {
+  if (nextDoor) {
+    const st = K.own(new THREE.MeshStandardMaterial({ map: shutterTex(), roughness: 0.6, metalness: 0.3 })), sh = GF - 0.35;
+    const sw = w * 0.66, sx = w / 2 - 0.2 - sw / 2;
+    pl(g, sw, sh, st, sx, GF - 0.25 - sh / 2, 0.03);
+    bx(g, sw + 0.1, 0.28, 0.3, K.m(0x3d6a91, { metalness: 0.4, roughness: 0.5 }), sx, GF - 0.38, 0.12);   // the shutter's box
+    bx(g, 0.1, GF - 0.3, 0.12, K.m(0x2a4a8a, { roughness: 0.6 }), w / 2 - 0.12, (GF - 0.3) / 2, 0.06);   // the blue post at its edge
+    const dx = -w / 2 + 0.75, steel = K.m(0xa9aaa6, { metalness: 0.5, roughness: 0.45 });
+    bx(g, 0.95, 2.15, 0.06, steel, dx, 1.075, 0.04);                                                      // the steel door
+    for (let i = 0; i < 9; i++) bx(g, 0.012, 0.6, 0.012, K.iron, dx - 0.3 + i * 0.075, 1.6, 0.08, false);  // the grille in its top half
+    bx(g, 0.66, 0.02, 0.012, K.iron, dx, 1.3, 0.08, false); bx(g, 0.66, 0.02, 0.012, K.iron, dx, 1.9, 0.08, false);
+    bx(g, 0.02, 0.22, 0.04, steel, dx + 0.36, 1.0, 0.1);                                                   // its handle
+    bx(g, 1.2, 0.18, 0.3, K.slab, dx, 0.09, 0.2);                                                          // the step up to it
+  } else if (shop) {
     pl(g, w - 0.5, GF - 0.4, K.dark, 0, (GF - 0.4) / 2, 0.02);
     for (let i = 0; i < 9; i++) { const h = rand(0.25, 0.7); bx(g, rand(0.3, 0.6), h, rand(0.3, 0.5), K.m(pick([0xd94a2b, 0x3f6db3, 0xe8c547, 0x5b8c4a, 0xd8d4c8, 0x6b5a48])), rand(-w / 2 + 0.5, w / 2 - 0.5), h / 2, rand(-0.6, 0.4)); }   // goods stacked out front
   } else if (Math.random() < 0.55) {
@@ -148,11 +162,11 @@ function rowHouse(x0, x1, frontZ, facing, floors, depth, corner = 0, shop = null
     bx(g, 0.9, 2.1, 0.05, K.m(pick([0x8d8f88, 0x6b5a48, 0xb8b2a4])), -w / 4, 1.05, 0.06);                 // door
     windowUnit(g, K, w / 4, 1.5, Math.min(1.4, w / 3), 1.0, { cage: true });
   }
-  const name = shop || (Math.random() < 0.45 && signDeck.pop());
+  const name = nextDoor ? ['政泰', '刨床加工 各式零件承製'] : shop || (Math.random() < 0.45 && signDeck.pop());
   if (name) {
-    const sm = K.own(new THREE.MeshStandardMaterial({ map: signTex(name, pick(['#1f4f9a', '#b8232b', '#f2efe6', '#1c6a43'])), roughness: 0.7 }));
+    const sm = K.own(new THREE.MeshStandardMaterial({ map: signTex(name, nextDoor ? '#1f4f9a' : pick(['#1f4f9a', '#b8232b', '#f2efe6', '#1c6a43'])), roughness: 0.7 }));
     const sw = Math.min(1.6, w * 0.45);
-    bx(g, sw, sw * 0.375, 0.06, sm, shop ? 0 : rand(-w / 4, w / 4), GF + 0.38, 0.3);
+    bx(g, sw, sw * 0.375, 0.06, sm, shop ? 0 : nextDoor ? w / 2 - sw / 2 - 0.2 : rand(-w / 4, w / 4), GF + 0.38, 0.3);
     if (shop) bx(g, 0.06, sw * 0.375, sw, sm, corner * (w / 2 + 0.3), GF + 0.38, -sw / 2 - 0.3);   // round the corner too
   }
   if (corner) {   // the side on the cross street, built in its own frame: front out toward the street, x running back along it
@@ -316,19 +330,20 @@ export function buildSurroundings() {
   S.envWindows = []; S.envBlocks = [];
   S.traffic = traffic; S.spawnVehicle = spawn;   // handy from the console
   ctx.scene.fog = new THREE.Fog(0xd9dcdc, 45, 140);
-  // ground: the lane's asphalt, concrete everywhere else
-  const ground = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), mat(0x6f6b65, { roughness: 1 }));
+  // ground: asphalt all over outside, the lane on top of it
+  const gt = asphaltTex().clone(); gt.needsUpdate = true; gt.repeat.set(50, 50);   // asphalt everywhere outside, not only the lane
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), new THREE.MeshStandardMaterial({ map: gt, roughness: 0.95 }));
   ground.rotation.x = -Math.PI / 2; ground.position.y = -0.05; ground.receiveShadow = true;
   // everything at street level sits RISE down, below the raised frontage
   const low = new THREE.Group(); low.position.y = -RISE; env.add(low); low.add(ground);
-  const at = asphaltTex(); at.repeat.set(24, 2);
+  const at = asphaltTex().clone(); at.needsUpdate = true; at.repeat.set(24, 2);
   const lane = new THREE.Mesh(new THREE.PlaneGeometry(96, LANE_W + 0.6), new THREE.MeshStandardMaterial({ map: at, roughness: 0.95 }));
   lane.rotation.x = -Math.PI / 2; lane.position.set(0, -0.015, LANE_Z); lane.receiveShadow = true; low.add(lane);
   // a white edge line on the far side, and 慢 painted big across the lane, read by drivers coming down the one-way lane
   const paint = new THREE.MeshStandardMaterial({ color: col(0xe8e6e0), roughness: 0.8 });
   [[-48, CROSS0], [CROSS1, 48]].forEach(([a, b]) => { const e = new THREE.Mesh(new THREE.PlaneGeometry(b - a, 0.12), paint); e.rotation.x = -Math.PI / 2; e.position.set((a + b) / 2, -0.01, OPP - 0.35); low.add(e); });
   // the cross street, running back past the end of the shop's row, and a stop line across the lane before it
-  const ct = asphaltTex(); ct.repeat.set(2, 24);
+  const ct = asphaltTex().clone(); ct.needsUpdate = true; ct.repeat.set(2, 24);
   const cross = new THREE.Mesh(new THREE.PlaneGeometry(CROSS1 - CROSS0, 96), new THREE.MeshStandardMaterial({ map: ct, roughness: 0.95 }));
   cross.rotation.x = -Math.PI / 2; cross.position.set((CROSS0 + CROSS1) / 2, -0.02, LANE_Z); cross.receiveShadow = true; low.add(cross);
   const stop = new THREE.Mesh(new THREE.PlaneGeometry(0.3, LANE_W - 0.3), paint); stop.rotation.x = -Math.PI / 2; stop.position.set(CROSS0 - 0.5, -0.008, LANE_Z); low.add(stop);
@@ -348,7 +363,7 @@ export function buildSurroundings() {
   let end = CROSS1;
   for (let i = randi(2, 3); i > 0; i--) { const w = rand(3.6, 5.2), f = front(); rowHouse(end, end + w, f, 1, randi(1, 2), f - BACK, end === CROSS1 ? -1 : 0); end += w; }
   let x = -2.3;
-  while (x > -40) { const w = rand(3.6, 5.2), f = FRONT - rand(0, 0.3); rowHouse(x - w, x, f, 1, randi(1, 2), f - BACK); x -= w; }
+  while (x > -40) { const w = x === -2.3 ? 4.6 : rand(3.6, 5.2), f = x === -2.3 ? FRONT : FRONT - rand(0, 0.3); rowHouse(x - w, x, f, 1, randi(1, 2), f - BACK, 0, null, x === -2.3); x -= w; }
   shopUpstairs();
   // only our shop stands raised: a concrete plinth under it, its front edge flush with the pillar and the storeroom wall
   const stepM = new THREE.MeshStandardMaterial({ map: washed('step', '#9a968e'), roughness: 0.95 });
@@ -359,28 +374,32 @@ export function buildSurroundings() {
   // parked scooters and bikes, pot plants and crates along both sides, clear of the shop front
   const park = (px, pz, ry, thing) => { thing.position.set(px, -RISE, pz); thing.rotation.y = ry; thing.traverse(o => { if (o.isMesh) o.castShadow = true; }); env.add(thing); };
   const vehicle = () => (Math.random() < 0.7 ? scooterModel(pick(SCOOTER_COLS)) : bike(pick([0xd94a7a, 0x9aa0a6, 0x2f6fb0])));
-  [-5.2, -5.9, -9.6, -13.5, 4.9, 7.8, 11.6, 21.2].forEach(px => park(px, FRONT + 0.75, rand(-0.15, 0.15) + (Math.random() < 0.5 ? 0 : Math.PI), vehicle()));
+  [-7.6, -8.3, -9.6, -13.5, 4.9, 7.8, 11.6, 21.2].forEach(px => park(px, FRONT + 0.75, rand(-0.15, 0.15) + (Math.random() < 0.5 ? 0 : Math.PI), vehicle()));
   for (let i = 0; i < 14; i++) {
     const pz = FRONT + 0.25, px = rand(-30, 30);
-    if (Math.abs(px) < 2.8 || (px > CROSS0 - 0.4 && px < CROSS1 + 0.4) || px > end || (px > -3.95 && px < -1.8)) continue;
+    if (Math.abs(px) < 2.8 || (px > CROSS0 - 0.4 && px < CROSS1 + 0.4) || px > end || (px > -7.0 && px < -1.8)) continue;
     const pot = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.12, 0.26, 10), mat(pick([0xb06a45, 0x3d6a91, 0xe6e3dc]))); pot.position.set(px, 0.13 - RISE, pz); env.add(pot);
     const leaf = new THREE.Mesh(new THREE.IcosahedronGeometry(0.22, 0), mat(pick([0x5f8f55, 0x6f9f5c, 0x7fae66]), { flatShading: true })); leaf.position.set(px, 0.42 - RISE, pz); env.add(leaf);
   }
-  // just left of the shop front, past the crates as seen from the Vespa, as in the photo: a long old wooden bench with
-  // splayed legs running out toward the street, and a tree stump on its street side with a potted plant on top
+  // next door's shutter, as in the photos: bicycles left leaning against it, a long old wooden bench with splayed legs
+  // by the blue post at its edge, running out toward the street, and a tree stump on the street side with a pot on it
+  [[-3.4, 0x6f8f5a], [-4.25, 0xb8bcc0], [-5.15, 0x2b2f36]].forEach(([bxp, c]) => {
+    const b = bike(c); b.position.set(bxp, -RISE, FRONT + 0.32); b.rotation.set(-0.13, Math.PI / 2 + rand(-0.12, 0.12), 0);
+    b.traverse(o => { if (o.isMesh) o.castShadow = true; }); env.add(b);
+  });
   const wood = mat(0x9a7a56, { roughness: 0.85 }), woodDark = mat(0x7a5c3e, { roughness: 0.9 });
-  const bench = new THREE.Group(); bench.position.set(-1.62, -RISE, 8.95); bench.rotation.y = Math.PI / 2; env.add(bench);
+  const bench = new THREE.Group(); bench.position.set(-2.62, -RISE, 8.95); bench.rotation.y = Math.PI / 2; env.add(bench);
   const piece = (w, h, d, m, x, y, z, rz = 0, rx = 0) => { const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); b.position.set(x, y, z); b.rotation.set(rx, 0, rz); b.castShadow = b.receiveShadow = true; bench.add(b); return b; };
   piece(1.5, 0.05, 0.24, wood, 0, 0.47, 0);                                                // the seat plank
   [-1, 1].forEach(sx => [-1, 1].forEach(sz => piece(0.05, 0.48, 0.05, woodDark, sx * 0.6, 0.23, sz * 0.07, sx * 0.12, -sz * 0.18)));   // legs, splayed out
   [-1, 1].forEach(sx => piece(0.04, 0.04, 0.2, woodDark, sx * 0.62, 0.16, 0));            // a rung between each pair
   piece(1.18, 0.04, 0.03, woodDark, 0, 0.36, 0.02);                                         // and a stretcher along under the seat
-  const stump = new THREE.Group(); stump.position.set(-2.5, -RISE, 9.3); env.add(stump);
+  const stump = new THREE.Group(); stump.position.set(-3.15, -RISE, 9.7); env.add(stump);
   const bark = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.23, 0.5, 14), mat(0x5e4532, { roughness: 1 })); bark.position.y = 0.25; bark.castShadow = true; stump.add(bark);
   const rings = new THREE.Mesh(new THREE.CylinderGeometry(0.19, 0.19, 0.01, 14), mat(0xb08a62, { roughness: 0.9 })); rings.position.y = 0.505; stump.add(rings);
   const pot = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.06, 0.11, 12), mat(0xb5643c, { roughness: 0.8 })); pot.position.set(-0.02, 0.565, 0.02); pot.castShadow = true; stump.add(pot);
   [[0, 0.68, 0, 0.1], [0.06, 0.66, 0.04, 0.07], [-0.06, 0.65, -0.03, 0.07], [0.02, 0.74, -0.04, 0.06]].forEach(([x, y, z, r]) => {
     const leaf = new THREE.Mesh(new THREE.IcosahedronGeometry(r, 0), mat(pick([0x4f8a45, 0x5f9a50, 0x6aa85a]), { flatShading: true })); leaf.position.set(x - 0.02, y, z + 0.02); leaf.castShadow = true; stump.add(leaf);
   });
-  [[-4.3, FRONT + 0.3], [8.6, FRONT + 0.3]].forEach(([px, pz]) => { const c = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.3, 0.4), mat(0x2f8a4a, { roughness: 0.6 })); c.position.set(px, 0.15 - RISE, pz); c.castShadow = true; env.add(c); });   // green crates
+  [[-7.2, FRONT + 0.3], [8.6, FRONT + 0.3]].forEach(([px, pz]) => { const c = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.3, 0.4), mat(0x2f8a4a, { roughness: 0.6 })); c.position.set(px, 0.15 - RISE, pz); c.castShadow = true; env.add(c); });   // green crates
 }
