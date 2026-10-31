@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import { ctx, mat } from './engine.js';
 import { S, sleep } from './state.js';
 import { rand, K } from './util.js';
-import { HUBX, STRIP, route } from './layout.js';
+import { HUBX, STRIP, BACK_SHIFT, route } from './layout.js';
 import { walk } from './people.js';
 import { log } from './feed.js';
 
@@ -17,8 +17,9 @@ const SPOTS = [
 ];
 // the stadium lives in the back: put away on top of the crates stacked by the AC in the back corridor, where it can
 // be seen from above (and clicked)
-const SHELF = { x: -2.74, z: -7.75, y: 0.9 };
-const FETCH = [[-2.15, -7.75], [-2.0, -6.5], [-1.85, -5.5], [-1.85, -3.95], [HUBX, -3.6]];
+// (in the room as it stands, after the back of the set was moved BACK_SHIFT forward)
+const SHELF = { x: -2.74, z: -7.75 + BACK_SHIFT, y: 0.9 };
+const FETCH = [[-2.15, SHELF.z], [-1.95, -5.6], [-1.85, -5.5], [-1.85, -3.95], [HUBX, -3.6]];
 const TOP_COLS = [[0xc0282d, 0xffd23f], [0x1c4fd6, 0x7ec8ff]];
 
 export function createStadium() {

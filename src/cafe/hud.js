@@ -10,6 +10,7 @@ import { matchClock } from './tv.js';
 import { DAYS, canJoinTv } from './sim.js';
 import { tvGames, GAME_LABEL } from './profiles.js';
 import { openGame, closeGame } from './games.js';
+import { playWallDarts, stopWallDarts } from './wallDarts.js';
 import { TVX, TVY, TVZ } from './layout.js';
 
 export function updateHUD() {
@@ -79,7 +80,7 @@ export function updateCamera(dt) {
 const PLAY = {
   // (a little from above: the orbit controls won't let the camera sit level)
   tv: { at: [TVX + 0.075, TVY, TVZ], dir: [1, 0.1, 0], w: 1.62, h: 0.91 },
-  darts: { at: [-2.97, 1.55, 3.06], dir: [1, 0.1, 0], w: 0.56, h: 0.56 },
+  darts: { at: [-2.97, 1.55, 3.06], dir: [1, 0.1, 0], w: 0.62, h: 0.7 },
   // the stadium, wherever it is: put away on the crates in the back corridor, seen from along it, or out on the porch crates, seen from the street
   tops: { at: null, dir: [0.35, 0.85, 0.45], w: 0.5, h: 0.42 },
 };
@@ -92,12 +93,11 @@ function playAt(kind, root) {
   else { tt = S.stadium.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0, 0.04, 0)); if (tt.z > -4.6) dir = [0, 0.85, 0.6]; }
   const tp = tt.clone().addScaledVector(new THREE.Vector3(...dir).normalize(), dist);
   const from = { p: camera.position.clone(), t: controls.target.clone() };
-  closeCard(); closeGame();
+  closeCard(); closeGame(); stopWallDarts();
   document.querySelectorAll('[data-cam]').forEach(b => b.classList.remove('on'));
-  camTween = {
-    fp: from.p.clone(), ft: from.t.clone(), tp, tt, t: 0,
-    done: () => openGame(kind, root, () => { camTween = { fp: camera.position.clone(), ft: controls.target.clone(), tp: from.p, tt: from.t, t: 0 }; }),
-  };
+  const back = () => { camTween = { fp: camera.position.clone(), ft: controls.target.clone(), tp: from.p, tt: from.t, t: 0 }; };
+  // darts are thrown at the board on the wall itself; the others open in a window
+  camTween = { fp: from.p.clone(), ft: from.t.clone(), tp, tt, t: 0, done: () => (kind === 'darts' ? playWallDarts(root, back) : openGame(kind, root, back)) };
 }
 
 // ---------------------------------------------------------------- wiring the buttons and the canvas; returns an unbind function
@@ -115,7 +115,7 @@ export function bindHUD(root, stage) {
   });
   root.querySelectorAll('[data-cam]').forEach(b => on(b, 'click', () => setCam(b.dataset.cam)));
   root.querySelectorAll('[data-game]').forEach(b => on(b, 'click', () => playAt(b.dataset.game, root)));
-  off.push(closeGame);
+  off.push(closeGame, stopWallDarts);
   root.querySelectorAll('[data-speed]').forEach(b => on(b, 'click', () => {
     S.speed = +b.dataset.speed; root.querySelectorAll('[data-speed]').forEach(x => x.classList.toggle('on', x === b));
   }));

@@ -5,6 +5,7 @@ import { S } from '../state.js';
 import { rand, randi, pick, DOT } from '../util.js';
 import { TVX, TVZ, TVY, LW, LSEATS } from '../layout.js';
 import { buildMenuClipboard } from './menu.js';
+import { drawBoard } from '../dartboard.js';
 import { woodM, steel, blackM, cinderSeat, crate, crateTable, stump, highStool, figurine, framed, trackRun, ceilingFan, cinderBlock } from './props.js';
 
 function ledgeAndTv() {
@@ -51,18 +52,16 @@ function purpleWall() {
       y += b.h;
     });
   });
-  const dartTex = canvasTex(128, 128, (g, w) => {
-    const c = w / 2; const rings = [[62, '#111'], [56, '#e8e0c8'], [50, '#111'], [44, '#c0282d'], [40, '#e8e0c8'], [26, '#111'], [22, '#2e8b57'], [8, '#c0282d'], [4, '#2e8b57']];
-    rings.forEach(([r, col]) => { g.fillStyle = col; g.beginPath(); g.arc(c, c, r, 0, Math.PI * 2); g.fill(); });
-    g.strokeStyle = 'rgba(200,200,200,.6)'; g.lineWidth = 1;
-    for (let i = 0; i < 20; i++) { const a = i * Math.PI / 10; g.beginPath(); g.moveTo(c, c); g.lineTo(c + Math.cos(a) * 56, c + Math.sin(a) * 56); g.stroke(); }
-  });
+  const dartTex = canvasTex(256, 256, (g, w) => drawBoard(g, w / 2, w / 2, w / 2));   // a real board, so darts thrown at it score by what they hit
+  dartTex.center.set(0.5, 0.5); dartTex.rotation = Math.PI;   // the cap's uv puts the drawing upside down and mirrored: turned round, 20 is at the top
   const board = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 0.045, 32), [mat(0x1a1a1a), new THREE.MeshStandardMaterial({ map: dartTex, roughness: 0.8 }), mat(0x1a1a1a)]);
   board.rotation.z = -Math.PI / 2; board.position.set(-2.995, 1.55, 3.06); board.castShadow = true; ctx.scene.add(board);   // round dartboard
   S.dartboard = board;                                                                                            // click it to play darts
-  [[0.06, 0.03, 0xc0282d], [-0.09, -0.05, 0x1c4fd6], [0.02, -0.12, 0xffd23f]].forEach(([dy, dz, c]) => {   // darts stuck in it
+  S.boardDarts = [];   // darts left stuck in it, put away while someone plays
+  [[0.06, 0.03, 0xc0282d], [-0.09, -0.05, 0x1c4fd6], [0.02, -0.12, 0xffd23f]].forEach(([dy, dz, c]) => {
     const d = cyl(0.006, 0.004, 0.13, mat(0x9aa0a6, { metalness: 0.8 }), -2.91, 1.55 + dy, 3.06 + dz, ctx.scene, 6); d.rotation.z = Math.PI / 2 + 0.15;
-    box(0.04, 0.035, 0.005, mat(c), -2.84, 1.56 + dy, 3.06 + dz).castShadow = false; box(0.04, 0.005, 0.035, mat(c), -2.84, 1.56 + dy, 3.06 + dz).castShadow = false;
+    const f1 = box(0.04, 0.035, 0.005, mat(c), -2.84, 1.56 + dy, 3.06 + dz), f2 = box(0.04, 0.005, 0.035, mat(c), -2.84, 1.56 + dy, 3.06 + dz);
+    f1.castShadow = f2.castShadow = false; S.boardDarts.push(d, f1, f2);
   });
   box(0.16, rand(0.2, 0.32), 0.24, mat(pick([0x2a2f6b, 0x8a1d1d, 0x1d1d1d, 0xe6c34a])), -2.9, 0.15, -2.25);   // a toy box on the floor along the wall
 }
