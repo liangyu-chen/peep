@@ -221,7 +221,7 @@ export const TEAM_NAMES = ['湖人', '勇士', '塞爾提克', '公牛', '熱火
 type Option = { value: string; label: string };
 // hair is chosen part by part: how long, straight or curly, what it does at the forehead, and whether it's tied up
 export const HAIR: Record<'length' | 'curl' | 'front' | 'tie', Option[]> = {
-  length: [{ value: 'bald', label: '光頭' }, { value: 'buzz', label: '平頭' }, { value: 'short', label: '短髮' }, { value: 'medium', label: '中長髮' }, { value: 'long', label: '長髮' }],
+  length: [{ value: 'bald', label: '光頭' }, { value: 'buzz', label: '平頭' }, { value: 'short', label: '短髮' }, { value: 'bob', label: '短長髮' }, { value: 'medium', label: '中長髮' }, { value: 'long', label: '長髮' }],
   curl: [{ value: 'straight', label: '直髮' }, { value: 'curly', label: '捲髮' }, { value: 'spiky', label: '刺蝟頭' }],
   front: [{ value: 'none', label: '無瀏海' }, { value: 'bangs', label: '瀏海' }, { value: 'center', label: '中分' }, { value: 'side', label: '旁分' }],
   tie: [{ value: 'none', label: '不綁' }, { value: 'ponytail', label: '馬尾' }, { value: 'bun', label: '包頭' }],

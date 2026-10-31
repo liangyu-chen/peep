@@ -247,7 +247,7 @@ export function buildBody(look, seed = '') {
     [0.03, 0.055, 0.08].forEach(z => mk(bx(0.05, 0.006, 0.01), laceM, 0, -0.287 + shoeTop(z) + 0.002, z, knee, false));
     return { hip, knee };
   });
-  const seat = mk(cy(0.205, 0.198, 0.16, 20), pants, 0, 0.6 + LEG_EXTRA, 0); seat.scale.z = 0.72;   // hips
+  const seat = mk(cy(0.204, 0.198, 0.15, 20), pants, 0, 0.645, 0); seat.scale.z = 0.72;   // hips, all under the shirt's hem
   bare.push(seat);
   // a skirt: knee length, A-line, hanging from the waist; a pivot at the waist so it can drape over the lap when sitting
   let skirt = null;
@@ -256,16 +256,18 @@ export function buildBody(look, seed = '') {
     const sm = mat(look.pants, { roughness: 0.85, side: THREE.DoubleSide });
     mk(lathe('skirt2', [[0.21, 0.02], [0.22, -0.04], [0.24, -0.13], [0.266, -0.23], [0.288, -0.32], [0.284, -0.33]], 28), sm, 0, 0, 0, skirt).scale.z = 0.78;
   }
-  const belt = mk(cy(0.207, 0.207, 0.035, 22), beltM, 0, 0.62 + LEG_EXTRA, 0, g, false); belt.scale.z = 0.73;   // just below the shirt hem, not overlapping it
-  mk(bx(0.045, 0.03, 0.012), buckleM, 0, 0.62 + LEG_EXTRA, 0.152, g, false);
+  const belt = mk(cy(0.208, 0.208, 0.03, 22), beltM, 0, 0.695, 0, g, false); belt.scale.z = 0.73;   // a sliver of it showing under the shirt
+  mk(bx(0.045, 0.026, 0.012), buckleM, 0, 0.69, 0.153, g, false);
 
   // ---------------------------------------------------------------- torso: waist, chest and sloping shoulders
   // waist, chest and shoulders close to the same width, so it isn't an inverted triangle; it starts higher, over the longer legs
   // slimmer side to side and deeper front to back than first drawn, so the arms hang closer in, and the shoulders
   // slope down from the neck in one long curve rather than squaring off
-  const torso = mk(lathe('torso3', [[0.198, 0.64 + LEG_EXTRA], [0.196, 0.79], [0.193, 0.88], [0.194, 0.98], [0.194, 1.05], [0.188, 1.11], [0.172, 1.16], [0.145, 1.205], [0.11, 1.24], [0.07, 1.262], [0, 1.27]], 28), shirt, 0, 0, 0);
+  // the shirt hangs loose: it flares out a little at the bottom, over the top of the hips, so pants and shirt meet
+  // under its hem; the shoulders run down from the neck in one long, gentle curve
+  const torso = mk(lathe('torso4', [[0.214, 0.705], [0.21, 0.74], [0.201, 0.8], [0.196, 0.88], [0.196, 0.98], [0.195, 1.04], [0.19, 1.09], [0.179, 1.135], [0.161, 1.175], [0.136, 1.208], [0.106, 1.235], [0.072, 1.256], [0, 1.27]], 32), shirt, 0, 0, 0);
   torso.scale.z = 0.74;
-  mk(cy(0.201, 0.201, 0.03, 24, true), shirtDark, 0, 0.655 + LEG_EXTRA, 0, g, false).scale.z = 0.745;   // shirt hem: an open band, no flat edge on top to flicker
+  mk(cy(0.217, 0.215, 0.026, 28, true), shirtDark, 0, 0.716, 0, g, false).scale.z = 0.745;   // the hem   // shirt hem: an open band, no flat edge on top to flicker
   const collar = mk(cy(0.085, 0.1, 0.04, 18), shirtDark, 0, 1.262, 0, g, false); collar.scale.z = 0.82;
   if (look.number) {
     const t = canvasTex(32, 32, (c) => { c.fillStyle = '#fff'; c.font = `16px ${PIX}`; c.textAlign = 'center'; c.fillText(look.number, 16, 24); }, true);
@@ -383,13 +385,13 @@ export function buildBody(look, seed = '') {
   const elbows = [];
   const arms = [-0.25, 0.25].map(x => {
     const s = Math.sign(x);
-    const sh = new THREE.Group(); sh.position.set(x, 1.175, 0); g.add(sh);   // tucked just under the slope of the shoulders
+    const sh = new THREE.Group(); sh.position.set(x, 1.16, 0); g.add(sh);   // tucked under the slope of the shoulders
     const sleeveM = look.longSleeve ? shirt : skin;
     mk(cy(0.058, 0.052, 0.27, 14, true), sleeveM, 0, -0.135, 0, sh);                               // upper arm, open where it meets the forearm
     if (!look.longSleeve) { mk(cy(0.065, 0.061, 0.16, 12), shirt, 0, -0.07, 0, sh); mk(cy(0.063, 0.063, 0.02, 12), shirtDark, 0, -0.15, 0, sh, false); }
     // the top of the shoulder: a low dome just the width of the sleeve, turning with the arm, so there's no ball sitting on it
     const top = look.longSleeve ? 0.058 : 0.065;
-    mk(sp(top, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), shirt, 0, look.longSleeve ? 0 : 0.01, 0, sh).scale.y = 0.85;   // a rounded top, running on from the slope
+    mk(sp(top, 18, 10, 0, Math.PI * 2, 0, Math.PI / 2), shirt, 0, look.longSleeve ? 0 : 0.01, 0, sh).scale.y = 1.05;   // a fully rounded top, running on from the slope
     const elbow = new THREE.Group(); elbow.position.set(0, -0.27, 0); sh.add(elbow); elbows.push(elbow);
     mk(sp(0.05, 14, 10), sleeveM, 0, 0, 0, elbow);                                                 // fills the elbow only when it bends
     mk(cy(0.052, 0.044, 0.24, 14, true), sleeveM, 0, -0.12, 0, elbow);                             // forearm, the same width where they meet
@@ -449,10 +451,12 @@ const FRONTS = {
 const CURL_TOP = 0.018;     // how far curls stand out of the top of the head
 // the hair hanging round the back and sides for each length, as a profile below the widest part of the head (w, y0)
 const LENGTHS = {
+  bob: (w, y0) => [[w + 0.004, y0 - 0.06], [w + 0.01, y0 - 0.115], [w + 0.008, y0 - 0.15], [w - 0.004, y0 - 0.162], [w - 0.012, y0 - 0.164]],   // to about the chin, ends turned under
   medium: (w, y0) => [[w + 0.004, y0 - 0.07], [w + 0.01, y0 - 0.15], [w + 0.016, y0 - 0.22], [w + 0.018, y0 - 0.26], [w + 0.006, y0 - 0.285], [w - 0.008, y0 - 0.29]],   // to the shoulders, ends turned under
   long: (w, y0) => [[w + 0.004, y0 - 0.08], [w + 0.012, y0 - 0.19], [w + 0.026, y0 - 0.29], [w + 0.008, y0 - 0.33]],
 };
 const CURLY_LENGTHS = {   // curls take up more room: fuller, and fullest toward the ends
+  bob: (w, y0) => [[w + 0.01, y0 - 0.05], [w + 0.02, y0 - 0.1], [w + 0.026, y0 - 0.145], [w + 0.012, y0 - 0.17], [w - 0.002, y0 - 0.175]],
   medium: (w, y0) => [[w + 0.01, y0 - 0.06], [w + 0.02, y0 - 0.13], [w + 0.03, y0 - 0.2], [w + 0.034, y0 - 0.25], [w + 0.02, y0 - 0.28], [w + 0.004, y0 - 0.29]],
   long: (w, y0) => [[w + 0.012, y0 - 0.06], [w + 0.02, y0 - 0.13], [w + 0.03, y0 - 0.2], [w + 0.038, y0 - 0.27], [w + 0.042, y0 - 0.33], [w + 0.028, y0 - 0.37], [w + 0.006, y0 - 0.38]],
 };
@@ -509,7 +513,8 @@ function buildHair(hairParts, shape, head, hairM, mk, at, look) {
       });
     }
     // what hangs below: left loose to its length, or pulled back and tied
-    const long = length === 'medium' || length === 'long';
+    const long = length === 'medium' || length === 'long';   // long enough to tie back
+    const hangs = long || length === 'bob';
     if (tie === 'bun' && long) {
       // up on the crown, or, under a hat, a low bun below its edge at the back
       const e = H ? Math.min(0.86, hatBack - 0.3) : 0.86, p = backAt(e), out = new THREE.Vector3(0, Math.sin(e), -Math.cos(e));
@@ -519,7 +524,7 @@ function buildHair(hairParts, shape, head, hairM, mk, at, look) {
       mk(cy(0.038, 0.038, 0.03, 12), mat(0xff4f7b), p.x, p.y, p.z - 0.012, head).rotation.x = Math.PI / 2;
       const tail = mk(lathe(`tail:${L}:${R}`, [[0.001, 0.02], [0.04 * R, 0], [0.05 * R, -0.08 * L], [0.035 * R, -0.2 * L], [0.012 * R, -0.28 * L], [0, -0.29 * L]], 14), hairM, p.x, p.y - 0.01, p.z - 0.04, head);
       tail.rotation.x = 0.35;
-    } else if (long) {
+    } else if (hangs) {
       curtain(`${length}${curly ? ':curly' : ''}`, (curly ? CURLY_LENGTHS : LENGTHS)[length], curly ? 0.022 : 0);
     }
   }

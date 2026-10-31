@@ -39,10 +39,10 @@ export const GAME_LABEL = { nba: 'NBA 2K', fight: '快打旋風' };
 // a name already in the shop is avoided when another is possible
 // a first-timer's hair, part by part
 function randomHair(female) {
-  const hairLength = female ? pick(['long', 'long', 'medium', 'medium', 'short']) : pick(['short', 'short', 'short', 'buzz', 'bald', 'medium']);
+  const hairLength = female ? pick(['long', 'long', 'medium', 'medium', 'bob', 'bob', 'short']) : pick(['short', 'short', 'short', 'buzz', 'bald', 'bob', 'medium']);
   const hairCurl = Math.random() < 0.25 ? 'curly' : hairLength === 'short' && !female && Math.random() < 0.2 ? 'spiky' : 'straight';
   const hairFront = pick(female ? ['bangs', 'bangs', 'center', 'side', 'none'] : ['none', 'none', 'side', 'center', 'bangs']);
-  const hairTie = female && hairLength !== 'short' && Math.random() < 0.35 ? pick(['ponytail', 'bun']) : 'none';
+  const hairTie = female && (hairLength === 'medium' || hairLength === 'long') && Math.random() < 0.35 ? pick(['ponytail', 'bun']) : 'none';
   return { hairLength, hairCurl, hairFront, hairTie };
 }
 
