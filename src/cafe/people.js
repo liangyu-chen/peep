@@ -96,6 +96,7 @@ export function makeCup(drink, variant) {
 export const DRINK_POSE = {
   carry: { x: -0.35, z: -0.06, el: -1.05 },
   walk: { x: -0.25, z: -0.06, el: -1.05 },
+  high: { x: -0.75, z: -0.06, el: -1.1 },   // the owner, behind the bar: held up at chest height, clear over the bar top
   sip: { x: -1.071, y: -0.779, z: -0.595, el: -1.61, tilt: 0.548 },
   sipHot: { x: -1.371, y: -0.709, z: -1.053, el: -1.878, tilt: 0.3 },
 };
@@ -233,16 +234,17 @@ export class Person {
     else if (squat) { y = -0.35; hipL = hipR = -1.9; kL = kR = 1.95; armLx = armRx = -0.55; elL = elR = -0.95; armLz = 0.12; armRz = -0.12; }   // squatting over the pan, forearms on the knees
     else if (sitting) { y = this.seat ? this.seat.sitY : -0.1; hipL = hipR = -Math.PI / 2; kL = kR = this.seat && this.seat.floor ? 0.25 : Math.PI / 2; armLx = armRx = -0.25; elL = elR = -0.7; }   // hands resting on the lap
     else { armLx = Math.sin(this.walkPhase * 0.7) * 0.04; armRx = -armLx; }
-    if (this.cup && this.cup.parent === this.hand && !this.act) { const P = DRINK_POSE[moving ? 'walk' : 'carry']; armRx = P.x; armRz = P.z; elR = P.el; }   // cup carried in front
+    if (this.cup && this.cup.parent === this.hand && !this.act) { const P = DRINK_POSE[this.role === 'owner' ? 'high' : moving ? 'walk' : 'carry']; armRx = P.x; armRz = P.z; elR = P.el; }   // cup carried in front
     this.pad.visible = this.pose === 'game';
     if (this.pose === 'game' && !moving) { armLx = armRx = -0.55 + Math.sin(this.walkPhase * 6) * 0.04; elL = elR = -1.0; armLz = 0.3; armRz = -0.3; bob = Math.sin(this.walkPhase * 3) * 0.01; }
     if (this.act === 'sip') { const P = sipPose(this.cup); armRx = P.x; armRy = P.y || 0; armRz = P.z; elR = P.el; }
     if (this.act === 'cheer') { armLx = armRx = -2.9 + Math.sin(this.walkPhase * 10) * 0.2; elL = elR = -0.2; armLz = 0.2; armRz = -0.2; bob += Math.abs(Math.sin(this.walkPhase * 8)) * 0.05; }
     if (this.act === 'wave') { armRx = -2.4; elR = -0.5; armRz = -0.4 + Math.sin(this.walkPhase * 12) * 0.35; }
     // the owner's counter work: arms raised to bar height and reaching out, so the hands work on top of the counter, not inside it
-    if (this.act === 'wipe') { armRx = -1.2; elR = -0.4; armRz = Math.sin(this.walkPhase * 8) * 0.45; }
+    if (this.act === 'wipe') { armRx = -1.3; elR = -0.35; armRz = Math.sin(this.walkPhase * 8) * 0.45; }
     if (this.act === 'brew') { armLx = armRx = -1.25; elL = elR = -0.35; armLz = 0.22; armRz = -0.22; }
     if (this.act === 'pour') { armLx = -1.1; armRx = -1.2 + Math.sin(this.walkPhase * 5) * 0.12; elL = -0.5; elR = -0.55; armLz = 0.3; armRz = -0.3; }
+    if (this.act === 'serve') { armRx = -1.3; elR = -0.3; armRz = -0.1; }   // reaching a cup over onto the bar
     if (this.act === 'facepalm') { armRx = -0.9; elR = -2.0; armRz = -0.45; }
     let pitch = 0;
     const ph = !moving && !this.act && this.smk ? this.smk.phase : null;

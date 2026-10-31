@@ -18,7 +18,7 @@ export const STRIP = { blocks: [6.42, 5.30], crates: [6.14, 5.86, 5.58], scale: 
 STRIP.at = z => (z - STRIP.from) * STRIP.scale + STRIP.to;   // plan z -> where it ends up
 
 export const LANE = 1.9;                 // the owner's lane behind the bar
-export const MACHINE = [1.55, 1.5];      // where he stands to work the espresso machine (back far enough that he is not inside the bar top)
+export const MACHINE = [1.62, 1.5];      // where he stands to work the espresso machine (back far enough that he is not inside the bar top)
 
 export const TOILET = [[1.25, -7.7], [0.0, -7.7], [-1.5, -7.7], [-1.5, -5.0], [-1.5, -4.0], [HUBX, -3.6]];
 export const DOOR = [[-1.75, 11], [-1.75, 4.75], [-1.6, 4.5], [HUBX, 3.6]];

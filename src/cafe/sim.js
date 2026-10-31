@@ -25,13 +25,26 @@ export function createOwner() {
   ownerLoop(owner);
 }
 
+// behind the bar he walks down the middle of his lane, so his swinging arms never brush the bar or the work counter,
+// and only steps across to a spot once he's level with it and has turned to face it (turning mid-step swings a hand into the bar)
+async function ownerTo(owner, x, z, more = []) {
+  const pts = [];
+  if (Math.abs(owner.g.position.x / K - LANE) > 0.05) pts.push([LANE, owner.g.position.z]);
+  if (z !== null) pts.push([LANE, z]);
+  if (pts.length || more.length) await walk(owner, pts.concat(more));
+  if (z !== null && Math.abs(x - LANE) > 0.01) {
+    owner.face(x < LANE ? -Math.PI / 2 : Math.PI / 2); await sleep(0.35);
+    await walk(owner, [[x, z]]);
+  }
+}
+
 async function ownerLoop(owner) {
   while (!S.stopped) {
     if (!S.orderQueue.length) {
       if (Math.random() < 0.08 && !S.closing) {
         owner.status = '去倉庫拿豆子';
         const back = [[LANE, -2.3], [0.6, -3.4], [-1.5, -3.95], [-1.5, -5.8], [-0.3, -5.8], [1.0, -5.8]];
-        await walk(owner, back);
+        await ownerTo(owner, LANE, null, back);
         owner.face(Math.PI); await sleep(1.5);
         owner.gesture('carry', 30);
         await walk(owner, back.slice().reverse().concat([[LANE, rand(-1.5, 2)]]));
@@ -42,8 +55,9 @@ async function ownerLoop(owner) {
       owner.status = pick(['擦吧台', '整理茶杯', '試喝今天的豆子', '練雕花']);
       // he steps up to whichever side he works at, just far enough off it that his hands stop at its edge
       const toBar = Math.random() < 0.5;
-      await walk(owner, [[toBar ? 2.05 : 1.95, rand(-1.6, 2.0)]]);
+      await ownerTo(owner, toBar ? 2.05 : 1.95, rand(-1.6, 2.0));
       owner.face(toBar ? -Math.PI / 2 : Math.PI / 2);
+      await sleep(0.5);   // turned all the way round before his hands go out, or they sweep through the other counter
       owner.gesture(Math.random() < 0.5 ? 'wipe' : 'pour', 2);
       if (Math.random() < 0.12) sayLine(owner, 'owner.idle');
       for (let i = 0; i < 4 && !S.orderQueue.length; i++) await sleep(0.6);
@@ -56,23 +70,27 @@ async function ownerLoop(owner) {
     c.drink = orderName(drink, variant);
     const vars = { name: c.p.name, drink: c.drink };
     owner.status = `幫${c.p.name}點餐`;
-    await walk(owner, [[1.55, c.spot.z]]);
+    await ownerTo(owner, 1.62, c.spot.z);
     owner.face(-Math.PI / 2);
     sayLine(owner, c.p.regular ? 'owner.greetRegular' : 'owner.greetNew', vars);
     await sleep(1.6);
     sayLine(c, c.p.regular ? 'customer.orderRegular' : 'customer.orderNew', vars);
     await sleep(1.4);
     owner.status = `做${c.drink}`;
-    await walk(owner, [MACHINE]);
+    await ownerTo(owner, MACHINE[0], MACHINE[1]);
     owner.face(-Math.PI / 2); owner.gesture('brew', 2.2); S.brewing = true;
     await sleep(2.2);
     owner.gesture('pour', 1.6); await sleep(1.6);
     S.brewing = false;
+    // he takes the cup as he steps back into his lane, and serves from there, reaching it up and over onto the bar,
+    // so it is never carried low into the bar's side
+    await walk(owner, [[LANE, MACHINE[1]]]);
     const cup = makeCup(drink, variant); owner.hold(cup);
-    await walk(owner, [[1.55, c.spot.z]]);
-    owner.face(-Math.PI / 2);
+    await ownerTo(owner, LANE, c.spot.z);
+    owner.face(-Math.PI / 2); await sleep(0.3);
     if (c.gone) { owner.dropCup(); continue; }
     sayLine(owner, variant === 'ice' ? 'owner.serveIced' : 'owner.serveHot', vars);
+    owner.gesture('serve', 0.9);
     owner.putCup(0.85, 1.07, c.spot.z);   // clear of the clipboard and the toys
     await sleep(0.6);
     c.hold(cup); owner.cup = null;

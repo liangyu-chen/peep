@@ -64,10 +64,34 @@ function purpleWall() {
 }
 
 
+// a slab from x0..x1, z0..z1, y0..y1 with a rectangular hole cut through it (four boxes round the hole)
+function holed(x0, x1, z0, z1, y0, y1, h, m) {
+  const y = (y0 + y1) / 2, t = y1 - y0;
+  box(x1 - x0, t, h.z0 - z0, m, (x0 + x1) / 2, y, (z0 + h.z0) / 2);
+  box(x1 - x0, t, z1 - h.z1, m, (x0 + x1) / 2, y, (h.z1 + z1) / 2);
+  box(h.x0 - x0, t, h.z1 - h.z0, m, (x0 + h.x0) / 2, y, (h.z0 + h.z1) / 2);
+  box(x1 - h.x1, t, h.z1 - h.z0, m, (h.x1 + x1) / 2, y, (h.z0 + h.z1) / 2);
+}
+
+// a steel sink basin dropped into a hole h cut down from a counter top at `top`: bottom, four walls, a rim and a drain
+function basin(h, top) {
+  const sinkM = mat(0x9aa1a7, { metalness: 0.8, roughness: 0.25 }), wallM = mat(0x7d848a, { metalness: 0.75, roughness: 0.3 });
+  const sx = (h.x0 + h.x1) / 2, sz = (h.z0 + h.z1) / 2, sw = h.x1 - h.x0, sd = h.z1 - h.z0, dep = top - h.floor;
+  box(sw, 0.01, sd, sinkM, sx, h.floor + 0.005, sz);
+  box(0.01, dep, sd, wallM, h.x0 + 0.005, h.floor + dep / 2, sz); box(0.01, dep, sd, wallM, h.x1 - 0.005, h.floor + dep / 2, sz);
+  box(sw, dep, 0.01, wallM, sx, h.floor + dep / 2, h.z0 + 0.005); box(sw, dep, 0.01, wallM, sx, h.floor + dep / 2, h.z1 - 0.005);
+  holed(h.x0 - 0.04, h.x1 + 0.04, h.z0 - 0.04, h.z1 + 0.04, top, top + 0.012, h, sinkM);
+  cyl(0.03, 0.03, 0.004, mat(0x3a3f44, { metalness: 0.6, roughness: 0.3 }), sx, h.floor + 0.012, sz, ctx.scene, 16);
+}
+
 function bar() {
   // 吧台: island bar, white top, wood front with taped posters; the espresso machine sits on it
-  box(1.45, 1.0, 4.6, mat(0x7a2620, { roughness: 0.55 }), 0.475, 0.5, 0.3);
-  box(1.6, 0.06, 4.75, mat(0xf2f0ec, { roughness: 0.3 }), 0.475, 1.03, 0.3);
+  // the body and the white top are built round a hole at the inner end, where the sink basin drops in
+  const barM = mat(0x7a2620, { roughness: 0.55 }), topM = mat(0xf2f0ec, { roughness: 0.3 });
+  const SINK = { x0: 0.19, x1: 0.81, z0: -1.81, z1: -1.29, floor: 0.78 };
+  box(1.45, SINK.floor, 4.6, barM, 0.475, SINK.floor / 2, 0.3);
+  holed(-0.25, 1.2, -2.0, 2.6, SINK.floor, 1.0, SINK, barM);
+  holed(-0.325, 1.275, -2.075, 2.675, 1.0, 1.06, SINK, topM);
   const posterCols = ['#ff4f7b', '#ffd23f', '#7ec8ff', '#3ddc97', '#f08a24'];
   [-1.4, -0.3, 0.8, 1.9].forEach((z, i) => {
     const t = canvasTex(12, 16, (g) => { g.fillStyle = '#f4efe3'; g.fillRect(0, 0, 12, 16); g.fillStyle = posterCols[i]; g.fillRect(1, 1, 10, 9); g.fillStyle = '#1f1c27'; g.fillRect(3, 3, 6, 5); g.fillRect(1, 12, 10, 1); g.fillRect(1, 14, 7, 1); }, true);
@@ -86,9 +110,7 @@ function bar() {
   buildMenuClipboard();
   grinder(0.62, 0.95);
   underBar();
-  // sink set into the inner end of the bar
-  box(0.72, 0.012, 0.62, mat(0x8f969c, { metalness: 0.8, roughness: 0.25 }), 0.5, 1.067, -1.55);
-  box(0.62, 0.012, 0.52, mat(0x3a3f44, { metalness: 0.6, roughness: 0.3 }), 0.5, 1.07, -1.55);
+  basin(SINK, 1.06);
   const chromeM = mat(0xc9c9c9, { metalness: 0.9, roughness: 0.2 });
   cyl(0.014, 0.014, 0.32, chromeM, 0.04, 1.22, -1.68, ctx.scene, 8);                                     // gooseneck tap
   const spout = cyl(0.011, 0.011, 0.22, chromeM, 0.15, 1.38, -1.68, ctx.scene, 8); spout.rotation.z = Math.PI / 2;   // its spout points over the sink at the owner
@@ -143,9 +165,12 @@ function underBar() {
 
 function workCounter() {
   // 工作台 along the right wall, narrower: sink, tea cups; pegboard of stuff above
-  box(0.45, 0.92, 4.2, mat(0x3a3a3c, { roughness: 0.5 }), 2.85, 0.46, 0.1);
-  box(0.5, 0.04, 4.25, steel, 2.85, 0.94, 0.1);
-  box(0.36, 0.05, 0.4, mat(0xbfc4c8, { metalness: 0.7, roughness: 0.2 }), 2.86, 0.965, 1.2);
+  // its little sink is sunk into the top too
+  const WS = { x0: 2.68, x1: 3.04, z0: 1.0, z1: 1.4, floor: 0.76 }, ctrM = mat(0x3a3a3c, { roughness: 0.5 });
+  box(0.45, WS.floor, 4.2, ctrM, 2.85, WS.floor / 2, 0.1);
+  holed(2.625, 3.075, -2.0, 2.2, WS.floor, 0.92, WS, ctrM);
+  holed(2.6, 3.1, -2.025, 2.175, 0.92, 0.96, WS, steel);
+  basin(WS, 0.96);
   cyl(0.012, 0.012, 0.3, steel, 3.0, 1.1, 1.2, ctx.scene, 6);
   for (let i = 0; i < 6; i++) cyl(0.055, 0.04, 0.06, mat(0xf2f0ea, { roughness: 0.3 }), 2.78 + (i % 2) * 0.13, 0.99, 0.2 + Math.floor(i / 2) * 0.14, ctx.scene, 12);
   const pegTex = canvasTex(80, 26, (g) => { g.fillStyle = '#3a3f44'; g.fillRect(0, 0, 80, 26); g.fillStyle = '#1b1e21'; for (let x = 1; x < 80; x += 3) for (let y = 1; y < 26; y += 3) g.fillRect(x, y, 1, 1); }, true);
