@@ -124,8 +124,10 @@ function playAt(kind, root) {
   S.watch = kind === 'tv' || kind === 'darts' ? { x: tt.x, z: tt.z } : null;   // anyone between the camera and the TV or the board steps out of the picture
   controls.enabled = false;   // the camera holds still (no orbiting or zooming) until the game is closed
   const back = () => { S.watch = null; controls.enabled = true; camTween = { fp: camera.position.clone(), ft: controls.target.clone(), tp: from.p, tt: from.t, t: 0 }; };
-  // darts are thrown at the board on the wall itself; the others open in a window
-  camTween = { fp: from.p.clone(), ft: from.t.clone(), tp, tt, t: 0, done: () => (kind === 'darts' ? playWallDarts(root, back) : openGame(kind, root, back)) };
+  // darts are thrown at the board on the wall itself, once the camera is there (it aims by where the board ends up on
+  // screen); the others open in a window straight away, the camera flying in behind
+  camTween = { fp: from.p.clone(), ft: from.t.clone(), tp, tt, t: 0, done: kind === 'darts' ? () => playWallDarts(root, back) : null };
+  if (kind !== 'darts') openGame(kind, root, back);
 }
 
 // ---------------------------------------------------------------- wiring the buttons and the canvas; returns an unbind function
