@@ -1,18 +1,24 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { CafeContent } from '@/src/content/catalog';
 import '@/src/cafe/cafe.css';
+import LoadingHands from './LoadingHands';
 
 // The HUD markup the 3D scene drives by id; the scene itself is loaded in the browser only.
 export default function Cafe({ content }: { content: CafeContent }) {
   const root = useRef<HTMLDivElement>(null);
+  const [ready, setReady] = useState(false);     // the scene is built and has drawn its first frames
+  const [loading, setLoading] = useState(true);  // the loading screen is still up
+  const done = useCallback(() => setLoading(false), []);
 
   useEffect(() => {
     let stop: (() => void) | null = null;
     let cancelled = false;
     import('@/src/cafe/index.js').then(({ startCafe }) => {
-      if (!cancelled && root.current) stop = startCafe(root.current, content);
+      if (cancelled || !root.current) return;
+      stop = startCafe(root.current, content);
+      requestAnimationFrame(() => requestAnimationFrame(() => { if (!cancelled) setReady(true); }));
     });
     return () => { cancelled = true; stop?.(); };
   }, [content]);
@@ -76,6 +82,7 @@ export default function Cafe({ content }: { content: CafeContent }) {
       </aside>
 
       <div id="hint">拖曳旋轉 · 滾輪縮放 · 點人物看資料 · 點電視看比賽</div>
+      {loading && <LoadingHands ready={ready} onDone={done} />}
     </div>
   );
 }
