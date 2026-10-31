@@ -11,8 +11,10 @@ export const LOW_POWER = typeof window !== 'undefined' && (window.matchMedia('(p
 export function createEngine(stage) {
   const dpr = window.devicePixelRatio || 1;
   const renderer = new THREE.WebGLRenderer({ antialias: dpr < 1.5, powerPreference: LOW_POWER ? 'low-power' : 'default' });   // on a sharp screen the extra smoothing isn't worth it
-  renderer.setPixelRatio(Math.min(dpr, LOW_POWER ? 1.5 : 2));
-  renderer.setSize(stage.clientWidth || window.innerWidth, stage.clientHeight || window.innerHeight);
+  // at most about 2 million pixels drawn a frame on a tablet (a big one at 1.5x would be over 3 million)
+  const w = stage.clientWidth || window.innerWidth, h = stage.clientHeight || window.innerHeight;
+  renderer.setPixelRatio(Math.min(dpr, LOW_POWER ? Math.max(1, Math.min(1.5, Math.sqrt(2e6 / (w * h)))) : 2));
+  renderer.setSize(w, h);
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = LOW_POWER ? THREE.PCFShadowMap : THREE.PCFSoftShadowMap;
   renderer.outputEncoding = THREE.sRGBEncoding;

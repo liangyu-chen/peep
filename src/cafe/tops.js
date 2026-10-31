@@ -22,30 +22,43 @@ const SHELF = { x: -2.68, z: -7.75 + BACK_SHIFT, y: 0.9 };   // a touch in from 
 const FETCH = [[-2.15, SHELF.z], [-1.95, -5.6], [-1.85, -5.5], [-1.85, -3.95], [HUBX, -3.6]];
 const TOP_COLS = [[0xc0282d, 0xffd23f], [0x1c4fd6, 0x7ec8ff]];
 
-// the stadium, like the real thing: a black outer shell, a clear blue bowl dipping to a raised centre with a ridge round
-// it, a black rim broken by three exit pockets (orange trays catching anything knocked out) and a cyan stripe inside
+// the stadium, after the photo of a competition one (44 x 45.5 x 12.5 cm): a clear plastic tub, square with its corners
+// cut off, a round bowl moulded into it with faint rings on its floor, a green rail round the bowl's rim with a notch in
+// it at the back, a small pocket in each cut corner, and a clear lid over the top
 export function createStadium() {
   const g = new THREE.Group();
-  const lathe = (pts, m) => new THREE.Mesh(new THREE.LatheGeometry(pts.map(([r, y]) => new THREE.Vector2(r, y)), 48), m);
-  const shell = lathe([[0.15, 0], [0.19, 0.004], [0.198, 0.04], [0.2, 0.078], [0.19, 0.082]], mat(0x18161d, { roughness: 0.5, side: THREE.DoubleSide }));
-  const bowl = lathe([[0, 0.022], [0.025, 0.02], [0.05, 0.016], [0.09, 0.022], [0.115, 0.03], [0.125, 0.036], [0.135, 0.032], [0.16, 0.05], [0.185, 0.074], [0.19, 0.08]],   // the bump in the middle, the ridge
-    mat(0x7fc4ea, { roughness: 0.15, metalness: 0.1, transparent: true, opacity: 0.88, side: THREE.DoubleSide }));
-  const floor = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.012, 40), mat(0x2a6f9e, { roughness: 0.4 })); floor.position.y = 0.008;   // seen through the clear bowl
-  const stripe = new THREE.Mesh(new THREE.TorusGeometry(0.168, 0.003, 4, 48), mat(0x36e0ff, { roughness: 0.3, emissive: 0x0a4a5a })); stripe.rotation.x = Math.PI / 2; stripe.position.y = 0.058;
-  const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.024, 0.006, 20), mat(0xff4d00, { roughness: 0.4 })); hub.position.y = 0.024;
-  [shell, bowl, floor, stripe, hub].forEach(m => g.add(m));
-  // the rim in three arcs, the gaps between them the exit pockets, each with a tray hanging off it
-  const rimM = mat(0x111014, { roughness: 0.45 }), trayM = mat(0xff6a1a, { roughness: 0.45 });
-  for (let i = 0; i < 3; i++) {
-    const arc = new THREE.Mesh(new THREE.TorusGeometry(0.197, 0.011, 6, 24, Math.PI * 2 / 3 - 0.42), rimM);
-    arc.rotation.set(Math.PI / 2, 0, i * Math.PI * 2 / 3 + 0.21); arc.position.y = 0.082; g.add(arc);
-    const ga = (i + 1) * Math.PI * 2 / 3;   // the middle of the gap after this arc (one points +x, the other two back toward -x only half as far)
-    const tray = new THREE.Group(); tray.position.set(Math.cos(ga) * 0.19, 0.05, Math.sin(ga) * 0.19); tray.rotation.y = -ga; g.add(tray);
-    const t1 = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.006, 0.06), trayM); t1.position.set(0.018, 0, 0); tray.add(t1);
-    [-1, 1].forEach(s => { const w = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.02, 0.005), trayM); w.position.set(0.018, 0.01, s * 0.03); tray.add(w); });
-    const back = new THREE.Mesh(new THREE.BoxGeometry(0.005, 0.02, 0.06), trayM); back.position.set(0.035, 0.01, 0); tray.add(back);
-  }
-  g.traverse(m => { if (m.isMesh) { m.castShadow = true; m.receiveShadow = true; } });
+  const W = 0.44, D = 0.455, H = 0.125, CUT = 0.075;
+  const clear = (opacity, tint = 0xe4ecf4) => new THREE.MeshStandardMaterial({ color: tint, roughness: 0.08, metalness: 0.15, transparent: true, opacity, side: THREE.DoubleSide, depthWrite: false });
+  // the tub: the cut-cornered outline pushed up into walls
+  const outline = (w, d, c) => { const sh = new THREE.Shape(), x = w / 2, z = d / 2;
+    sh.moveTo(-x + c, -z); sh.lineTo(x - c, -z); sh.lineTo(x, -z + c); sh.lineTo(x, z - c); sh.lineTo(x - c, z); sh.lineTo(-x + c, z); sh.lineTo(-x, z - c); sh.lineTo(-x, -z + c); sh.closePath(); return sh; };
+  const tub = new THREE.Mesh(new THREE.ExtrudeGeometry(outline(W, D, CUT), { depth: H - 0.012, bevelEnabled: false }), clear(0.32));
+  tub.rotation.x = -Math.PI / 2; g.add(tub);
+  const base = new THREE.Mesh(new THREE.ExtrudeGeometry(outline(W + 0.01, D + 0.01, CUT), { depth: 0.008, bevelEnabled: false }), clear(0.5, 0xc9d3de));   // the foot it stands on
+  base.rotation.x = -Math.PI / 2; g.add(base);
+  // the bowl inside, frosted, dipping to a flat middle, with faint rings on its floor
+  const bowl = new THREE.Mesh(new THREE.LatheGeometry([[0, 0.014], [0.06, 0.016], [0.11, 0.028], [0.15, 0.05], [0.172, 0.075], [0.182, 0.098], [0.186, 0.108]].map(([r, y]) => new THREE.Vector2(r, y)), 56), clear(0.42, 0xdfe7f1));
+  g.add(bowl);
+  [0.05, 0.1].forEach(r => { const ring = new THREE.Mesh(new THREE.TorusGeometry(r, 0.0015, 4, 48), clear(0.5, 0xb8c6d6)); ring.rotation.x = Math.PI / 2; ring.position.y = r < 0.07 ? 0.017 : 0.027; g.add(ring); });
+  // the green rail round the rim, open at the back where it dips into a notch
+  const green = mat(0x5bd84a, { roughness: 0.45 });
+  const rail = new THREE.Mesh(new THREE.TorusGeometry(0.19, 0.0075, 6, 64, Math.PI * 2 - 0.42), green);
+  rail.rotation.set(Math.PI / 2, 0, -Math.PI / 2 + 0.21); rail.position.y = 0.106; g.add(rail);   // the gap faces -z, the back
+  const notch = new THREE.Group(); notch.position.set(0, 0.106, -0.19); g.add(notch);
+  [-1, 1].forEach(sd => { const side = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.03, 0.015), green); side.position.set(sd * 0.038, -0.015, 0); notch.add(side); });
+  const dip = new THREE.Mesh(new THREE.BoxGeometry(0.088, 0.012, 0.015), green); dip.position.y = -0.03; notch.add(dip);
+  // a pocket in each cut corner: a little clear tray set into it
+  [[1, 1], [1, -1], [-1, 1], [-1, -1]].forEach(([sx, sz]) => {
+    const pk = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.045, 0.05), clear(0.45, 0xcfd9e4));
+    pk.position.set(sx * (W / 2 - 0.06), 0.05, sz * (D / 2 - 0.06)); pk.rotation.y = Math.PI / 4; g.add(pk);
+  });
+  // the clear lid over the top, a shade lighter, with a round window over the bowl
+  const lidShape = outline(W - 0.004, D - 0.004, CUT); lidShape.holes.push(new THREE.Path().absarc(0, 0, 0.17, 0, Math.PI * 2, true));
+  const lid = new THREE.Mesh(new THREE.ExtrudeGeometry(lidShape, { depth: 0.006, bevelEnabled: false, curveSegments: 40 }), clear(0.25));
+  lid.rotation.x = -Math.PI / 2; lid.position.y = H - 0.012; g.add(lid);
+  const dome = new THREE.Mesh(new THREE.SphereGeometry(0.17, 40, 8, 0, Math.PI * 2, 0, 0.32), clear(0.14));   // the window, a shallow dome
+  dome.position.y = H - 0.012 - 0.17 * Math.cos(0.32) + 0.004; g.add(dome);
+  g.traverse(m => { if (m.isMesh) { m.castShadow = m.material === green; m.receiveShadow = true; } });
   S.stadium = g; stow();
   S.tops = TOP_COLS.map(([c1, c2]) => {
     const t = new THREE.Group(), spinner = new THREE.Group(); t.add(spinner);

@@ -92,9 +92,16 @@ const CRATES = {
 export function crate(x, y, z, color = 'orange', ry = 0, size = 1.35) { const c = box(0.42 * size, 0.3, 0.32 * size, CRATES[color], x, y + 0.15, z); c.rotation.y = ry; return c; }
 export function crateTable(x, z, color) { crate(x, 0, z, 'blue'); crate(x, 0.3, z, color); }   // two crates stacked
 export function stump(x, z, h = 0.42) { cyl(0.2, 0.22, h, mat(0x7a5232, { roughness: 1 }), x, h / 2, z, ctx.scene, 14); cyl(0.19, 0.19, 0.01, mat(0xc49a6c), x, h + 0.005, z, ctx.scene, 14); }
-export function highStool(x, z) {
-  cyl(0.16, 0.16, 0.05, mat(0x8a8f96, { metalness: 0.6, roughness: 0.3 }), x, 0.645, z, ctx.scene, 14);
-  [[0.1, 0.1], [-0.1, 0.1], [0.1, -0.1], [-0.1, -0.1]].forEach(([a, b]) => { const l = cyl(0.012, 0.012, 0.64, steel, x + a, 0.32, z + b, ctx.scene, 5); l.rotation.set(b * 0.6, 0, -a * 0.6); });
+export function highStool(x, z, parent = ctx.scene, y = 0) {
+  cyl(0.16, 0.16, 0.05, mat(0x8a8f96, { metalness: 0.6, roughness: 0.3 }), x, y + 0.645, z, parent, 14);
+  [[0.1, 0.1], [-0.1, 0.1], [0.1, -0.1], [-0.1, -0.1]].forEach(([a, b]) => { const l = cyl(0.012, 0.012, 0.64, steel, x + a, y + 0.32, z + b, parent, 5); l.rotation.set(b * 0.6, 0, -a * 0.6); });
+}
+// round metal stools stacked one in another, each turned a little, each sitting a hand higher than the one under it
+export function stoolStack(x, z, n) {
+  for (let k = 0; k < n; k++) {
+    const g = new THREE.Group(); g.position.set(x, 0, z); g.rotation.y = k * 0.35; ctx.scene.add(g);
+    highStool(0, 0, g, k * 0.1);
+  }
 }
 export function shellChair(x, z, ry, color, parent = ctx.scene) {
   const ch = new THREE.Group(); ch.position.set(x, 0, z); ch.rotation.y = ry; parent.add(ch);

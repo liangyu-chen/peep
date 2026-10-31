@@ -170,7 +170,8 @@ export function bindHUD(root, stage) {
     const r = canvas.getBoundingClientRect();
     ndc.set((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1);
     ray.setFromCamera(ndc, ctx.camera);
-    const stadium = S.stadium && S.stadium.visible ? S.stadium.children : [], menu = [];
+    const stadium = [], menu = [];
+    if (S.stadium?.visible) S.stadium.traverse(o => { if (o.isMesh) stadium.push(o); });
     S.menuClip?.traverse(o => { if (o.isMesh) menu.push(o); });
     const targets = []; S.people.forEach(p => p.g.traverse(o => { if (o.isMesh) targets.push(o); })); targets.push(S.tvScreen, S.tvFrame, S.dartboard, S.neonSwitch?.hit, ...stadium, ...menu);
     const h = ray.intersectObjects(targets.filter(Boolean), false)[0];

@@ -14,6 +14,7 @@ import { renderResults } from './feed.js';
 import { createStadium, updateTops } from './tops.js';
 import { SMOKE_POSE, DRINK_POSE } from './people.js';
 import { updateSurroundings } from './world/surroundings.js';
+import { mergeStatic } from './optimize.js';
 export function startCafe(root, content) {
   resetState(content);
   const stage = root.querySelector('#stage');
@@ -23,6 +24,7 @@ export function startCafe(root, content) {
 
   createEngine(stage);
   buildWorld();
+  mergeStatic();   // the set's still parts drawn in far fewer calls
   createStadium();
   createSteam();
   createSmoke();

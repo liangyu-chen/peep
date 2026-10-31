@@ -32,7 +32,7 @@ export function openGame(kind, root, onClose) {
     if (onUp) ['pointerup', 'pointercancel', 'pointerleave'].forEach(ev => listen(b, ev, onUp));
     pad.appendChild(b); return b;
   };
-  const ctl = { keys, button, pointer: null, restart: null, play: null, clear: () => { pad.textContent = ''; } };
+  const ctl = { keys, button, pointer: null, restart: null, play: null, close: () => close(), clear: () => { pad.textContent = ''; } };
   listen(window, 'keydown', e => {
     if (e.key === 'Escape') { close(); return; }
     if (!G.keys.includes(e.key)) return;
@@ -339,7 +339,7 @@ const TOPS = {
 };
 
 // ---------------------------------------------------------------- the TV's game list
-const TV_GAMES = [['fight', '快打旋風', '一對一，三戰兩勝', '#ff4f7b'], ['nba', 'NBA 2K', '三分球大賽', '#ffd23f']];
+const TV_GAMES = [['fight', '快打旋風', '一對一，三戰兩勝', '#ff4f7b'], ['nba', 'NBA 2K', '三分球大賽', '#ffd23f'], ['exit', '退出', '放下搖桿，回到咖啡廳', '#7ec8ff']];
 const PICKER = {
   tv: true,
   title: '電視：選擇遊戲',
@@ -347,11 +347,12 @@ const PICKER = {
   keys: ['ArrowUp', 'ArrowDown', 'Enter', ' '],
   start(ctl) {
     let sel = 0, t = 0;
-    TV_GAMES.forEach(([k, name]) => ctl.button(name, () => ctl.play(k), null, 'hot'));
-    const box = i => [120, 110 + i * 100, 400, 80];
+    const choose = k => (k === 'exit' ? ctl.close() : ctl.play(k));   // the last one puts the controller down
+    TV_GAMES.forEach(([k, name]) => ctl.button(name, () => choose(k), null, 'hot'));
+    const box = i => [120, 96 + i * 86, 400, 72];
     return {
-      key(k) { if (k === 'ArrowUp' || k === 'ArrowDown') sel = (sel + 1) % TV_GAMES.length; else ctl.play(TV_GAMES[sel][0]); },
-      tap([x, y]) { TV_GAMES.forEach((gm, i) => { const [bx, by, bw, bh] = box(i); if (x > bx && x < bx + bw && y > by && y < by + bh) ctl.play(gm[0]); }); },
+      key(k) { const n = TV_GAMES.length; if (k === 'ArrowUp') sel = (sel + n - 1) % n; else if (k === 'ArrowDown') sel = (sel + 1) % n; else choose(TV_GAMES[sel][0]); },
+      tap([x, y]) { TV_GAMES.forEach((gm, i) => { const [bx, by, bw, bh] = box(i); if (x > bx && x < bx + bw && y > by && y < by + bh) choose(gm[0]); }); },
       step(dt) {
         t += dt;
         const p = ctl.pointer; if (p) TV_GAMES.forEach((gm, i) => { const [bx, by, bw, bh] = box(i); if (p[0] > bx && p[0] < bx + bw && p[1] > by && p[1] < by + bh) sel = i; });
@@ -364,9 +365,9 @@ const PICKER = {
           const [x, y, w, h] = box(i), on = i === sel;
           g.fillStyle = '#000'; g.fillRect(x - 4, y - 4, w + 8, h + 8);
           g.fillStyle = on ? c : '#3d3850'; g.fillRect(x, y, w, h);
-          g.font = `30px ${DOT}`; g.textAlign = 'left'; g.fillStyle = on ? '#1f1c27' : '#f4efe3'; g.fillText(name, x + 24, y + 40);
-          g.font = `16px ${DOT}`; g.fillStyle = on ? '#1f1c27' : '#a9a3b8'; g.fillText(sub, x + 24, y + 66);
-          if (on && Math.floor(t * 2) % 2 === 0) text(g, '▶', x - 30, y + 50, 24, '#ffd23f', 'center', DOT);
+          g.font = `30px ${DOT}`; g.textAlign = 'left'; g.fillStyle = on ? '#1f1c27' : '#f4efe3'; g.fillText(name, x + 24, y + 36);
+          g.font = `16px ${DOT}`; g.fillStyle = on ? '#1f1c27' : '#a9a3b8'; g.fillText(sub, x + 24, y + 60);
+          if (on && Math.floor(t * 2) % 2 === 0) text(g, '▶', x - 30, y + 46, 24, '#ffd23f', 'center', DOT);
         });
       },
     };

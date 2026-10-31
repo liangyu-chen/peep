@@ -33,6 +33,6 @@ export function buildWorld() {
   // squeeze the whole set left-right; people and anything placed later convert plan x with K
   const world = new THREE.Group(); world.scale.x = K;
   scene.children.slice().forEach(o => { if (!skip(o)) world.add(o); });
-  scene.add(world);
+  scene.add(world); S.world = world;
   buildSurroundings();   // in world metres, not squeezed, so the trees and the moon gate stay round
 }
