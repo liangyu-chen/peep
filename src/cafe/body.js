@@ -82,14 +82,15 @@ const shellGeo = (shape, thick, n, from, to, xMax = 9) => geo(`shell:${shape},${
 // a head of hair as one piece: from the crown down to a hairline whose height (radians above the eyes' horizon) is
 // edge(φ) all the way round, φ being the angle from straight ahead toward +x; thick(φ) lets the fringe stand out
 // more than the back (at the edge; it fades out toward the crown). Built on its own grid, so the hairline is a smooth curve however it's shaped.
-const capGeo = (shape, key, edge, thick) => geo(`cap:${shape},${key}`, () => {
-  const h = HEADS[shape], NA = 72, NT = 20, pos = [], uv = [], idx = [], v = new THREE.Vector3(), u = new THREE.Vector3();
+// bump(u) adds a lumpy surface (curls) on top; it needs a much finer grid to show.
+const capGeo = (shape, key, edge, thick, bump = null) => geo(`cap:${shape},${key}`, () => {
+  const h = HEADS[shape], NA = bump ? 180 : 72, NT = bump ? 54 : 20, pos = [], uv = [], idx = [], v = new THREE.Vector3(), u = new THREE.Vector3();
   for (let i = 0; i <= NA; i++) {
     const phi = (i / NA) * Math.PI * 2, polar = Math.PI / 2 - edge(phi), th0 = thick(0.5 * Math.PI), th1 = thick(phi);
     for (let j = 0; j <= NT; j++) {
       const p = (j / NT) * polar, th = th0 + (th1 - th0) * (j / NT) ** 1.5;   // any extra fullness grows toward the edge, so the crown stays one point
       u.set(Math.sin(p) * Math.sin(phi), Math.cos(p), Math.sin(p) * Math.cos(phi));
-      deform(h, v.copy(u)).addScaledVector(u, th);
+      deform(h, v.copy(u)).addScaledVector(u, th + (bump ? bump(u) * Math.min(1, (NT - j) / 3) : 0));   // bumps settle down right at the hairline
       pos.push(v.x, v.y, v.z); uv.push(i / NA * 6, j / NT);
     }
   }
@@ -100,6 +101,32 @@ const capGeo = (shape, key, edge, thick) => geo(`cap:${shape},${key}`, () => {
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
   g.setIndex(idx); g.computeVertexNormals(); return g;
+});
+// curls in a hair surface: rounded lumps packed over the head, from a few crossed waves so they don't line up in rows
+const curlLumps = (amp, f = 24) => u => {
+  const a = Math.sin(f * u.x + 1.3) * Math.sin(f * u.y + 0.7) * Math.sin(f * u.z + 2.1);
+  const b = Math.sin(0.7 * f * (u.x + u.y) + 0.4) * Math.sin(0.7 * f * (u.z - u.y) + 1.9);
+  return amp * (0.35 + 0.65 * Math.max(0, 0.6 * a + 0.4 * b) ** 0.6);
+};
+// a lathe whose surface is pushed out into ringlets: separate locks hanging down it, each waving from side to side and
+// bulging where it curls, deeper toward the ends
+// (strength(y) from 0 to 1). The profile is resampled finely first so the twists come out smooth
+const ringletLathe = (key, pts, seg, phiStart, phiLen, amp, strength) => geo(`ringlet2:${key}`, () => {
+  const dense = [];
+  for (let k = 1; k < pts.length; k++) {
+    const [r0, y0] = pts[k - 1], [r1, y1] = pts[k], n = Math.max(1, Math.ceil(Math.abs(y1 - y0) / 0.006));
+    for (let i = 0; i < n; i++) dense.push([r0 + (r1 - r0) * i / n, y0 + (y1 - y0) * i / n]);
+  }
+  dense.push(pts[pts.length - 1]);
+  const g = new THREE.LatheGeometry(dense.map(([r, y]) => new THREE.Vector2(r, y)), seg, phiStart, phiLen), p = g.attributes.position;
+  for (let i = 0; i < p.count; i++) {
+    const x = p.getX(i), y = p.getY(i), z = p.getZ(i), r = Math.hypot(x, z), phi = Math.atan2(x, z);
+    const lock = 0.5 + 0.5 * Math.sin(14 * phi + 1.7 * Math.sin(38 * y + 3 * phi));      // the locks, waving as they fall
+    const curl = 0.6 + 0.4 * Math.sin(44 * y + 5 * phi);                                   // each one bulging where it turns
+    const k = (r + amp * strength(y) * lock * curl) / (r || 1);
+    p.setX(i, x * k); p.setZ(i, z * k);
+  }
+  g.computeVertexNormals(); return g;
 });
 // "tipped back by `tilt`": the crown direction leaning toward the back of the head
 const crown = tilt => new THREE.Vector3(0, Math.cos(tilt), -Math.sin(tilt));
@@ -293,8 +320,8 @@ export function buildBody(look, seed = '') {
 // hats, each a shell round its own tipped crown down to a front edge `elev` above the eyes; own is the hat's own thickness
 const HATS = { cap: { tilt: 0.25, elev: 0.4, own: 0.012 }, bucket: { tilt: 0.1, elev: 0.5, own: 0.014 }, beanie: { tilt: 0.35, elev: 0.45, own: 0.016 } };
 // how far each hairstyle stands off the head where a hat goes, so the hat is made that much bigger and never cuts into it
-// (curls, spikes and buns that would sit under a hat are left out or moved below its edge instead)
-const HAIR_LIFT = { bald: 0, buzz: 0.004, short: 0.012, spiky: 0.012, curly: 0.012, side: 0.024, long: 0.021, longCurly: 0.024, bun: 0.021, ponytail: 0.021 };
+// (spikes, buns and ponytails that would sit under a hat are left out or moved below its edge instead)
+const HAIR_LIFT = { bald: 0, buzz: 0.004, short: 0.012, spiky: 0.012, curly: 0.032, side: 0.024, medium: 0.021, long: 0.021, longCurly: 0.04, bun: 0.021, ponytail: 0.021 };
 
 // the hair first, then the hat (if any) put on over it
 function buildHair(style, shape, head, hairM, mk, at, look) {
@@ -323,10 +350,10 @@ function buildHair(style, shape, head, hairM, mk, at, look) {
     const a = Math.acos(u.dot(crown(TILT)));
     if (a < limit && !underHat(u, margin)) place(u, at(u.x, u.y, u.z));
   });
-  const curls = () => scatter(coverFor(TILT, FRONT) - 0.12, 0.15, (u, p) => mk(sp(0.03, 8, 6), hairM, p.x + u.x * 0.018, p.y + u.y * 0.018, p.z + u.z * 0.018, head, false));
   // a curtain round the back and sides, open at the face; its top follows the head's own outline right up to the
-  // crown, lying just over the cap, so the back of the head is one surface. tail(w, y0) gives the profile below
-  const curtain = (key, tail) => {
+  // crown, lying just over the cap, so the back of the head is one surface. tail(w, y0) gives the profile below;
+  // `curls` twists it into ringlets, starting a little below the crown and deepening toward the ends
+  const curtain = (key, tail, curls = 0) => {
     const prof = [];
     for (let k = 0; k <= 6; k++) {
       const t = 0.12 + k * (1.55 - 0.12) / 6, ps = at(Math.sin(t), Math.cos(t), 0), pb = at(0, Math.cos(t), -Math.sin(t));
@@ -334,32 +361,31 @@ function buildHair(style, shape, head, hairM, mk, at, look) {
     }
     const [w, y0] = prof[prof.length - 1];
     prof.push(...tail(w, y0));
-    mk(lathe(`curtain:${shape}:${key}`, prof, 32, 0.85, Math.PI * 2 - 1.7), hairM, 0, 0, 0, head);
+    if (!curls) mk(lathe(`curtain:${shape}:${key}`, prof, 32, 0.85, Math.PI * 2 - 1.7), hairM, 0, 0, 0, head);
+    else {
+      const top = prof[3][1], bottom = prof[prof.length - 1][1];
+      mk(ringletLathe(`${shape}:${key}`, prof, 120, 0.85, Math.PI * 2 - 1.7, curls, y => Math.max(0, Math.min(1, (top - y) / (top - bottom) * 1.6))), hairM, 0, 0, 0, head);
+    }
     return prof;
   };
 
   switch (style) {
     case 'bald': break;
     case 'buzz': hair(0.004, 0.5, 0.55); break;
+    case 'medium':
+      // 中長髮: down to the jaw, the ends turned under a little
+      fringe();
+      curtain('medium', (w, y0) => [[w + 0.004, y0 - 0.06], [w + 0.01, y0 - 0.13], [w + 0.014, y0 - 0.17], [w + 0.006, y0 - 0.195], [w - 0.008, y0 - 0.2]]);
+      break;
     case 'long':
       fringe();
       curtain('long', (w, y0) => [[w + 0.004, y0 - 0.08], [w + 0.012, y0 - 0.19], [w + 0.026, y0 - 0.29], [w + 0.008, y0 - 0.33]]);
       break;
-    case 'longCurly': {
-      // long curls: a full curtain, fuller toward the ends, with curls over the crown and clusters of curls down its length
-      fringe(); curls();
-      const prof = curtain('curly', (w, y0) => [[w + 0.012, y0 - 0.06], [w + 0.02, y0 - 0.13], [w + 0.03, y0 - 0.2], [w + 0.04, y0 - 0.27], [w + 0.046, y0 - 0.33], [w + 0.03, y0 - 0.37], [w + 0.006, y0 - 0.38]]);
-      const radiusAt = y => {
-        for (let k = 1; k < prof.length; k++) { const [r0, ya] = prof[k - 1], [r1, yb] = prof[k]; if (y <= ya && y >= yb) return r0 + (r1 - r0) * (ya - y) / (ya - yb); }
-        return prof[prof.length - 1][0];
-      };
-      const y0 = prof[6][1];
-      for (let j = 0; j < 5; j++) {
-        const y = y0 - 0.07 - j * 0.065, r = radiusAt(y) + 0.006;
-        for (let phi = 1.0 + (j % 2) * 0.19; phi < Math.PI * 2 - 1.0; phi += 0.38) mk(sp(0.03 + j * 0.003, 8, 6), hairM, r * Math.sin(phi), y, r * Math.cos(phi), head, false);
-      }
+    case 'longCurly':
+      // long curls: curly on top, then a full curtain twisted into ringlets, fuller toward the ends
+      mk(capGeo(shape, 'fringeCurly', phi => line(phi) - 0.07 * lobe(phi, 0, 4), phi => 0.012 + 0.009 * lobe(phi, 0, 2), curlLumps(0.018)), hairM, 0, 0, 0, head);
+      curtain('curly', (w, y0) => [[w + 0.012, y0 - 0.06], [w + 0.02, y0 - 0.13], [w + 0.03, y0 - 0.2], [w + 0.038, y0 - 0.27], [w + 0.042, y0 - 0.33], [w + 0.028, y0 - 0.37], [w + 0.006, y0 - 0.38]], 0.022);
       break;
-    }
     case 'bun': {
       fringe();
       // up on the crown, or, under a hat, a low bun below its edge at the back
@@ -382,7 +408,7 @@ function buildHair(style, shape, head, hairM, mk, at, look) {
         s.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), u);
       });
       break;
-    case 'curly': base(); curls(); break;
+    case 'curly': mk(capGeo(shape, 'curly', line, () => 0.012, curlLumps(0.02)), hairM, 0, 0, 0, head); break;   // short and tightly curled, the curls part of the hair itself
     default: base();   // short
   }
 

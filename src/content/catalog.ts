@@ -219,7 +219,7 @@ export const TEAM_NAMES = ['湖人', '勇士', '塞爾提克', '公牛', '熱火
 type Option = { value: string; label: string };
 export const HAIR_STYLES: Option[] = [
   { value: 'short', label: '短髮' }, { value: 'buzz', label: '平頭' }, { value: 'side', label: '旁分' },
-  { value: 'spiky', label: '刺蝟頭' }, { value: 'curly', label: '捲髮' }, { value: 'long', label: '長髮' },
+  { value: 'spiky', label: '刺蝟頭' }, { value: 'curly', label: '捲髮' }, { value: 'medium', label: '中長髮' }, { value: 'long', label: '長髮' },
   { value: 'longCurly', label: '長捲髮' }, { value: 'ponytail', label: '馬尾' }, { value: 'bun', label: '包頭' },
   { value: 'bald', label: '光頭' },
 ];
