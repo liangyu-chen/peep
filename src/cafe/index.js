@@ -49,7 +49,7 @@ export function startCafe(root, content) {
     // doors open when someone comes close
     S.slide.open += ((near(-1.5, -4.5, 1.3) ? 1 : 0) - S.slide.open) * Math.min(1, dt * 5);
     S.slideDoor.position.x = -1.5 - S.slide.open * 1.05;
-    S.toiletDoor.position.z = -7.7 + (near(-0.8, -7.7, 1.1) ? 1.0 : 0);   // slides toward the front, into the wall beside it
+    S.toiletDoor.rotation.y += ((near(-0.8, -7.7, 1.1) ? -Math.PI / 2 : 0) - S.toiletDoor.rotation.y) * Math.min(1, dt * 5);   // swings in, flat to the toilet's front wall
     S.frontDoor.rotation.y += ((near(-1.7, 4.0, 1.3) ? 1.45 : 0) - S.frontDoor.rotation.y) * Math.min(1, dt * 5);
     // fade the outer walls the camera is behind
     const cp = ctx.camera.position;

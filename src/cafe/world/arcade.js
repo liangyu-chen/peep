@@ -73,17 +73,51 @@ function street() {
   [[0.0, 0.0, 0x2a2a2a], [0.04, 0.03, 0x1c4fd6], [-0.04, 0.02, 0xc0282d]].forEach(([dx, dz, c]) => { const u = cyl(0.025, 0.04, 0.7, mat(c), 0.82 + dx, 0.45, 7.9 + dz, ctx.scene, 8); u.rotation.z = dx * 2; });
   // cinder stacks with little plants on the street end
   [[-2.8, 7.55], [-2.35, 7.7]].forEach(([x, z]) => { cinderBlock(0.4, 0.2, 0.2, x, 0.1, z); cinderBlock(0.4, 0.2, 0.2, x, 0.3, z); pottedPlant(x, 0.4, z); });
-  const scooter = new THREE.Group(); scooter.position.set(0.55, 0, 8.75); scooter.rotation.y = 0.1; ctx.scene.add(scooter);   // the cream vespa out front
-  const creamM = mat(0xd8cdb4, { roughness: 0.35, metalness: 0.2 });
-  box(0.4, 0.35, 1.2, creamM, 0, 0.45, 0, scooter);
-  box(0.36, 0.12, 0.6, blackM, 0, 0.68, -0.1, scooter);
-  box(0.4, 0.7, 0.18, creamM, 0, 0.75, 0.55, scooter);
-  box(0.6, 0.04, 0.04, blackM, 0, 1.12, 0.6, scooter);
-  [-0.5, 0.55].forEach(z => { const w = cyl(0.2, 0.2, 0.1, blackM, 0, 0.2, z, scooter, 14); w.rotation.z = Math.PI / 2; });
+  vespa(0.55, 8.75, 0.1);
   box(4.0, 0.3, 0.12, mat(0x2a4f8a), -1.05, 2.62, 8.2);                                  // blue lintel over the opening
   [[-3.0, 1.8], [0.95, 1.6]].forEach(([x, y]) => box(0.18, 0.22, 0.08, mat(0xd9d9d0), x, y, 8.22));   // electricity meters
   campChair(-0.55, 8.55, 0, 0xc4a27e);                                                    // one milk-tea camping chair facing the street
   crate(-0.55, 0, 9.15, 'blue'); crate(-0.55, 0.3, 9.15, 'orange');                       // two stacked crates as its table
+}
+
+// the old Vespa parked out front, after the photo: weathered silver-grey body, bulging side cowls, a brown bench seat,
+// rust-orange floorboard, the round headlight on the handlebars, mirrors on stalks, up on its centre stand
+function vespa(x, z, ry) {
+  const g = new THREE.Group(); g.position.set(x, 0, z); g.rotation.y = ry; ctx.scene.add(g);
+  const bodyM = mat(0x8e8b82, { roughness: 0.55, metalness: 0.3 }), seatM = mat(0x6e4c3b, { roughness: 0.8 });
+  const rustM = mat(0xb5602d, { roughness: 0.85 }), chrome = mat(0xc9c9c9, { metalness: 0.9, roughness: 0.2 }), amber = mat(0xe07a2a, { roughness: 0.4 });
+  const add = (geo, m, px, py, pz) => { const me = new THREE.Mesh(geo, m); me.position.set(px, py, pz); me.castShadow = true; g.add(me); return me; };
+  // wheels: small, black tyres on grey hubs
+  [-0.5, 0.56].forEach(wz => {
+    const t = cyl(0.17, 0.17, 0.09, blackM, 0, 0.19, wz, g, 16); t.rotation.z = Math.PI / 2;
+    const h = cyl(0.08, 0.08, 0.1, bodyM, 0, 0.19, wz, g, 12); h.rotation.z = Math.PI / 2;
+  });
+  // the rear body: two rounded side cowls over the engine and the tail between them
+  [-1, 1].forEach(sd => add(new THREE.SphereGeometry(0.22, 16, 12), bodyM, sd * 0.1, 0.45, -0.38).scale.set(0.75, 0.8, 1.55));
+  box(0.24, 0.3, 0.7, bodyM, 0, 0.5, -0.38, g);
+  box(0.06, 0.05, 0.03, amber, 0, 0.58, -0.76, g);                                     // tail light
+  box(0.34, 0.11, 0.6, seatM, 0, 0.75, -0.3, g);                                       // brown bench seat
+  box(0.3, 0.02, 0.56, seatM, 0, 0.81, -0.3, g);
+  // floorboard, rust showing through, and the leg shield leaning back from the front
+  box(0.34, 0.05, 0.5, rustM, 0, 0.3, 0.12, g);
+  [-0.12, 0, 0.12].forEach(dx => box(0.02, 0.012, 0.46, blackM, dx, 0.33, 0.12, g));   // rubber strips
+  const shield = box(0.4, 0.7, 0.04, bodyM, 0, 0.65, 0.4, g); shield.rotation.x = -0.18;
+  const nose = box(0.12, 0.3, 0.06, bodyM, 0, 0.82, 0.47, g); nose.rotation.x = -0.18;  // the horn cast down the middle
+  [-0.06, -0.03, 0].forEach(dy => box(0.08, 0.008, 0.01, blackM, 0, 0.74 + dy, 0.505, g));   // its grille
+  [-1, 1].forEach(sd => box(0.05, 0.08, 0.03, amber, sd * 0.17, 0.72, 0.43, g));       // indicators either side of it
+  box(0.12, 0.12, 0.34, bodyM, 0, 0.4, 0.58, g);                                       // front mudguard over the wheel
+  // steering: column, handlebar with the headlight in the middle, grips and round mirrors
+  const col = cyl(0.025, 0.025, 0.5, bodyM, 0, 0.92, 0.42, g, 8); col.rotation.x = -0.18;
+  box(0.5, 0.06, 0.08, bodyM, 0, 1.15, 0.36, g);
+  const lamp = cyl(0.075, 0.075, 0.06, chrome, 0, 1.15, 0.42, g, 18); lamp.rotation.x = Math.PI / 2;
+  const lens = cyl(0.065, 0.065, 0.005, mat(0xf2f2ea, { roughness: 0.05, metalness: 0.3 }), 0, 1.15, 0.452, g, 18); lens.rotation.x = Math.PI / 2;
+  [-1, 1].forEach(sd => {
+    const grip = cyl(0.02, 0.02, 0.11, blackM, sd * 0.3, 1.15, 0.36, g, 8); grip.rotation.z = Math.PI / 2;
+    const stalk = cyl(0.007, 0.007, 0.18, chrome, sd * 0.22, 1.23, 0.34, g, 6); stalk.rotation.z = -sd * 0.4;
+    const m = cyl(0.055, 0.055, 0.012, mat(0x6b5a48, { roughness: 0.5 }), sd * 0.26, 1.32, 0.34, g, 14); m.rotation.x = Math.PI / 2;
+  });
+  // up on its centre stand
+  [-1, 1].forEach(sd => { const l = cyl(0.01, 0.01, 0.3, chrome, sd * 0.1, 0.15, -0.05, g, 6); l.rotation.x = 0.25; });
 }
 
 // smoking is allowed outside: an ashtray (a couple of butts in it) on some of the tables

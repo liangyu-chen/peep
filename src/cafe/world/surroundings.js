@@ -8,6 +8,7 @@ import * as THREE from 'three';
 import { ctx, mat as rawMat, canvasTex } from '../engine.js';
 import { S } from '../state.js';
 import { rand, randi, pick } from '../util.js';
+import { KERB, RISE } from '../layout.js';
 
 let env;
 // colours as they should look on screen
@@ -17,8 +18,9 @@ const mat = (hex, o) => rawMat(col(hex), o);
 const FRONT = 8.1;                 // our row's frontage (the shop's arcade edge)
 const BACK = -8.35;                // and its back, in line with the shop's back wall
 const LANE_W = 4.8;                // the lane is narrow: a car and a scooter can just pass
-const OPP = FRONT + LANE_W;        // the lane's far edge
-const LANE_Z = FRONT + LANE_W / 2;
+// the row's frontage is raised: a concrete step out to the kerb, the lane RISE below it
+const OPP = KERB + LANE_W;         // the lane's far edge
+const LANE_Z = KERB + LANE_W / 2;
 const ONE_WAY = 1;                 // the lane is one-way: everything drives toward +x
 const CROSS0 = 13.6, CROSS1 = 19.6; // a cross street meets the lane there (right of the shop, seen from the lane)
 
@@ -264,7 +266,7 @@ function spawn(kind) {
   const v = kind === 'car' ? carModel() : riderModel();
   const dir = ONE_WAY;
   const z = kind === 'car' ? LANE_Z + 0.2 : LANE_Z + rand(-0.3, 0.3);
-  v.g.position.set(-dir * 42, 0, z); v.g.rotation.y = dir * Math.PI / 2; env.add(v.g);
+  v.g.position.set(-dir * 42, -RISE, z); v.g.rotation.y = dir * Math.PI / 2; env.add(v.g);
   traffic.push({ ...v, dir, speed: v.vmax, z });
 }
 function updateTraffic(sdt) {
@@ -315,23 +317,25 @@ export function buildSurroundings() {
   ctx.scene.fog = new THREE.Fog(0xd9dcdc, 45, 140);
   // ground: the lane's asphalt, concrete everywhere else
   const ground = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), mat(0x6f6b65, { roughness: 1 }));
-  ground.rotation.x = -Math.PI / 2; ground.position.y = -0.05; ground.receiveShadow = true; env.add(ground);
+  ground.rotation.x = -Math.PI / 2; ground.position.y = -0.05; ground.receiveShadow = true;
+  // everything at street level sits RISE down, below the raised frontage
+  const low = new THREE.Group(); low.position.y = -RISE; env.add(low); low.add(ground);
   const at = asphaltTex(); at.repeat.set(24, 2);
   const lane = new THREE.Mesh(new THREE.PlaneGeometry(96, LANE_W + 0.6), new THREE.MeshStandardMaterial({ map: at, roughness: 0.95 }));
-  lane.rotation.x = -Math.PI / 2; lane.position.set(0, -0.015, LANE_Z); lane.receiveShadow = true; env.add(lane);
+  lane.rotation.x = -Math.PI / 2; lane.position.set(0, -0.015, LANE_Z); lane.receiveShadow = true; low.add(lane);
   // a white edge line on the far side, and 慢 painted big across the lane, read by drivers coming down the one-way lane
   const paint = new THREE.MeshStandardMaterial({ color: col(0xe8e6e0), roughness: 0.8 });
-  [[-48, CROSS0], [CROSS1, 48]].forEach(([a, b]) => { const e = new THREE.Mesh(new THREE.PlaneGeometry(b - a, 0.12), paint); e.rotation.x = -Math.PI / 2; e.position.set((a + b) / 2, -0.01, OPP - 0.35); env.add(e); });
+  [[-48, CROSS0], [CROSS1, 48]].forEach(([a, b]) => { const e = new THREE.Mesh(new THREE.PlaneGeometry(b - a, 0.12), paint); e.rotation.x = -Math.PI / 2; e.position.set((a + b) / 2, -0.01, OPP - 0.35); low.add(e); });
   // the cross street, running back past the end of the shop's row, and a stop line across the lane before it
   const ct = asphaltTex(); ct.repeat.set(2, 24);
   const cross = new THREE.Mesh(new THREE.PlaneGeometry(CROSS1 - CROSS0, 96), new THREE.MeshStandardMaterial({ map: ct, roughness: 0.95 }));
-  cross.rotation.x = -Math.PI / 2; cross.position.set((CROSS0 + CROSS1) / 2, -0.02, LANE_Z); cross.receiveShadow = true; env.add(cross);
-  const stop = new THREE.Mesh(new THREE.PlaneGeometry(0.3, LANE_W - 0.3), paint); stop.rotation.x = -Math.PI / 2; stop.position.set(CROSS0 - 0.5, -0.008, LANE_Z); env.add(stop);
+  cross.rotation.x = -Math.PI / 2; cross.position.set((CROSS0 + CROSS1) / 2, -0.02, LANE_Z); cross.receiveShadow = true; low.add(cross);
+  const stop = new THREE.Mesh(new THREE.PlaneGeometry(0.3, LANE_W - 0.3), paint); stop.rotation.x = -Math.PI / 2; stop.position.set(CROSS0 - 0.5, -0.008, LANE_Z); low.add(stop);
   const slow = canvasTex(256, 256, (g, w) => { g.fillStyle = '#ece9e2'; g.font = 'bold 220px "Noto Sans TC", sans-serif'; g.textAlign = 'center'; g.fillText('慢', w / 2, 210); });
   S.fontTex.push(slow);
   [-10, 10.6].forEach(x => {
     const m = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 2.6), new THREE.MeshStandardMaterial({ map: slow, transparent: true, roughness: 0.8, depthWrite: false }));
-    m.rotation.set(-Math.PI / 2, 0, -ONE_WAY * Math.PI / 2); m.position.set(x, -0.005, LANE_Z); env.add(m);   // its top points the way they drive
+    m.rotation.set(-Math.PI / 2, 0, -ONE_WAY * Math.PI / 2); m.position.set(x, -0.005, LANE_Z); low.add(m);   // its top points the way they drive
   });
   // our row either side of the shop: each as deep as the shop, two or three storeys
   // to the right, two houses then the corner shop at the cross street; past it, two or three more and the row ends
@@ -345,6 +349,12 @@ export function buildSurroundings() {
   let x = -2.3;
   while (x > -40) { const w = rand(3.6, 5.2), f = FRONT - rand(0, 0.3); rowHouse(x - w, x, f, 1, randi(1, 2), f - BACK); x -= w; }
   shopUpstairs();
+  // the raised frontage under the whole row, its kerb along the lane and down the cross street
+  const stepM = new THREE.MeshStandardMaterial({ map: washed('step', '#9a968e'), roughness: 0.95 });
+  [[-44, CROSS0], [CROSS1, end]].forEach(([a, b]) => {
+    const p = new THREE.Mesh(new THREE.BoxGeometry(b - a, RISE, KERB - BACK + 0.3), stepM);
+    p.position.set((a + b) / 2, -RISE / 2 - 0.006, (KERB + BACK - 0.3) / 2); p.receiveShadow = true; env.add(p);
+  });
   // nothing across the lane or behind: just the lane and the row either side, so nothing hides the shop
   wires(FRONT + 0.25, 3.45, -40, CROSS0); wires(FRONT + 0.25, 3.45, CROSS1, end);
   // parked scooters and bikes, pot plants and crates along both sides, clear of the shop front

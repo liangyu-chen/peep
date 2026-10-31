@@ -84,18 +84,23 @@ export function buildShell() {
   box(0.16, WH - 2.1, 0.8, greyM, -0.8, 2.1 + (WH - 2.1) / 2, -6.5);       // and over the storage doorway
   wall(-0.8, -7.35, 3.1, -7.35, WH, greyM);                // the small storeroom's back wall
   box(3.9, WH, 0.7, greyM, 1.15, WH / 2, -7.7);             // a solid run of wall between it and the toilet, which is only a little deeper than its door
-  S.toiletDoor = box(0.05, 2.05, 1.02, mat(0xd9d2c6, { roughness: 0.6 }), -0.86, 1.025, -8.7);   // sliding toilet door (the storeroom has no door)
-  // posters taped on its corridor side (they slide with it), and a hand-written note
+  // toilet door: pushed open into the toilet, hinged on the right as you face it from the corridor (the front end),
+  // handle on the left; it swings back flat against the toilet's front wall (the storeroom has no door)
+  S.toiletDoor = new THREE.Group(); S.toiletDoor.position.set(-0.86, 0, -8.19); ctx.scene.add(S.toiletDoor);
+  const leaf = box(0.05, 2.05, 1.02, mat(0xd9d2c6, { roughness: 0.6 }), 0, 1.025, -0.51, S.toiletDoor);
+  const knob = mat(0xb9bcbd, { metalness: 0.8, roughness: 0.3 });
+  [-1, 1].forEach(sd => { box(0.04, 0.03, 0.12, knob, sd * 0.045, 0.98, -0.88, S.toiletDoor); box(0.02, 0.1, 0.05, knob, sd * 0.03, 0.98, -0.93, S.toiletDoor); });   // lever handles, both sides
+  // posters taped on its corridor side (they swing with it, clear of the handle), and a hand-written note
   const doorSide = (tex, w, h, y, z, tilt = 0) => {
     const p = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshStandardMaterial({ map: tex, roughness: 0.9 }));
-    p.position.set(-0.027, y, z); p.rotation.set(0, -Math.PI / 2, tilt); S.toiletDoor.add(p);
+    p.position.set(-0.027, y, z); p.rotation.set(0, -Math.PI / 2, tilt); leaf.add(p);
   };
   doorSide(pixelArt(ART.toys, PAL, '#ffd23f'), 0.36, 0.36, 0.42, -0.2, 0.04);
   doorSide(pixelArt(ART.eye, PAL, '#ff4f7b'), 0.3, 0.23, 0.05, 0.22, -0.06);
   doorSide(pixelArt(ART.wave, PAL, '#f4efe3'), 0.34, 0.26, -0.35, -0.12, 0.03);
   const note = canvasTex(96, 64, (g, w, h) => { g.fillStyle = '#f6f1e4'; g.fillRect(0, 0, w, h); g.fillStyle = '#2a2a2a'; g.font = `18px ${DOT}`; g.textAlign = 'center'; g.fillText('請隨手', w / 2, 26); g.fillText('關門 ♥', w / 2, 50); });
   S.fontTex.push(note);
-  doorSide(note, 0.2, 0.135, 0.12, -0.3, 0.08);
+  doorSide(note, 0.2, 0.135, 0.32, 0.25, 0.08);
   // shop front: cement grey like the rest of the arcade, a plain door, and the melting-face peep window
   wall(-3.1, 4, -2.3, 4, WH, greyM);
   box(1.2, 0.6, 0.16, greyM, -1.7, 2.5, 4);

@@ -4,6 +4,7 @@ import { ctx, mat, cyl } from './engine.js';
 import { buildBody, tickFace } from './body.js';
 import { S } from './state.js';
 import { K } from './util.js';
+import { KERB, RISE } from './layout.js';
 
 const teaCupM = mat(0xf2f0ea, { roughness: 0.3 });
 const coffeeM = mat(0x5a3220, { roughness: 0.3 });
@@ -262,7 +263,8 @@ export class Person {
     aL.rotation.set(armLx, armLy, armLz); aR.rotation.set(armRx, armRy, armRz);
     this.elbows[0].rotation.x = elL; this.elbows[1].rotation.x = elR;
     if (this.cup && this.cup.parent === this.hand) gripCup(this, this.act === 'sip' ? sipPose(this.cup).tilt * Math.min(1, (1.4 - this.actT) * 3) : 0);
-    this.g.position.y = y + bob;
+    this.groundY = (this.groundY || 0) + ((this.g.position.z > KERB ? -RISE : 0) - (this.groundY || 0)) * Math.min(1, dt * 14);   // a step down off the kerb
+    this.g.position.y = this.groundY + y + bob;
     this.head.rotation.y = this.pose === 'game' ? 0 : ph ? turn : Math.sin(this.walkPhase * 0.31) * 0.2;
     this.head.rotation.x = pitch;
     if (this.mosaic) {   // kept between the hips and the camera, so it covers from any side

@@ -40,8 +40,10 @@ async function ownerLoop(owner) {
         continue;
       }
       owner.status = pick(['擦吧台', '整理茶杯', '試喝今天的豆子', '練雕花']);
-      await walk(owner, [[LANE, rand(-1.6, 2.0)]]);
-      owner.face(Math.random() < 0.5 ? -Math.PI / 2 : Math.PI / 2);
+      // he steps up to whichever side he works at, just far enough off it that his hands stop at its edge
+      const toBar = Math.random() < 0.5;
+      await walk(owner, [[toBar ? 2.05 : 1.65, rand(-1.6, 2.0)]]);
+      owner.face(toBar ? -Math.PI / 2 : Math.PI / 2);
       owner.gesture(Math.random() < 0.5 ? 'wipe' : 'pour', 2);
       if (Math.random() < 0.12) sayLine(owner, 'owner.idle');
       for (let i = 0; i < 4 && !S.orderQueue.length; i++) await sleep(0.6);
