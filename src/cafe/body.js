@@ -428,11 +428,11 @@ const FRONTS = {
   // no fringe: combed back off the forehead, the hairline well up so the forehead shows
   none: { edge: phi => line(phi) + 0.26 * lobe(phi, 0, 2), thick: () => 0.012, lift: 0.012 },
   // a fringe: down to the brows and cut almost straight across, standing out full over the forehead
-  bangs: { edge: phi => line(phi) + (0.4 - line(phi)) * lobe(phi, 0, 4), thick: phi => 0.012 + 0.014 * lobe(phi, 0, 1.5), lift: 0.026 },
+  bangs: { edge: phi => line(phi) + (0.45 - line(phi)) * lobe(phi, 0, 4), thick: phi => 0.012 + 0.014 * lobe(phi, 0, 1.5), lift: 0.026 },   // just above the brows
   // parted in the middle: the hairline lifts at the centre of the forehead and the hair falls away to both sides,
   // fuller over the temples, with a shallow parting line running back from the front
   center: {
-    edge: phi => line(phi) + 0.16 * Math.exp(-((ang(phi) / 0.16) ** 2)) - 0.05 * (lobe(phi, 0.55, 6) + lobe(phi, -0.55, 6)),
+    edge: phi => line(phi) + 0.3 * Math.exp(-((ang(phi) / 0.34) ** 2)) - 0.02 * (lobe(phi, 0.6, 6) + lobe(phi, -0.6, 6)),   // high in the middle, the forehead showing, the hair falling away either side
     thick: phi => 0.016 + 0.008 * (lobe(phi, 0.6, 3) + lobe(phi, -0.6, 3)), lift: 0.026,
     part: 0, groove: parting(0, 0.006), flow: partFlow(0, 2.6, 2.6),
   },
