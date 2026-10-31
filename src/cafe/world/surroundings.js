@@ -340,8 +340,8 @@ export function buildSurroundings() {
   const at = asphaltTex().clone(); at.needsUpdate = true; at.repeat.set(24, 2.6);
   const lane = new THREE.Mesh(new THREE.PlaneGeometry(96, ROAD1 - ROAD0), new THREE.MeshStandardMaterial({ map: at, roughness: 0.95 }));
   lane.rotation.x = -Math.PI / 2; lane.position.set(0, -0.015, (ROAD0 + ROAD1) / 2); lane.receiveShadow = true; low.add(lane);
-  // a white edge line on the far side, 慢 painted big across the lane up the way, and before the crossroads 停 and
-  // 消防通道, stacked to be read by drivers coming down the one-way lane
+  // a white edge line on the far side, and before the crossroads 停 and 消防通道, stacked to be read by drivers coming
+  // down the one-way lane
   const paint = new THREE.MeshStandardMaterial({ color: col(0xe8e6e0), roughness: 0.8 });
   [[-48, CROSS0], [CROSS1, 48]].forEach(([a, b]) => { const e = new THREE.Mesh(new THREE.PlaneGeometry(b - a, 0.12), paint); e.rotation.x = -Math.PI / 2; e.position.set((a + b) / 2, -0.01, OPP - 0.35); low.add(e); });
   // the cross street, running back past the end of the shop's row, and a stop line across the lane before it
@@ -355,7 +355,6 @@ export function buildSurroundings() {
     const m = new THREE.Mesh(new THREE.PlaneGeometry(across, along), new THREE.MeshStandardMaterial({ map: t, transparent: true, roughness: 0.8, depthWrite: false }));
     m.rotation.set(-Math.PI / 2, 0, -ONE_WAY * Math.PI / 2); m.position.set(x, -0.005, LANE_Z); low.add(m);   // its top points the way they drive
   };
-  roadWord('慢', -10, 2.6, 2.6);
   // drawn long and spread out along the road, as road lettering is, so it reads from a driver's seat, all the same size,
   // read top to bottom as you drive up to the junction: 停 nearest it
   ['停', '消', '防', '通', '道'].forEach((ch, i) => roadWord(ch, CROSS0 - 2.0 - i * 4.2, 2.1, 2.8));
