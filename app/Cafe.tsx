@@ -53,11 +53,7 @@ export default function Cafe({ content }: { content: CafeContent }) {
           <button data-speed="4">4x</button>
           <button id="tagToggle" className="on">名牌</button>
         </div>
-        <div className="row"><span></span>
-          <button className="primary" data-cam="menu">觀看菜單</button>
-          <a className="btnLink" href="https://www.instagram.com/peep20190401" target="_blank" rel="noreferrer">Instagram ↗</a>
-          <a href="/admin" className="adminLink">後台登入</a>
-        </div>
+        <div className="row"><span></span><a href="/admin" className="adminLink">後台登入</a></div>
       </section>
 
       <section id="log" className="win" aria-label="店內動態">
@@ -84,6 +80,18 @@ export default function Cafe({ content }: { content: CafeContent }) {
         <div className="status" id="cStatus">-</div>
         <button id="cInvite" className="primary" hidden>▶ 邀去打電動</button>
       </aside>
+
+      {/* the menu and the shop's Instagram, on their own on the left edge */}
+      <nav id="quick" aria-label="捷徑">
+        <button data-cam="menu" className="quickBtn" title="觀看菜單">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h12v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5z" /><path d="M16 10h1.5a2.5 2.5 0 0 1 0 5H16" /><path d="M8 3c0 1.5 1.2 1.5 1.2 3M12 3c0 1.5 1.2 1.5 1.2 3" /></svg>
+          <span>菜單</span>
+        </button>
+        <a className="quickBtn" href="https://www.instagram.com/peep20190401" target="_blank" rel="noreferrer" title="Instagram">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="5" /><circle cx="12" cy="12" r="4" /><circle cx="17.2" cy="6.8" r="0.9" fill="currentColor" stroke="none" /></svg>
+          <span>IG</span>
+        </a>
+      </nav>
 
       <div id="hint">拖曳旋轉 · 滾輪縮放 · 點人物看資料 · 點電視看比賽</div>
       {loading && <LoadingHands ready={ready} onDone={done} />}

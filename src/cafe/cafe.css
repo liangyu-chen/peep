@@ -55,10 +55,15 @@ body:has(.cafe-root){margin:0;overflow:hidden;background:#141218}
 .cafe-root button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 .cafe-root button.on{background:var(--gold);color:#1f1c27;box-shadow:inset -3px -3px 0 0 #b08d10,inset 3px 3px 0 0 #fff2a8}
 .cafe-root button.primary{background:var(--neon);color:#2a0a14;box-shadow:inset -3px -3px 0 0 #a8264b,inset 3px 3px 0 0 #ff9ab3}
-/* a link that looks like the panel's buttons */
-.cafe-root .btnLink{font-size:13px;color:var(--ink);background:#2c2838;padding:4px 9px;text-decoration:none;box-shadow:inset -3px -3px 0 0 #15131c,inset 3px 3px 0 0 #4a4458}
-.cafe-root .btnLink:hover{background:#373245}
-.cafe-root .btnLink:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+/* the menu and Instagram, two square icon buttons on the left edge */
+.cafe-root #quick{position:absolute;left:calc(16px + env(safe-area-inset-left,0px));top:50%;transform:translateY(-50%);display:grid;gap:10px;z-index:3}
+.cafe-root .quickBtn{width:56px;height:56px;display:grid;place-items:center;align-content:center;gap:3px;padding:0;color:var(--ink);text-decoration:none;
+  background:var(--panel);box-shadow:0 0 0 3px #000,inset -3px -3px 0 0 #15131c,inset 3px 3px 0 0 #4a4458}
+.cafe-root .quickBtn svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.cafe-root .quickBtn span{font-size:11px;line-height:1}
+.cafe-root .quickBtn:hover{color:var(--gold);background:#373245}
+.cafe-root .quickBtn.on{background:var(--gold);color:#1f1c27}
+.cafe-root .quickBtn:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 .cafe-root .adminLink{margin-left:auto;font-size:12px;color:var(--muted);padding:4px 2px;text-decoration:underline;text-underline-offset:3px}
 .cafe-root .adminLink:hover{color:var(--gold)}
 .cafe-root .adminLink:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
