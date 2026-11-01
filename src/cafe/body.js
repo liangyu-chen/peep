@@ -317,6 +317,7 @@ export function buildBody(look, seed = '') {
   const skin = mat(look.skin, { roughness: 0.62 }), skinShade = mat(shade(look.skin, 0.86), { roughness: 0.62 });
   const shirt = mat(look.shirt, { roughness: 0.85 }), shirtDark = mat(shade(look.shirt, 0.72), { roughness: 0.85 });
   const shirtIn = mat(shade(look.shirt, 0.42), { roughness: 0.9, side: THREE.BackSide });   // the shadowed inside of a sleeve
+  const shirtUnder = mat(shade(look.shirt, 0.35), { roughness: 1, side: THREE.DoubleSide });   // the inside of the shirt, seen under its hem
   const creaseM = mat(shade(look.shirt, 0.4), { roughness: 1 });                            // folds in the cloth: in shadow, never catching the light
   const pants = mat(look.pants, { roughness: 0.9 }), pantsDark = mat(shade(look.pants, 0.78), { roughness: 0.9 });
   // hair with a little sheen; curls more (the wet, styled look), straight hair a soft gloss along its layers
@@ -374,8 +375,13 @@ export function buildBody(look, seed = '') {
   // cut slim, regular or oversized (wider and deeper, hanging lower over the hips)
   const topFit = clothesOf(look).top, TF = TOP_FITS[topFit] || TOP_FITS.regular;
   const torso = mk(torsoGeo(topFit), shirt, 0, 0, 0);
-  const hem = mk(cy(0.204 * TF.w, 0.203 * TF.w, 0.022, 28, true), shirtDark, 0, 0.716 - TF.drop, 0, g, false);   // the hem: an open band, no flat edge on top to flicker
-  hem.scale.z = 0.745 * TF.d / TF.w;
+  // the hem: a rolled edge with some thickness to it, and underneath, the shirt's shadowed inside closing the gap down to
+  // the hips, so it reads as cloth with body in it, not a shell
+  const hemY = 0.71 - TF.drop, hemR = 0.202 * TF.w, hemZ = 0.745 * TF.d / TF.w;
+  const hem = mk(geo(`hemroll:${hemR.toFixed(3)}`, () => new THREE.TorusGeometry(hemR, 0.008, 6, 40)), shirtDark, 0, hemY + 0.004, 0, g, false);
+  hem.rotation.x = Math.PI / 2; hem.scale.y = hemZ;
+  const under = mk(geo(`hemunder:${hemR.toFixed(3)}`, () => new THREE.RingGeometry(0.16, hemR, 40)), shirtUnder, 0, hemY + 0.006, 0, g, false);
+  under.rotation.x = Math.PI / 2; under.scale.y = hemZ;
   const collar = mk(cy(0.085, 0.1, 0.04, 18), shirtDark, 0, 1.262, 0, g, false); collar.scale.z = 0.82;
   if (look.number) {
     const t = canvasTex(32, 32, (c) => { c.fillStyle = '#fff'; c.font = `16px ${PIX}`; c.textAlign = 'center'; c.fillText(look.number, 16, 24); }, true);
@@ -505,13 +511,15 @@ export function buildBody(look, seed = '') {
       f.rotation.set(Math.PI / 2 + tilt, 0, 0); f.rotateZ(1.3 + (nFold++) * 2.1 + (s > 0 ? 0.4 : 0));
     };
     const lining = (rt, rb, h, y, par) => mk(cy(rt - 0.002, rb - 0.002, h, 14, true), shirtIn, 0, y, 0, par, false);   // the inside of a sleeve, seen at its opening
+    const roll = (r, y, par) => { const e = mk(geo(`roll:${r.toFixed(3)}`, () => new THREE.TorusGeometry(r, 0.006, 6, 24)), shirtDark, 0, y, 0, par, false); e.rotation.x = Math.PI / 2; };   // a rolled edge round an opening
     // the upper arm: rounded over its top, fullest just below the shoulder, tapering to the elbow (open there, where
     // the forearm carries on)
-    mk(lathe(`uarm2:${S.toFixed(2)}`, [[0.001, 0.02], [0.034, 0.014], [0.052, -0.004], [0.057, -0.035], [0.056, -0.1], [0.054, -0.2], [0.052, -0.27]].map(([r, y]) => [r * S, y]), 24), sleeveM, 0, 0, 0, sh);
+    // (its profile runs from the bottom up, so its faces point outward)
+    mk(lathe(`uarm3:${S.toFixed(2)}`, [[0.052, -0.27], [0.054, -0.2], [0.056, -0.1], [0.057, -0.035], [0.052, -0.004], [0.034, 0.014], [0.001, 0.02]].map(([r, y]) => [r * S, y]), 24), sleeveM, 0, 0, 0, sh);
     if (!long) {   // a short sleeve, as wide and as long as the cut makes it, the arm showing in its opening
       const w = TF.s, L = TF.len, rt = 0.065 * w, rb = 0.062 * w;
-      mk(cy(rt, rb, L, 16, true), shirt, 0, 0.01 - L / 2, 0, sh); lining(rt, rb, 0.05, 0.01 - L + 0.025, sh);
-      mk(cy(rb + 0.002, rb + 0.002, 0.018, 16, true), shirtDark, 0, 0.01 - L + 0.009, 0, sh, false);   // the hem
+      mk(cy(rt, rb, L, 16, true), shirt, 0, 0.01 - L / 2, 0, sh); lining(rt, rb, L - 0.01, 0.01 - L / 2 - 0.005, sh);
+      roll(rb, 0.01 - L + 0.004, sh);                                                                   // the hem, rolled
       if (loose) { fold(rt - 0.001, TF.seam, sh); fold(rb, 0.01 - L * 0.62, sh, 0.18 * s); }            // the dropped shoulder seam, a fold
     } else {
       if (loose) fold(0.058 * S + 0.001, TF.seam, sh);                                                 // the dropped shoulder seam
@@ -528,7 +536,7 @@ export function buildBody(look, seed = '') {
     mk(cy(0.052 * S, wrist, 0.24, 14, true), sleeveM, 0, -0.12, 0, elbow);                          // forearm, the same width where they meet
     if (long) {   // the cuff: a band at the wrist, the sleeve's inside showing round the hand; a loose sleeve bunches above it
       mk(cy(wrist + 0.003, wrist + 0.003, 0.03, 14, true), shirtDark, 0, -0.225, 0, elbow, false);
-      lining(wrist + 0.003, wrist + 0.003, 0.04, -0.22, elbow);
+      lining(wrist + 0.003, wrist + 0.003, 0.04, -0.22, elbow); roll(wrist + 0.003, -0.238, elbow);
       fold(0.05 * S, -0.06, elbow, -0.1 * s);
       if (loose) { fold(wrist + 0.004, -0.17, elbow, 0.15 * s); fold(wrist + 0.005, -0.195, elbow, -0.12 * s); }
     }
