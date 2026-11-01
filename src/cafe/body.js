@@ -359,7 +359,10 @@ export function buildBody(look, seed = '') {
     // thigh and shin are open tubes meeting exactly at the knee at the same width, so a straight leg has no seam; a
     // slightly smaller ball fills the joint only when the knee bends
     const RK = 0.074 * W;
-    const thigh = mk(cy(0.085 * W, RK, THIGH, 16, true), legM, 0, -THIGH / 2, 0, hip); if (!skirted) bare.push(thigh);
+    // the thigh: rounded over its top, which sits up inside the hips, fullest just below them, tapering to the knee, so
+    // the hips flow on down into the leg instead of a tube coming out from under them (profile from the knee up, faces out)
+    const thigh = mk(lathe(`thigh2:${W}`, [[RK, -THIGH], [0.078 * W, -0.24], [0.086 * W, -0.12], [0.09 * W, -0.04], [0.088 * W, -0.005], [0.074 * W, 0.022], [0.044 * W, 0.042], [0.001, 0.05]], 20), legM, 0, 0, 0, hip);
+    if (!skirted) bare.push(thigh);
     const knee = new THREE.Group(); knee.position.set(0, -THIGH, 0); hip.add(knee);
     const kn = mk(sp(RK * 0.96, 16, 12), legM, 0, 0, 0, knee); if (!skirted) bare.push(kn);
     const b = mk(cy(0.088 * W, 0.082 * W, 0.09, 14), skirted ? mat(0xf2efe9, { roughness: 0.9 }) : pants, 0, -0.03, 0, knee, false); b.visible = false; bunch.push(b);
@@ -371,8 +374,9 @@ export function buildBody(look, seed = '') {
     [0.03, 0.055, 0.08].forEach(z => mk(bx(0.05, 0.006, 0.01), laceM, 0, -0.287 + shoeTop(z) + 0.002, z, knee, false));
     return { hip, knee };
   });
-  // hips: rounded, tapering from the waist down into the tops of the legs, so pants run on from waist to thigh
-  const seat = mk(lathe('hips2', [[0, 0.588], [0.16, 0.588], [0.182, 0.606], [0.195, 0.645], [0.2, 0.69], [0.2, 0.725]], 24), pants, 0, 0, 0); seat.scale.z = 0.72;   // flat underneath at the crotch, the legs filling out the sides
+  // hips: rounded, tapering from the waist down into the tops of the legs, so pants run on from waist to thigh; the
+  // underside curves down and in to the crotch rather than ending flat, so it rounds off into the thighs
+  const seat = mk(lathe('hips3', [[0, 0.574], [0.07, 0.577], [0.13, 0.59], [0.17, 0.608], [0.19, 0.635], [0.199, 0.672], [0.2, 0.725]], 28), pants, 0, 0, 0); seat.scale.z = 0.72;
   if (fit === 'wide') { seat.scale.x = 1.12; seat.scale.z = 0.8; }   // baggy pants are roomy through the seat too
   bare.push(seat);
   // a skirt: knee length, A-line, hanging from the waist; a pivot at the waist so it can drape over the lap when sitting
