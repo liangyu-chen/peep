@@ -260,7 +260,7 @@ function closeEdges(g, phiStart, phiLen, inner) {
 // chunky curls, each its own lock: a tube, thick at the root and thin at the tip, falling from `root` by `len`, swinging
 // out (`out`) by `flare` as it goes and winding `turns` times round itself as it falls, so the tip flicks out and up like
 // a permed curl. All the locks of a style are merged into one piece (one draw for the whole head of curls)
-const curlLocks = (key, locks) => geo(`locks2:${key}`, () => {
+const curlLocks = (key, locks) => geo(`locks3:${key}`, () => {
   const parts = locks.map(({ root, out, side, len, flare, turns, r0, lean = 0 }) => {
     const pts = [];
     for (let i = 0; i <= 16; i++) {
@@ -655,10 +655,12 @@ function buildHair(hairParts, shape, head, hairM, mk, at, look) {
           }
         });
         if (front !== 'none') {
-          const fr = front === 'center' ? [-0.6, -0.42, -0.24, 0.24, 0.42, 0.6] : front === 'side' ? [-0.55, -0.35, -0.15, 0.05, 0.25] : [-0.5, -0.3, -0.1, 0.1, 0.3, 0.5];
+          // (all kept clear of the eyebrows: parted in the middle they fall out over the temples, framing the forehead; a
+          // fringe or a side sweep stops short above the brows)
+          const fr = front === 'center' ? [-0.78, -0.58, 0.58, 0.78] : front === 'side' ? [-0.55, -0.35, -0.15, 0.05, 0.25] : [-0.5, -0.3, -0.1, 0.1, 0.3, 0.5];
           fr.forEach(phi => {
-            const lean = front === 'center' ? Math.sign(phi) * 0.035 : front === 'side' ? -0.04 : (rnd() - 0.5) * 0.02;
-            add(phi, 0.62 + (rnd() - 0.5) * 0.08, 0.06 + rnd() * 0.035, 0.006 + rnd() * 0.008, 0.4 + rnd() * 0.4, 0.013 + rnd() * 0.003, lean, 0.02);
+            const center = front === 'center', lean = center ? Math.sign(phi) * 0.05 : front === 'side' ? -0.045 : (rnd() - 0.5) * 0.02;
+            add(phi, (center ? 0.5 : 0.66) + (rnd() - 0.5) * 0.06, center ? 0.05 + rnd() * 0.03 : 0.035 + rnd() * 0.015, 0.006 + rnd() * 0.008, 0.4 + rnd() * 0.4, 0.013 + rnd() * 0.003, lean, 0.02);
           });
         }
         if (locks.length) mk(curlLocks(`${shape}:${length}:${front}:${hatStyle || ''}`, locks), hairM, 0, 0, 0, head);
