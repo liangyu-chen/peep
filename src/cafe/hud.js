@@ -4,7 +4,6 @@ import * as THREE from 'three';
 import { ctx } from './engine.js';
 import { S } from './state.js';
 import { $, K } from './util.js';
-import { sayLine } from './content.js';
 import { fmtTime } from './feed.js';
 import { matchClock } from './tv.js';
 import { DAYS } from './sim.js';
@@ -148,9 +147,9 @@ export function bindHUD(root, stage) {
     const sel = S.selected; if (!sel) return;
     // invited to spin tops (the TV's nearly always full): with whoever else is sitting down
     const r = inviteTops(sel);
-    if (r === 'busy') { sayLine(sel, 'customer.topsBusy'); return; }
-    if (r === 'alone') { sayLine(sel, 'customer.topsAlone'); return; }
-    sayLine(S.owner, 'owner.invite', { name: sel.p.name }); sayLine(sel, 'customer.inviteAccept');
+    if (r === 'busy') { sel.say('陀螺有人在打了，等下一場'); return; }
+    if (r === 'alone') { sel.say('沒人陪我打啦'); return; }
+    S.owner.say(`${sel.p.name}，去打一場陀螺啦！`); sel.say('好啊！Go Shoot！');
     fillCard();
   });
   root.querySelectorAll('[data-cam]').forEach(b => on(b, 'click', () => setCam(b.dataset.cam)));
