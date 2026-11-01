@@ -8,6 +8,9 @@ import { faceOf, hairOf, hatOf, clothesOf } from '../content/catalog';
 
 // how much longer the legs are than first drawn: the hips sit this much higher (people.js lowers sitting and squatting to match)
 export const LEG_EXTRA = 0.08;
+// how the arms hang at rest, a little out from the body (z: radians out from the sides, the left arm's negated) with the
+// elbows just bent; shared by the café's people and the back office's preview, so they always stand alike
+export const ARM_REST = { z: 0.11, el: -0.14 };
 
 // ---------------------------------------------------------------- shared geometry and materials
 // geometries are shared between everyone; materials stay per person since their colours differ

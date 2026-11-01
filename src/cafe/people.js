@@ -1,7 +1,7 @@
 // People in the café: animation poses, speech bubble and name tag, walking along plan-coordinate paths (the body is body.js).
 import * as THREE from 'three';
 import { ctx, mat, cyl } from './engine.js';
-import { buildBody, tickFace, LEG_EXTRA } from './body.js';
+import { buildBody, tickFace, LEG_EXTRA, ARM_REST } from './body.js';
 import { S } from './state.js';
 import { K } from './util.js';
 import { KERB, RISE } from './layout.js';
@@ -232,7 +232,7 @@ export class Person {
     const s = Math.sin(this.walkPhase);
     // at rest the arms hang a little out from the body, loose, not pressed to the sides (positive armLz brings the left
     // arm in, negative takes it out; the right arm the other way)
-    let y = 0, hipL = 0, hipR = 0, kL = 0, kR = 0, armLx = 0, armLy = 0, armRx = 0, armRy = 0, armLz = -0.11, armRz = 0.11, bob = 0, elL = -0.14, elR = -0.14;
+    let y = 0, hipL = 0, hipR = 0, kL = 0, kR = 0, armLx = 0, armLy = 0, armRx = 0, armRy = 0, armLz = -ARM_REST.z, armRz = ARM_REST.z, bob = 0, elL = ARM_REST.el, elR = ARM_REST.el;
     if (moving) { hipL = s * 0.55; hipR = -s * 0.55; kL = Math.max(0, -s) * 0.6; kR = Math.max(0, s) * 0.6; armLx = -s * 0.45; armRx = s * 0.45; elL = -0.3 + Math.min(0, s) * 0.2; elR = -0.3 - Math.max(0, s) * 0.2; bob = Math.abs(Math.cos(this.walkPhase)) * 0.04; }
     else if (squat) { y = -0.425;   // the longer legs fold up higher, so the body goes down further to keep the hips over the pan
       hipL = hipR = -1.9; kL = kR = 1.95; armLx = armRx = -0.55; elL = elR = -0.95; armLz = 0.12; armRz = -0.12; }   // squatting over the pan, forearms on the knees
