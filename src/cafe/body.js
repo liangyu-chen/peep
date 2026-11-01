@@ -194,13 +194,13 @@ const TORSO = [[0.71, 0.202, 0.15], [0.76, 0.2, 0.148], [0.84, 0.197, 0.146], [0
   [1.11, 0.248, 0.142], [1.145, 0.27, 0.136], [1.175, 0.272, 0.126], [1.2, 0.252, 0.112], [1.225, 0.205, 0.095], [1.245, 0.145, 0.077], [1.26, 0.085, 0.06], [1.27, 0, 0]];
 // how a top is cut: the body wider (`w`) and deeper (`d`) than regular below the shoulders, fading back to the same neck;
 // `drop` lets the hem hang lower over the hips; the sleeves `s` times as wide, short ones `len` long
-// `sh` spreads the shoulders out over the tops of the arms, for a dropped shoulder
+// `sh` lets a little cloth drape over the tops of the arms; the dropped shoulder itself is the sleeve, its seam lower
 const TOP_FITS = {
   slim: { w: 0.95, d: 0.96, drop: 0, s: 0.92, len: 0.14, sh: 0 },
   regular: { w: 1, d: 1, drop: 0, s: 1, len: 0.16, sh: 0 },
-  oversize: { w: 1.13, d: 1.1, drop: 0.07, s: 1.35, len: 0.29, sh: 0.055, seam: -0.1 },
+  oversize: { w: 1.08, d: 1.1, drop: 0.07, s: 1.35, len: 0.29, sh: 0.012, seam: -0.1 },   // the person stays the same build: only the cloth is roomier
 };
-const torsoGeo = (fit = 'regular') => geo(`torso9:${fit}`, () => {
+const torsoGeo = (fit = 'regular') => geo(`torso10:${fit}`, () => {
   const F = TOP_FITS[fit] || TOP_FITS.regular, N = 40, pos = [], idx = [];
   const rows = (F.drop ? [[TORSO[0][0] - F.drop, TORSO[0][1], TORSO[0][2]]] : []).concat(TORSO).map(([y, rx, rz]) => {
     const k = Math.max(0, Math.min(1, (1.25 - y) / 0.15));   // full below the shoulders, none at the neck
@@ -490,8 +490,7 @@ export function buildBody(look, seed = '') {
 
   // ---------------------------------------------------------------- arms: shoulder -> elbow -> hand
   const elbows = [];
-  const armX = 0.25 + (TF.w - 1) * 0.2 + TF.sh * 0.4;   // a looser top sits the arms a little further out, clear of its sides and under its dropped shoulders
-  const arms = [-armX, armX].map(x => {
+  const arms = [-0.25, 0.25].map(x => {   // (where the arms hang doesn't change with the clothes)
     const s = Math.sign(x);
     const sh = new THREE.Group(); sh.position.set(x, 1.16, 0); g.add(sh);   // tucked under the slope of the shoulders
     // sleeves are cloth over the arm, not the arm in another colour: tubes open at the end with their shadowed inside
