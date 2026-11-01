@@ -792,11 +792,11 @@ function buildHair(hairParts, shape, head, hairM, mk, at, look) {
       tuck,
     ]), capM, 0, 0, 0, head);
   } else {
-    // a beanie: knitted, long, with no pompom: the crown standing well up off the head and slouching back a little, in a
-    // soft rounded peak, the cuff rolled up thick at the bottom
+    // a beanie: knitted, long, with no pompom: the crown standing up off the head and slouching back a little, in a
+    // broad round dome (not a point), the cuff rolled up thick at the bottom
     const bm = new THREE.MeshStandardMaterial({ color: new THREE.Color(hatColor), map: ribs(), roughness: 1, side: THREE.DoubleSide });
-    mk(hatGeo(shape, `beanie3:${T.toFixed(3)}`, hatN, () => [
-      [0, T + 0.062, 0, 0], ...steps(11, t => [0.05 + t * (A - 0.32), T + 0.06 * (1 - t) ** 1.8 + 0.003 * (1 - t), 0, 0]),
+    mk(hatGeo(shape, `beanie4:${T.toFixed(3)}`, hatN, () => [
+      [0, T + 0.042, 0, 0], ...steps(11, t => [0.05 + t * (A - 0.32), T + 0.042 * Math.max(0, 1 - t * t) ** 0.7 + 0.003 * (1 - t), 0, 0]),
       [A - 0.22, T + 0.002, 0, 0], [A - 0.18, T + 0.007, 0, 0], [A - 0.1, T + 0.009, 0, 0], [A - 0.03, T + 0.008, 0, 0], [A, T + 0.003, 0, 0.002],   // the cuff, hugging the head
       tuck,
     ]), bm, 0, 0, 0, head);
