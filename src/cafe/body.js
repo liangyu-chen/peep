@@ -516,11 +516,15 @@ export function buildBody(look, seed = '') {
     // the forearm carries on)
     // (its profile runs from the bottom up, so its faces point outward)
     mk(lathe(`uarm3:${S.toFixed(2)}`, [[0.052, -0.27], [0.054, -0.2], [0.056, -0.1], [0.057, -0.035], [0.052, -0.004], [0.034, 0.014], [0.001, 0.02]].map(([r, y]) => [r * S, y]), 24), sleeveM, 0, 0, 0, sh);
-    if (!long) {   // a short sleeve, as wide and as long as the cut makes it, the arm showing in its opening
-      const w = TF.s, L = TF.len, rt = 0.065 * w, rb = 0.062 * w;
-      mk(cy(rt, rb, L, 16, true), shirt, 0, 0.01 - L / 2, 0, sh); lining(rt, rb, L - 0.01, 0.01 - L / 2 - 0.005, sh);
-      roll(rb, 0.01 - L + 0.004, sh);                                                                   // the hem, rolled
-      if (loose) { fold(rt - 0.001, TF.seam, sh); fold(rb, 0.01 - L * 0.62, sh, 0.18 * s); }            // the dropped shoulder seam, a fold
+    if (!long) {
+      // a short sleeve, one piece with the shoulder: rounded over the top where it joins, fullest there, easing a little
+      // toward its open end, the arm showing inside it; a loose cut hangs away from the arm a touch, as cloth does
+      const w = TF.s, L = TF.len, rt = 0.065 * w, rb = 0.061 * w;
+      const sl = new THREE.Group(); sl.rotation.z = loose ? s * 0.09 : s * 0.03; sh.add(sl);
+      mk(lathe(`sleeve:${w.toFixed(2)}:${L}`, [[rb, -L + 0.01], [rb * 1.01, -L * 0.55], [rt, -0.05], [rt * 0.97, -0.02], [rt * 0.82, 0.008], [rt * 0.5, 0.026], [0.001, 0.034]], 28), shirt, 0, 0, 0, sl);
+      lining(rb + 0.001, rb, 0.06, -L + 0.04, sl);
+      roll(rb, -L + 0.014, sl);                                                                         // the hem, rolled
+      if (loose) { fold(rt - 0.001, TF.seam, sl); fold(rb + 0.001, -L * 0.62, sl, 0.18 * s); }          // the dropped shoulder seam, a fold
     } else {
       if (loose) fold(0.058 * S + 0.001, TF.seam, sh);                                                 // the dropped shoulder seam
       fold(0.053 * S, -0.22, sh, 0.12 * s);                                                           // creased where the arm bends
@@ -529,7 +533,9 @@ export function buildBody(look, seed = '') {
     // top of the arm, so the body runs on into the arm in one curve instead of a tube stuck to its side
     // (sunk into the body, its top below the shoulders' slope, so only its outer side shows, filling in between the body and
     // the top of the arm)
-    const cap = mk(sp(1, 24, 16), shirt, s * 0.222, 1.138, 0); cap.scale.set(0.066 * Math.min(TF.s, 1.12), 0.046, 0.062);
+    // (a loose cut's is fuller, its cloth reaching out over where the sleeve begins)
+    const cap = loose ? mk(sp(1, 24, 16), shirt, s * 0.232, 1.14, 0) : mk(sp(1, 24, 16), shirt, s * 0.222, 1.138, 0);
+    if (loose) cap.scale.set(0.082, 0.05, 0.074); else cap.scale.set(0.066 * Math.min(TF.s, 1.12), 0.046, 0.062);
     const elbow = new THREE.Group(); elbow.position.set(0, -0.27, 0); sh.add(elbow); elbows.push(elbow);
     mk(sp(0.05 * S, 14, 10), sleeveM, 0, 0, 0, elbow);                                             // fills the elbow only when it bends
     const wrist = long ? (loose ? 0.05 : 0.046) * S : 0.044;
