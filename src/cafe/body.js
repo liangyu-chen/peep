@@ -210,7 +210,7 @@ const laceM = mat(0xeeeeea, { roughness: 0.7 });
 // the shoulders and then slopes up to the neck in one curve
 // (the shoulders kept fairly narrow, so nobody looks built broader than they are)
 const TORSO = [[0.71, 0.202, 0.15], [0.76, 0.2, 0.148], [0.84, 0.197, 0.146], [0.94, 0.198, 0.146], [1.02, 0.204, 0.146], [1.07, 0.216, 0.145],
-  [1.11, 0.236, 0.142], [1.145, 0.252, 0.136], [1.175, 0.252, 0.126], [1.2, 0.234, 0.112], [1.225, 0.192, 0.095], [1.245, 0.138, 0.077], [1.26, 0.083, 0.06], [1.27, 0, 0]];
+  [1.11, 0.236, 0.142], [1.145, 0.252, 0.136], [1.175, 0.252, 0.126], [1.2, 0.234, 0.112], [1.222, 0.19, 0.096], [1.234, 0.15, 0.083], [1.242, 0.1, 0.071], [1.246, 0.074, 0.061], [1.248, 0, 0]];   // a low crew neck: the neck shows above it
 // how a top is cut: the body wider (`w`) and deeper (`d`) than regular below the shoulders, fading back to the same neck;
 // `drop` lets the hem hang lower over the hips; the sleeves `s` times as wide, short ones `len` long
 // `sh` lets a little cloth drape over the tops of the arms; the dropped shoulder itself is the sleeve, its seam lower;
@@ -221,7 +221,7 @@ const TOP_FITS = {
   regular: { w: 1, d: 1, drop: 0, s: 1, len: 0.16, sh: 0, flare: 0.013 },
   oversize: { w: 1.08, d: 1.1, drop: 0.07, s: 1.35, len: 0.29, sh: 0.012, flare: 0.036 },   // the person stays the same build: only the cloth is roomier
 };
-const torsoGeo = (fit = 'regular') => geo(`torso13:${fit}`, () => {
+const torsoGeo = (fit = 'regular') => geo(`torso15:${fit}`, () => {
   const F = TOP_FITS[fit] || TOP_FITS.regular, N = 40, pos = [], idx = [], hemY = TORSO[0][0] - F.drop;
   const flareAt = y => F.flare * Math.max(0, Math.min(1, (0.78 - y) / (0.78 - hemY)));
   const rows = (F.drop ? [[TORSO[0][0] - F.drop, TORSO[0][1], TORSO[0][2]]] : []).concat(TORSO).map(([y, rx, rz]) => {
@@ -437,7 +437,9 @@ export function buildBody(look, seed = '') {
   hem.rotation.x = Math.PI / 2; hem.scale.y = hemZ;
   const under = mk(geo(`hemunder:${hemR.toFixed(3)}`, () => new THREE.RingGeometry(0.16, hemR, 40)), shirtUnder, 0, hemY + 0.006, 0, g, false);
   under.rotation.x = Math.PI / 2; under.scale.y = hemZ;
-  const collar = mk(cy(0.085, 0.1, 0.04, 18), shirtDark, 0, 1.262, 0, g, false); collar.scale.z = 0.82;
+  // the neckline: a thin rolled rib round the base of the neck, not a high collar
+  const collar = mk(geo('neckrib', () => new THREE.TorusGeometry(0.072, 0.0075, 6, 28)), shirtDark, 0, 1.244, 0, g, false);
+  collar.rotation.x = Math.PI / 2; collar.scale.y = 0.83;
   if (look.number) {
     const t = canvasTex(32, 32, (c) => { c.fillStyle = '#fff'; c.font = `16px ${PIX}`; c.textAlign = 'center'; c.fillText(look.number, 16, 24); }, true);
     const numM = new THREE.MeshBasicMaterial({ map: t, transparent: true });
@@ -445,10 +447,10 @@ export function buildBody(look, seed = '') {
     const back = front.clone(); back.position.z = -0.147; back.rotation.y = Math.PI; back.scale.setScalar(1.3); g.add(back);
   }
   if (look.apron) mk(bx(0.38, 0.6, 0.02), mat(picked(look.apron)), 0, 0.8, 0.15);
-  mk(cy(0.052, 0.062, 0.12, 12), skin, 0, 1.3, -0.005);                                       // neck
+  mk(cy(0.052, 0.062, 0.15, 12), skin, 0, 1.31, -0.005);                                      // neck, long enough to show above the neckline
 
   // ---------------------------------------------------------------- head
-  const head = new THREE.Group(); head.position.set(0, 1.43, 0); g.add(head);
+  const head = new THREE.Group(); head.position.set(0, 1.455, 0); g.add(head);   // up off the shoulders, the neck showing under the chin
   mk(headGeo(shape), skin, 0, 0, 0, head);
   const surf = SURF[shape] || (SURF[shape] = surfaceFor(shape));
   const at = (x, y, z) => deform(H, new THREE.Vector3(x, y, z).normalize());   // surface point in a direction
