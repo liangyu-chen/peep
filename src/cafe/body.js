@@ -213,17 +213,19 @@ const TORSO = [[0.71, 0.202, 0.15], [0.76, 0.2, 0.148], [0.84, 0.197, 0.146], [0
   [1.11, 0.236, 0.142], [1.145, 0.252, 0.136], [1.175, 0.252, 0.126], [1.2, 0.234, 0.112], [1.225, 0.192, 0.095], [1.245, 0.138, 0.077], [1.26, 0.083, 0.06], [1.27, 0, 0]];
 // how a top is cut: the body wider (`w`) and deeper (`d`) than regular below the shoulders, fading back to the same neck;
 // `drop` lets the hem hang lower over the hips; the sleeves `s` times as wide, short ones `len` long
-// `sh` lets a little cloth drape over the tops of the arms; the dropped shoulder itself is the sleeve, its seam lower
+// `sh` lets a little cloth drape over the tops of the arms; the dropped shoulder itself is the sleeve, its seam lower;
+// `flare` widens it below the waist out to the hem (a long, loose top hangs in a slight A, clear of the pants and legs)
 const TOP_FITS = {
-  slim: { w: 0.95, d: 0.96, drop: 0, s: 0.92, len: 0.14, sh: 0 },
-  regular: { w: 1, d: 1, drop: 0, s: 1, len: 0.16, sh: 0 },
-  oversize: { w: 1.08, d: 1.1, drop: 0.07, s: 1.35, len: 0.29, sh: 0.012, seam: -0.1 },   // the person stays the same build: only the cloth is roomier
+  slim: { w: 0.95, d: 0.96, drop: 0, s: 0.92, len: 0.14, sh: 0, flare: 0 },
+  regular: { w: 1, d: 1, drop: 0, s: 1, len: 0.16, sh: 0, flare: 0 },
+  oversize: { w: 1.08, d: 1.1, drop: 0.07, s: 1.35, len: 0.29, sh: 0.012, seam: -0.1, flare: 0.036 },   // the person stays the same build: only the cloth is roomier
 };
-const torsoGeo = (fit = 'regular') => geo(`torso11:${fit}`, () => {
-  const F = TOP_FITS[fit] || TOP_FITS.regular, N = 40, pos = [], idx = [];
+const torsoGeo = (fit = 'regular') => geo(`torso12:${fit}`, () => {
+  const F = TOP_FITS[fit] || TOP_FITS.regular, N = 40, pos = [], idx = [], hemY = TORSO[0][0] - F.drop;
+  const flareAt = y => F.flare * Math.max(0, Math.min(1, (0.78 - y) / (0.78 - hemY)));
   const rows = (F.drop ? [[TORSO[0][0] - F.drop, TORSO[0][1], TORSO[0][2]]] : []).concat(TORSO).map(([y, rx, rz]) => {
     const k = Math.max(0, Math.min(1, (1.25 - y) / 0.15));   // full below the shoulders, none at the neck
-    return [y, rx * (1 + (F.w - 1) * k) + F.sh * Math.exp(-(((y - 1.15) / 0.055) ** 2)), rz * (1 + (F.d - 1) * k)];
+    return [y, rx * (1 + (F.w - 1) * k) + F.sh * Math.exp(-(((y - 1.15) / 0.055) ** 2)) + flareAt(y), rz * (1 + (F.d - 1) * k) + flareAt(y) * 0.7];
   });
   rows.forEach(([y, rx, rz]) => { for (let i = 0; i <= N; i++) { const a = (i / N) * Math.PI * 2; pos.push(Math.sin(a) * rx, y, Math.cos(a) * rz); } });
   for (let r = 0; r < rows.length - 1; r++) for (let i = 0; i < N; i++) { const a = r * (N + 1) + i, b = a + N + 1; idx.push(a, a + 1, b, b, a + 1, b + 1); }
@@ -395,7 +397,7 @@ export function buildBody(look, seed = '') {
   const torso = mk(torsoGeo(topFit), shirt, 0, 0, 0);
   // the hem: a rolled edge with some thickness to it, and underneath, the shirt's shadowed inside closing the gap down to
   // the hips, so it reads as cloth with body in it, not a shell
-  const hemY = 0.71 - TF.drop, hemR = 0.202 * TF.w, hemZ = 0.745 * TF.d / TF.w;
+  const hemY = 0.71 - TF.drop, hemR = 0.202 * TF.w + TF.flare, hemZ = (0.15 * TF.d + TF.flare * 0.7) / hemR;
   const hem = mk(geo(`hemroll:${hemR.toFixed(3)}`, () => new THREE.TorusGeometry(hemR, 0.008, 6, 40)), shirtDark, 0, hemY + 0.004, 0, g, false);
   hem.rotation.x = Math.PI / 2; hem.scale.y = hemZ;
   const under = mk(geo(`hemunder:${hemR.toFixed(3)}`, () => new THREE.RingGeometry(0.16, hemR, 40)), shirtUnder, 0, hemY + 0.006, 0, g, false);
