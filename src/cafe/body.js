@@ -33,9 +33,16 @@ const soleM = mat(0x2b2724, { roughness: 0.9 });   // dark rubber, so it never r
 // fine streaks multiplied over the hair colour, so hair reads as strands rather than plastic
 let strandTex = null;
 const strands = () => strandTex || (strandTex = (() => {
+  // strands with some depth: clumps a shade darker in their gaps, a few catching the light, darker toward the roots
   const t = canvasTex(64, 32, g => {
-    g.fillStyle = '#fff'; g.fillRect(0, 0, 64, 32);
-    for (let x = 0; x < 64; x++) { g.fillStyle = `rgba(0,0,0,${(0.05 + Math.random() * 0.22).toFixed(2)})`; g.fillRect(x, 0, 1, 32); }
+    g.fillStyle = '#d8d8d8'; g.fillRect(0, 0, 64, 32);
+    for (let x = 0; x < 64; x++) {
+      const clump = 0.5 + 0.5 * Math.sin(x / 64 * Math.PI * 2 * 7 + Math.sin(x * 0.7) * 0.8);
+      g.fillStyle = clump > 0.8 && Math.random() < 0.6 ? `rgba(255,255,255,${(0.5 + Math.random() * 0.5).toFixed(2)})` : `rgba(0,0,0,${(0.04 + (1 - clump) * 0.28 + Math.random() * 0.1).toFixed(2)})`;
+      g.fillRect(x, 0, 1, 32);
+    }
+    const root = g.createLinearGradient(0, 0, 0, 32); root.addColorStop(0, 'rgba(0,0,0,.18)'); root.addColorStop(0.4, 'rgba(0,0,0,0)');
+    g.fillStyle = root; g.fillRect(0, 0, 64, 32);
   });
   t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(5, 1); return t;
 })());
@@ -89,15 +96,19 @@ const shellGeo = (shape, thick, n, from, to, xMax = 9) => geo(`shell:${shape},${
 // groove(φ) cuts a parting into it, as deep at the crown end as at the front.
 // flow(φ, t) (t 0 at the crown, 1 at the hairline) sets which way the strands run, as the texture's u: they follow lines
 // where it stays the same, so hair can fall away from a parting at an angle instead of straight down from the crown.
-const capGeo = (shape, key, edge, thick, bump = null, groove = null, flow = null) => geo(`cap:${shape},${key}`, () => {
-  const h = HEADS[shape], NA = bump ? 180 : 160, NT = bump ? 54 : 24, pos = [], uv = [], idx = [], v = new THREE.Vector3(), u = new THREE.Vector3();
+// It's cut in layers: from a little below the crown, LAYER_DEPTH-deep tiers overlapping like shingles, each standing out
+// most at its lower edge, the tiers' edges wandering a little round the head so they don't read as rings.
+const LAYER_DEPTH = 0.005;
+const layerAt = (phi, t) => { const s = t * 3.3 + 0.12 * Math.sin(4 * phi) + 0.06 * Math.sin(11 * phi); return LAYER_DEPTH * (s - Math.floor(s)) * Math.min(1, Math.max(0, (t - 0.15) / 0.15)); };
+const capGeo = (shape, key, edge, thick, bump = null, groove = null, flow = null) => geo(`cap2:${shape},${key}`, () => {
+  const h = HEADS[shape], NA = bump ? 180 : 160, NT = bump ? 54 : 40, pos = [], uv = [], idx = [], v = new THREE.Vector3(), u = new THREE.Vector3();
   for (let i = 0; i <= NA; i++) {
     const phi = (i / NA) * Math.PI * 2, polar = Math.PI / 2 - edge(phi), th0 = thick(0.5 * Math.PI), th1 = thick(phi);
     for (let j = 0; j <= NT; j++) {
       const p = (j / NT) * polar, th = th0 + (th1 - th0) * (j / NT) ** 1.5;   // any extra fullness grows toward the edge, so the crown stays one point
       u.set(Math.sin(p) * Math.sin(phi), Math.cos(p), Math.sin(p) * Math.cos(phi));
       const cut = groove ? groove(phi) * Math.min(1, (j / NT) * 4) : 0;   // the parting fades out only right at the crown
-      deform(h, v.copy(u)).addScaledVector(u, Math.max(0.0015, th - cut) + (bump ? bump(u) * Math.min(1, (NT - j) / 3) : 0));   // bumps settle down right at the hairline
+      deform(h, v.copy(u)).addScaledVector(u, Math.max(0.0015, th - cut) + layerAt(phi, j / NT) + (bump ? bump(u) * Math.min(1, (NT - j) / 3) : 0));   // bumps settle down right at the hairline
       pos.push(v.x, v.y, v.z); uv.push(flow ? flow(phi, j / NT) : i / NA * 6, j / NT);
     }
   }
@@ -227,7 +238,8 @@ export function buildBody(look, seed = '') {
   const skin = mat(look.skin, { roughness: 0.62 }), skinShade = mat(shade(look.skin, 0.86), { roughness: 0.62 });
   const shirt = mat(look.shirt, { roughness: 0.85 }), shirtDark = mat(shade(look.shirt, 0.72), { roughness: 0.85 });
   const pants = mat(look.pants, { roughness: 0.9 }), pantsDark = mat(shade(look.pants, 0.78), { roughness: 0.9 });
-  const hairM = mat(look.hair, { roughness: 0.85, map: strands(), side: THREE.DoubleSide });
+  // hair with a little sheen; curls more (the wet, styled look), straight hair a soft gloss along its layers
+  const hairM = mat(look.hair, { roughness: hairOf(look).curl === 'curly' ? 0.45 : 0.68, metalness: 0.05, map: strands(), side: THREE.DoubleSide });
   const shoe = mat(look.shoe || 0x1d1d1d, { roughness: 0.55 });
   const mk = (geom, m, x, y, z, par = g, shadow = true) => { const me = new THREE.Mesh(geom, m); me.position.set(x, y, z); me.castShadow = shadow; me.receiveShadow = shadow; par.add(me); return me; };
 
@@ -462,12 +474,14 @@ const FRONTS = {
 const CURL_TOP = 0.018;     // how far curls stand out of the top of the head
 // the hair hanging round the back and sides for each length, as a profile below the widest part of the head (w, y0)
 const LENGTHS = {
-  bob: (w, y0) => [[w + 0.004, y0 - 0.06], [w + 0.01, y0 - 0.115], [w + 0.008, y0 - 0.15], [w - 0.004, y0 - 0.162], [w - 0.012, y0 - 0.164]],   // to about the chin, ends turned under
+  // a man's short-long cut: over the ears to about their lobes, a little fuller at the nape, the ends turned in
+  bob: (w, y0) => [[w + 0.006, y0 - 0.035], [w + 0.011, y0 - 0.07], [w + 0.01, y0 - 0.095], [w + 0.002, y0 - 0.107], [w - 0.006, y0 - 0.11]],
   medium: (w, y0) => [[w + 0.004, y0 - 0.07], [w + 0.01, y0 - 0.15], [w + 0.016, y0 - 0.22], [w + 0.018, y0 - 0.26], [w + 0.006, y0 - 0.285], [w - 0.008, y0 - 0.29]],   // to the shoulders, ends turned under
   long: (w, y0) => [[w + 0.004, y0 - 0.08], [w + 0.012, y0 - 0.19], [w + 0.026, y0 - 0.29], [w + 0.008, y0 - 0.33]],
 };
 const CURLY_LENGTHS = {   // curls take up more room: fuller, and fullest toward the ends
-  bob: (w, y0) => [[w + 0.01, y0 - 0.05], [w + 0.02, y0 - 0.1], [w + 0.026, y0 - 0.145], [w + 0.012, y0 - 0.17], [w - 0.002, y0 - 0.175]],
+  // the Japanese wet-perm look: short, full, loose waves standing out round the ears and nape
+  bob: (w, y0) => [[w + 0.014, y0 - 0.03], [w + 0.026, y0 - 0.065], [w + 0.03, y0 - 0.095], [w + 0.018, y0 - 0.115], [w + 0.002, y0 - 0.12]],
   medium: (w, y0) => [[w + 0.01, y0 - 0.06], [w + 0.02, y0 - 0.13], [w + 0.03, y0 - 0.2], [w + 0.034, y0 - 0.25], [w + 0.02, y0 - 0.28], [w + 0.004, y0 - 0.29]],
   long: (w, y0) => [[w + 0.012, y0 - 0.06], [w + 0.02, y0 - 0.13], [w + 0.03, y0 - 0.2], [w + 0.038, y0 - 0.27], [w + 0.042, y0 - 0.33], [w + 0.028, y0 - 0.37], [w + 0.006, y0 - 0.38]],
 };
@@ -501,7 +515,17 @@ function buildHair(hairParts, shape, head, hairM, mk, at, look) {
     }
     const [w, y0] = prof[prof.length - 1];
     prof.push(...tail(w, y0));
-    if (!curls) mk(lathe(`curtain:${shape}:${key}`, prof, 32, 0.85, Math.PI * 2 - 1.7), hairM, 0, 0, 0, head);
+    if (!curls) {   // straight: cut in layers down the back, each tier standing out a little at its lower edge
+      const layered = prof.slice(0, 7);
+      for (let k = 7; k < prof.length; k++) {
+        const [r0, ya] = prof[k - 1], [r1, yb] = prof[k], n = Math.max(1, Math.ceil(Math.abs(yb - ya) / 0.008));
+        for (let i = 1; i <= n; i++) {
+          const y = ya + (yb - ya) * i / n, s = (y0 - y) / 0.045, end = k === prof.length - 1 && i === n;
+          layered.push([r0 + (r1 - r0) * i / n + (end ? 0 : LAYER_DEPTH * (s - Math.floor(s))), y]);
+        }
+      }
+      mk(lathe(`curtain2:${shape}:${key}`, layered, 32, 0.85, Math.PI * 2 - 1.7), hairM, 0, 0, 0, head);
+    }
     else {
       const top = prof[3][1], bottom = prof[prof.length - 1][1];
       mk(ringletLathe(`${shape}:${key}`, prof, 120, 0.85, Math.PI * 2 - 1.7, curls, y => Math.max(0, Math.min(1, (top - y) / (top - bottom) * 1.6))), hairM, 0, 0, 0, head);
@@ -514,9 +538,9 @@ function buildHair(hairParts, shape, head, hairM, mk, at, look) {
   } else if (length !== 'bald') {
     // the top of the head: shaped by the front, with curls in its surface if it's curly
     const F = FRONTS[front] || FRONTS.none, curly = curl === 'curly';
-    const amp = length === 'short' ? 0.02 : CURL_TOP;
+    const amp = length === 'short' ? 0.02 : length === 'bob' ? 0.024 : CURL_TOP;   // the wet perm stands up fuller on top
     mk(capGeo(shape, `${front}${curly ? `:waves${amp}` : ':flow'}`, F.edge, F.thick, curly ? curlLumps(amp) : null, F.groove, curly ? null : F.flow), hairM, 0, 0, 0, head);
-    lift = F.lift + (curly ? 0.02 : 0);
+    lift = F.lift + LAYER_DEPTH + (curly ? amp : 0);
     if (curl === 'spiky') {
       scatter(1.0, 0.4, (u, p) => {                     // spikes stick out a long way, so keep them well clear of a hat's edge and brim
         const s = mk(cy(0, 0.04, 0.11, 6), hairM, p.x + u.x * 0.05, p.y + u.y * 0.05, p.z + u.z * 0.05, head);
@@ -536,7 +560,7 @@ function buildHair(hairParts, shape, head, hairM, mk, at, look) {
       const tail = mk(lathe(`tail:${L}:${R}`, [[0.001, 0.02], [0.04 * R, 0], [0.05 * R, -0.08 * L], [0.035 * R, -0.2 * L], [0.012 * R, -0.28 * L], [0, -0.29 * L]], 14), hairM, p.x, p.y - 0.01, p.z - 0.04, head);
       tail.rotation.x = 0.35;
     } else if (hangs) {
-      curtain(`${length}${curly ? ':curly' : ''}`, (curly ? CURLY_LENGTHS : LENGTHS)[length], curly ? 0.022 : 0);
+      curtain(`${length}${curly ? ':curly' : ''}`, (curly ? CURLY_LENGTHS : LENGTHS)[length], curly ? (length === 'bob' ? 0.026 : 0.022) : 0);
     }
   }
 
