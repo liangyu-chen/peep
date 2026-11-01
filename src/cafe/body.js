@@ -46,6 +46,7 @@ const frameM = mat(0x1b1b1b, { roughness: 0.4, metalness: 0.3 });
 const lensM = mat(0xdff2ff, { roughness: 0.05, metalness: 0.2, transparent: true, opacity: 0.12, depthWrite: false });
 const sunLensM = mat(0x0d0d10, { roughness: 0.08, metalness: 0.6 });
 const beltM = mat(0x2a2420, { roughness: 0.6 });
+const hideM = new THREE.MeshBasicMaterial({ visible: false });   // a part of a shared surface another mesh draws
 const buckleM = mat(0xc9b26a, { roughness: 0.3, metalness: 0.8 });
 const soleM = mat(0x2b2724, { roughness: 0.9 });   // dark rubber, so it never reads as a white patch under the foot
 
@@ -211,7 +212,7 @@ const laceM = mat(0xeeeeea, { roughness: 0.7 });
 // (the shoulders kept fairly narrow, so nobody looks built broader than they are)
 const TORSO = [[0.71, 0.202, 0.15], [0.76, 0.2, 0.148], [0.84, 0.197, 0.146], [0.94, 0.198, 0.146], [1.02, 0.204, 0.146], [1.07, 0.216, 0.145],
   [1.11, 0.236, 0.142], [1.145, 0.252, 0.136], [1.175, 0.252, 0.126], [1.2, 0.234, 0.112], [1.222, 0.19, 0.096], [1.234, 0.15, 0.083], [1.242, 0.1, 0.071], [1.246, 0.074, 0.061],
-  [1.256, 0.062, 0.055], [1.27, 0.05, 0.045]];   // and on up, narrowing into the neck (the skin above the neckline), so the neck grows out of the chest with no join
+  [1.256, 0.062, 0.056], [1.272, 0.057, 0.053], [1.3, 0.055, 0.051], [1.37, 0.052, 0.049]];   // and on up as the neck itself (the skin above the neckline), one piece with the chest, so there's no join
 // how a top is cut: the body wider (`w`) and deeper (`d`) than regular below the shoulders, fading back to the same neck;
 // `drop` lets the hem hang lower over the hips; the sleeves `s` times as wide, short ones `len` long
 // `sh` lets a little cloth drape over the tops of the arms; the dropped shoulder itself is the sleeve, its seam lower;
@@ -225,7 +226,7 @@ const TOP_FITS = {
 // a U neck: the front of the top scooped out from the base of the neck down to UNECK.bot, so the neck and a little chest
 // show. Across the front it is UNECK.w either side of the middle, straight down the sides from UNECK.full and rounding
 // into the bottom of the U.
-const UNECK = { full: 1.238, bot: 1.191, w: 0.082, flat: 0.016, neck: 1.246 };   // above `neck` it's all skin
+const UNECK = { full: 1.24, bot: 1.21, w: 0.078, flat: 0.03, neck: 1.246 };   // above `neck` it's all skin
 const uHalf = y => { const s = Math.max(0, Math.min(1, (y - UNECK.bot) / (UNECK.full - UNECK.bot))); return Math.max(UNECK.flat, UNECK.w * Math.sqrt(1 - (1 - s) ** 2)); };
 // the torso's slices for a cut, with extra rows over the chest and shoulders so the U's edge runs smoothly
 const torsoRows = fit => {
@@ -245,7 +246,7 @@ const torsoRows = fit => {
 // how far round from the front the U reaches on a slice (0 below it); the slice's points are laid out so one falls
 // exactly on each side of the U, and the skin inside it is the second material
 const uAngle = (y, rx) => y < UNECK.bot - 1e-4 ? 0 : rx < 1e-4 ? Math.PI / 2 : Math.asin(Math.min(1, uHalf(y) / rx));
-const torsoGeo = (fit = 'regular') => geo(`torso20:${fit}`, () => {
+const torsoGeo = (fit = 'regular') => geo(`torso22:${fit}`, () => {
   const N = 48, M = 12, pos = [], idx = [], skinIdx = [];
   const rows = torsoRows(fit);
   rows.forEach(([y, rx, rz]) => {
@@ -274,7 +275,7 @@ const torsoGeo = (fit = 'regular') => geo(`torso20:${fit}`, () => {
   return g;
 });
 // the neckline's rib: down round the U in front and across the back of the neck
-const neckRibGeo = (fit = 'regular') => geo(`neckrib6:${fit}`, () => {
+const neckRibGeo = (fit = 'regular') => geo(`neckrib8:${fit}`, () => {
   const pts = [], rows = torsoRows(fit).filter(([y]) => y >= UNECK.bot - 1e-4 && y <= UNECK.neck + 1e-4);
   const side = sgn => rows.map(([y, rx, rz]) => { const t = uAngle(y, rx); return new THREE.Vector3(sgn * Math.sin(t) * rx * 1.012, y, Math.cos(t) * rz * 1.012); });
   const right = side(1), left = side(-1).reverse();
@@ -480,7 +481,10 @@ export function buildBody(look, seed = '') {
   // straight on into the arms with no join
   // cut slim, regular or oversized (wider and deeper, hanging lower over the hips)
   const topFit = clothesOf(look).top, TF = TOP_FITS[topFit] || TOP_FITS.regular;
-  const torso = mk(torsoGeo(topFit), [shirt, skin], 0, 0, 0);
+  // the shirt and the bare skin of the neck share one surface; the skin one doesn't take the head's shadow, so the neck
+  // and chest are the same colour as the face
+  const torso = mk(torsoGeo(topFit), [shirt, hideM], 0, 0, 0);
+  mk(torsoGeo(topFit), [hideM, skin], 0, 0, 0).receiveShadow = false;
   // the hem: a rolled edge with some thickness to it, and underneath, the shirt's shadowed inside closing the gap down to
   // the hips, so it reads as cloth with body in it, not a shell
   const hemY = 0.71 - TF.drop, hemR = 0.202 * TF.w + TF.flare, hemZ = (0.15 * TF.d + TF.flare * 0.7) / hemR;
@@ -496,7 +500,6 @@ export function buildBody(look, seed = '') {
     const back = front.clone(); back.position.z = -0.147; back.rotation.y = Math.PI; back.scale.setScalar(1.3); g.add(back);
   }
   if (look.apron) mk(bx(0.38, 0.6, 0.02), mat(picked(look.apron)), 0, 0.8, 0.15);
-  mk(cy(0.052, 0.062, 0.13, 12), skin, 0, 1.3, -0.005);                                       // neck
 
   // ---------------------------------------------------------------- head
   const head = new THREE.Group(); head.position.set(0, 1.44, 0); g.add(head);   // a little up off the shoulders, a short neck showing under the chin
