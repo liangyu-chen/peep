@@ -198,9 +198,9 @@ const TORSO = [[0.71, 0.202, 0.15], [0.76, 0.2, 0.148], [0.84, 0.197, 0.146], [0
 const TOP_FITS = {
   slim: { w: 0.95, d: 0.96, drop: 0, s: 0.92, len: 0.14, sh: 0 },
   regular: { w: 1, d: 1, drop: 0, s: 1, len: 0.16, sh: 0 },
-  oversize: { w: 1.13, d: 1.1, drop: 0.07, s: 1.35, len: 0.24, sh: 0.034 },
+  oversize: { w: 1.13, d: 1.1, drop: 0.07, s: 1.35, len: 0.29, sh: 0.055, seam: -0.1 },
 };
-const torsoGeo = (fit = 'regular') => geo(`torso8:${fit}`, () => {
+const torsoGeo = (fit = 'regular') => geo(`torso9:${fit}`, () => {
   const F = TOP_FITS[fit] || TOP_FITS.regular, N = 40, pos = [], idx = [];
   const rows = (F.drop ? [[TORSO[0][0] - F.drop, TORSO[0][1], TORSO[0][2]]] : []).concat(TORSO).map(([y, rx, rz]) => {
     const k = Math.max(0, Math.min(1, (1.25 - y) / 0.15));   // full below the shoulders, none at the neck
@@ -328,7 +328,7 @@ export function buildBody(look, seed = '') {
   // shortened to match, so shoulders, arms and head stay where every pose was tuned
   const { bottom, fit } = clothesOf(look), skirted = bottom === 'skirt';
   const legM = skirted ? skin : pants;                    // bare legs under a skirt
-  const W = { slim: 0.85, regular: 1, wide: 1.28 }[fit] || 1, flare = fit === 'wide' ? 0.098 : 0.062 * W;
+  const W = { slim: 0.85, regular: 1, wide: 1.45 }[fit] || 1, flare = fit === 'wide' ? 0.125 : 0.062 * W;   // wide legs: baggy all the way, flaring out to the hem
   const bare = [];   // what shows skin when the pants come down (thighs, knees, hips)
   const bunch = [];  // the pants bunched round the shins, only seen then
   const THIGH = 0.32, HIP_Y = 0.55 + LEG_EXTRA;
@@ -351,6 +351,7 @@ export function buildBody(look, seed = '') {
   });
   // hips: rounded, tapering from the waist down into the tops of the legs, so pants run on from waist to thigh
   const seat = mk(lathe('hips2', [[0, 0.588], [0.16, 0.588], [0.182, 0.606], [0.195, 0.645], [0.2, 0.69], [0.2, 0.725]], 24), pants, 0, 0, 0); seat.scale.z = 0.72;   // flat underneath at the crotch, the legs filling out the sides
+  if (fit === 'wide') { seat.scale.x = 1.12; seat.scale.z = 0.8; }   // baggy pants are roomy through the seat too
   bare.push(seat);
   // a skirt: knee length, A-line, hanging from the waist; a pivot at the waist so it can drape over the lap when sitting
   let skirt = null;
@@ -489,7 +490,7 @@ export function buildBody(look, seed = '') {
 
   // ---------------------------------------------------------------- arms: shoulder -> elbow -> hand
   const elbows = [];
-  const armX = 0.25 + (TF.w - 1) * 0.2;   // a looser top sits the arms a little further out, clear of its sides
+  const armX = 0.25 + (TF.w - 1) * 0.2 + TF.sh * 0.4;   // a looser top sits the arms a little further out, clear of its sides and under its dropped shoulders
   const arms = [-armX, armX].map(x => {
     const s = Math.sign(x);
     const sh = new THREE.Group(); sh.position.set(x, 1.16, 0); g.add(sh);   // tucked under the slope of the shoulders
@@ -509,9 +510,9 @@ export function buildBody(look, seed = '') {
       const w = TF.s, L = TF.len, rt = 0.065 * w, rb = 0.062 * w;
       mk(cy(rt, rb, L, 16, true), shirt, 0, 0.01 - L / 2, 0, sh); lining(rt, rb, 0.05, 0.01 - L + 0.025, sh);
       mk(cy(rb + 0.002, rb + 0.002, 0.018, 16, true), shirtDark, 0, 0.01 - L + 0.009, 0, sh, false);   // the hem
-      if (loose) { fold(rt - 0.001, -0.065, sh); fold(rb, 0.01 - L * 0.62, sh, 0.18 * s); }            // the dropped shoulder seam, a fold
+      if (loose) { fold(rt - 0.001, TF.seam, sh); fold(rb, 0.01 - L * 0.62, sh, 0.18 * s); }            // the dropped shoulder seam, a fold
     } else {
-      if (loose) fold(0.058 * S + 0.001, -0.065, sh);                                                 // the dropped shoulder seam
+      if (loose) fold(0.058 * S + 0.001, TF.seam, sh);                                                 // the dropped shoulder seam
       fold(0.053 * S, -0.22, sh, 0.12 * s);                                                           // creased where the arm bends
     }
     // the top of the shoulder: a low dome just the width of the sleeve, turning with the arm, so there's no ball sitting on it
