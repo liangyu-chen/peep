@@ -507,7 +507,7 @@ export function buildBody(look, seed = '') {
     const lining = (rt, rb, h, y, par) => mk(cy(rt - 0.002, rb - 0.002, h, 14, true), shirtIn, 0, y, 0, par, false);   // the inside of a sleeve, seen at its opening
     // the upper arm: rounded over its top, fullest just below the shoulder, tapering to the elbow (open there, where
     // the forearm carries on)
-    mk(lathe(`uarm:${S.toFixed(2)}`, [[0.001, 0.03], [0.036, 0.024], [0.054, 0.006], [0.06, -0.03], [0.058, -0.1], [0.054, -0.2], [0.052, -0.27]].map(([r, y]) => [r * S, y]), 20), sleeveM, 0, 0, 0, sh);
+    mk(lathe(`uarm2:${S.toFixed(2)}`, [[0.001, 0.02], [0.034, 0.014], [0.052, -0.004], [0.057, -0.035], [0.056, -0.1], [0.054, -0.2], [0.052, -0.27]].map(([r, y]) => [r * S, y]), 24), sleeveM, 0, 0, 0, sh);
     if (!long) {   // a short sleeve, as wide and as long as the cut makes it, the arm showing in its opening
       const w = TF.s, L = TF.len, rt = 0.065 * w, rb = 0.062 * w;
       mk(cy(rt, rb, L, 16, true), shirt, 0, 0.01 - L / 2, 0, sh); lining(rt, rb, 0.05, 0.01 - L + 0.025, sh);
@@ -519,7 +519,9 @@ export function buildBody(look, seed = '') {
     }
     // the shoulder itself, part of the body, not the arm: a rounded swell from the slope of the shoulders down over the
     // top of the arm, so the body runs on into the arm in one curve instead of a tube stuck to its side
-    const cap = mk(sp(1, 20, 14), shirt, s * 0.214, 1.162, 0); cap.scale.set(0.068 * Math.min(TF.s, 1.12), 0.054, 0.066);
+    // (sunk into the body, its top below the shoulders' slope, so only its outer side shows, filling in between the body and
+    // the top of the arm)
+    const cap = mk(sp(1, 24, 16), shirt, s * 0.222, 1.138, 0); cap.scale.set(0.066 * Math.min(TF.s, 1.12), 0.046, 0.062);
     const elbow = new THREE.Group(); elbow.position.set(0, -0.27, 0); sh.add(elbow); elbows.push(elbow);
     mk(sp(0.05 * S, 14, 10), sleeveM, 0, 0, 0, elbow);                                             // fills the elbow only when it bends
     const wrist = long ? (loose ? 0.05 : 0.046) * S : 0.044;
