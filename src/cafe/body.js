@@ -96,12 +96,16 @@ const shellGeo = (shape, thick, n, from, to, xMax = 9) => geo(`shell:${shape},${
 // groove(φ) cuts a parting into it, as deep at the crown end as at the front.
 // flow(φ, t) (t 0 at the crown, 1 at the hairline) sets which way the strands run, as the texture's u: they follow lines
 // where it stays the same, so hair can fall away from a parting at an angle instead of straight down from the crown.
-// It's cut in layers: from a little below the crown, LAYER_DEPTH-deep tiers overlapping like shingles, each standing out
-// most at its lower edge, the tiers' edges wandering a little round the head so they don't read as rings.
-const LAYER_DEPTH = 0.005;
-const layerAt = (phi, t) => { const s = t * 3.3 + 0.12 * Math.sin(4 * phi) + 0.06 * Math.sin(11 * phi); return LAYER_DEPTH * (s - Math.floor(s)) * Math.min(1, Math.max(0, (t - 0.15) / 0.15)); };
-const capGeo = (shape, key, edge, thick, bump = null, groove = null, flow = null) => geo(`cap2:${shape},${key}`, () => {
-  const h = HEADS[shape], NA = bump ? 180 : 160, NT = bump ? 54 : 40, pos = [], uv = [], idx = [], v = new THREE.Vector3(), u = new THREE.Vector3();
+// It's cut in layers: from a little below the crown, LAYER_DEPTH-deep tiers, each swelling gently to its lower edge and
+// easing back in under the next (no sharp step, so no break line), the tiers' edges wandering a little round the head
+// so they don't read as rings.
+const LAYER_DEPTH = 0.0035;
+const tier = s => { const f = s - Math.floor(s); return f < 0.72 ? 0.5 - 0.5 * Math.cos(Math.PI * f / 0.72) : 0.5 + 0.5 * Math.cos(Math.PI * (f - 0.72) / 0.28); };
+// (fading out round the back, where longer hair hangs over it, so it never pokes through that and leaves a seam)
+const layerAt = (phi, t) => LAYER_DEPTH * tier(t * 3.3 + 0.12 * Math.sin(4 * phi) + 0.06 * Math.sin(11 * phi)) * Math.min(1, Math.max(0, (t - 0.15) / 0.15))
+  * Math.min(1, Math.max(0, (2.1 - Math.abs(Math.atan2(Math.sin(phi), Math.cos(phi)))) / 0.6));
+const capGeo = (shape, key, edge, thick, bump = null, groove = null, flow = null) => geo(`cap4:${shape},${key}`, () => {
+  const h = HEADS[shape], NA = bump ? 180 : 160, NT = bump ? 54 : 60, pos = [], uv = [], idx = [], v = new THREE.Vector3(), u = new THREE.Vector3();
   for (let i = 0; i <= NA; i++) {
     const phi = (i / NA) * Math.PI * 2, polar = Math.PI / 2 - edge(phi), th0 = thick(0.5 * Math.PI), th1 = thick(phi);
     for (let j = 0; j <= NT; j++) {
@@ -511,20 +515,20 @@ function buildHair(hairParts, shape, head, hairM, mk, at, look) {
     const prof = [];
     for (let k = 0; k <= 6; k++) {
       const t = 0.12 + k * (1.55 - 0.12) / 6, ps = at(Math.sin(t), Math.cos(t), 0), pb = at(0, Math.cos(t), -Math.sin(t));
-      prof.push([Math.max(ps.x, -pb.z) + 0.0135 + 0.005 * (k / 6), (ps.y + pb.y) / 2]);
+      prof.push([Math.max(ps.x, -pb.z) + 0.0185 + 0.005 * (k / 6), (ps.y + pb.y) / 2]);   // just clear of the top's fullest, so the two meet without a seam
     }
     const [w, y0] = prof[prof.length - 1];
     prof.push(...tail(w, y0));
-    if (!curls) {   // straight: cut in layers down the back, each tier standing out a little at its lower edge
+    if (!curls) {   // straight: cut in soft layers down the back, each tier swelling a little toward its lower edge
       const layered = prof.slice(0, 7);
       for (let k = 7; k < prof.length; k++) {
-        const [r0, ya] = prof[k - 1], [r1, yb] = prof[k], n = Math.max(1, Math.ceil(Math.abs(yb - ya) / 0.008));
+        const [r0, ya] = prof[k - 1], [r1, yb] = prof[k], n = Math.max(1, Math.ceil(Math.abs(yb - ya) / 0.004));
         for (let i = 1; i <= n; i++) {
-          const y = ya + (yb - ya) * i / n, s = (y0 - y) / 0.045, end = k === prof.length - 1 && i === n;
-          layered.push([r0 + (r1 - r0) * i / n + (end ? 0 : LAYER_DEPTH * (s - Math.floor(s))), y]);
+          const y = ya + (yb - ya) * i / n, end = k === prof.length - 1 && i === n;
+          layered.push([r0 + (r1 - r0) * i / n + (end ? 0 : LAYER_DEPTH * tier((y0 - y) / 0.05)), y]);
         }
       }
-      mk(lathe(`curtain2:${shape}:${key}`, layered, 32, 0.85, Math.PI * 2 - 1.7), hairM, 0, 0, 0, head);
+      mk(lathe(`curtain4:${shape}:${key}`, layered, 32, 0.85, Math.PI * 2 - 1.7), hairM, 0, 0, 0, head);
     }
     else {
       const top = prof[3][1], bottom = prof[prof.length - 1][1];
