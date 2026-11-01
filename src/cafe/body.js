@@ -206,17 +206,20 @@ const curlLumps = amp => u => {
 // bulging where it curls, deeper toward the ends
 // (strength(y) from 0 to 1). The profile is resampled finely first so the twists come out smooth. `phase` sets the locks
 // off differently (for a second layer under the first); `jag` lets the locks end at different lengths, up or down by
-// that much, so the ends aren't cut in a straight line
-const ringletLathe = (key, pts, seg, phiStart, phiLen, amp, strength, phase = 0, jag = 0) => geo(`ringlet3:${key}`, () => {
+// that much, so the ends aren't cut in a straight line. `inner` carries on the profile back up the inside, against the
+// head, closing the hair into one solid mass; it's left smooth
+const ringletLathe = (key, pts, seg, phiStart, phiLen, amp, strength, phase = 0, jag = 0, inner = []) => geo(`ringlet4:${key}`, () => {
   const dense = [];
   for (let k = 1; k < pts.length; k++) {
     const [r0, y0] = pts[k - 1], [r1, y1] = pts[k], n = Math.max(1, Math.ceil(Math.abs(y1 - y0) / 0.006));
     for (let i = 0; i < n; i++) dense.push([r0 + (r1 - r0) * i / n, y0 + (y1 - y0) * i / n]);
   }
   dense.push(pts[pts.length - 1]);
+  const outer = dense.length; dense.push(...inner);
   const g = new THREE.LatheGeometry(dense.map(([r, y]) => new THREE.Vector2(r, y)), seg, phiStart, phiLen), p = g.attributes.position;
-  const yEnd = dense[dense.length - 1][1];
+  const yEnd = dense[outer - 1][1];
   for (let i = 0; i < p.count; i++) {
+    if (i % dense.length >= outer) continue;   // the inside stays smooth against the head
     const x = p.getX(i), y = p.getY(i), z = p.getZ(i), r = Math.hypot(x, z), phi = Math.atan2(x, z);
     const lock = 0.5 + 0.5 * Math.sin(14 * phi + phase + 1.7 * Math.sin(38 * y + 3 * phi));   // the locks, waving as they fall
     const curl = 0.6 + 0.4 * Math.sin(44 * y + 5 * phi + phase);                               // each one bulging where it turns
@@ -525,6 +528,13 @@ function buildHair(hairParts, shape, head, hairM, mk, at, look) {
     }
     const [w, y0] = prof[prof.length - 1];
     prof.push(...tail(w, y0));
+    // the way back up the inside: from the ends in under the hair to the nape, then up against the head (just inside its
+    // surface), so the hair is one solid mass with no hollow under it or gap beside the head
+    const headR = y => Math.max(0.055, w - 0.0235 - 0.9 * (y0 - y));
+    const yEnd = prof[prof.length - 1][1];
+    const inside = [[headR(yEnd), yEnd + 0.002]];
+    for (let k = prof.length - 2; k >= 7; k--) inside.push([headR(prof[k][1]), prof[k][1]]);
+    for (let k = 6; k >= 0; k--) inside.push([prof[k][0] - 0.0185 - 0.005 * (k / 6) - 0.003, prof[k][1]]);
     if (!curls) {   // straight: cut in soft layers down the back, each tier swelling a little toward its lower edge
       const layered = prof.slice(0, 7);
       for (let k = 7; k < prof.length; k++) {
@@ -534,14 +544,11 @@ function buildHair(hairParts, shape, head, hairM, mk, at, look) {
           layered.push([r0 + (r1 - r0) * i / n + (end ? 0 : LAYER_DEPTH * tier((y0 - y) / 0.05)), y]);
         }
       }
-      mk(lathe(`curtain4:${shape}:${key}`, layered, 32, 0.85, Math.PI * 2 - 1.7), hairM, 0, 0, 0, head);
+      mk(lathe(`curtain5:${shape}:${key}`, layered.concat(inside), 32, 0.85, Math.PI * 2 - 1.7), hairM, 0, 0, 0, head);
     }
-    else {   // curls: two layers, the inner one's locks set between the outer one's, so it's thick hair, not one sheet;
-      // the locks ending at their own lengths, not cut straight across
+    else {   // curls: the locks ending at their own lengths, not cut straight across
       const top = prof[3][1], bottom = prof[prof.length - 1][1], strength = y => Math.max(0, Math.min(1, (top - y) / (top - bottom) * 1.6));
-      mk(ringletLathe(`${shape}:${key}`, prof, 120, 0.85, Math.PI * 2 - 1.7, curls, strength, 0, 0.02), hairM, 0, 0, 0, head);
-      const inner = prof.map(([r, y], k) => [r - (k > 6 ? 0.008 : 0.002), y]);
-      mk(ringletLathe(`${shape}:${key}:under`, inner, 120, 0.85, Math.PI * 2 - 1.7, curls * 0.9, strength, Math.PI * 0.9, 0.016), hairM, 0, 0, 0, head);
+      mk(ringletLathe(`${shape}:${key}`, prof, 120, 0.85, Math.PI * 2 - 1.7, curls, strength, 0, 0.02, inside), hairM, 0, 0, 0, head);
     }
   };
 
