@@ -1,6 +1,7 @@
 // A person's 3D body: stylised but detailed, with a face built from the look's face options.
 // Shared by the café and the back office's 捏臉 preview, so it depends only on three.js and the catalog.
 import * as THREE from 'three';
+import { BufferGeometryUtils } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { mat, canvasTex } from './engine.js';
 import { PIX } from './util.js';
 import { faceOf, hairOf, hatOf, clothesOf } from '../content/catalog';
@@ -231,6 +232,33 @@ const ringletLathe = (key, pts, seg, phiStart, phiLen, amp, strength, phase = 0,
   }
   g.computeVertexNormals(); return g;
 });
+// chunky curls, each its own lock: a tube, thick at the root and thin at the tip, falling from `root` by `len`, swinging
+// out (`out`) by `flare` as it goes and winding `turns` times round itself as it falls, so the tip flicks out and up like
+// a permed curl. All the locks of a style are merged into one piece (one draw for the whole head of curls)
+const curlLocks = (key, locks) => geo(`locks:${key}`, () => {
+  const parts = locks.map(({ root, out, side, len, flare, turns, r0, lean = 0 }) => {
+    const pts = [];
+    for (let i = 0; i <= 16; i++) {
+      const s = i / 16, a = turns * Math.PI * 2 * s, rc = 0.014 * Math.min(1, s * 3);
+      pts.push(root.clone().add(new THREE.Vector3(0, -len * s * (1 - 0.25 * s), 0))
+        .addScaledVector(out, flare * s * s + rc * (1 - Math.cos(a)))
+        .addScaledVector(side, lean * s + rc * Math.sin(a)));
+    }
+    const curve = new THREE.CatmullRomCurve3(pts), T = 28, RS = 7;
+    const tube = new THREE.TubeGeometry(curve, T, r0, RS, false), p = tube.attributes.position, c = new THREE.Vector3(), v = new THREE.Vector3();
+    for (let i = 0; i <= T; i++) {   // taper: thick at the root, a fine tip
+      const s = i / T, k = s < 0.15 ? 0.75 + s / 0.15 * 0.25 : 1 - 0.7 * ((s - 0.15) / 0.85) ** 1.4;
+      curve.getPointAt(s, c);
+      for (let j = 0; j <= RS; j++) { const n = i * (RS + 1) + j; v.fromBufferAttribute(p, n).sub(c).multiplyScalar(k).add(c); p.setXYZ(n, v.x, v.y, v.z); }
+    }
+    const uv = tube.attributes.uv;   // strands running along the lock, not round it
+    for (let n = 0; n < uv.count; n++) { const a = uv.getX(n), b = uv.getY(n); uv.setXY(n, b * 0.6, a); }
+    tube.computeVertexNormals(); return tube;
+  });
+  const merged = BufferGeometryUtils.mergeBufferGeometries(parts); parts.forEach(t => t.dispose()); return merged;
+});
+// a fixed pseudo-random sequence for a style, so everyone with the same hair gets the same locks (and they're shared)
+const seeded = key => { let h = 2166136261; for (const ch of key) h = Math.imul(h ^ ch.charCodeAt(0), 16777619); return () => { h = Math.imul(h ^ (h >>> 15), 2246822507); h = Math.imul(h ^ (h >>> 13), 3266489909); return ((h ^= h >>> 16) >>> 0) / 4294967296; }; };
 // "tipped back by `tilt`": the crown direction leaning toward the back of the head
 const crown = tilt => new THREE.Vector3(0, Math.cos(tilt), -Math.sin(tilt));
 // the angle from a tipped crown that puts a shell's front edge at `elev` radians above the eyes' horizon
@@ -581,6 +609,32 @@ function buildHair(hairParts, shape, head, hairM, mk, at, look) {
       tail.rotation.x = 0.35;
     } else if (hangs) {
       curtain(`${length}${curly ? ':curly' : ''}`, (curly ? CURLY_LENGTHS : LENGTHS)[length], curly ? (length === 'bob' ? 0.026 : 0.022) : 0);
+      if (curly) {
+        // loose curls over it all, the way a perm falls: two rows of chunky locks round the sides and back, every one a
+        // different length, swinging out and flicking up at the tips; and, unless it's combed back, a few falling over the
+        // forehead (parted in the middle: away to either side; a fringe: straight down; parted on one side: swept across)
+        const rnd = seeded(`${shape}:${length}:${front}:${hatStyle || ''}`), locks = [];
+        const L = { bob: 0.1, medium: 0.2, long: 0.28 }[length];
+        const dir = (phi, e) => new THREE.Vector3(Math.sin(phi) * Math.cos(e), Math.sin(e), Math.cos(phi) * Math.cos(e));
+        const add = (phi, e, len, flare, turns, r0, lean = 0, push = 0.026) => {
+          const u = dir(phi, e); if (underHat(u, 0.08)) return;
+          const out = new THREE.Vector3(Math.sin(phi), 0, Math.cos(phi)), side = new THREE.Vector3(Math.cos(phi), 0, -Math.sin(phi));
+          locks.push({ root: at(u.x, u.y, u.z).addScaledVector(out, push), out, side, len, flare, turns, r0, lean });
+        };
+        [[0.22, 0.32], [-0.08, 0.27]].forEach(([e, step], row) => {
+          for (let phi = 1.05 + row * step / 2; phi < Math.PI * 2 - 1.05; phi += step * (0.85 + rnd() * 0.3)) {
+            add(phi + (rnd() - 0.5) * 0.08, e + (rnd() - 0.5) * 0.08, L * (0.6 + rnd() * 0.55) + (row ? 0 : 0.035), 0.02 + rnd() * 0.03, 0.55 + rnd() * 0.7, 0.019 + rnd() * 0.006);
+          }
+        });
+        if (front !== 'none') {
+          const fr = front === 'center' ? [-0.6, -0.42, -0.24, 0.24, 0.42, 0.6] : front === 'side' ? [-0.55, -0.35, -0.15, 0.05, 0.25] : [-0.5, -0.3, -0.1, 0.1, 0.3, 0.5];
+          fr.forEach(phi => {
+            const lean = front === 'center' ? Math.sign(phi) * 0.035 : front === 'side' ? -0.04 : (rnd() - 0.5) * 0.02;
+            add(phi, 0.62 + (rnd() - 0.5) * 0.08, 0.06 + rnd() * 0.035, 0.012 + rnd() * 0.01, 0.4 + rnd() * 0.4, 0.016 + rnd() * 0.004, lean, 0.03);
+          });
+        }
+        if (locks.length) mk(curlLocks(`${shape}:${length}:${front}:${hatStyle || ''}`, locks), hairM, 0, 0, 0, head);
+      }
     }
   }
 
