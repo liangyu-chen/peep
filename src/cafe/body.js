@@ -216,11 +216,12 @@ const TORSO = [[0.71, 0.202, 0.15], [0.76, 0.2, 0.148], [0.84, 0.197, 0.146], [0
 // `sh` lets a little cloth drape over the tops of the arms; the dropped shoulder itself is the sleeve, its seam lower;
 // `flare` widens it below the waist out to the hem (a long, loose top hangs in a slight A, clear of the pants and legs)
 const TOP_FITS = {
-  slim: { w: 0.95, d: 0.96, drop: 0, s: 0.92, len: 0.14, sh: 0, flare: 0 },
-  regular: { w: 1, d: 1, drop: 0, s: 1, len: 0.16, sh: 0, flare: 0 },
+  // (every cut flares a little at the hem, so it always hangs over the top of the pants, never level with it)
+  slim: { w: 0.95, d: 0.96, drop: 0, s: 0.92, len: 0.14, sh: 0, flare: 0.018 },
+  regular: { w: 1, d: 1, drop: 0, s: 1, len: 0.16, sh: 0, flare: 0.013 },
   oversize: { w: 1.08, d: 1.1, drop: 0.07, s: 1.35, len: 0.29, sh: 0.012, flare: 0.036 },   // the person stays the same build: only the cloth is roomier
 };
-const torsoGeo = (fit = 'regular') => geo(`torso12:${fit}`, () => {
+const torsoGeo = (fit = 'regular') => geo(`torso13:${fit}`, () => {
   const F = TOP_FITS[fit] || TOP_FITS.regular, N = 40, pos = [], idx = [], hemY = TORSO[0][0] - F.drop;
   const flareAt = y => F.flare * Math.max(0, Math.min(1, (0.78 - y) / (0.78 - hemY)));
   const rows = (F.drop ? [[TORSO[0][0] - F.drop, TORSO[0][1], TORSO[0][2]]] : []).concat(TORSO).map(([y, rx, rz]) => {
@@ -236,8 +237,8 @@ const torsoGeo = (fit = 'regular') => geo(`torso12:${fit}`, () => {
 // circles a shade wider than them, centred on the hip joints), and the thighs carry on down from there. Each slice is
 // sampled round its middle: the oval and the two circles, blended by height. (w: how full the pants' legs are; k: a
 // roomier seat for baggy pants)
-const PANTS_TOP = { crotch: 0.585, waist: 0.725, hipX: 0.094, rx: 0.2, rz: 0.118 };
-const pantsTopGeo = (w, k = 1) => geo(`ptop:${w}:${k}`, () => {
+const PANTS_TOP = { crotch: 0.585, waist: 0.725, hipX: 0.094, rx: 0.192, rz: 0.114 };   // the waist tucked inside the shirt's hem
+const pantsTopGeo = (w, k = 1) => geo(`ptop3:${w}:${k}`, () => {
   const { crotch, waist, hipX: c, rx, rz } = PANTS_TOP, N = 48, ROWS = 12, R = 0.0915 * w, pos = [], idx = [];
   const lobes = (sx, sz) => {   // how far out along (sx, sz) the two circles reach, or almost nothing between them
     let best = 0.004;
@@ -248,7 +249,8 @@ const pantsTopGeo = (w, k = 1) => geo(`ptop:${w}:${k}`, () => {
     const t = r / ROWS, y = crotch + (waist - crotch) * t, e = t * t * (3 - 2 * t);
     for (let i = 0; i <= N; i++) {
       const a = (i / N) * Math.PI * 2, sx = Math.sin(a), sz = Math.cos(a);
-      const oval = 1 / Math.sqrt((sx / (rx * k)) ** 2 + (sz / (rz * k)) ** 2), d = lobes(sx, sz) + (oval - lobes(sx, sz)) * e;
+      const kk = 1 + (k - 1) * (1 - t);   // roomy through the seat, the waist itself the usual size, inside the shirt
+      const oval = 1 / Math.sqrt((sx / (rx * kk)) ** 2 + (sz / (rz * kk)) ** 2), d = lobes(sx, sz) + (oval - lobes(sx, sz)) * e;
       pos.push(sx * d, y, sz * d);
     }
   }
@@ -409,8 +411,8 @@ export function buildBody(look, seed = '') {
     mk(lathe('skirt2', [[0.21, 0.02], [0.22, -0.04], [0.24, -0.13], [0.266, -0.23], [0.288, -0.32], [0.284, -0.33]], 28), sm, 0, 0, 0, skirt).scale.z = 0.78;
   }
   // the belt at the waist, just under the shirt's hem, its buckle on its front
-  const belt = mk(cy(0.204, 0.204, 0.026, 22), beltM, 0, 0.708, 0, g, false); belt.scale.z = 0.58;
-  mk(bx(0.045, 0.024, 0.012), buckleM, 0, 0.707, 0.204 * 0.58 + 0.004, g, false);
+  const belt = mk(cy(0.196, 0.196, 0.026, 22), beltM, 0, 0.708, 0, g, false); belt.scale.z = 0.59;
+  mk(bx(0.045, 0.024, 0.012), buckleM, 0, 0.707, 0.196 * 0.59 + 0.004, g, false);
 
   // ---------------------------------------------------------------- torso: waist, chest and sloping shoulders
   // waist, chest and shoulders close to the same width, so it isn't an inverted triangle; it starts higher, over the longer legs
