@@ -212,7 +212,7 @@ const laceM = mat(0xeeeeea, { roughness: 0.7 });
 // (the shoulders kept fairly narrow, so nobody looks built broader than they are)
 const TORSO = [[0.71, 0.202, 0.15], [0.76, 0.2, 0.148], [0.84, 0.197, 0.146], [0.94, 0.198, 0.146], [1.02, 0.204, 0.146], [1.07, 0.216, 0.145],
   [1.11, 0.236, 0.142], [1.145, 0.252, 0.136], [1.175, 0.252, 0.126], [1.2, 0.234, 0.112], [1.222, 0.19, 0.096], [1.234, 0.15, 0.083], [1.242, 0.1, 0.071], [1.246, 0.074, 0.061],
-  [1.252, 0.04, 0.035], [1.254, 0, 0]];   // closing over just under the chin: no neck shows
+  [1.256, 0.062, 0.056], [1.272, 0.057, 0.053], [1.33, 0.054, 0.05]];   // and on up into the head, flaring out into the shoulders: the head sits on the body with no gap or seam, but there's no neck to speak of
 // how a top is cut: the body wider (`w`) and deeper (`d`) than regular below the shoulders, fading back to the same neck;
 // `drop` lets the hem hang lower over the hips; the sleeves `s` times as wide, short ones `len` long
 // `sh` lets a little cloth drape over the tops of the arms; the dropped shoulder itself is the sleeve, its seam lower;
@@ -246,7 +246,7 @@ const torsoRows = fit => {
 // how far round from the front the U reaches on a slice (0 below it); the slice's points are laid out so one falls
 // exactly on each side of the U, and the skin inside it is the second material
 const uAngle = (y, rx) => y < UNECK.bot - 1e-4 ? 0 : rx < 1e-4 ? Math.PI / 2 : Math.asin(Math.min(1, uHalf(y) / rx));
-const torsoGeo = (fit = 'regular') => geo(`torso23:${fit}`, () => {
+const torsoGeo = (fit = 'regular') => geo(`torso24:${fit}`, () => {
   const N = 48, M = 12, pos = [], idx = [], skinIdx = [];
   const rows = torsoRows(fit);
   rows.forEach(([y, rx, rz]) => {
@@ -275,7 +275,7 @@ const torsoGeo = (fit = 'regular') => geo(`torso23:${fit}`, () => {
   return g;
 });
 // the neckline's rib: down round the U in front and across the back of the neck
-const neckRibGeo = (fit = 'regular') => geo(`neckrib9:${fit}`, () => {
+const neckRibGeo = (fit = 'regular') => geo(`neckrib10:${fit}`, () => {
   const pts = [], rows = torsoRows(fit).filter(([y]) => y >= UNECK.bot - 1e-4 && y <= UNECK.neck + 1e-4);
   const side = sgn => rows.map(([y, rx, rz]) => { const t = uAngle(y, rx); return new THREE.Vector3(sgn * Math.sin(t) * rx * 1.012, y, Math.cos(t) * rz * 1.012); });
   const right = side(1), left = side(-1).reverse();
