@@ -225,7 +225,7 @@ const TOP_FITS = {
 // a U neck: the front of the top scooped out from the base of the neck down to UNECK.bot, so the neck and a little chest
 // show. Across the front it is UNECK.w either side of the middle, straight down the sides from UNECK.full and rounding
 // into the bottom of the U.
-const UNECK = { full: 1.232, bot: 1.164, w: 0.088, flat: 0.016, neck: 1.246 };   // above `neck` it's all skin
+const UNECK = { full: 1.238, bot: 1.191, w: 0.082, flat: 0.016, neck: 1.246 };   // above `neck` it's all skin
 const uHalf = y => { const s = Math.max(0, Math.min(1, (y - UNECK.bot) / (UNECK.full - UNECK.bot))); return Math.max(UNECK.flat, UNECK.w * Math.sqrt(1 - (1 - s) ** 2)); };
 // the torso's slices for a cut, with extra rows over the chest and shoulders so the U's edge runs smoothly
 const torsoRows = fit => {
@@ -245,11 +245,14 @@ const torsoRows = fit => {
 // how far round from the front the U reaches on a slice (0 below it); the slice's points are laid out so one falls
 // exactly on each side of the U, and the skin inside it is the second material
 const uAngle = (y, rx) => y < UNECK.bot - 1e-4 ? 0 : rx < 1e-4 ? Math.PI / 2 : Math.asin(Math.min(1, uHalf(y) / rx));
-const torsoGeo = (fit = 'regular') => geo(`torso19:${fit}`, () => {
+const torsoGeo = (fit = 'regular') => geo(`torso20:${fit}`, () => {
   const N = 48, M = 12, pos = [], idx = [], skinIdx = [];
   const rows = torsoRows(fit);
   rows.forEach(([y, rx, rz]) => {
-    const u = uAngle(y, rx), a = u || Math.PI * M / N;   // below the U, evenly round
+    // below the U the points spread back out to evenly round, gradually over a few slices so no line shows where
+    // the layout changes
+    const u = uAngle(y, rx), s = Math.max(0, Math.min(1, (UNECK.bot - y) / 0.09)), e = s * s * (3 - 2 * s);
+    const a = u || uAngle(UNECK.bot, rx) + (Math.PI * M / N - uAngle(UNECK.bot, rx)) * e;
     for (let i = 0; i <= N; i++) {
       const t = i <= M ? -a + 2 * a * i / M : a + (2 * Math.PI - 2 * a) * (i - M) / (N - M);
       pos.push(Math.sin(t) * rx, y, Math.cos(t) * rz);
@@ -271,7 +274,7 @@ const torsoGeo = (fit = 'regular') => geo(`torso19:${fit}`, () => {
   return g;
 });
 // the neckline's rib: down round the U in front and across the back of the neck
-const neckRibGeo = (fit = 'regular') => geo(`neckrib5:${fit}`, () => {
+const neckRibGeo = (fit = 'regular') => geo(`neckrib6:${fit}`, () => {
   const pts = [], rows = torsoRows(fit).filter(([y]) => y >= UNECK.bot - 1e-4 && y <= UNECK.neck + 1e-4);
   const side = sgn => rows.map(([y, rx, rz]) => { const t = uAngle(y, rx); return new THREE.Vector3(sgn * Math.sin(t) * rx * 1.012, y, Math.cos(t) * rz * 1.012); });
   const right = side(1), left = side(-1).reverse();
