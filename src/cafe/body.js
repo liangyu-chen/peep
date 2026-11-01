@@ -221,16 +221,63 @@ const TOP_FITS = {
   regular: { w: 1, d: 1, drop: 0, s: 1, len: 0.16, sh: 0, flare: 0.013 },
   oversize: { w: 1.08, d: 1.1, drop: 0.07, s: 1.35, len: 0.29, sh: 0.012, flare: 0.036 },   // the person stays the same build: only the cloth is roomier
 };
-const torsoGeo = (fit = 'regular') => geo(`torso15:${fit}`, () => {
-  const F = TOP_FITS[fit] || TOP_FITS.regular, N = 40, pos = [], idx = [], hemY = TORSO[0][0] - F.drop;
+// a U neck: the front of the top scooped out from the base of the neck down to UNECK.bot, so the neck and a little chest
+// show. Across the front it is UNECK.w either side of the middle, straight down the sides from UNECK.full and rounding
+// into the bottom of the U.
+const UNECK = { full: 1.225, bot: 1.133, w: 0.095, flat: 0.016 };
+const uHalf = y => { const s = Math.max(0, Math.min(1, (y - UNECK.bot) / (UNECK.full - UNECK.bot))); return Math.max(UNECK.flat, UNECK.w * Math.sqrt(1 - (1 - s) ** 2)); };
+// the torso's slices for a cut, with extra rows over the chest and shoulders so the U's edge runs smoothly
+const torsoRows = fit => {
+  const F = TOP_FITS[fit] || TOP_FITS.regular, hemY = TORSO[0][0] - F.drop;
   const flareAt = y => F.flare * Math.max(0, Math.min(1, (0.78 - y) / (0.78 - hemY)));
-  const rows = (F.drop ? [[TORSO[0][0] - F.drop, TORSO[0][1], TORSO[0][2]]] : []).concat(TORSO).map(([y, rx, rz]) => {
+  const fine = [];
+  TORSO.forEach((row, r) => {
+    const next = TORSO[r + 1];
+    fine.push(row);
+    if (next && row[0] >= 1.1) for (let k = 1; k < 3; k++) fine.push(row.map((v, j) => v + (next[j] - v) * k / 3));
+  });
+  return (F.drop ? [[TORSO[0][0] - F.drop, TORSO[0][1], TORSO[0][2]]] : []).concat(fine).map(([y, rx, rz]) => {
     const k = Math.max(0, Math.min(1, (1.25 - y) / 0.15));   // full below the shoulders, none at the neck
     return [y, rx * (1 + (F.w - 1) * k) + F.sh * Math.exp(-(((y - 1.15) / 0.055) ** 2)) + flareAt(y), rz * (1 + (F.d - 1) * k) + flareAt(y) * 0.7];
   });
-  rows.forEach(([y, rx, rz]) => { for (let i = 0; i <= N; i++) { const a = (i / N) * Math.PI * 2; pos.push(Math.sin(a) * rx, y, Math.cos(a) * rz); } });
-  for (let r = 0; r < rows.length - 1; r++) for (let i = 0; i < N; i++) { const a = r * (N + 1) + i, b = a + N + 1; idx.push(a, a + 1, b, b, a + 1, b + 1); }
-  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals(); return g;
+};
+// how far round from the front the U reaches on a slice (0 below it); the slice's points are laid out so one falls
+// exactly on each side of the U, and the skin inside it is the second material
+const uAngle = (y, rx) => y < UNECK.bot - 1e-4 ? 0 : rx < 1e-4 ? Math.PI / 2 : Math.asin(Math.min(1, uHalf(y) / rx));
+const torsoGeo = (fit = 'regular') => geo(`torso17:${fit}`, () => {
+  const N = 48, M = 12, pos = [], idx = [], skinIdx = [];
+  const rows = torsoRows(fit);
+  rows.forEach(([y, rx, rz]) => {
+    const u = uAngle(y, rx), a = u || Math.PI * M / N;   // below the U, evenly round
+    for (let i = 0; i <= N; i++) {
+      const t = i <= M ? -a + 2 * a * i / M : a + (2 * Math.PI - 2 * a) * (i - M) / (N - M);
+      pos.push(Math.sin(t) * rx, y, Math.cos(t) * rz);
+    }
+  });
+  for (let r = 0; r < rows.length - 1; r++) for (let i = 0; i < N; i++) {
+    const a = r * (N + 1) + i, b = a + N + 1;
+    (i < M && uAngle(rows[r][0], rows[r][1]) > 0 ? skinIdx : idx).push(a, a + 1, b, b, a + 1, b + 1);
+  }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setIndex(idx.concat(skinIdx)); g.addGroup(0, idx.length, 0); g.addGroup(idx.length, skinIdx.length, 1);
+  g.computeVertexNormals();
+  const nr = g.attributes.normal;   // the seam where each slice starts and ends again: one normal, so no crease
+  for (let r = 0; r < rows.length; r++) {
+    const a = r * (N + 1), b = a + N;
+    const v = new THREE.Vector3(nr.getX(a) + nr.getX(b), nr.getY(a) + nr.getY(b), nr.getZ(a) + nr.getZ(b)).normalize();
+    nr.setXYZ(a, v.x, v.y, v.z); nr.setXYZ(b, v.x, v.y, v.z);
+  }
+  return g;
+});
+// the neckline's rib: down round the U in front and across the back of the neck
+const neckRibGeo = (fit = 'regular') => geo(`neckrib3:${fit}`, () => {
+  const pts = [], rows = torsoRows(fit).filter(([y, rx]) => y >= UNECK.bot - 1e-4 && rx > 0.06);
+  const side = sgn => rows.map(([y, rx, rz]) => { const t = uAngle(y, rx); return new THREE.Vector3(sgn * Math.sin(t) * rx * 1.012, y, Math.cos(t) * rz * 1.012); });
+  const right = side(1), left = side(-1).reverse();
+  pts.push(...left.slice(0, -1), new THREE.Vector3(0, UNECK.bot, rows[0][2] * 1.012), ...right);
+  const [ty, rx, rz] = rows[rows.length - 1], t0 = uAngle(ty, rx);
+  for (let k = 1; k < 10; k++) { const t = t0 + (2 * Math.PI - 2 * t0) * k / 10; pts.push(new THREE.Vector3(Math.sin(t) * rx * 1.012, ty, Math.cos(t) * rz * 1.012)); }
+  return new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts, true), 80, 0.0075, 6, true);
 });
 // the top of the pants as one piece, waist to crotch, so nothing joins the hips to the legs: an oval round the waist
 // that, going down, pinches in front and back between the legs until at the crotch it is exactly the two thighs (two
@@ -429,7 +476,7 @@ export function buildBody(look, seed = '') {
   // straight on into the arms with no join
   // cut slim, regular or oversized (wider and deeper, hanging lower over the hips)
   const topFit = clothesOf(look).top, TF = TOP_FITS[topFit] || TOP_FITS.regular;
-  const torso = mk(torsoGeo(topFit), shirt, 0, 0, 0);
+  const torso = mk(torsoGeo(topFit), [shirt, skin], 0, 0, 0);
   // the hem: a rolled edge with some thickness to it, and underneath, the shirt's shadowed inside closing the gap down to
   // the hips, so it reads as cloth with body in it, not a shell
   const hemY = 0.71 - TF.drop, hemR = 0.202 * TF.w + TF.flare, hemZ = (0.15 * TF.d + TF.flare * 0.7) / hemR;
@@ -437,9 +484,7 @@ export function buildBody(look, seed = '') {
   hem.rotation.x = Math.PI / 2; hem.scale.y = hemZ;
   const under = mk(geo(`hemunder:${hemR.toFixed(3)}`, () => new THREE.RingGeometry(0.16, hemR, 40)), shirtUnder, 0, hemY + 0.006, 0, g, false);
   under.rotation.x = Math.PI / 2; under.scale.y = hemZ;
-  // the neckline: a thin rolled rib round the base of the neck, not a high collar
-  const collar = mk(geo('neckrib', () => new THREE.TorusGeometry(0.072, 0.0075, 6, 28)), shirtDark, 0, 1.244, 0, g, false);
-  collar.rotation.x = Math.PI / 2; collar.scale.y = 0.83;
+  mk(neckRibGeo(topFit), shirtDark, 0, 0, 0, g, false);   // a U neck, edged with a rolled rib
   if (look.number) {
     const t = canvasTex(32, 32, (c) => { c.fillStyle = '#fff'; c.font = `16px ${PIX}`; c.textAlign = 'center'; c.fillText(look.number, 16, 24); }, true);
     const numM = new THREE.MeshBasicMaterial({ map: t, transparent: true });
@@ -447,10 +492,10 @@ export function buildBody(look, seed = '') {
     const back = front.clone(); back.position.z = -0.147; back.rotation.y = Math.PI; back.scale.setScalar(1.3); g.add(back);
   }
   if (look.apron) mk(bx(0.38, 0.6, 0.02), mat(picked(look.apron)), 0, 0.8, 0.15);
-  mk(cy(0.052, 0.062, 0.15, 12), skin, 0, 1.31, -0.005);                                      // neck, long enough to show above the neckline
+  mk(cy(0.052, 0.062, 0.13, 12), skin, 0, 1.3, -0.005);                                       // neck
 
   // ---------------------------------------------------------------- head
-  const head = new THREE.Group(); head.position.set(0, 1.455, 0); g.add(head);   // up off the shoulders, the neck showing under the chin
+  const head = new THREE.Group(); head.position.set(0, 1.44, 0); g.add(head);   // a little up off the shoulders, a short neck showing under the chin
   mk(headGeo(shape), skin, 0, 0, 0, head);
   const surf = SURF[shape] || (SURF[shape] = surfaceFor(shape));
   const at = (x, y, z) => deform(H, new THREE.Vector3(x, y, z).normalize());   // surface point in a direction
