@@ -105,15 +105,18 @@ const tier = s => { const f = s - Math.floor(s); return f < 0.72 ? 0.5 - 0.5 * M
 // (fading out round the back, where longer hair hangs over it, so it never pokes through that and leaves a seam)
 const layerAt = (phi, t) => LAYER_DEPTH * tier(t * 3.3 + 0.1 * Math.sin(3 * phi)) * Math.min(1, Math.max(0, (t - 0.15) / 0.15))
   * Math.min(1, Math.max(0, (2.1 - Math.abs(Math.atan2(Math.sin(phi), Math.cos(phi)))) / 0.6));
-const capGeo = (shape, key, edge, thick, bump = null, groove = null, flow = null) => geo(`cap5:${shape},${key}`, () => {
-  const h = HEADS[shape], NA = bump ? 180 : groove ? 320 : 160, NT = bump ? 54 : 60, pos = [], uv = [], idx = [], v = new THREE.Vector3(), u = new THREE.Vector3();
+const capGeo = (shape, key, edge, thick, bump = null, groove = null, flow = null) => geo(`cap6:${shape},${key}`, () => {
+  const h = HEADS[shape], NA = groove ? 320 : bump ? 180 : 160, NT = bump ? 54 : 60, pos = [], uv = [], idx = [], v = new THREE.Vector3(), u = new THREE.Vector3();
+  // with a parting, curls lie flat along it (a band about twice the crease's width), so the line reads clean between them
+  let gmax = 0; if (groove) for (let i = 0; i < 720; i++) gmax = Math.max(gmax, groove(i / 720 * Math.PI * 2));
+  const calm = phi => (groove && gmax ? 1 - 0.85 * (groove(phi) / gmax) ** 0.25 : 1);
   for (let i = 0; i <= NA; i++) {
-    const phi = (i / NA) * Math.PI * 2, polar = Math.PI / 2 - edge(phi), th0 = thick(0.5 * Math.PI), th1 = thick(phi);
+    const phi = (i / NA) * Math.PI * 2, polar = Math.PI / 2 - edge(phi), th0 = thick(0.5 * Math.PI), th1 = thick(phi), still = calm(phi);
     for (let j = 0; j <= NT; j++) {
       const p = (j / NT) * polar, th = th0 + (th1 - th0) * (j / NT) ** 1.5;   // any extra fullness grows toward the edge, so the crown stays one point
       u.set(Math.sin(p) * Math.sin(phi), Math.cos(p), Math.sin(p) * Math.cos(phi));
       const cut = groove ? groove(phi) * Math.min(1, (j / NT) * 4) : 0;   // the parting fades out only right at the crown
-      deform(h, v.copy(u)).addScaledVector(u, Math.max(0.0015, th - cut) + layerAt(phi, j / NT) + (bump ? bump(u) * Math.min(1, (NT - j) / 3) : 0));   // bumps settle down right at the hairline
+      deform(h, v.copy(u)).addScaledVector(u, Math.max(0.0015, th - cut) + layerAt(phi, j / NT) + (bump ? bump(u) * still * Math.min(1, (NT - j) / 3) : 0));   // bumps settle down right at the hairline
       pos.push(v.x, v.y, v.z); uv.push(flow ? flow(phi, j / NT) : i / NA * 6, j / NT);
     }
   }
