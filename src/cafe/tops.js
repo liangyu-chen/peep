@@ -77,12 +77,26 @@ const available = c => c.p.regular && c.p.playsTops && c.pose === 'sit' && c.sea
 function tryStart() {
   const ready = S.customers.filter(available).sort(() => Math.random() - 0.5);
   if (ready.length < 2) return;
-  const players = ready.slice(0, 2);
+  begin(ready.slice(0, 2));
+}
+function begin(players) {
   const ses = { players, placed: false, arrived: 0, state: 'gather', loser: -1 };
   ses.done = new Promise(r => { ses.finish = r; });
   players.forEach(c => { c.tops = ses; });
   S.topsSession = ses;
   log(`${players[0].p.name} 和 ${players[1].p.name} 要打戰鬥陀螺`);
+}
+
+// invited by the owner: anyone sitting at a table, with someone else sitting at one to play against (someone who
+// plays tops if there is one). 'busy' if a game's already on, 'alone' if there's nobody to play.
+const free = c => c.pose === 'sit' && c.seat && c.seat.type === 'table' && !c.invited && !c.tops && !c.busy && !c.gone;
+export const canInviteTops = c => free(c) && !S.topsSession && !S.closing;
+export function inviteTops(c) {
+  if (S.topsSession) return 'busy';
+  const others = S.customers.filter(o => o !== c && free(o)).sort((a, b) => (b.p.playsTops ? 1 : 0) - (a.p.playsTops ? 1 : 0) || Math.random() - 0.5);
+  if (!others.length) return 'alone';
+  begin([c, others[0]]);
+  return others[0];
 }
 
 const carry = c => { c.g.add(S.stadium); S.stadium.position.set(0, 0.98, 0.34); S.stadium.rotation.set(0, 0, 0); S.stadium.visible = true; };

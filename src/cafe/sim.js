@@ -179,7 +179,7 @@ const vsCpu = () => !!S.tv.match && !S.tv.match.away.person;
 async function stayAWhile(c, zone, hops) {
   const { gameSeats, specSpots } = S.seats;
   const wantsPlay = wantsToPlay(c);
-  while (!S.closing && hops < 3) {
+  while (!S.closing && (hops < 3 || c.tops)) {   // a tops game they've been pulled into always gets played
     hops++;
     let s = null;
     if (c.tops) { zone = await doTops(c, zone); c.nextGoal = true; }

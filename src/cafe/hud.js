@@ -7,7 +7,8 @@ import { $, K } from './util.js';
 import { sayLine } from './content.js';
 import { fmtTime } from './feed.js';
 import { matchClock } from './tv.js';
-import { DAYS, canJoinTv } from './sim.js';
+import { DAYS } from './sim.js';
+import { canInviteTops, inviteTops } from './tops.js';
 import { tvGames, GAME_LABEL } from './profiles.js';
 import { openGame, closeGame } from './games.js';
 import { playWallDarts, stopWallDarts } from './wallDarts.js';
@@ -50,7 +51,7 @@ export function fillCard() {
   const dl = $('cInfo'); dl.innerHTML = '';
   rows.forEach(([k, v]) => { const dt = document.createElement('dt'); dt.textContent = k; const dd = document.createElement('dd'); dd.textContent = v; dl.append(dt, dd); });
   $('cStatus').textContent = '現在：' + s.status;
-  $('cInvite').hidden = !(s.role === 'customer' && tvGames(p).length && s.seat && s.seat.type === 'table' && !s.invited && !s.tops && !S.closing);
+  $('cInvite').hidden = !(s.role === 'customer' && canInviteTops(s));
 }
 
 // ---------------------------------------------------------------- the neon sign, worked by the fourth switch outside
@@ -145,8 +146,11 @@ export function bindHUD(root, stage) {
   on($('closeCard'), 'click', closeCard);
   on($('cInvite'), 'click', () => {
     const sel = S.selected; if (!sel) return;
-    if (!canJoinTv(sel)) { sayLine(sel, 'customer.inviteFull'); return; }
-    sel.invited = true; sayLine(sel, 'customer.inviteAccept'); sayLine(S.owner, 'owner.invite', { name: sel.p.name });
+    // invited to spin tops (the TV's nearly always full): with whoever else is sitting down
+    const r = inviteTops(sel);
+    if (r === 'busy') { sayLine(sel, 'customer.topsBusy'); return; }
+    if (r === 'alone') { sayLine(sel, 'customer.topsAlone'); return; }
+    sayLine(S.owner, 'owner.invite', { name: sel.p.name }); sayLine(sel, 'customer.inviteAccept');
     fillCard();
   });
   root.querySelectorAll('[data-cam]').forEach(b => on(b, 'click', () => setCam(b.dataset.cam)));

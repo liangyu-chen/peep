@@ -98,7 +98,7 @@ export default function Cafe({ content }: { content: CafeContent }) {
         <div className="head"><div><h3 id="cName">-</h3><span id="cKind" className="kind">-</span></div><button id="closeCard" aria-label="關閉">✕</button></div>
         <dl id="cInfo"></dl>
         <div className="status" id="cStatus">-</div>
-        <button id="cInvite" className="primary" hidden>▶ 邀去打電動</button>
+        <button id="cInvite" className="primary" hidden>▶ 邀去打陀螺</button>
       </aside>
 
       <div id="hint">拖曳旋轉 · 滾輪縮放 · 點人物看資料 · 點電視、飛鏢靶、戰鬥盤可以玩</div>

@@ -1,7 +1,7 @@
 import { asc, eq } from 'drizzle-orm';
 import { getDb, schema } from './db';
 import {
-  DEFAULT_CONTENT, DEFAULT_MENU, DEFAULT_OWNER, DEFAULT_POOLS, DEFAULT_REGULARS, LINE_KEYS, POOL_KEYS,
+  DEFAULT_CONTENT, DEFAULT_LINES, DEFAULT_MENU, DEFAULT_OWNER, DEFAULT_POOLS, DEFAULT_REGULARS, LINE_KEYS, POOL_KEYS,
   type CafeContent, type RandomPools,
 } from '../content/catalog';
 
@@ -27,8 +27,11 @@ export async function getContent(): Promise<CafeContent & { source: 'db' | 'defa
     ]);
     const menu = menuRows.filter(r => r.active && (r.hot || r.ice)).map(({ name, en, section, hot, ice }) => ({ name, en, section, hot, ice }));
     const lines: Record<string, string[]> = {};
+    // a category the database has no rows for at all yet (added since it was seeded) speaks its default lines;
+    // one whose rows are all switched off stays quiet
     for (const key of LINE_KEYS) {
-      lines[key] = lineRows.filter(r => r.category === key && r.active).map(r => r.text);
+      const rows = lineRows.filter(r => r.category === key);
+      lines[key] = rows.length ? rows.filter(r => r.active).map(r => r.text) : DEFAULT_LINES[key] ?? [];
     }
     const regulars = regularRows?.length
       ? regularRows.filter(r => r.active).map(({ name, job, drink, team, visits, quirk, look, plays2k, playsFight, fighter, playsTops, smokes }) =>
