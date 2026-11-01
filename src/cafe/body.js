@@ -505,7 +505,9 @@ export function buildBody(look, seed = '') {
       f.rotation.set(Math.PI / 2 + tilt, 0, 0); f.rotateZ(1.3 + (nFold++) * 2.1 + (s > 0 ? 0.4 : 0));
     };
     const lining = (rt, rb, h, y, par) => mk(cy(rt - 0.002, rb - 0.002, h, 14, true), shirtIn, 0, y, 0, par, false);   // the inside of a sleeve, seen at its opening
-    mk(cy(0.058 * S, 0.052 * S, 0.27, 14, true), sleeveM, 0, -0.135, 0, sh);                       // upper arm, open where it meets the forearm
+    // the upper arm: rounded over its top, fullest just below the shoulder, tapering to the elbow (open there, where
+    // the forearm carries on)
+    mk(lathe(`uarm:${S.toFixed(2)}`, [[0.001, 0.03], [0.036, 0.024], [0.054, 0.006], [0.06, -0.03], [0.058, -0.1], [0.054, -0.2], [0.052, -0.27]].map(([r, y]) => [r * S, y]), 20), sleeveM, 0, 0, 0, sh);
     if (!long) {   // a short sleeve, as wide and as long as the cut makes it, the arm showing in its opening
       const w = TF.s, L = TF.len, rt = 0.065 * w, rb = 0.062 * w;
       mk(cy(rt, rb, L, 16, true), shirt, 0, 0.01 - L / 2, 0, sh); lining(rt, rb, 0.05, 0.01 - L + 0.025, sh);
@@ -515,9 +517,9 @@ export function buildBody(look, seed = '') {
       if (loose) fold(0.058 * S + 0.001, TF.seam, sh);                                                 // the dropped shoulder seam
       fold(0.053 * S, -0.22, sh, 0.12 * s);                                                           // creased where the arm bends
     }
-    // the top of the shoulder: a low dome just the width of the sleeve, turning with the arm, so there's no ball sitting on it
-    const top = (long ? 0.058 : 0.065) * TF.s;
-    mk(sp(top, 18, 10, 0, Math.PI * 2, 0, Math.PI / 2), shirt, 0, long ? 0 : 0.01, 0, sh).scale.y = 0.3;   // the arm's rounded top, kept inside the shoulder
+    // the shoulder itself, part of the body, not the arm: a rounded swell from the slope of the shoulders down over the
+    // top of the arm, so the body runs on into the arm in one curve instead of a tube stuck to its side
+    const cap = mk(sp(1, 20, 14), shirt, s * 0.214, 1.162, 0); cap.scale.set(0.068 * Math.min(TF.s, 1.12), 0.054, 0.066);
     const elbow = new THREE.Group(); elbow.position.set(0, -0.27, 0); sh.add(elbow); elbows.push(elbow);
     mk(sp(0.05 * S, 14, 10), sleeveM, 0, 0, 0, elbow);                                             // fills the elbow only when it bends
     const wrist = long ? (loose ? 0.05 : 0.046) * S : 0.044;
