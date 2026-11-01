@@ -1,7 +1,7 @@
 // People in the café: animation poses, speech bubble and name tag, walking along plan-coordinate paths (the body is body.js).
 import * as THREE from 'three';
 import { ctx, mat, cyl } from './engine.js';
-import { buildBody, tickFace, LEG_EXTRA, ARM_REST } from './body.js';
+import { buildBody, tickFace, LEG_EXTRA, restPose, poseBody } from './body.js';
 import { S } from './state.js';
 import { K } from './util.js';
 import { KERB, RISE } from './layout.js';
@@ -226,19 +226,18 @@ export class Person {
     tickFace(this, this.faceAnim, dt, this.bubbleT > 0);
     if (this.smk) this.smoking(dt);
 
-    const [L, R] = this.legs, [aL, aR] = this.arms;
     const sitting = this.pose === 'sit' || this.pose === 'game', squat = this.pose === 'squat' && !moving;
     this.walkPhase += dt * (moving ? 9 : 2);
     const s = Math.sin(this.walkPhase);
-    // at rest the arms hang a little out from the body, loose, not pressed to the sides (positive armLz brings the left
-    // arm in, negative takes it out; the right arm the other way)
-    let y = 0, hipL = 0, hipR = 0, kL = 0, kR = 0, armLx = 0, armLy = 0, armRx = 0, armRy = 0, armLz = -ARM_REST.z, armRz = ARM_REST.z, bob = 0, elL = ARM_REST.el, elR = ARM_REST.el;
+    // every pose starts from standing at rest (body.js, shared with the back office's preview) and changes what it needs
+    // (positive armLz brings the left arm in, negative takes it out; the right arm the other way)
+    const rest = restPose(this.walkPhase);
+    let { hipL, hipR, kL, kR, armLx, armLy, armRx, armRy, armLz, armRz, elL, elR } = rest, y = 0, bob = 0;
     if (moving) { hipL = s * 0.55; hipR = -s * 0.55; kL = Math.max(0, -s) * 0.6; kR = Math.max(0, s) * 0.6; armLx = -s * 0.45; armRx = s * 0.45; elL = -0.3 + Math.min(0, s) * 0.2; elR = -0.3 - Math.max(0, s) * 0.2; bob = Math.abs(Math.cos(this.walkPhase)) * 0.04; }
     else if (squat) { y = -0.425;   // the longer legs fold up higher, so the body goes down further to keep the hips over the pan
       hipL = hipR = -1.9; kL = kR = 1.95; armLx = armRx = -0.55; elL = elR = -0.95; armLz = 0.12; armRz = -0.12; }   // squatting over the pan, forearms on the knees
     else if (sitting) { y = (this.seat ? this.seat.sitY : -0.1) - LEG_EXTRA + 0.02;   // hips on the seat, though they sit higher on the longer legs
       hipL = hipR = -Math.PI / 2; kL = kR = this.seat && this.seat.floor ? 0.25 : Math.PI / 2; armLx = armRx = -0.25; elL = elR = -0.7; }   // hands resting on the lap
-    else { armLx = Math.sin(this.walkPhase * 0.7) * 0.04; armRx = -armLx; }
     if (sitting && this.seat && this.seat.lounge && !moving) { armLz = -0.45; armRz = 0.45; armLx = armRx = -0.3; elL = elR = -0.6; }   // arms out along a beanbag's rolled arms
     if (this.cup && this.cup.parent === this.hand && !this.act) { const P = DRINK_POSE[this.role === 'owner' ? 'high' : moving ? 'walk' : 'carry']; armRx = P.x; armRz = P.z; elR = P.el; }   // cup carried in front
     this.pad.visible = this.pose === 'game';
@@ -268,9 +267,7 @@ export class Person {
     if (this.act === 'shoot') { armRx = -1.35; elR = -0.1; armRz = -0.05; }                          // and ripped forward
     if (this.act === 'pull') { armLx = armRx = -0.12; elL = elR = -0.25; armLz = 0.32; armRz = -0.32; bob = -Math.abs(Math.sin(this.actT * 4)) * 0.03; }   // hands at the waistband, tugging
     if (this.act === 'carry') { armLx = armRx = -0.9; elL = elR = -0.7; armLz = 0.25; armRz = -0.25; }
-    L.hip.rotation.x = hipL; R.hip.rotation.x = hipR; L.knee.rotation.x = kL; R.knee.rotation.x = kR;
-    aL.rotation.set(armLx, armLy, armLz); aR.rotation.set(armRx, armRy, armRz);
-    this.elbows[0].rotation.x = elL; this.elbows[1].rotation.x = elR;
+    poseBody(this, { hipL, hipR, kL, kR, armLx, armLy, armLz, armRx, armRy, armRz, elL, elR });
     if (this.cup && this.cup.parent === this.hand) gripCup(this, this.act === 'sip' ? sipPose(this.cup).tilt * Math.min(1, (1.4 - this.actT) * 3) : 0);
     this.groundY = (this.groundY || 0) + ((this.g.position.z > KERB ? -RISE : 0) - (this.groundY || 0)) * Math.min(1, dt * 14);   // a step down off the kerb
     this.g.position.y = this.groundY + y + bob;
@@ -278,7 +275,7 @@ export class Person {
       const lap = sitting || squat;
       this.skirt.scale.set(1, lap ? 0.5 : 1, lap ? 1.5 : 1); this.skirt.position.z = lap ? 0.07 : 0;
     }
-    this.head.rotation.y = this.pose === 'game' ? 0 : ph ? turn : Math.sin(this.walkPhase * 0.31) * 0.2;
+    this.head.rotation.y = this.pose === 'game' ? 0 : ph ? turn : rest.head;
     this.head.rotation.x = pitch;
     if (this.mosaic) {   // kept between the hips and the camera, so it covers from any side
       this.mosaicT -= dt; if (this.mosaicT <= 0) { this.mosaicT = 0.35; this.mosaic.material.map.shuffle(); }

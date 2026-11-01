@@ -1,7 +1,7 @@
 // A small stand-alone 3D stage for the back office's 捏臉 editor: one person, lit like the café, that you can turn around.
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { buildBody, tickFace, ARM_REST } from './body.js';
+import { buildBody, tickFace, restPose, poseBody } from './body.js';
 
 const VIEWS = {
   face: { pos: [0.28, 1.5, 1.35], target: [0, 1.42, 0] },
@@ -63,9 +63,8 @@ export function mountPreview(host) {
     const dt = Math.min(0.05, (now - last) / 1000); last = now; t += dt;
     if (body) {
       tickFace(body, anim, dt, t % 7 > 5.2);                     // says something every few seconds, so the mouth shows
-      body.head.rotation.y = Math.sin(t * 0.5) * 0.12;
-      body.arms.forEach((a, i) => { a.rotation.x = Math.sin(t * 1.4 + i * Math.PI) * 0.04; a.rotation.z = i ? ARM_REST.z : -ARM_REST.z; });   // hanging as in the café
-      body.elbows.forEach(e => { e.rotation.x = ARM_REST.el; });
+      const p = restPose(t * 2);   // standing just as the café's people do at rest (body.js)
+      poseBody(body, p); body.head.rotation.y = p.head;
     }
     if (tween) {
       tween.t = Math.min(1, tween.t + dt / 0.6);

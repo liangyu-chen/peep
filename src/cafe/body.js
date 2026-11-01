@@ -9,8 +9,23 @@ import { faceOf, hairOf, hatOf, clothesOf } from '../content/catalog';
 // how much longer the legs are than first drawn: the hips sit this much higher (people.js lowers sitting and squatting to match)
 export const LEG_EXTRA = 0.08;
 // how the arms hang at rest, a little out from the body (z: radians out from the sides, the left arm's negated) with the
-// elbows just bent; shared by the café's people and the back office's preview, so they always stand alike
+// elbows just bent
 export const ARM_REST = { z: 0.11, el: -0.14 };
+// standing at rest, as joint angles: legs straight, arms hanging a little out and swaying a touch, elbows just bent, the
+// head turning now and then; `phase` runs on with time. The one place this is set: the café's people start every pose
+// from it (walking, sitting, holding a cup change what they need), and the back office's preview stands in it as it is
+export const restPose = phase => ({
+  hipL: 0, hipR: 0, kL: 0, kR: 0,
+  armLx: Math.sin(phase * 0.7) * 0.04, armRx: -Math.sin(phase * 0.7) * 0.04, armLy: 0, armRy: 0, armLz: -ARM_REST.z, armRz: ARM_REST.z,
+  elL: ARM_REST.el, elR: ARM_REST.el, head: Math.sin(phase * 0.31) * 0.2,
+});
+// put a body (anything with buildBody's legs, arms and elbows) into a pose
+export function poseBody(b, p) {
+  const [L, R] = b.legs, [aL, aR] = b.arms;
+  L.hip.rotation.x = p.hipL; R.hip.rotation.x = p.hipR; L.knee.rotation.x = p.kL; R.knee.rotation.x = p.kR;
+  aL.rotation.set(p.armLx, p.armLy, p.armLz); aR.rotation.set(p.armRx, p.armRy, p.armRz);
+  b.elbows[0].rotation.x = p.elL; b.elbows[1].rotation.x = p.elR;
+}
 
 // ---------------------------------------------------------------- shared geometry and materials
 // geometries are shared between everyone; materials stay per person since their colours differ
