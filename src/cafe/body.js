@@ -218,7 +218,7 @@ const TORSO = [[0.71, 0.202, 0.15], [0.76, 0.2, 0.148], [0.84, 0.197, 0.146], [0
 const TOP_FITS = {
   slim: { w: 0.95, d: 0.96, drop: 0, s: 0.92, len: 0.14, sh: 0, flare: 0 },
   regular: { w: 1, d: 1, drop: 0, s: 1, len: 0.16, sh: 0, flare: 0 },
-  oversize: { w: 1.08, d: 1.1, drop: 0.07, s: 1.35, len: 0.29, sh: 0.012, seam: -0.1, flare: 0.036 },   // the person stays the same build: only the cloth is roomier
+  oversize: { w: 1.08, d: 1.1, drop: 0.07, s: 1.35, len: 0.29, sh: 0.012, flare: 0.036 },   // the person stays the same build: only the cloth is roomier
 };
 const torsoGeo = (fit = 'regular') => geo(`torso12:${fit}`, () => {
   const F = TOP_FITS[fit] || TOP_FITS.regular, N = 40, pos = [], idx = [], hemY = TORSO[0][0] - F.drop;
@@ -229,6 +229,18 @@ const torsoGeo = (fit = 'regular') => geo(`torso12:${fit}`, () => {
   });
   rows.forEach(([y, rx, rz]) => { for (let i = 0; i <= N; i++) { const a = (i / N) * Math.PI * 2; pos.push(Math.sin(a) * rx, y, Math.cos(a) * rz); } });
   for (let r = 0; r < rows.length - 1; r++) for (let i = 0; i < N; i++) { const a = r * (N + 1) + i, b = a + N + 1; idx.push(a, a + 1, b, b, a + 1, b + 1); }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals(); return g;
+});
+// the hips, in ovals [y, half-width, half-depth] from the crotch up to the waist: full width at the sides all the way down
+// to the legs, and front to back hardly deeper than the thighs, nearly upright, so the front and back run straight on
+// down into the legs with no band or edge across them
+const SEAT = [[0.598, 0.04, 0.03], [0.606, 0.12, 0.072], [0.618, 0.168, 0.09], [0.635, 0.19, 0.096], [0.665, 0.198, 0.104], [0.695, 0.2, 0.112], [0.725, 0.2, 0.118]];
+const seatGeo = () => geo('seat3', () => {
+  const N = 32, pos = [], idx = [];
+  pos.push(0, SEAT[0][0] - 0.004, 0);   // closed at the bottom
+  SEAT.forEach(([y, rx, rz]) => { for (let i = 0; i <= N; i++) { const a = (i / N) * Math.PI * 2; pos.push(Math.sin(a) * rx, y, Math.cos(a) * rz); } });
+  for (let i = 0; i < N; i++) idx.push(0, 1 + i + 1, 1 + i);
+  for (let r = 0; r < SEAT.length - 1; r++) for (let i = 0; i < N; i++) { const a = 1 + r * (N + 1) + i, b = a + N + 1; idx.push(a, a + 1, b, b, a + 1, b + 1); }
   const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals(); return g;
 });
 // curls in a hair surface, like the ringlets lower down: wavy locks running out from the crown, each waving from side
@@ -338,7 +350,6 @@ export function buildBody(look, seed = '') {
   const shirt = mat(look.shirt, { roughness: 0.85 }), shirtDark = mat(shade(look.shirt, 0.72), { roughness: 0.85 });
   const shirtIn = mat(shade(look.shirt, 0.42), { roughness: 0.9, side: THREE.BackSide });   // the shadowed inside of a sleeve
   const shirtUnder = mat(shade(look.shirt, 0.35), { roughness: 1, side: THREE.DoubleSide });   // the inside of the shirt, seen under its hem
-  const creaseM = mat(shade(look.shirt, 0.4), { roughness: 1 });                            // folds in the cloth: in shadow, never catching the light
   const pants = mat(look.pants, { roughness: 0.9 }), pantsDark = mat(shade(look.pants, 0.78), { roughness: 0.9 });
   // hair with a little sheen; curls more (the wet, styled look), straight hair a soft gloss along its layers
   const hairM = mat(look.hair, { roughness: hairOf(look).curl === 'curly' ? 0.45 : 0.68, metalness: 0.05, map: strands(), side: THREE.DoubleSide });
@@ -354,7 +365,7 @@ export function buildBody(look, seed = '') {
   const bare = [];   // what shows skin when the pants come down (thighs, knees, hips)
   const bunch = [];  // the pants bunched round the shins, only seen then
   const THIGH = 0.32, HIP_Y = 0.55 + LEG_EXTRA;
-  const legs = [-0.105, 0.105].map(x => {
+  const legs = [-0.094, 0.094].map(x => {   // close enough that the tops of the thighs meet, so the crotch is just where the legs join
     const hip = new THREE.Group(); hip.position.set(x, HIP_Y, 0); g.add(hip);
     // thigh and shin are open tubes meeting exactly at the knee at the same width, so a straight leg has no seam; a
     // slightly smaller ball fills the joint only when the knee bends
@@ -374,10 +385,11 @@ export function buildBody(look, seed = '') {
     [0.03, 0.055, 0.08].forEach(z => mk(bx(0.05, 0.006, 0.01), laceM, 0, -0.287 + shoeTop(z) + 0.002, z, knee, false));
     return { hip, knee };
   });
-  // hips: rounded, tapering from the waist down into the tops of the legs, so pants run on from waist to thigh; the
-  // underside curves down and in to the crotch rather than ending flat, so it rounds off into the thighs
-  const seat = mk(lathe('hips3', [[0, 0.574], [0.07, 0.577], [0.13, 0.59], [0.17, 0.608], [0.19, 0.635], [0.199, 0.672], [0.2, 0.725]], 28), pants, 0, 0, 0); seat.scale.z = 0.72;
-  if (fit === 'wide') { seat.scale.x = 1.12; seat.scale.z = 0.8; }   // baggy pants are roomy through the seat too
+  // hips: from the waist down into the tops of the legs, flattening front to back as they go, so by the crotch they are
+  // no deeper than the thighs and their front and back run straight on down the legs (a round seat standing proud of
+  // the thighs leaves a line round the tops of the legs, like briefs)
+  const seat = mk(seatGeo(), pants, 0, 0, 0);
+  if (fit === 'wide') seat.scale.set(1.12, 1, 1.12);   // baggy pants are roomy through the seat too
   bare.push(seat);
   // a skirt: knee length, A-line, hanging from the waist; a pivot at the waist so it can drape over the lap when sitting
   let skirt = null;
@@ -386,7 +398,7 @@ export function buildBody(look, seed = '') {
     const sm = mat(look.pants, { roughness: 0.85, side: THREE.DoubleSide });
     mk(lathe('skirt2', [[0.21, 0.02], [0.22, -0.04], [0.24, -0.13], [0.266, -0.23], [0.288, -0.32], [0.284, -0.33]], 28), sm, 0, 0, 0, skirt).scale.z = 0.78;
   }
-  const belt = mk(cy(0.204, 0.204, 0.026, 22), beltM, 0, 0.698, 0, g, false); belt.scale.z = 0.73;   // a sliver of it showing under the shirt
+  const belt = mk(cy(0.204, 0.204, 0.026, 22), beltM, 0, 0.698, 0, g, false); belt.scale.z = 0.58;   // a sliver of it showing under the shirt
   mk(bx(0.045, 0.024, 0.012), buckleM, 0, 0.697, 0.15, g, false);
 
   // ---------------------------------------------------------------- torso: waist, chest and sloping shoulders
@@ -524,16 +536,9 @@ export function buildBody(look, seed = '') {
   const arms = [-0.235, 0.235].map(x => {   // (where the arms hang doesn't change with the clothes)
     const s = Math.sign(x);
     const sh = new THREE.Group(); sh.position.set(x, 1.16, 0); g.add(sh);   // tucked under the slope of the shoulders
-    // sleeves are cloth over the arm, not the arm in another colour: tubes open at the end with their shadowed inside
-    // showing, a hem or cuff band, a few folds; a loose cut stands well clear of the arm, its shoulder seam dropped
-    // down onto the upper arm
+    // sleeves are cloth over the arm, not the arm in another colour: open at the end with their shadowed inside
+    // showing, a rolled hem or cuff; a loose cut stands well clear of the arm
     const long = look.longSleeve, sleeveM = long ? shirt : skin, S = long ? TF.s : 1, loose = topFit === 'oversize';
-    // a crease: part of the way round the sleeve, not a ring, a shade darker, each turned its own way
-    let nFold = 0;
-    const fold = (r, y, par, tilt = 0) => {
-      const f = mk(geo(`crease:${r.toFixed(3)}`, () => new THREE.TorusGeometry(r, 0.0032, 4, 18, Math.PI * 1.15)), creaseM, 0, y, 0, par, false);
-      f.rotation.set(Math.PI / 2 + tilt, 0, 0); f.rotateZ(1.3 + (nFold++) * 2.1 + (s > 0 ? 0.4 : 0));
-    };
     const lining = (rt, rb, h, y, par) => mk(cy(rt - 0.002, rb - 0.002, h, 14, true), shirtIn, 0, y, 0, par, false);   // the inside of a sleeve, seen at its opening
     const roll = (r, y, par) => { const e = mk(geo(`roll:${r.toFixed(3)}`, () => new THREE.TorusGeometry(r, 0.006, 6, 24)), shirtDark, 0, y, 0, par, false); e.rotation.x = Math.PI / 2; };   // a rolled edge round an opening
     // the upper arm: rounded over its top, fullest just below the shoulder, tapering to the elbow (open there, where
@@ -548,10 +553,6 @@ export function buildBody(look, seed = '') {
       mk(lathe(`sleeve:${w.toFixed(2)}:${L}`, [[rb, -L + 0.01], [rb * 1.01, -L * 0.55], [rt, -0.05], [rt * 0.97, -0.02], [rt * 0.82, 0.008], [rt * 0.5, 0.026], [0.001, 0.034]], 28), shirt, 0, 0, 0, sl);
       lining(rb + 0.001, rb, 0.06, -L + 0.04, sl);
       roll(rb, -L + 0.014, sl);                                                                         // the hem, rolled
-      if (loose) { fold(rt - 0.001, TF.seam, sl); fold(rb + 0.001, -L * 0.62, sl, 0.18 * s); }          // the dropped shoulder seam, a fold
-    } else {
-      if (loose) fold(0.058 * S + 0.001, TF.seam, sh);                                                 // the dropped shoulder seam
-      fold(0.053 * S, -0.22, sh, 0.12 * s);                                                           // creased where the arm bends
     }
     // the shoulder itself, part of the body, not the arm: a rounded swell from the slope of the shoulders down over the
     // top of the arm, so the body runs on into the arm in one curve instead of a tube stuck to its side
@@ -567,8 +568,6 @@ export function buildBody(look, seed = '') {
     if (long) {   // the cuff: a band at the wrist, the sleeve's inside showing round the hand; a loose sleeve bunches above it
       mk(cy(wrist + 0.003, wrist + 0.003, 0.03, 14, true), shirtDark, 0, -0.225, 0, elbow, false);
       lining(wrist + 0.003, wrist + 0.003, 0.04, -0.22, elbow); roll(wrist + 0.003, -0.238, elbow);
-      fold(0.05 * S, -0.06, elbow, -0.1 * s);
-      if (loose) { fold(wrist + 0.004, -0.17, elbow, 0.15 * s); fold(wrist + 0.005, -0.195, elbow, -0.12 * s); }
     }
     mk(sp(0.052, 12, 10), skin, 0, -0.285, 0.004, elbow).scale.set(0.82, 1.12, 0.68);              // hand
     mk(bx(0.024, 0.048, 0.028), skin, -s * 0.04, -0.27, 0.022, elbow, false).rotation.z = s * 0.45;   // thumb
