@@ -6,6 +6,7 @@ import { rand, randi, pick, DOT } from '../util.js';
 import { TVX, TVZ, TVY, LW, LSEATS } from '../layout.js';
 import { buildMenuClipboard } from './menu.js';
 import { drawBoard } from '../dartboard.js';
+import { buildPegboard } from './pegboard.js';
 import { woodM, steel, blackM, cinderSeat, crate, crateTable, stump, highStool, figurine, framed, trackRun, ceilingFan, cinderBlock, stoolStack } from './props.js';
 
 function ledgeAndTv() {
@@ -175,13 +176,7 @@ function workCounter() {
   basin(WS, 0.96);
   cyl(0.012, 0.012, 0.3, steel, 3.0, 1.1, 1.2, ctx.scene, 6);
   for (let i = 0; i < 6; i++) cyl(0.055, 0.04, 0.06, mat(0xf2f0ea, { roughness: 0.3 }), 2.78 + (i % 2) * 0.13, 0.99, 0.2 + Math.floor(i / 2) * 0.14, ctx.scene, 12);
-  const pegTex = canvasTex(80, 26, (g) => { g.fillStyle = '#3a3f44'; g.fillRect(0, 0, 80, 26); g.fillStyle = '#1b1e21'; for (let x = 1; x < 80; x += 3) for (let y = 1; y < 26; y += 3) g.fillRect(x, y, 1, 1); }, true);
-  plane(4.0, 1.3, pegTex, 3.01, 1.85, 0.1, -Math.PI / 2);
-  for (let i = 0; i < 16; i++) {      // caps, fans, records, cassettes, controllers hanging on the pegboard
-    const z = -1.7 + i * 0.24, y = rand(1.35, 2.35);
-    if (i % 4 === 0) cyl(0.12, 0.12, 0.02, mat(0x111111), 2.98, y, z, ctx.scene, 16).rotation.z = Math.PI / 2;
-    else box(0.04, rand(0.1, 0.22), rand(0.1, 0.2), mat(pick([0xc0282d, 0xffd23f, 0x7ec8ff, 0xf4efe3, 0xff7a12, 0x3ddc97])), 2.98, y, z);
-  }
+  buildPegboard();   // the crammed pegboard above (pegboard.js)
   // back end: two cinder seats against the wall with two stacked crates between them
   cinderSeat(2.75, -2.55); cinderSeat(2.75, -3.65);
   crate(2.72, 0, -3.1, 'green'); crate(2.72, 0.3, -3.1, 'orange');
