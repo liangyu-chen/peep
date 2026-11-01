@@ -204,8 +204,10 @@ const curlLumps = amp => u => {
 };
 // a lathe whose surface is pushed out into ringlets: separate locks hanging down it, each waving from side to side and
 // bulging where it curls, deeper toward the ends
-// (strength(y) from 0 to 1). The profile is resampled finely first so the twists come out smooth
-const ringletLathe = (key, pts, seg, phiStart, phiLen, amp, strength) => geo(`ringlet2:${key}`, () => {
+// (strength(y) from 0 to 1). The profile is resampled finely first so the twists come out smooth. `phase` sets the locks
+// off differently (for a second layer under the first); `jag` lets the locks end at different lengths, up or down by
+// that much, so the ends aren't cut in a straight line
+const ringletLathe = (key, pts, seg, phiStart, phiLen, amp, strength, phase = 0, jag = 0) => geo(`ringlet3:${key}`, () => {
   const dense = [];
   for (let k = 1; k < pts.length; k++) {
     const [r0, y0] = pts[k - 1], [r1, y1] = pts[k], n = Math.max(1, Math.ceil(Math.abs(y1 - y0) / 0.006));
@@ -213,12 +215,16 @@ const ringletLathe = (key, pts, seg, phiStart, phiLen, amp, strength) => geo(`ri
   }
   dense.push(pts[pts.length - 1]);
   const g = new THREE.LatheGeometry(dense.map(([r, y]) => new THREE.Vector2(r, y)), seg, phiStart, phiLen), p = g.attributes.position;
+  const yEnd = dense[dense.length - 1][1];
   for (let i = 0; i < p.count; i++) {
     const x = p.getX(i), y = p.getY(i), z = p.getZ(i), r = Math.hypot(x, z), phi = Math.atan2(x, z);
-    const lock = 0.5 + 0.5 * Math.sin(14 * phi + 1.7 * Math.sin(38 * y + 3 * phi));      // the locks, waving as they fall
-    const curl = 0.6 + 0.4 * Math.sin(44 * y + 5 * phi);                                   // each one bulging where it turns
+    const lock = 0.5 + 0.5 * Math.sin(14 * phi + phase + 1.7 * Math.sin(38 * y + 3 * phi));   // the locks, waving as they fall
+    const curl = 0.6 + 0.4 * Math.sin(44 * y + 5 * phi + phase);                               // each one bulging where it turns
     const k = (r + amp * strength(y) * lock * curl) / (r || 1);
-    p.setX(i, x * k); p.setZ(i, z * k);
+    // near the ends, each lock stops at its own length: some shorter, some longer
+    const near = Math.max(0, 1 - (y - yEnd) / 0.05) ** 2;
+    const dy = jag * near * (0.6 * Math.sin(7 * phi + phase) + 0.4 * Math.sin(17 * phi + 2.1 + phase * 1.7));
+    p.setX(i, x * k); p.setY(i, y + dy); p.setZ(i, z * k);
   }
   g.computeVertexNormals(); return g;
 });
@@ -478,14 +484,14 @@ const FRONTS = {
 const CURL_TOP = 0.018;     // how far curls stand out of the top of the head
 // the hair hanging round the back and sides for each length, as a profile below the widest part of the head (w, y0)
 const LENGTHS = {
-  // a man's short-long cut: over the ears to about their lobes, a little fuller at the nape, the ends turned in
-  bob: (w, y0) => [[w + 0.006, y0 - 0.035], [w + 0.011, y0 - 0.07], [w + 0.01, y0 - 0.095], [w + 0.002, y0 - 0.107], [w - 0.006, y0 - 0.11]],
+  // a man's short-long cut: half over the ears, a little fuller at the nape, the ends turned in
+  bob: (w, y0) => [[w + 0.006, y0 - 0.025], [w + 0.01, y0 - 0.05], [w + 0.008, y0 - 0.068], [w + 0.001, y0 - 0.076], [w - 0.006, y0 - 0.078]],
   medium: (w, y0) => [[w + 0.004, y0 - 0.07], [w + 0.01, y0 - 0.15], [w + 0.016, y0 - 0.22], [w + 0.018, y0 - 0.26], [w + 0.006, y0 - 0.285], [w - 0.008, y0 - 0.29]],   // to the shoulders, ends turned under
   long: (w, y0) => [[w + 0.004, y0 - 0.08], [w + 0.012, y0 - 0.19], [w + 0.026, y0 - 0.29], [w + 0.008, y0 - 0.33]],
 };
 const CURLY_LENGTHS = {   // curls take up more room: fuller, and fullest toward the ends
   // the Japanese wet-perm look: short, full, loose waves standing out round the ears and nape
-  bob: (w, y0) => [[w + 0.014, y0 - 0.03], [w + 0.026, y0 - 0.065], [w + 0.03, y0 - 0.095], [w + 0.018, y0 - 0.115], [w + 0.002, y0 - 0.12]],
+  bob: (w, y0) => [[w + 0.016, y0 - 0.025], [w + 0.028, y0 - 0.05], [w + 0.032, y0 - 0.07], [w + 0.02, y0 - 0.084], [w + 0.004, y0 - 0.088]],
   medium: (w, y0) => [[w + 0.01, y0 - 0.06], [w + 0.02, y0 - 0.13], [w + 0.03, y0 - 0.2], [w + 0.034, y0 - 0.25], [w + 0.02, y0 - 0.28], [w + 0.004, y0 - 0.29]],
   long: (w, y0) => [[w + 0.012, y0 - 0.06], [w + 0.02, y0 - 0.13], [w + 0.03, y0 - 0.2], [w + 0.038, y0 - 0.27], [w + 0.042, y0 - 0.33], [w + 0.028, y0 - 0.37], [w + 0.006, y0 - 0.38]],
 };
@@ -530,9 +536,12 @@ function buildHair(hairParts, shape, head, hairM, mk, at, look) {
       }
       mk(lathe(`curtain4:${shape}:${key}`, layered, 32, 0.85, Math.PI * 2 - 1.7), hairM, 0, 0, 0, head);
     }
-    else {
-      const top = prof[3][1], bottom = prof[prof.length - 1][1];
-      mk(ringletLathe(`${shape}:${key}`, prof, 120, 0.85, Math.PI * 2 - 1.7, curls, y => Math.max(0, Math.min(1, (top - y) / (top - bottom) * 1.6))), hairM, 0, 0, 0, head);
+    else {   // curls: two layers, the inner one's locks set between the outer one's, so it's thick hair, not one sheet;
+      // the locks ending at their own lengths, not cut straight across
+      const top = prof[3][1], bottom = prof[prof.length - 1][1], strength = y => Math.max(0, Math.min(1, (top - y) / (top - bottom) * 1.6));
+      mk(ringletLathe(`${shape}:${key}`, prof, 120, 0.85, Math.PI * 2 - 1.7, curls, strength, 0, 0.02), hairM, 0, 0, 0, head);
+      const inner = prof.map(([r, y], k) => [r - (k > 6 ? 0.008 : 0.002), y]);
+      mk(ringletLathe(`${shape}:${key}:under`, inner, 120, 0.85, Math.PI * 2 - 1.7, curls * 0.9, strength, Math.PI * 0.9, 0.016), hairM, 0, 0, 0, head);
     }
   };
 
