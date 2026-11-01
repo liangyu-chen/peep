@@ -209,7 +209,7 @@ const curlLumps = amp => u => {
 // off differently (for a second layer under the first); `jag` lets the locks end at different lengths, up or down by
 // that much, so the ends aren't cut in a straight line. `inner` carries on the profile back up the inside, against the
 // head, closing the hair into one solid mass; it's left smooth
-const ringletLathe = (key, pts, seg, phiStart, phiLen, amp, strength, phase = 0, jag = 0, inner = []) => geo(`ringlet4:${key}`, () => {
+const ringletLathe = (key, pts, seg, phiStart, phiLen, amp, strength, phase = 0, jag = 0, inner = []) => geo(`ringlet5:${key}`, () => {
   const dense = [];
   for (let k = 1; k < pts.length; k++) {
     const [r0, y0] = pts[k - 1], [r1, y1] = pts[k], n = Math.max(1, Math.ceil(Math.abs(y1 - y0) / 0.006));
@@ -230,8 +230,30 @@ const ringletLathe = (key, pts, seg, phiStart, phiLen, amp, strength, phase = 0,
     const dy = jag * near * (0.6 * Math.sin(7 * phi + phase) + 0.4 * Math.sin(17 * phi + 2.1 + phase * 1.7));
     p.setX(i, x * k); p.setY(i, y + dy); p.setZ(i, z * k);
   }
+  closeEdges(g, phiStart, phiLen, inner);
   g.computeVertexNormals(); return g;
 });
+// toward the two front edges of hair hanging round the back and sides (beside the cheeks), its thickness thins away to
+// nothing, down onto the inside surface against the head, so the edge closes neatly instead of showing the hair as a
+// sheet folded back on itself with a gap beside the face. `inner` is that inside, [r, y] from the ends up to the crown
+function closeEdges(g, phiStart, phiLen, inner) {
+  if (!inner.length) return;
+  const ins = inner.slice().sort((a, b) => a[1] - b[1]);
+  const rIn = y => {
+    if (y <= ins[0][1]) return ins[0][0];
+    for (let k = 1; k < ins.length; k++) if (y <= ins[k][1]) { const [r0, y0] = ins[k - 1], [r1, y1] = ins[k]; return r0 + (r1 - r0) * (y - y0) / (y1 - y0 || 1); }
+    return ins[ins.length - 1][0];
+  };
+  const p = g.attributes.position, end = phiStart + phiLen, BAND = 0.5;
+  for (let i = 0; i < p.count; i++) {
+    const x = p.getX(i), y = p.getY(i), z = p.getZ(i), r = Math.hypot(x, z);
+    let phi = Math.atan2(x, z); if (phi < phiStart - 0.01) phi += Math.PI * 2;
+    const d = Math.min(phi - phiStart, end - phi);
+    if (d >= BAND || r < 1e-6) continue;
+    const f = Math.max(0, d / BAND), ease = f * f * (3 - 2 * f), r0 = Math.min(r, rIn(y)), k = (r0 + (r - r0) * ease) / r;
+    p.setX(i, x * k); p.setZ(i, z * k);
+  }
+}
 // chunky curls, each its own lock: a tube, thick at the root and thin at the tip, falling from `root` by `len`, swinging
 // out (`out`) by `flare` as it goes and winding `turns` times round itself as it falls, so the tip flicks out and up like
 // a permed curl. All the locks of a style are merged into one piece (one draw for the whole head of curls)
@@ -572,7 +594,10 @@ function buildHair(hairParts, shape, head, hairM, mk, at, look) {
           layered.push([r0 + (r1 - r0) * i / n + (end ? 0 : LAYER_DEPTH * tier((y0 - y) / 0.05)), y]);
         }
       }
-      mk(lathe(`curtain5:${shape}:${key}`, layered.concat(inside), 32, 0.85, Math.PI * 2 - 1.7), hairM, 0, 0, 0, head);
+      mk(geo(`curtain6:${shape}:${key}`, () => {
+        const lg = new THREE.LatheGeometry(layered.concat(inside).map(([r, y]) => new THREE.Vector2(r, y)), 48, 0.85, Math.PI * 2 - 1.7);
+        closeEdges(lg, 0.85, Math.PI * 2 - 1.7, inside); lg.computeVertexNormals(); return lg;
+      }), hairM, 0, 0, 0, head);
     }
     else {   // curls: the locks ending at their own lengths, not cut straight across
       const top = prof[3][1], bottom = prof[prof.length - 1][1], strength = y => Math.max(0, Math.min(1, (top - y) / (top - bottom) * 1.6));
