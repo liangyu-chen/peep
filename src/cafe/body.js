@@ -598,7 +598,7 @@ export function buildBody(look, seed = '') {
 }
 
 // hats, each a shell round its own tipped crown down to a front edge `elev` above the eyes; own is the hat's own thickness
-const HATS = { cap: { tilt: 0.25, elev: 0.4, own: 0.012 }, bucket: { tilt: 0.1, elev: 0.5, own: 0.014 }, beanie: { tilt: 0.35, elev: 0.45, own: 0.016 } };
+const HATS = { cap: { tilt: 0.25, elev: 0.4, own: 0.012 }, bucket: { tilt: 0.1, elev: 0.5, own: 0.014 }, beanie: { tilt: 0.42, elev: 0.4, own: 0.016 } };   // (the beanie pulled down a little lower, its crown slouching back)
 // the top of the head for each way the front can go: the hairline (radians above the eyes' horizon) all the way round,
 // and how full it stands, both by φ, the angle from straight ahead; lift is how far it stands off the head at most
 const line = phi => -0.16 + 0.66 * Math.cos(phi);                          // just above the brows, past the temples, down the nape
@@ -792,15 +792,14 @@ function buildHair(hairParts, shape, head, hairM, mk, at, look) {
       tuck,
     ]), capM, 0, 0, 0, head);
   } else {
-    // a beanie: knitted, the crown rising to a soft point, the cuff rolled up thick at the bottom
+    // a beanie: knitted, long, with no pompom: the crown standing well up off the head and slouching back a little, in a
+    // soft rounded peak, the cuff rolled up thick at the bottom
     const bm = new THREE.MeshStandardMaterial({ color: new THREE.Color(hatColor), map: ribs(), roughness: 1, side: THREE.DoubleSide });
-    mk(hatGeo(shape, `beanie2:${T.toFixed(3)}`, hatN, () => [
-      [0, T + 0.01, 0, 0], ...steps(9, t => [0.08 + t * (A - 0.34), T + 0.004 * (1 - t), 0, 0]),
+    mk(hatGeo(shape, `beanie3:${T.toFixed(3)}`, hatN, () => [
+      [0, T + 0.062, 0, 0], ...steps(11, t => [0.05 + t * (A - 0.32), T + 0.06 * (1 - t) ** 1.8 + 0.003 * (1 - t), 0, 0]),
       [A - 0.22, T + 0.002, 0, 0], [A - 0.18, T + 0.007, 0, 0], [A - 0.1, T + 0.009, 0, 0], [A - 0.03, T + 0.008, 0, 0], [A, T + 0.003, 0, 0.002],   // the cuff, hugging the head
       tuck,
     ]), bm, 0, 0, 0, head);
-    const top = at(0, 1, -0.35), up = new THREE.Vector3(0, 1, -0.35).normalize();
-    mk(sp(0.03, 10, 8), bm, top.x + up.x * (T + 0.03), top.y + up.y * (T + 0.03), top.z + up.z * (T + 0.03), head);   // the pompom, sunk into the crown
   }
 }
 
