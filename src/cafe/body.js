@@ -408,8 +408,9 @@ export function buildBody(look, seed = '') {
     const sm = mat(look.pants, { roughness: 0.85, side: THREE.DoubleSide });
     mk(lathe('skirt2', [[0.21, 0.02], [0.22, -0.04], [0.24, -0.13], [0.266, -0.23], [0.288, -0.32], [0.284, -0.33]], 28), sm, 0, 0, 0, skirt).scale.z = 0.78;
   }
-  const belt = mk(cy(0.204, 0.204, 0.026, 22), beltM, 0, 0.698, 0, g, false); belt.scale.z = 0.58;   // a sliver of it showing under the shirt
-  mk(bx(0.045, 0.024, 0.012), buckleM, 0, 0.697, 0.15, g, false);
+  // the belt at the waist, just under the shirt's hem, its buckle on its front
+  const belt = mk(cy(0.204, 0.204, 0.026, 22), beltM, 0, 0.708, 0, g, false); belt.scale.z = 0.58;
+  mk(bx(0.045, 0.024, 0.012), buckleM, 0, 0.707, 0.204 * 0.58 + 0.004, g, false);
 
   // ---------------------------------------------------------------- torso: waist, chest and sloping shoulders
   // waist, chest and shoulders close to the same width, so it isn't an inverted triangle; it starts higher, over the longer legs
