@@ -503,7 +503,7 @@ export function buildBody(look, seed = '') {
 
   // ---------------------------------------------------------------- head
   const head = new THREE.Group(); head.position.set(0, 1.44, 0); g.add(head);   // just off the shoulders, joined to them by a short flared neck
-  mk(headGeo(shape), skin, 0, 0, 0, head);
+  mk(headGeo(shape), skin, 0, 0, 0, head).receiveShadow = false;   // like the neck: no shadows on the skin, so head and neck are one colour
   const surf = SURF[shape] || (SURF[shape] = surfaceFor(shape));
   const at = (x, y, z) => deform(H, new THREE.Vector3(x, y, z).normalize());   // surface point in a direction
   // ears, sitting on the side of whatever head shape it is
