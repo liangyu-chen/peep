@@ -71,9 +71,9 @@ function makeLighter() {
 // Fitted so the filter meets the lips on a drag, the lighter's flame meets the tip, and the hold sits by the shoulder.
 export const SMOKE_POSE = {
   hold: { x: -0.236, y: 0.354, z: 0.059, el: -2.357, cx: 1.755, cz: -0.324 },            // hand up by the shoulder, cigarette pointing up and out
-  drag: { x: -1.377, y: 0.795, z: 0.276, el: -1.802, cx: -0.738, cz: 0.517, pitch: -0.05 },  // filter to the lips
+  drag: { x: -1.34, y: 0.815, z: 0.267, el: -1.819, cx: -0.738, cz: 0.517, pitch: -0.05 },  // filter to the lips
   tap: { x: -0.181, y: 0.17, z: 0.302, el: -1.188, cx: 3.356, cz: 0.445 },                 // out over the table, tip down
-  light: { x: -1.377, y: 0.795, z: 0.276, el: -1.802, cx: -0.738, cz: 0.517, rx: -0.523, rz: -1.68, rel: -1.251, pitch: 0.06 },   // and the right hand brings the lighter
+  light: { x: -1.34, y: 0.815, z: 0.267, el: -1.819, cx: -0.738, cz: 0.517, rx: -0.618, rz: -1.562, rel: -1.268, pitch: 0.06 },   // and the right hand brings the lighter
 };
 
 export function makeCup(drink, variant) {
@@ -97,8 +97,8 @@ export const DRINK_POSE = {
   carry: { x: -0.35, z: -0.06, el: -1.05 },
   walk: { x: -0.25, z: -0.06, el: -1.05 },
   high: { x: -0.75, z: -0.06, el: -1.1 },   // the owner, behind the bar: held up at chest height, clear over the bar top
-  sip: { x: -1.101, y: -0.759, z: -0.609, el: -1.604, tilt: 0.548 },
-  sipHot: { x: -1.398, y: -0.675, z: -1.055, el: -1.86, tilt: 0.3 },
+  sip: { x: -1.071, y: -0.779, z: -0.595, el: -1.61, tilt: 0.548 },
+  sipHot: { x: -1.371, y: -0.709, z: -1.053, el: -1.878, tilt: 0.3 },
 };
 const sipPose = cup => DRINK_POSE[cup && cup.userData.h < 0.1 ? 'sipHot' : 'sip'];
 // the cup stays upright in the hand (tipped toward the mouth for a sip), held in front of the palm, gripped round its middle
