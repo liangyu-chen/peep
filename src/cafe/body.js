@@ -355,19 +355,25 @@ const SURF = {};
 const fib = n => Array.from({ length: n }, (_, i) => { const y = 1 - (2 * (i + 0.5)) / n, r = Math.sqrt(1 - y * y), a = i * 2.39996; return new THREE.Vector3(Math.cos(a) * r, y, Math.sin(a) * r); });
 const FIB = fib(160);
 
+// a colour as picked in the back office (an sRGB hex, as its swatch shows it) in the linear form the renderer works in:
+// used as it is, the hex would come out lighter and greyer than picked
+// (and brightened by PICK_GAIN, for the café's light, which brings a white surface out at only about 70%)
+const PICK_GAIN = 2.0;
+export const picked = hex => new THREE.Color(hex).convertSRGBToLinear().multiplyScalar(PICK_GAIN);
 export function buildBody(look, seed = '') {
   const f = faceOf(look, seed);
+  const C = { skin: picked(look.skin), hair: picked(look.hair), shirt: picked(look.shirt), pants: picked(look.pants), shoe: picked(look.shoe || 0x1d1d1d) };
   const shape = HEADS[f.faceShape] ? f.faceShape : 'round', H = HEADS[shape];
   const g = new THREE.Group();
-  const shade = (c, k) => new THREE.Color(c).multiplyScalar(k).getHex();
-  const skin = mat(look.skin, { roughness: 0.62 }), skinShade = mat(shade(look.skin, 0.86), { roughness: 0.62 });
-  const shirt = mat(look.shirt, { roughness: 0.85 }), shirtDark = mat(shade(look.shirt, 0.72), { roughness: 0.85 });
-  const shirtIn = mat(shade(look.shirt, 0.42), { roughness: 0.9, side: THREE.BackSide });   // the shadowed inside of a sleeve
-  const shirtUnder = mat(shade(look.shirt, 0.35), { roughness: 1, side: THREE.DoubleSide });   // the inside of the shirt, seen under its hem
-  const pants = mat(look.pants, { roughness: 0.9 }), pantsDark = mat(shade(look.pants, 0.78), { roughness: 0.9 });
+  const shade = (c, k) => new THREE.Color(c).multiplyScalar(k);
+  const skin = mat(C.skin, { roughness: 0.62 }), skinShade = mat(shade(C.skin, 0.86), { roughness: 0.62 });
+  const shirt = mat(C.shirt, { roughness: 0.85 }), shirtDark = mat(shade(C.shirt, 0.72), { roughness: 0.85 });
+  const shirtIn = mat(shade(C.shirt, 0.42), { roughness: 0.9, side: THREE.BackSide });   // the shadowed inside of a sleeve
+  const shirtUnder = mat(shade(C.shirt, 0.35), { roughness: 1, side: THREE.DoubleSide });   // the inside of the shirt, seen under its hem
+  const pants = mat(C.pants, { roughness: 0.9 }), pantsDark = mat(shade(C.pants, 0.78), { roughness: 0.9 });
   // hair with a little sheen; curls more (the wet, styled look), straight hair a soft gloss along its layers
-  const hairM = mat(look.hair, { roughness: hairOf(look).curl === 'curly' ? 0.45 : 0.68, metalness: 0.05, map: strands(), side: THREE.DoubleSide });
-  const shoe = mat(look.shoe || 0x1d1d1d, { roughness: 0.55 });
+  const hairM = mat(C.hair, { roughness: hairOf(look).curl === 'curly' ? 0.45 : 0.68, metalness: 0.05, map: strands(), side: THREE.DoubleSide });
+  const shoe = mat(C.shoe, { roughness: 0.55 });
   const mk = (geom, m, x, y, z, par = g, shadow = true) => { const me = new THREE.Mesh(geom, m); me.position.set(x, y, z); me.castShadow = shadow; me.receiveShadow = shadow; par.add(me); return me; };
 
   // ---------------------------------------------------------------- legs and hips
@@ -407,7 +413,7 @@ export function buildBody(look, seed = '') {
   let skirt = null;
   if (skirted) {
     skirt = new THREE.Group(); skirt.position.set(0, 0.72 + LEG_EXTRA, 0); g.add(skirt);
-    const sm = mat(look.pants, { roughness: 0.85, side: THREE.DoubleSide });
+    const sm = mat(C.pants, { roughness: 0.85, side: THREE.DoubleSide });
     mk(lathe('skirt2', [[0.21, 0.02], [0.22, -0.04], [0.24, -0.13], [0.266, -0.23], [0.288, -0.32], [0.284, -0.33]], 28), sm, 0, 0, 0, skirt).scale.z = 0.78;
   }
   // the belt at the waist, just under the shirt's hem, its buckle on its front
@@ -438,7 +444,7 @@ export function buildBody(look, seed = '') {
     const front = new THREE.Mesh(new THREE.PlaneGeometry(0.19, 0.19), numM); front.position.set(0, 0.98, 0.147); g.add(front);
     const back = front.clone(); back.position.z = -0.147; back.rotation.y = Math.PI; back.scale.setScalar(1.3); g.add(back);
   }
-  if (look.apron) mk(bx(0.38, 0.6, 0.02), mat(look.apron), 0, 0.8, 0.15);
+  if (look.apron) mk(bx(0.38, 0.6, 0.02), mat(picked(look.apron)), 0, 0.8, 0.15);
   mk(cy(0.052, 0.062, 0.12, 12), skin, 0, 1.3, -0.005);                                       // neck
 
   // ---------------------------------------------------------------- head
@@ -459,7 +465,7 @@ export function buildBody(look, seed = '') {
 
   // eyes: each in its own group so it can blink
   const EX = 0.062 * H.s[0], EY = 0.025;
-  const iris = mat(f.eyeColor, { roughness: 0.3 });
+  const iris = mat(picked(f.eyeColor), { roughness: 0.3 });
   const eyes = [-1, 1].map(s => {
     const e = new THREE.Group(); e.position.set(s * EX, EY, surf(s * EX, EY) - 0.004); face.add(e);
     const sclera = r => { fm(disc(r), whiteM, 0, 0, 0.002, e).rotation.x = Math.PI / 2; };
@@ -497,10 +503,10 @@ export function buildBody(look, seed = '') {
   // beard first: the mouth sits on top of it
   // how dense the facial hair is: light is see-through and a little smaller, thick is fuller
   const BD = { light: { k: 0.8, a: 0.5, stub: 0.2 }, normal: { k: 1, a: 1, stub: 0.35 }, thick: { k: 1.3, a: 1, stub: 0.6 } }[f.beard] || { k: 1, a: 1, stub: 0.35 };
-  const beardM = BD.a < 1 ? mat(look.hair, { roughness: 0.9, transparent: true, opacity: BD.a, depthWrite: false }) : hairM;
+  const beardM = BD.a < 1 ? mat(C.hair, { roughness: 0.9, transparent: true, opacity: BD.a, depthWrite: false }) : hairM;
   const beardThick = f.facialHair === 'full' ? 0.014 * BD.k : f.facialHair === 'stubble' ? 0.002 : 0;
   if (beardThick) {
-    const m = f.facialHair === 'full' ? beardM : mat(look.hair, { roughness: 1, transparent: true, opacity: BD.stub, depthWrite: false });
+    const m = f.facialHair === 'full' ? beardM : mat(C.hair, { roughness: 1, transparent: true, opacity: BD.stub, depthWrite: false });
     const n = new THREE.Vector3(0, -0.9, 0.44).normalize();   // from just under the nose, round the jaw
     mk(shellGeo(shape, beardThick, n, 0, f.facialHair === 'full' ? 0.9 : 0.85), m, 0, 0, 0, head, false);
   }
@@ -772,7 +778,7 @@ function buildHair(hairParts, shape, head, hairM, mk, at, look) {
   const steps = (n, f) => Array.from({ length: n }, (_, k) => f(k / (n - 1)));
   if (hatStyle === 'cap') {
     // a six-panel cap: rounded crown, and a peak at the front only, curving down a little, with an underside
-    const capM = mat(hatColor, { roughness: 0.8, side: THREE.DoubleSide });
+    const capM = mat(picked(hatColor), { roughness: 0.8, side: THREE.DoubleSide });
     mk(hatGeo(shape, `cap:${T.toFixed(3)}`, hatN, fr => [
       ...steps(10, t => [t * (A - 0.02), T, 0, 0]),
       [A, T, 0, 0],
@@ -784,7 +790,7 @@ function buildHair(hairParts, shape, head, hairM, mk, at, look) {
     mk(sp(0.014, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2), capM, top.x + up.x * T, top.y + up.y * T - 0.002, top.z + up.z * T, head);   // the button, sitting on the crown
   } else if (hatStyle === 'bucket') {
     // a bucket hat: soft crown, the brim turning out and down all the way round, with an underside and a rolled edge
-    const capM = mat(hatColor, { roughness: 0.9, side: THREE.DoubleSide });
+    const capM = mat(picked(hatColor), { roughness: 0.9, side: THREE.DoubleSide });
     mk(hatGeo(shape, `bucket:${T.toFixed(3)}`, hatN, () => [
       ...steps(10, t => [t * A, T, 0, 0]),
       [A, T, 0.012, 0.004], [A, T, 0.032, 0.014], [A, T, 0.052, 0.028], [A, T - 0.002, 0.06, 0.036],
@@ -794,7 +800,7 @@ function buildHair(hairParts, shape, head, hairM, mk, at, look) {
   } else {
     // a beanie: knitted, long, with no pompom: the crown standing up off the head and slouching back a little, in a
     // broad round dome (not a point), the cuff rolled up thick at the bottom
-    const bm = new THREE.MeshStandardMaterial({ color: new THREE.Color(hatColor), map: ribs(), roughness: 1, side: THREE.DoubleSide });
+    const bm = new THREE.MeshStandardMaterial({ color: picked(hatColor), map: ribs(), roughness: 1, side: THREE.DoubleSide });
     mk(hatGeo(shape, `beanie4:${T.toFixed(3)}`, hatN, () => [
       [0, T + 0.042, 0, 0], ...steps(11, t => [0.05 + t * (A - 0.32), T + 0.042 * Math.max(0, 1 - t * t) ** 0.7 + 0.003 * (1 - t), 0, 0]),
       [A - 0.22, T + 0.002, 0, 0], [A - 0.18, T + 0.007, 0, 0], [A - 0.1, T + 0.009, 0, 0], [A - 0.03, T + 0.008, 0, 0], [A, T + 0.003, 0, 0.002],   // the cuff, hugging the head
