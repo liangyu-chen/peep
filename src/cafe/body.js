@@ -194,16 +194,17 @@ const TORSO = [[0.71, 0.202, 0.15], [0.76, 0.2, 0.148], [0.84, 0.197, 0.146], [0
   [1.11, 0.248, 0.142], [1.145, 0.27, 0.136], [1.175, 0.272, 0.126], [1.2, 0.252, 0.112], [1.225, 0.205, 0.095], [1.245, 0.145, 0.077], [1.26, 0.085, 0.06], [1.27, 0, 0]];
 // how a top is cut: the body wider (`w`) and deeper (`d`) than regular below the shoulders, fading back to the same neck;
 // `drop` lets the hem hang lower over the hips; the sleeves `s` times as wide, short ones `len` long
+// `sh` spreads the shoulders out over the tops of the arms, for a dropped shoulder
 const TOP_FITS = {
-  slim: { w: 0.95, d: 0.96, drop: 0, s: 0.92, len: 0.14 },
-  regular: { w: 1, d: 1, drop: 0, s: 1, len: 0.16 },
-  oversize: { w: 1.13, d: 1.1, drop: 0.07, s: 1.25, len: 0.22 },
+  slim: { w: 0.95, d: 0.96, drop: 0, s: 0.92, len: 0.14, sh: 0 },
+  regular: { w: 1, d: 1, drop: 0, s: 1, len: 0.16, sh: 0 },
+  oversize: { w: 1.13, d: 1.1, drop: 0.07, s: 1.35, len: 0.24, sh: 0.034 },
 };
-const torsoGeo = (fit = 'regular') => geo(`torso7:${fit}`, () => {
+const torsoGeo = (fit = 'regular') => geo(`torso8:${fit}`, () => {
   const F = TOP_FITS[fit] || TOP_FITS.regular, N = 40, pos = [], idx = [];
   const rows = (F.drop ? [[TORSO[0][0] - F.drop, TORSO[0][1], TORSO[0][2]]] : []).concat(TORSO).map(([y, rx, rz]) => {
     const k = Math.max(0, Math.min(1, (1.25 - y) / 0.15));   // full below the shoulders, none at the neck
-    return [y, rx * (1 + (F.w - 1) * k), rz * (1 + (F.d - 1) * k)];
+    return [y, rx * (1 + (F.w - 1) * k) + F.sh * Math.exp(-(((y - 1.15) / 0.055) ** 2)), rz * (1 + (F.d - 1) * k)];
   });
   rows.forEach(([y, rx, rz]) => { for (let i = 0; i <= N; i++) { const a = (i / N) * Math.PI * 2; pos.push(Math.sin(a) * rx, y, Math.cos(a) * rz); } });
   for (let r = 0; r < rows.length - 1; r++) for (let i = 0; i < N; i++) { const a = r * (N + 1) + i, b = a + N + 1; idx.push(a, a + 1, b, b, a + 1, b + 1); }
@@ -314,6 +315,8 @@ export function buildBody(look, seed = '') {
   const shade = (c, k) => new THREE.Color(c).multiplyScalar(k).getHex();
   const skin = mat(look.skin, { roughness: 0.62 }), skinShade = mat(shade(look.skin, 0.86), { roughness: 0.62 });
   const shirt = mat(look.shirt, { roughness: 0.85 }), shirtDark = mat(shade(look.shirt, 0.72), { roughness: 0.85 });
+  const shirtIn = mat(shade(look.shirt, 0.42), { roughness: 0.9, side: THREE.BackSide });   // the shadowed inside of a sleeve
+  const creaseM = mat(shade(look.shirt, 0.4), { roughness: 1 });                            // folds in the cloth: in shadow, never catching the light
   const pants = mat(look.pants, { roughness: 0.9 }), pantsDark = mat(shade(look.pants, 0.78), { roughness: 0.9 });
   // hair with a little sheen; curls more (the wet, styled look), straight hair a soft gloss along its layers
   const hairM = mat(look.hair, { roughness: hairOf(look).curl === 'curly' ? 0.45 : 0.68, metalness: 0.05, map: strands(), side: THREE.DoubleSide });
@@ -490,19 +493,40 @@ export function buildBody(look, seed = '') {
   const arms = [-armX, armX].map(x => {
     const s = Math.sign(x);
     const sh = new THREE.Group(); sh.position.set(x, 1.16, 0); g.add(sh);   // tucked under the slope of the shoulders
-    const long = look.longSleeve, sleeveM = long ? shirt : skin, S = long ? TF.s : 1;   // a long sleeve takes the top's cut all the way down; a bare arm doesn't
+    // sleeves are cloth over the arm, not the arm in another colour: tubes open at the end with their shadowed inside
+    // showing, a hem or cuff band, a few folds; a loose cut stands well clear of the arm, its shoulder seam dropped
+    // down onto the upper arm
+    const long = look.longSleeve, sleeveM = long ? shirt : skin, S = long ? TF.s : 1, loose = topFit === 'oversize';
+    // a crease: part of the way round the sleeve, not a ring, a shade darker, each turned its own way
+    let nFold = 0;
+    const fold = (r, y, par, tilt = 0) => {
+      const f = mk(geo(`crease:${r.toFixed(3)}`, () => new THREE.TorusGeometry(r, 0.0032, 4, 18, Math.PI * 1.15)), creaseM, 0, y, 0, par, false);
+      f.rotation.set(Math.PI / 2 + tilt, 0, 0); f.rotateZ(1.3 + (nFold++) * 2.1 + (s > 0 ? 0.4 : 0));
+    };
+    const lining = (rt, rb, h, y, par) => mk(cy(rt - 0.002, rb - 0.002, h, 14, true), shirtIn, 0, y, 0, par, false);   // the inside of a sleeve, seen at its opening
     mk(cy(0.058 * S, 0.052 * S, 0.27, 14, true), sleeveM, 0, -0.135, 0, sh);                       // upper arm, open where it meets the forearm
-    if (!long) {   // a short sleeve, as wide and as long as the cut makes it
-      const w = TF.s, L = TF.len;
-      mk(cy(0.065 * w, 0.061 * w, L, 12), shirt, 0, 0.01 - L / 2, 0, sh); mk(cy(0.063 * w, 0.063 * w, 0.02, 12), shirtDark, 0, 0.01 - L, 0, sh, false);
+    if (!long) {   // a short sleeve, as wide and as long as the cut makes it, the arm showing in its opening
+      const w = TF.s, L = TF.len, rt = 0.065 * w, rb = 0.062 * w;
+      mk(cy(rt, rb, L, 16, true), shirt, 0, 0.01 - L / 2, 0, sh); lining(rt, rb, 0.05, 0.01 - L + 0.025, sh);
+      mk(cy(rb + 0.002, rb + 0.002, 0.018, 16, true), shirtDark, 0, 0.01 - L + 0.009, 0, sh, false);   // the hem
+      if (loose) { fold(rt - 0.001, -0.065, sh); fold(rb, 0.01 - L * 0.62, sh, 0.18 * s); }            // the dropped shoulder seam, a fold
+    } else {
+      if (loose) fold(0.058 * S + 0.001, -0.065, sh);                                                 // the dropped shoulder seam
+      fold(0.053 * S, -0.22, sh, 0.12 * s);                                                           // creased where the arm bends
     }
     // the top of the shoulder: a low dome just the width of the sleeve, turning with the arm, so there's no ball sitting on it
     const top = (long ? 0.058 : 0.065) * TF.s;
     mk(sp(top, 18, 10, 0, Math.PI * 2, 0, Math.PI / 2), shirt, 0, long ? 0 : 0.01, 0, sh).scale.y = 0.3;   // the arm's rounded top, kept inside the shoulder
     const elbow = new THREE.Group(); elbow.position.set(0, -0.27, 0); sh.add(elbow); elbows.push(elbow);
     mk(sp(0.05 * S, 14, 10), sleeveM, 0, 0, 0, elbow);                                             // fills the elbow only when it bends
-    mk(cy(0.052 * S, 0.044 * S, 0.24, 14, true), sleeveM, 0, -0.12, 0, elbow);                     // forearm, the same width where they meet
-    if (long) mk(cy(0.05 * S, 0.05 * S, 0.03, 12), shirtDark, 0, -0.225, 0, elbow, false);         // cuff
+    const wrist = long ? (loose ? 0.05 : 0.046) * S : 0.044;
+    mk(cy(0.052 * S, wrist, 0.24, 14, true), sleeveM, 0, -0.12, 0, elbow);                          // forearm, the same width where they meet
+    if (long) {   // the cuff: a band at the wrist, the sleeve's inside showing round the hand; a loose sleeve bunches above it
+      mk(cy(wrist + 0.003, wrist + 0.003, 0.03, 14, true), shirtDark, 0, -0.225, 0, elbow, false);
+      lining(wrist + 0.003, wrist + 0.003, 0.04, -0.22, elbow);
+      fold(0.05 * S, -0.06, elbow, -0.1 * s);
+      if (loose) { fold(wrist + 0.004, -0.17, elbow, 0.15 * s); fold(wrist + 0.005, -0.195, elbow, -0.12 * s); }
+    }
     mk(sp(0.052, 12, 10), skin, 0, -0.285, 0.004, elbow).scale.set(0.82, 1.12, 0.68);              // hand
     mk(bx(0.024, 0.048, 0.028), skin, -s * 0.04, -0.27, 0.022, elbow, false).rotation.z = s * 0.45;   // thumb
     return sh;
