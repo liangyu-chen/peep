@@ -231,16 +231,28 @@ const torsoGeo = (fit = 'regular') => geo(`torso12:${fit}`, () => {
   for (let r = 0; r < rows.length - 1; r++) for (let i = 0; i < N; i++) { const a = r * (N + 1) + i, b = a + N + 1; idx.push(a, a + 1, b, b, a + 1, b + 1); }
   const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals(); return g;
 });
-// the hips, in ovals [y, half-width, half-depth] from the crotch up to the waist: full width at the sides all the way down
-// to the legs, and front to back hardly deeper than the thighs, nearly upright, so the front and back run straight on
-// down into the legs with no band or edge across them
-const SEAT = [[0.598, 0.04, 0.03], [0.606, 0.12, 0.072], [0.618, 0.168, 0.09], [0.635, 0.19, 0.096], [0.665, 0.198, 0.104], [0.695, 0.2, 0.112], [0.725, 0.2, 0.118]];
-const seatGeo = () => geo('seat3', () => {
-  const N = 32, pos = [], idx = [];
-  pos.push(0, SEAT[0][0] - 0.004, 0);   // closed at the bottom
-  SEAT.forEach(([y, rx, rz]) => { for (let i = 0; i <= N; i++) { const a = (i / N) * Math.PI * 2; pos.push(Math.sin(a) * rx, y, Math.cos(a) * rz); } });
-  for (let i = 0; i < N; i++) idx.push(0, 1 + i + 1, 1 + i);
-  for (let r = 0; r < SEAT.length - 1; r++) for (let i = 0; i < N; i++) { const a = 1 + r * (N + 1) + i, b = a + N + 1; idx.push(a, a + 1, b, b, a + 1, b + 1); }
+// the top of the pants as one piece, waist to crotch, so nothing joins the hips to the legs: an oval round the waist
+// that, going down, pinches in front and back between the legs until at the crotch it is exactly the two thighs (two
+// circles a shade wider than them, centred on the hip joints), and the thighs carry on down from there. Each slice is
+// sampled round its middle: the oval and the two circles, blended by height. (w: how full the pants' legs are; k: a
+// roomier seat for baggy pants)
+const PANTS_TOP = { crotch: 0.585, waist: 0.725, hipX: 0.094, rx: 0.2, rz: 0.118 };
+const pantsTopGeo = (w, k = 1) => geo(`ptop:${w}:${k}`, () => {
+  const { crotch, waist, hipX: c, rx, rz } = PANTS_TOP, N = 48, ROWS = 12, R = 0.0915 * w, pos = [], idx = [];
+  const lobes = (sx, sz) => {   // how far out along (sx, sz) the two circles reach, or almost nothing between them
+    let best = 0.004;
+    [-c, c].forEach(cx => { const b = sx * cx, disc = b * b - cx * cx + R * R; if (disc >= 0) best = Math.max(best, b + Math.sqrt(disc)); });
+    return best;
+  };
+  for (let r = 0; r <= ROWS; r++) {
+    const t = r / ROWS, y = crotch + (waist - crotch) * t, e = t * t * (3 - 2 * t);
+    for (let i = 0; i <= N; i++) {
+      const a = (i / N) * Math.PI * 2, sx = Math.sin(a), sz = Math.cos(a);
+      const oval = 1 / Math.sqrt((sx / (rx * k)) ** 2 + (sz / (rz * k)) ** 2), d = lobes(sx, sz) + (oval - lobes(sx, sz)) * e;
+      pos.push(sx * d, y, sz * d);
+    }
+  }
+  for (let r = 0; r < ROWS; r++) for (let i = 0; i < N; i++) { const a = r * (N + 1) + i, b = a + N + 1; idx.push(a, a + 1, b, b, a + 1, b + 1); }
   const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals(); return g;
 });
 // curls in a hair surface, like the ringlets lower down: wavy locks running out from the crown, each waving from side
@@ -385,11 +397,9 @@ export function buildBody(look, seed = '') {
     [0.03, 0.055, 0.08].forEach(z => mk(bx(0.05, 0.006, 0.01), laceM, 0, -0.287 + shoeTop(z) + 0.002, z, knee, false));
     return { hip, knee };
   });
-  // hips: from the waist down into the tops of the legs, flattening front to back as they go, so by the crotch they are
-  // no deeper than the thighs and their front and back run straight on down the legs (a round seat standing proud of
-  // the thighs leaves a line round the tops of the legs, like briefs)
-  const seat = mk(seatGeo(), pants, 0, 0, 0);
-  if (fit === 'wide') seat.scale.set(1.12, 1, 1.12);   // baggy pants are roomy through the seat too
+  // hips: one piece from the waist splitting into the two legs, no join between them (separate hips and thighs leave a
+  // line round the tops of the legs, like briefs)
+  const seat = mk(pantsTopGeo(W, fit === 'wide' ? 1.12 : 1), pants, 0, 0, 0);   // (baggy pants are roomy through the seat too)
   bare.push(seat);
   // a skirt: knee length, A-line, hanging from the waist; a pivot at the waist so it can drape over the lap when sitting
   let skirt = null;
