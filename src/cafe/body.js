@@ -103,10 +103,10 @@ const shellGeo = (shape, thick, n, from, to, xMax = 9) => geo(`shell:${shape},${
 const LAYER_DEPTH = 0.0035;
 const tier = s => { const f = s - Math.floor(s); return f < 0.72 ? 0.5 - 0.5 * Math.cos(Math.PI * f / 0.72) : 0.5 + 0.5 * Math.cos(Math.PI * (f - 0.72) / 0.28); };
 // (fading out round the back, where longer hair hangs over it, so it never pokes through that and leaves a seam)
-const layerAt = (phi, t) => LAYER_DEPTH * tier(t * 3.3 + 0.12 * Math.sin(4 * phi) + 0.06 * Math.sin(11 * phi)) * Math.min(1, Math.max(0, (t - 0.15) / 0.15))
+const layerAt = (phi, t) => LAYER_DEPTH * tier(t * 3.3 + 0.1 * Math.sin(3 * phi)) * Math.min(1, Math.max(0, (t - 0.15) / 0.15))
   * Math.min(1, Math.max(0, (2.1 - Math.abs(Math.atan2(Math.sin(phi), Math.cos(phi)))) / 0.6));
-const capGeo = (shape, key, edge, thick, bump = null, groove = null, flow = null) => geo(`cap4:${shape},${key}`, () => {
-  const h = HEADS[shape], NA = bump ? 180 : 160, NT = bump ? 54 : 60, pos = [], uv = [], idx = [], v = new THREE.Vector3(), u = new THREE.Vector3();
+const capGeo = (shape, key, edge, thick, bump = null, groove = null, flow = null) => geo(`cap5:${shape},${key}`, () => {
+  const h = HEADS[shape], NA = bump ? 180 : groove ? 320 : 160, NT = bump ? 54 : 60, pos = [], uv = [], idx = [], v = new THREE.Vector3(), u = new THREE.Vector3();
   for (let i = 0; i <= NA; i++) {
     const phi = (i / NA) * Math.PI * 2, polar = Math.PI / 2 - edge(phi), th0 = thick(0.5 * Math.PI), th1 = thick(phi);
     for (let j = 0; j <= NT; j++) {
@@ -505,13 +505,13 @@ const line = phi => -0.16 + 0.66 * Math.cos(phi);                          // ju
 const lobe = (phi, at0, p) => Math.max(0, Math.cos(phi - at0)) ** p;      // a bump centred on angle at0
 const ang = phi => Math.atan2(Math.sin(phi), Math.cos(phi));               // -π..π, 0 straight ahead
 // a parting at angle at0: cut deep down the middle, the hair either side standing up a little, so it shows clearly
-const parting = (at0, depth) => phi => depth * Math.exp(-((ang(phi - at0) / 0.05) ** 2));   // only a faint crease along it
+const parting = (at0, depth) => phi => depth * Math.exp(-((ang(phi - at0) / 0.09) ** 2));   // only a soft crease along it
 // the strands either side of a parting: running away from it at an angle, down toward the temples, the hair on one
 // side (`steepA`, the side toward +φ) and the other (`steepB`) can fall at different angles. Round the back of the head
 // they turn back into plain strands straight down from the crown
 const partFlow = (at0, steepA, steepB) => (phi, t) => {
   const d = ang(phi - at0), radial = (ang(phi) + Math.PI) / (2 * Math.PI) * 6;
-  const away = t * 3 - Math.abs(d) * (d > 0 ? steepA : steepB), w = Math.exp(-((d / 1.1) ** 2));
+  const away = t * 3 - Math.sqrt(d * d + 0.01) * (d > 0 ? steepA : steepB), w = Math.exp(-((d / 1.1) ** 2));
   return radial * (1 - w) + away * w;
 };
 const FRONTS = {
