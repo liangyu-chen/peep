@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { ctx } from './engine.js';
 import { S, sleep } from './state.js';
 import { rand, randi, pick, K } from './util.js';
-import { DOOR, TOILET, zoneSpot, route, LANE, MACHINE } from './layout.js';
+import { DOOR, TOILET, zoneSpot, route, LANE, MACHINE, HUBX } from './layout.js';
 import { Person, makeCup, walk } from './people.js';
 import { newProfile, tvGames, GAME_LABEL } from './profiles.js';
 import { doTops } from './tops.js';
@@ -37,6 +37,25 @@ async function ownerTo(owner, x, z, more = []) {
   }
 }
 
+// out from behind the bar at its back end, round the 2K stools to the walkway (a path out to the walkway, like a seat's)
+const BAR_OUT = [[LANE, -2.3], [0.6, -3.4], [-1.2, -3.95], [HUBX, -3.95]];
+async function emptyAshtrays(owner, trays) {
+  owner.status = '去戶外區倒菸灰缸';
+  await ownerTo(owner, LANE, -2.3);
+  let zone = BAR_OUT;
+  for (const a of trays) {
+    await walk(owner, route(zone, a.path)); zone = a.path;
+    owner.face(a.face); await sleep(0.5);
+    owner.status = '倒菸灰缸';
+    owner.gesture('wipe', 1.6); await sleep(1.6);
+    a.n = 0; a.show();
+  }
+  owner.status = '回吧台';
+  const back = [[LANE, rand(-1.5, 1.5)]].concat(BAR_OUT);
+  await walk(owner, route(zone, back));
+  owner.act = null; owner.actT = 0;
+}
+
 async function ownerLoop(owner) {
   while (!S.stopped) {
     if (!S.orderQueue.length) {
@@ -51,6 +70,9 @@ async function ownerLoop(owner) {
         if (Math.random() < 0.5) sayLine(owner, 'owner.beansDone');
         continue;
       }
+      // or out to the arcade to empty the ashtrays, once there are a few butts in them
+      const dirty = (S.ashtrays || []).filter(a => a.n >= 2);
+      if (dirty.length && dirty.reduce((t, a) => t + a.n, 0) >= 4 && Math.random() < 0.06 && !S.closing) { await emptyAshtrays(owner, dirty); continue; }
       owner.status = pick(['擦吧台', '整理茶杯', '試喝今天的豆子', '練雕花']);
       // he steps up to whichever side he works at, just far enough off it that his hands stop at its edge
       const toBar = Math.random() < 0.5;

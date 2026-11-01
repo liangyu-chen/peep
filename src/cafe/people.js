@@ -186,6 +186,10 @@ export class Person {
   putOut() {
     if (this.lighter) { this.lighter.parent.remove(this.lighter); this.lighter = null; }
     if (!this.cig) return;
+    // stubbed out in the nearest ashtray, if there's one at hand
+    const x = this.g.position.x / K, z = this.g.position.z;
+    const tray = (S.ashtrays || []).map(a => [a, Math.hypot(a.x - x, a.z - z)]).filter(([, d]) => d < 1.6).sort((p, q) => p[1] - q[1])[0];
+    if (tray) { tray[0].n = Math.min(tray[0].butts.length, tray[0].n + 1); tray[0].show(); }
     this.cig.parent.remove(this.cig); this.cig = null; this.fingers.parent.remove(this.fingers); this.fingers = null; this.smk = null; this.exhaleT = 0;
   }
   smoking(dt) {

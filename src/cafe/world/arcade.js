@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import { ctx, mat, box, cyl, canvasTex, plane, LOW_POWER, DECAL } from '../engine.js';
 import { S } from '../state.js';
 import { pick, rand, DOT, K } from '../util.js';
-import { STRIP, RISE } from '../layout.js';
+import { STRIP, RISE, HUBX } from '../layout.js';
 import { blackM, cinderM, CRATE_ORANGE, GLOSS_ORANGE, cinderBlock, cinderSeat, blockStack, crate, linkedChairs, campChair, figurine, trackRun, ceilingFan } from './props.js';
 
 const potM = () => mat(0xb5643c), leafM = () => mat(0x3f6b3a);
@@ -251,12 +251,20 @@ function storeroomWall() {
   S.bulbs && S.bulbs.push({ pl: lamp, bm: null, base: 0.5 });
 }
 
-// smoking is allowed outside: an ashtray (a couple of butts in it) on some of the tables
-function ashtray(x, y, z) {
+// smoking is allowed outside: an ashtray (a couple of butts in it) on some of the tables. Each smoker stubs one out in
+// the nearest, and the owner empties them when he's got a moment (sim.js). `path` is where he stands to empty it, out to
+// the walkway, and `face` which way he faces it.
+const buttM = mat(0xd9a05a);
+const BUTTS = [[0.012, 0.012, 0.6], [-0.015, -0.015, -0.4], [0.02, -0.014, 2.1], [-0.02, 0.016, 1.2], [0.0, 0.022, -1.4], [-0.004, -0.024, 0.3]];
+function ashtray(x, y, z, path, face) {
   const g = new THREE.Group(); g.position.set(x, y, z); g.rotation.y = Math.random() * 3; ctx.scene.add(g);
   cyl(0.05, 0.045, 0.018, mat(0x8f969c, { metalness: 0.7, roughness: 0.35 }), 0, 0.009, 0, g, 16);
   cyl(0.04, 0.04, 0.004, mat(0x3a3a3c, { roughness: 1 }), 0, 0.017, 0, g, 16);
-  [[0.012, 0.6], [-0.015, -0.4]].forEach(([dx, r]) => { const b = cyl(0.0045, 0.0045, 0.03, mat(0xd9a05a), dx, 0.022, dx, g, 6); b.rotation.set(Math.PI / 2, r, 0); });
+  const butts = BUTTS.map(([dx, dz, r]) => { const b = cyl(0.0045, 0.0045, 0.03, buttM, dx, 0.022, dz, g, 6); b.rotation.set(Math.PI / 2, r, 0); return b; });
+  const a = { x, z, butts, n: 2, path, face };
+  a.show = () => butts.forEach((b, i) => { b.visible = i < a.n; });
+  a.show();
+  S.ashtrays.push(a);
 }
 
 // ---------------------------------------------------------------- the pictures on the grey wall behind the seats
@@ -329,9 +337,12 @@ export function buildArcade() {
   linkedChairs(-2.72, 6.0, Math.PI / 2, [GLOSS_ORANGE, GLOSS_ORANGE, GLOSS_ORANGE]);   // row along the grey wall
   linkedChairs(0.62, 6.6, -Math.PI / 2, [0xff8fb0, 0xffc21a, CRATE_ORANGE]);           // along the storage wall: orange, yellow, pink from the street in
   middleStrip();
-  ashtray(-1.0, 0.6, STRIP.at(STRIP.crates[2]));           // on the inner crates, between the cups (the tops stadium goes nearer the street)
-  ashtray(-0.31, 0.6, 7.66);                                // the block table between the two seats by the scooter, clear of their cups
-  ashtray(-0.45, 0.6 - RISE, 9.12);                                // the camping chair's crates on the kerb
+  const PORCH = [[-1.75, 4.75], [-1.6, 4.5], [HUBX, 3.6]];
+  S.ashtrays = [];
+  const az = STRIP.at(STRIP.crates[2]);
+  ashtray(-1.0, 0.6, az, [[-1.62, az]].concat(PORCH), Math.PI / 2);                      // on the inner crates, between the cups (the tops stadium goes nearer the street)
+  ashtray(-0.31, 0.6, 7.66, [[-0.31, 7.2], [-0.45, 4.7]].concat(PORCH.slice(1)), 0);      // the block table between the two seats by the scooter, clear of their cups
+  ashtray(-0.45, 0.6 - RISE, 9.12, [[-1.05, 9.05], [-1.3, 8.3]].concat(PORCH), Math.PI / 2);   // the camping chair's crates on the kerb
   // overhead: one row of track lights straight across the arcade, and a ceiling fan over the middle table
   trackRun(-2.9, 5.3, 0.85, 5.3, 2.75, 0.9);
   ceilingFan(-1.0, 6.6);
