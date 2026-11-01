@@ -14,6 +14,7 @@ export type Look = {
   hat?: string; hatColor?: number;             // a hat worn over whatever the hair is (older looks: hairStyle 'cap'/'bucket' + cap, or beanie)
   hairLength?: string; hairCurl?: string; hairFront?: string; hairTie?: string;   // the hair, chosen part by part (older looks: hairStyle alone)
   bottom?: string; pantsFit?: string;          // pants or a skirt (in the pants colour), and how wide the pants are
+  topFit?: string;                             // how the top is cut: slim, regular or oversize
   glasses?: boolean | string;                  // older looks stored true for square frames
   faceShape?: string; eyes?: string; eyeColor?: number; brows?: string; nose?: string; mouth?: string;
   facialHair?: string; blush?: boolean;
@@ -261,13 +262,18 @@ export function hairLabel(h: Hair): string {
   return [l('length', h.length), h.curl !== 'straight' && l('curl', h.curl), h.front !== 'none' && l('front', h.front), h.tie !== 'none' && l('tie', h.tie)].filter(Boolean).join('・');
 }
 // what's worn below the waist: pants or a skirt, and for pants how wide they are
-export const CLOTHES: Record<'bottom' | 'fit', Option[]> = {
+export const CLOTHES: Record<'bottom' | 'fit' | 'top' | 'sleeve', Option[]> = {
   bottom: [{ value: 'pants', label: '褲子' }, { value: 'skirt', label: '裙子' }],
   fit: [{ value: 'slim', label: '窄管' }, { value: 'regular', label: '一般' }, { value: 'wide', label: '寬褲' }],
+  top: [{ value: 'slim', label: '合身' }, { value: 'regular', label: '一般' }, { value: 'oversize', label: '寬鬆' }],   // how the top is cut
+  sleeve: [{ value: 'short', label: '短袖' }, { value: 'long', label: '長袖' }],
 };
 const clothesValid = (key: keyof typeof CLOTHES, v: unknown) => typeof v === 'string' && CLOTHES[key].some(o => o.value === v);
-export function clothesOf(look: Look): { bottom: string; fit: string } {
-  return { bottom: clothesValid('bottom', look.bottom) ? (look.bottom as string) : 'pants', fit: clothesValid('fit', look.pantsFit) ? (look.pantsFit as string) : 'regular' };
+export function clothesOf(look: Look): { bottom: string; fit: string; top: string; sleeve: string } {
+  return {
+    bottom: clothesValid('bottom', look.bottom) ? (look.bottom as string) : 'pants', fit: clothesValid('fit', look.pantsFit) ? (look.pantsFit as string) : 'regular',
+    top: clothesValid('top', look.topFit) ? (look.topFit as string) : 'regular', sleeve: look.longSleeve ? 'long' : 'short',
+  };
 }
 // a hat is its own choice, put on over the hair
 export const HAT_STYLES: Option[] = [
@@ -341,6 +347,7 @@ export function parseLook(get: (k: string) => string | null, prev?: Look): Look 
     hairLength: hairPart('length', 'hairLength', hairNow.length), hairCurl: hairPart('curl', 'hairCurl', hairNow.curl),
     hairFront: hairPart('front', 'hairFront', hairNow.front), hairTie: hairPart('tie', 'hairTie', hairNow.tie),
     bottom: clothesPart('bottom', 'bottom', clothesNow.bottom), pantsFit: clothesPart('fit', 'pantsFit', clothesNow.fit),
+    topFit: clothesPart('top', 'topFit', clothesNow.top), longSleeve: clothesPart('sleeve', 'sleeve', clothesNow.sleeve) === 'long',
     hat: HAT_STYLES.some(h => h.value === hat) ? hat : 'none', hatColor: hex('hatColor', hatNow.color),
     faceShape: opt('faceShape', face.faceShape), eyes: opt('eyes', face.eyes), brows: opt('brows', face.brows),
     nose: opt('nose', face.nose), mouth: opt('mouth', face.mouth), facialHair: opt('facialHair', face.facialHair), beard: opt('beard', face.beard),

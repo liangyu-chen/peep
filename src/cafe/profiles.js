@@ -63,7 +63,7 @@ export function newProfile() {
       new THREE.Color().setHSL(Math.random(), rand(0.3, 0.6), rand(0.35, 0.6)).getHex(), pick([0x2b2b2b, 0x334455, 0x5a4a3a, 0x1f2a44]),
       {
         ...randomHair(female),
-        bottom: female && Math.random() < 0.35 ? 'skirt' : 'pants', pantsFit: pick(['slim', 'regular', 'regular', 'wide']),
+        bottom: female && Math.random() < 0.35 ? 'skirt' : 'pants', pantsFit: pick(['slim', 'regular', 'regular', 'wide']), topFit: pick(['slim', 'regular', 'regular', 'oversize']),
         hat: Math.random() < 0.3 ? pick(['cap', 'cap', 'bucket', 'beanie']) : 'none', hatColor: new THREE.Color().setHSL(Math.random(), 0.5, 0.45).getHex(), longSleeve: Math.random() < 0.4,
         faceShape: pickFace('faceShape'), eyes: pickFace('eyes'), brows: pickFace('brows'), nose: pickFace('nose'), mouth: pickFace('mouth'),
         glasses: Math.random() < 0.15 ? pick(['round', 'square']) : 'none',
