@@ -210,7 +210,8 @@ const laceM = mat(0xeeeeea, { roughness: 0.7 });
 // the shoulders and then slopes up to the neck in one curve
 // (the shoulders kept fairly narrow, so nobody looks built broader than they are)
 const TORSO = [[0.71, 0.202, 0.15], [0.76, 0.2, 0.148], [0.84, 0.197, 0.146], [0.94, 0.198, 0.146], [1.02, 0.204, 0.146], [1.07, 0.216, 0.145],
-  [1.11, 0.236, 0.142], [1.145, 0.252, 0.136], [1.175, 0.252, 0.126], [1.2, 0.234, 0.112], [1.222, 0.19, 0.096], [1.234, 0.15, 0.083], [1.242, 0.1, 0.071], [1.246, 0.074, 0.061], [1.248, 0, 0]];   // a low crew neck: the neck shows above it
+  [1.11, 0.236, 0.142], [1.145, 0.252, 0.136], [1.175, 0.252, 0.126], [1.2, 0.234, 0.112], [1.222, 0.19, 0.096], [1.234, 0.15, 0.083], [1.242, 0.1, 0.071], [1.246, 0.074, 0.061],
+  [1.256, 0.062, 0.055], [1.27, 0.05, 0.045]];   // and on up, narrowing into the neck (the skin above the neckline), so the neck grows out of the chest with no join
 // how a top is cut: the body wider (`w`) and deeper (`d`) than regular below the shoulders, fading back to the same neck;
 // `drop` lets the hem hang lower over the hips; the sleeves `s` times as wide, short ones `len` long
 // `sh` lets a little cloth drape over the tops of the arms; the dropped shoulder itself is the sleeve, its seam lower;
@@ -224,7 +225,7 @@ const TOP_FITS = {
 // a U neck: the front of the top scooped out from the base of the neck down to UNECK.bot, so the neck and a little chest
 // show. Across the front it is UNECK.w either side of the middle, straight down the sides from UNECK.full and rounding
 // into the bottom of the U.
-const UNECK = { full: 1.232, bot: 1.164, w: 0.088, flat: 0.016 };
+const UNECK = { full: 1.232, bot: 1.164, w: 0.088, flat: 0.016, neck: 1.246 };   // above `neck` it's all skin
 const uHalf = y => { const s = Math.max(0, Math.min(1, (y - UNECK.bot) / (UNECK.full - UNECK.bot))); return Math.max(UNECK.flat, UNECK.w * Math.sqrt(1 - (1 - s) ** 2)); };
 // the torso's slices for a cut, with extra rows over the chest and shoulders so the U's edge runs smoothly
 const torsoRows = fit => {
@@ -244,7 +245,7 @@ const torsoRows = fit => {
 // how far round from the front the U reaches on a slice (0 below it); the slice's points are laid out so one falls
 // exactly on each side of the U, and the skin inside it is the second material
 const uAngle = (y, rx) => y < UNECK.bot - 1e-4 ? 0 : rx < 1e-4 ? Math.PI / 2 : Math.asin(Math.min(1, uHalf(y) / rx));
-const torsoGeo = (fit = 'regular') => geo(`torso18:${fit}`, () => {
+const torsoGeo = (fit = 'regular') => geo(`torso19:${fit}`, () => {
   const N = 48, M = 12, pos = [], idx = [], skinIdx = [];
   const rows = torsoRows(fit);
   rows.forEach(([y, rx, rz]) => {
@@ -256,7 +257,7 @@ const torsoGeo = (fit = 'regular') => geo(`torso18:${fit}`, () => {
   });
   for (let r = 0; r < rows.length - 1; r++) for (let i = 0; i < N; i++) {
     const a = r * (N + 1) + i, b = a + N + 1;
-    (i < M && uAngle(rows[r][0], rows[r][1]) > 0 ? skinIdx : idx).push(a, a + 1, b, b, a + 1, b + 1);
+    ((i < M && uAngle(rows[r][0], rows[r][1]) > 0) || rows[r][0] >= UNECK.neck - 1e-4 ? skinIdx : idx).push(a, a + 1, b, b, a + 1, b + 1);
   }
   const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
   g.setIndex(idx.concat(skinIdx)); g.addGroup(0, idx.length, 0); g.addGroup(idx.length, skinIdx.length, 1);
@@ -270,8 +271,8 @@ const torsoGeo = (fit = 'regular') => geo(`torso18:${fit}`, () => {
   return g;
 });
 // the neckline's rib: down round the U in front and across the back of the neck
-const neckRibGeo = (fit = 'regular') => geo(`neckrib4:${fit}`, () => {
-  const pts = [], rows = torsoRows(fit).filter(([y, rx]) => y >= UNECK.bot - 1e-4 && rx > 0.06);
+const neckRibGeo = (fit = 'regular') => geo(`neckrib5:${fit}`, () => {
+  const pts = [], rows = torsoRows(fit).filter(([y]) => y >= UNECK.bot - 1e-4 && y <= UNECK.neck + 1e-4);
   const side = sgn => rows.map(([y, rx, rz]) => { const t = uAngle(y, rx); return new THREE.Vector3(sgn * Math.sin(t) * rx * 1.012, y, Math.cos(t) * rz * 1.012); });
   const right = side(1), left = side(-1).reverse();
   pts.push(...left.slice(0, -1), new THREE.Vector3(0, UNECK.bot, rows[0][2] * 1.012), ...right);
