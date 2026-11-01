@@ -257,11 +257,11 @@ function closeEdges(g, phiStart, phiLen, inner) {
 // chunky curls, each its own lock: a tube, thick at the root and thin at the tip, falling from `root` by `len`, swinging
 // out (`out`) by `flare` as it goes and winding `turns` times round itself as it falls, so the tip flicks out and up like
 // a permed curl. All the locks of a style are merged into one piece (one draw for the whole head of curls)
-const curlLocks = (key, locks) => geo(`locks:${key}`, () => {
+const curlLocks = (key, locks) => geo(`locks2:${key}`, () => {
   const parts = locks.map(({ root, out, side, len, flare, turns, r0, lean = 0 }) => {
     const pts = [];
     for (let i = 0; i <= 16; i++) {
-      const s = i / 16, a = turns * Math.PI * 2 * s, rc = 0.014 * Math.min(1, s * 3);
+      const s = i / 16, a = turns * Math.PI * 2 * s, rc = 0.01 * Math.min(1, s * 3);
       pts.push(root.clone().add(new THREE.Vector3(0, -len * s * (1 - 0.25 * s), 0))
         .addScaledVector(out, flare * s * s + rc * (1 - Math.cos(a)))
         .addScaledVector(side, lean * s + rc * Math.sin(a)));
@@ -542,11 +542,11 @@ const LENGTHS = {
   medium: (w, y0) => [[w + 0.004, y0 - 0.07], [w + 0.01, y0 - 0.15], [w + 0.016, y0 - 0.22], [w + 0.018, y0 - 0.26], [w + 0.006, y0 - 0.285], [w - 0.008, y0 - 0.29]],   // to the shoulders, ends turned under
   long: (w, y0) => [[w + 0.004, y0 - 0.08], [w + 0.012, y0 - 0.19], [w + 0.026, y0 - 0.29], [w + 0.008, y0 - 0.33]],
 };
-const CURLY_LENGTHS = {   // curls take up more room: fuller, and fullest toward the ends
-  // the Japanese wet-perm look: short, full, loose waves standing out round the ears and nape
-  bob: (w, y0) => [[w + 0.016, y0 - 0.025], [w + 0.028, y0 - 0.05], [w + 0.032, y0 - 0.07], [w + 0.02, y0 - 0.084], [w + 0.004, y0 - 0.088]],
-  medium: (w, y0) => [[w + 0.01, y0 - 0.06], [w + 0.02, y0 - 0.13], [w + 0.03, y0 - 0.2], [w + 0.034, y0 - 0.25], [w + 0.02, y0 - 0.28], [w + 0.004, y0 - 0.29]],
-  long: (w, y0) => [[w + 0.012, y0 - 0.06], [w + 0.02, y0 - 0.13], [w + 0.03, y0 - 0.2], [w + 0.038, y0 - 0.27], [w + 0.042, y0 - 0.33], [w + 0.028, y0 - 0.37], [w + 0.006, y0 - 0.38]],
+const CURLY_LENGTHS = {   // curls take up a little more room, a little fuller toward the ends
+  // the Japanese wet-perm look: short, loose waves lying fairly close round the ears and nape
+  bob: (w, y0) => [[w + 0.008, y0 - 0.025], [w + 0.014, y0 - 0.05], [w + 0.016, y0 - 0.07], [w + 0.008, y0 - 0.084], [w - 0.002, y0 - 0.088]],
+  medium: (w, y0) => [[w + 0.006, y0 - 0.06], [w + 0.012, y0 - 0.13], [w + 0.018, y0 - 0.2], [w + 0.0204, y0 - 0.25], [w + 0.012, y0 - 0.28], [w + 0.0024, y0 - 0.29]],
+  long: (w, y0) => [[w + 0.0072, y0 - 0.06], [w + 0.012, y0 - 0.13], [w + 0.018, y0 - 0.2], [w + 0.0228, y0 - 0.27], [w + 0.0252, y0 - 0.33], [w + 0.0168, y0 - 0.37], [w + 0.0036, y0 - 0.38]],
 };
 
 // the hair first, built from its parts (length, straight / curly / spiky, the front, tied up or not), then the hat
@@ -611,7 +611,7 @@ function buildHair(hairParts, shape, head, hairM, mk, at, look) {
   } else if (length !== 'bald') {
     // the top of the head: shaped by the front, with curls in its surface if it's curly
     const F = FRONTS[front] || FRONTS.none, curly = curl === 'curly';
-    const amp = length === 'short' ? 0.02 : length === 'bob' ? 0.024 : CURL_TOP;   // the wet perm stands up fuller on top
+    const amp = length === 'short' ? 0.02 : length === 'bob' ? 0.016 : CURL_TOP;   // the wet perm lies fairly close
     mk(capGeo(shape, `${front}${curly ? `:waves${amp}` : ':flow'}`, F.edge, F.thick, curly ? curlLumps(amp) : null, F.groove, curly ? null : F.flow), hairM, 0, 0, 0, head);
     lift = F.lift + LAYER_DEPTH + (curly ? amp : 0);
     if (curl === 'spiky') {
@@ -633,7 +633,7 @@ function buildHair(hairParts, shape, head, hairM, mk, at, look) {
       const tail = mk(lathe(`tail:${L}:${R}`, [[0.001, 0.02], [0.04 * R, 0], [0.05 * R, -0.08 * L], [0.035 * R, -0.2 * L], [0.012 * R, -0.28 * L], [0, -0.29 * L]], 14), hairM, p.x, p.y - 0.01, p.z - 0.04, head);
       tail.rotation.x = 0.35;
     } else if (hangs) {
-      curtain(`${length}${curly ? ':curly' : ''}`, (curly ? CURLY_LENGTHS : LENGTHS)[length], curly ? (length === 'bob' ? 0.026 : 0.022) : 0);
+      curtain(`${length}${curly ? ':curly' : ''}`, (curly ? CURLY_LENGTHS : LENGTHS)[length], curly ? (length === 'bob' ? 0.016 : 0.018) : 0);
       if (curly) {
         // loose curls over it all, the way a perm falls: two rows of chunky locks round the sides and back, every one a
         // different length, swinging out and flicking up at the tips; and, unless it's combed back, a few falling over the
@@ -641,21 +641,21 @@ function buildHair(hairParts, shape, head, hairM, mk, at, look) {
         const rnd = seeded(`${shape}:${length}:${front}:${hatStyle || ''}`), locks = [];
         const L = { bob: 0.1, medium: 0.2, long: 0.28 }[length];
         const dir = (phi, e) => new THREE.Vector3(Math.sin(phi) * Math.cos(e), Math.sin(e), Math.cos(phi) * Math.cos(e));
-        const add = (phi, e, len, flare, turns, r0, lean = 0, push = 0.026) => {
+        const add = (phi, e, len, flare, turns, r0, lean = 0, push = 0.014) => {
           const u = dir(phi, e); if (underHat(u, 0.08)) return;
           const out = new THREE.Vector3(Math.sin(phi), 0, Math.cos(phi)), side = new THREE.Vector3(Math.cos(phi), 0, -Math.sin(phi));
           locks.push({ root: at(u.x, u.y, u.z).addScaledVector(out, push), out, side, len, flare, turns, r0, lean });
         };
         [[0.22, 0.32], [-0.08, 0.27]].forEach(([e, step], row) => {
           for (let phi = 1.05 + row * step / 2; phi < Math.PI * 2 - 1.05; phi += step * (0.85 + rnd() * 0.3)) {
-            add(phi + (rnd() - 0.5) * 0.08, e + (rnd() - 0.5) * 0.08, L * (0.6 + rnd() * 0.55) + (row ? 0 : 0.035), 0.02 + rnd() * 0.03, 0.55 + rnd() * 0.7, 0.019 + rnd() * 0.006);
+            add(phi + (rnd() - 0.5) * 0.08, e + (rnd() - 0.5) * 0.08, L * (0.6 + rnd() * 0.55) + (row ? 0 : 0.035), 0.008 + rnd() * 0.014, 0.55 + rnd() * 0.7, 0.014 + rnd() * 0.004);
           }
         });
         if (front !== 'none') {
           const fr = front === 'center' ? [-0.6, -0.42, -0.24, 0.24, 0.42, 0.6] : front === 'side' ? [-0.55, -0.35, -0.15, 0.05, 0.25] : [-0.5, -0.3, -0.1, 0.1, 0.3, 0.5];
           fr.forEach(phi => {
             const lean = front === 'center' ? Math.sign(phi) * 0.035 : front === 'side' ? -0.04 : (rnd() - 0.5) * 0.02;
-            add(phi, 0.62 + (rnd() - 0.5) * 0.08, 0.06 + rnd() * 0.035, 0.012 + rnd() * 0.01, 0.4 + rnd() * 0.4, 0.016 + rnd() * 0.004, lean, 0.03);
+            add(phi, 0.62 + (rnd() - 0.5) * 0.08, 0.06 + rnd() * 0.035, 0.006 + rnd() * 0.008, 0.4 + rnd() * 0.4, 0.013 + rnd() * 0.003, lean, 0.02);
           });
         }
         if (locks.length) mk(curlLocks(`${shape}:${length}:${front}:${hatStyle || ''}`, locks), hairM, 0, 0, 0, head);
