@@ -16,7 +16,8 @@ export function buildSky() {
   S.bulbs = [];
 }
 
-// (minor: one of the back-of-house bulbs, under a ceiling and hardly seen; a low-power device lights them without a lamp)
+// (minor: one of the back-of-house bulbs, under a ceiling and hardly seen: lit without a lamp, as every light costs
+// something on every pixel of every frame)
 function bareBulb(x, z, y = 2.15, power = 0.7, dist = 6, minor = false) {
   const scene = ctx.scene;
   cyl(0.006, 0.006, 2.8 - y, 0x111111, x, (2.8 + y) / 2 + 0.05, z, scene, 4).castShadow = false;
@@ -24,7 +25,7 @@ function bareBulb(x, z, y = 2.15, power = 0.7, dist = 6, minor = false) {
   const bm = new THREE.MeshStandardMaterial({ color: 0xffe0a8, emissive: 0xffb44a, emissiveIntensity: 2 });
   const b = new THREE.Mesh(new THREE.SphereGeometry(0.06, 10, 8), bm); b.position.set(x, y, z); scene.add(b);
   const pl = new THREE.PointLight(0xffb15c, power, dist, 2); pl.position.set(x, y - 0.1, z);
-  if (minor && LOW_POWER) pl.visible = false; else scene.add(pl);
+  if (minor) pl.visible = false; else scene.add(pl);
   S.bulbs.push({ pl, bm, base: power });
 }
 
