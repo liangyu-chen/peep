@@ -1,4 +1,5 @@
-// Entry point: startCafe(root, content) builds the café inside root and returns a function that tears it down.
+// Entry point: startCafe(root, content, onReady) builds the café inside root, a step at a time so the loading screen
+// keeps moving, calls onReady once it's drawing, and returns a function that tears it down.
 // root must contain the HUD markup (see app/Cafe.tsx); content is { menu, lines } from the back office.
 import { ctx, createEngine, disposeEngine, LOW_POWER } from './engine.js';
 import { S, resetState } from './state.js';
@@ -15,7 +16,20 @@ import { createStadium, updateTops } from './tops.js';
 import { SMOKE_POSE, DRINK_POSE } from './people.js';
 import { updateSurroundings } from './world/surroundings.js';
 import { mergeStatic } from './optimize.js';
-export function startCafe(root, content) {
+// (one café at a time: a new one waits until the one before is built and, if it was let go meanwhile, torn down)
+let queue = Promise.resolve();
+export function startCafe(root, content, onReady) {
+  let stop = null, cancelled = false;
+  queue = queue.then(() => cancelled ? null : build(root, content)).then(s => {
+    if (!s) return;
+    stop = s; if (cancelled) s(); else onReady?.();
+  }).catch(err => console.error(err));
+  return () => { cancelled = true; stop?.(); };
+}
+// a moment for the page to draw between the heavy steps of building
+const breathe = () => new Promise(r => setTimeout(r, 0));
+
+async function build(root, content) {
   resetState(content);
   const stage = root.querySelector('#stage');
   S.labelsEl = root.querySelector('#labels');
@@ -23,13 +37,13 @@ export function startCafe(root, content) {
   S.seats = createSeats();
 
   createEngine(stage);
-  buildWorld();
-  mergeStatic();   // the set's still parts drawn in far fewer calls
+  buildWorld(); await breathe();
+  mergeStatic(); await breathe();   // the set's still parts drawn in far fewer calls
   createStadium();
   createSteam();
   createSmoke();
   createOwner();
-  seedOpeningScene();
+  seedOpeningScene(); await breathe();
   const unbind = bindHUD(root, stage);
   renderResults();
 
@@ -91,6 +105,9 @@ export function startCafe(root, content) {
   drawTV(); updateHUD(); updateLighting();
   if (document.fonts) Promise.all([document.fonts.load(`20px ${PIX}`), document.fonts.load('20px "DotGothic16"', '窺視珈琲五金')])
     .then(() => { if (!S.stopped) S.fontTex.forEach(t => t.redraw()); }).catch(() => {});
+  // the first frame has every shader to compile and every mesh and texture to hand to the GPU: done in two goes
+  ctx.renderer.compile(ctx.scene, ctx.camera); await breathe();
+  ctx.renderer.render(ctx.scene, ctx.camera); await breathe();
   raf = requestAnimationFrame(frame);
   // development only: step the simulation from the console without rendering, e.g. await __cafe.step(60)
   if (process.env.NODE_ENV !== 'production') window.__cafe = {

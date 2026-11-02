@@ -93,3 +93,7 @@ ring = bez3((551, 2), (566, -5), (584, -13), (586, 3))
 cd.polygon(upc(ring), fill=(255, 255, 255, 255)); cd.line(upc(ring), fill=INK, width=4 * S2, joint='curve')
 caps = caps.resize((W // 4, PAD + 12), Image.LANCZOS)
 left = Image.open('public/loading/hand-left.png'); left.alpha_composite(caps, (CX0, 0)); left.save('public/loading/hand-left.png')
+
+# the page shows small WebP copies (a few dozen KB instead of a few hundred)
+for name in ('hand-left', 'hand-right'):
+    Image.open(f'public/loading/{name}.png').save(f'public/loading/{name}.webp', 'WEBP', quality=80, method=6)

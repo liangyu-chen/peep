@@ -5,12 +5,12 @@ import { useEffect, useRef } from 'react';
 // The loading screen: the two hands from the drawing start apart and creep toward each other while the 3D scene loads.
 // Once it's ready the finger goes home through the ring, and the screen dives into the ring to reveal the café.
 // The hands are two cut-outs of one drawing (public/loading, made by scripts/split-hands.py) that meet exactly as drawn,
-// shown inverted: white lines on black.
+// shown inverted: white lines on black. (The page loads the small WebP copies the script also writes.)
 const RING = { x: 0.38, y: 0.6 };    // the hole in the ring, as a fraction of the drawing: where the screen dives in
-const MIN_SHOW = 3.0;                 // seconds, so even a fast load shows the hands slowly closing in
+const MIN_SHOW = 1.2;                 // seconds, so even a fast load shows the hands closing in
 const NEAR = 0.9;                     // how far they get while still loading
 const TAU = 1.3;                      // how slowly they creep in (seconds)
-const PUSH = 0.9, HOLD = 0.45, DIVE = 0.9;
+const PUSH = 0.6, HOLD = 0.3, DIVE = 0.7;
 
 export default function LoadingHands({ ready, onDone }: { ready: boolean; onDone: () => void }) {
   const root = useRef<HTMLDivElement>(null);
@@ -52,9 +52,9 @@ export default function LoadingHands({ ready, onDone }: { ready: boolean; onDone
     <div className="loading-hands" ref={root} data-state="loading" role="status" aria-label="窺視咖啡 萬全淨土淨化中">
       <div className="lh-stage" style={{ transformOrigin: `${RING.x * 100}% ${RING.y * 100}%` }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img className="lh-right" src="/loading/hand-right.png" alt="" draggable={false} />
+        <img className="lh-right" src="/loading/hand-right.webp" alt="" draggable={false} />
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img className="lh-left" src="/loading/hand-left.png" alt="" draggable={false} />
+        <img className="lh-left" src="/loading/hand-left.webp" alt="" draggable={false} />
       </div>
       <p className="lh-caption">
         <b>窺視咖啡</b>

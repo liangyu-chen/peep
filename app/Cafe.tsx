@@ -28,8 +28,7 @@ export default function Cafe({ content }: { content: CafeContent }) {
     let cancelled = false;
     import('@/src/cafe/index.js').then(({ startCafe }) => {
       if (cancelled || !root.current) return;
-      stop = startCafe(root.current, content);
-      requestAnimationFrame(() => requestAnimationFrame(() => { if (!cancelled) setReady(true); }));
+      stop = startCafe(root.current, content, () => requestAnimationFrame(() => requestAnimationFrame(() => { if (!cancelled) setReady(true); })));
     });
     return () => { cancelled = true; stop?.(); };
   }, [content]);
