@@ -363,9 +363,9 @@ function frontPillar() {
   const L = 0.225;
   const P = 1;   // the side with the patch: its left
   const ease = (a, b, t) => { const k = Math.max(0, Math.min(1, (t - a) / (b - a))); return k * k * (3 - 2 * k); };
-  const fore = t => Math.exp(-(((t - 0.3) / 0.2) ** 2));                            // the forehead, rising in front of the ears
-  const W = t => 0.1 * (1 + 0.04 * fore(t)) * (1 - 0.5 * ease(0.35, 1, t)), TOP = t => 0.105 * (1 + 0.1 * fore(t)) * (1 - 0.5 * ease(0.4, 1, t)), BOT = t => 0.085 * (1 - 0.42 * ease(0.3, 1, t));
-  const MID = t => -0.048 * t;                                                        // dipping a little: the top slopes down to the nose, the jaw comes up to it
+  const fore = t => Math.exp(-(((t - 0.36) / 0.2) ** 2));                            // the forehead, rising in front of the ears
+  const W = t => 0.1 * (1 + 0.04 * fore(t)) * (1 - 0.5 * ease(0.35, 1, t)), TOP = t => 0.105 * (1 + 0.1 * fore(t)) * (1 - 0.68 * ease(0.42, 1, t)), BOT = t => 0.085 * (1 - 0.55 * ease(0.5, 1, t));   // from over the eyes the face drops steeply to the nose; the jaw stays nearly level
+  const MID = t => -0.035 * t;                                                        // the nose sitting low, three quarters of the way down the head
   const CAP = t => t < 0.1 ? 0.9 + 0.1 * Math.sqrt(t / 0.1) : t > 0.92 ? Math.sqrt(Math.max(0, 1 - ((t - 0.92) / 0.08) ** 2)) : 1;   // cut flat at the back (on the pillar), blunt at the front
   // a point on the head: t from the back of the skull (0) to the tip of the nose (1), a round from the top (0) toward
   // its left (+x)
@@ -384,17 +384,17 @@ function frontPillar() {
   add(headGeo, white, 0, 0, 0, dog);
   // the collar: round the bottom and sides of the head where it meets the pillar
   const base = on(0.04, 0), under = on(0.04, Math.PI), side = on(0.04, Math.PI / 2);
-  const collar = add(new THREE.TorusGeometry(1, 0.13, 8, 28, Math.PI * 1.25), red, 0, (base.y + under.y) / 2, 0.022, dog);
-  collar.scale.set(side.x + 0.004, (base.y - under.y) / 2 + 0.004, 0.11); collar.rotation.z = Math.PI - Math.PI * 0.125;
+  const collar = add(new THREE.TorusGeometry(1, 0.16, 8, 28, Math.PI * 1.25), red, 0, (base.y + under.y) / 2, 0.022, dog);
+  collar.scale.set(side.x + 0.004, (base.y - under.y) / 2 + 0.004, 0.12); collar.rotation.z = Math.PI - Math.PI * 0.125;
   // ears: upright broad pointed leaves about half the head's height, their bases sunk into the head, red-pink inside
   const earGeo = new THREE.LatheGeometry([[0, -0.02], [0.04, -0.02], [0.043, 0.015], [0.04, 0.045], [0.032, 0.075], [0.02, 0.1], [0.008, 0.12], [0, 0.13]].map(([r, y]) => new THREE.Vector2(r, y)), 18);   // a long oval coming to a point
   [-1, 1].forEach(s => {
     const e = new THREE.Group(); e.position.copy(on(0.13, s * 0.8, -0.01)); e.rotation.set(-0.1, 0, -s * 0.5); dog.add(e);   // well apart, on the top of the head's sides, leaning out
-    add(earGeo, white, 0, 0, 0, e).scale.set(1.05, 0.88, 0.28);
+    add(earGeo, white, 0, 0, 0, e).scale.set(1.05, 1.0, 0.28);
     add(earGeo, pink, 0, 0.012, 0.008, e).scale.set(0.68, 0.72, 0.14);
   });
   // the eyes: small black ovals set high on the side of the face, a brow line arching over each; the left one in its patch
-  const ET = 0.48, EA = 1.12, eyeAt = (s, out) => on(ET, s * EA, out);
+  const ET = 0.48, EA = 1.02, eyeAt = (s, out) => on(ET, s * EA, out);
   // the patch: an oval of black lying right on the face round the eye, following its curve
   const patchM = mat(0x141414, { roughness: 0.35, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
   const patchGeo = (() => {
@@ -420,8 +420,8 @@ function frontPillar() {
     add(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(brow), 12, 0.0026, 5, false), black, 0, 0, 0, dog);
   });
   // the nose: black and a little angular, right at the blunt tip
-  const tip = on(0.97, 0.3);
-  const noseGeo = new THREE.DodecahedronGeometry(0.036, 0);
+  const tip = on(0.97, 0.5);
+  const noseGeo = new THREE.DodecahedronGeometry(0.046, 0);   // big: nearly a third of the head's height
   const nose = add(noseGeo, mat(0x141414, { roughness: 0.3, flatShading: true }), 0, tip.y - 0.016, tip.z - 0.004, dog); nose.scale.set(1.15, 0.85, 0.95);
   // the mouth: a thin smiling crease from under the nose back along the jaw and up the cheek, just open, with a little
   // red tongue showing at the front
