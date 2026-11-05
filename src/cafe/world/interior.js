@@ -2,12 +2,31 @@
 import * as THREE from 'three';
 import { ctx, mat, box, cyl, canvasTex, plane, DECAL } from '../engine.js';
 import { S } from '../state.js';
-import { rand, randi, pick, DOT } from '../util.js';
+import { rand, randi, pick, DOT, K } from '../util.js';
 import { TVX, TVZ, TVY, LW, LSEATS } from '../layout.js';
 import { buildMenuClipboard } from './menu.js';
 import { drawBoard } from '../dartboard.js';
 import { buildPegboard } from './pegboard.js';
 import { woodM, steel, blackM, cinderSeat, crate, crateTable, stump, highStool, figurine, framed, trackRun, ceilingFan, cinderBlock, stoolStack } from './props.js';
+
+// the PS5 lying flat on the cart's shelf, its front to the room, in true size (39 x 10.4 x 26 cm): a glossy black core
+// between two matte white panels that stand a little proud of it all round and sweep up at the front, the blue light
+// strips along the front where they meet, the little black stand under it
+function ps5(x, y, z) {
+  const g = new THREE.Group(); g.position.set(x, y, z); g.scale.x = 1 / K; ctx.scene.add(g);
+  const white = mat(0xf2f2ee, { roughness: 0.55 }), core = mat(0x101012, { roughness: 0.18, metalness: 0.2 }), dark = mat(0x050506, { roughness: 0.6 });
+  box(0.12, 0.012, 0.09, mat(0x1a1a1c, { roughness: 0.5 }), -0.02, 0.006, -0.06, g);                       // the stand
+  // the white panels: flat plates whose front edges flare up (top) and down (bottom) like wings
+  [[0.025, -1], [0.093, 1]].forEach(([py, s]) => {
+    box(0.24, 0.018, 0.39, white, -0.005, py, 0, g);
+    const lip = box(0.03, 0.018, 0.37, white, 0.122, py + s * 0.006, 0, g); lip.rotation.z = s * 0.35;
+  });
+  box(0.21, 0.052, 0.34, core, -0.01, 0.059, 0, g);                                                          // the black core
+  for (let i = 0; i < 5; i++) box(0.004, 0.003, 0.3, dark, 0.096, 0.047 + i * 0.006, 0, g);                 // the vent slats across its front
+  [0.035, 0.083].forEach(ly => { const led = box(0.004, 0.003, 0.3, mat(0x2a7fff, { emissive: 0x2a7fff, emissiveIntensity: 1.6 }), 0.096, ly, 0, g); led.castShadow = false; });   // the light strips
+  box(0.004, 0.008, 0.012, dark, 0.097, 0.059, -0.12, g); box(0.004, 0.008, 0.012, dark, 0.097, 0.059, -0.1, g);   // USB ports
+  box(0.004, 0.006, 0.02, mat(0x2a2a2c), 0.097, 0.059, 0.14, g);                                                   // power button
+}
 
 function ledgeAndTv() {
   // ledge under the neon: from where the wall starts beside the sliding door right across to the side wall,
@@ -24,9 +43,7 @@ function ledgeAndTv() {
   [[-0.25, -0.4], [-0.25, 0.4], [0.15, -0.4], [0.15, 0.4]].forEach(([dx, dz]) => { const w = cyl(0.035, 0.035, 0.03, blackM, TVX - 0.08 + dx, 0.035, TVZ + dz, ctx.scene, 10); w.rotation.z = Math.PI / 2; });   // casters
   [-0.22, 0.22].forEach(dz => box(0.05, 1.6, 0.05, cartM, TVX - 0.1, 0.88, TVZ + dz));                     // twin poles
   box(0.36, 0.03, 0.62, cartM, TVX - 0.04, 0.42, TVZ);                                                     // console shelf
-  box(0.3, 0.09, 0.39, mat(0xf4f4f2, { roughness: 0.3 }), TVX - 0.04, 0.48, TVZ);                          // PS5, lying flat
-  box(0.31, 0.04, 0.12, mat(0x111111, { roughness: 0.3 }), TVX - 0.04, 0.48, TVZ);
-  box(0.01, 0.01, 0.06, 0x7ec8ff, TVX + 0.11, 0.505, TVZ + 0.12).castShadow = false;
+  ps5(TVX - 0.04, 0.435, TVZ);
   S.tvFrame = box(0.07, 0.98, 1.72, mat(0x0c0c0c, { roughness: 0.3 }), TVX + 0.03, TVY, TVZ);
   stoolStack(-2.62, TVZ + 1.2, 3);   // to the TV's left as you face it, clear of its edge: spare round metal stools, stacked
   [-3.6, -2.7].forEach(z => highStool(-0.45, z));   // the two 2K seats: round metal stools like at the manga ledge

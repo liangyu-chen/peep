@@ -694,11 +694,18 @@ export function buildBody(look, seed = '') {
   });
   const hand = new THREE.Object3D(); hand.position.set(0, -0.3, 0.05); elbows[1].add(hand);
   const handL = new THREE.Object3D(); handL.position.set(0.01, -0.3, 0.04); elbows[0].add(handL);   // holds a cigarette
+  // the controller: a PS5 DualSense, white with a black middle, the white touchpad up top ringed by its blue light,
+  // two black sticks, the face buttons and the d-pad, and the long white grips curving down
   const pad = new THREE.Group();
-  mk(bx(0.2, 0.045, 0.1), mat(0x1b1b1b, { roughness: 0.4 }), 0, 0, 0, pad);
-  [-1, 1].forEach(s => mk(sp(0.035, 10, 8), mat(0x1b1b1b, { roughness: 0.4 }), s * 0.085, -0.015, -0.022, pad, false));   // grips
-  mk(bx(0.04, 0.012, 0.03), mat(0x3ddc97), 0.05, 0.026, 0, pad, false);
-  [-1, 1].forEach(s => mk(cy(0.012, 0.012, 0.012, 8), mat(0x333333), s * 0.03, 0.026, 0.012, pad, false));         // sticks
+  const padW = mat(0xf2f2ee, { roughness: 0.5 }), padB = mat(0x151517, { roughness: 0.45 });
+  mk(bx(0.15, 0.03, 0.07), padW, 0, 0, 0, pad);
+  [-1, 1].forEach(s => { const grip = mk(sp(0.032, 12, 10), padW, s * 0.07, -0.012, -0.03, pad, false); grip.scale.set(0.9, 0.85, 1.5); });   // grips
+  mk(bx(0.07, 0.008, 0.04), padB, 0, 0.016, -0.012, pad, false);                                                // the black middle
+  mk(bx(0.06, 0.006, 0.028), padW, 0, 0.018, 0.02, pad, false);                                                 // the touchpad
+  mk(bx(0.064, 0.004, 0.003), mat(0x3a8cff, { emissive: 0x3a8cff, emissiveIntensity: 1.2 }), 0, 0.017, 0.036, pad, false);   // its light bar
+  [-1, 1].forEach(s => mk(cy(0.011, 0.011, 0.012, 10), padB, s * 0.022, 0.024, -0.016, pad, false));           // sticks
+  [[0.05, 0.008], [0.05, -0.008], [0.042, 0], [0.058, 0]].forEach(([x, z]) => mk(sp(0.004, 6, 4), mat(0xb8b8bc), x, 0.017, z, pad, false));   // face buttons
+  mk(bx(0.018, 0.004, 0.006), padB, -0.05, 0.017, 0, pad, false); mk(bx(0.006, 0.004, 0.018), padB, -0.05, 0.017, 0, pad, false);          // d-pad
   pad.position.set(0, 0.95, 0.43); pad.visible = false; g.add(pad);
   return { g, legs, arms, elbows, head, hand, handL, pad, eyes, mouth, skirt, skinM: skin, strip: { bare, bunch, pants, skin } };
 }
