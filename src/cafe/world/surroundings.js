@@ -169,11 +169,14 @@ function rowHouse(x0, x1, frontZ, facing, floors, depth, corner = 0, shop = null
     windowUnit(g, K, w / 4, 1.5, Math.min(1.4, w / 3), 1.0, { cage: true });
   }
   const name = nextDoor ? ['政泰', '刨床加工 各式零件承製'] : shop || (Math.random() < 0.45 && signDeck.pop());
+  const balcony = Math.random() < 0.55;   // (a first-floor balcony over the front: decided here, since the sign goes under it)
   if (name) {
     const sm = K.own(new THREE.MeshStandardMaterial({ map: signTex(name, nextDoor ? '#1f4f9a' : pick(['#1f4f9a', '#b8232b', '#f2efe6', '#1c6a43'])), roughness: 0.7 }));
-    const sw = Math.min(1.6, w * 0.45);
-    bx(g, sw, sw * 0.375, 0.06, sm, shop ? 0 : nextDoor ? w / 2 - sw / 2 - 0.2 : rand(-w / 4, w / 4), GF + 0.38, 0.3);
-    if (shop) bx(g, 0.06, sw * 0.375, sw, sm, corner * (w / 2 + 0.3), GF + 0.38, -sw / 2 - 0.3);   // round the corner too
+    const sw = Math.min(1.6, w * 0.45), sh = sw * 0.375;
+    // over the front, or with a balcony there, hung under its front edge (above it, its bottom would be buried in the slab)
+    const [sy, sz] = balcony ? [GF - sh / 2 - 0.03, 0.85] : [GF + 0.38, 0.3];
+    bx(g, sw, sh, 0.06, sm, shop ? 0 : nextDoor ? w / 2 - sw / 2 - 0.2 : rand(-w / 4, w / 4), sy, sz);
+    if (shop) bx(g, 0.06, sh, sw, sm, corner * (w / 2 + 0.3), sy, -sw / 2 - 0.3);   // round the corner too
   }
   if (corner) {   // the side on the cross street, built in its own frame: front out toward the street, x running back along it
     const sg = new THREE.Group(); sg.position.set(corner * w / 2, 0, 0); sg.rotation.y = corner * Math.PI / 2; g.add(sg);
@@ -185,7 +188,7 @@ function rowHouse(x0, x1, frontZ, facing, floors, depth, corner = 0, shop = null
   // upper floors
   for (let f = 0; f < floors; f++) {
     const y0 = GF + f * FH;
-    if (f === 0 && Math.random() < 0.55) {
+    if (f === 0 && balcony) {
       bx(g, w, 0.18, 1.0, K.slab, 0, y0 + 0.09, 0.5);                       // balcony
       railing(g, K, w - 0.05, y0 + 0.18, 0.98);
       windowUnit(g, K, 0, y0 + 1.45, Math.min(2.2, w * 0.55), 1.5, { ac: Math.random() < 0.5 });
