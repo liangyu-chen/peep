@@ -248,7 +248,7 @@ export function updateLabels(dt, W, H) {
     p.bubble.style.display = vis ? '' : 'none';
     p.bubble.style.left = x + 'px'; p.bubble.style.top = (y - (S.showTags ? 24 : 4)) + 'px';
     if (p.bear) {
-      const bp = p.bear.g.position, [bv, bx, by] = toScreen(bp.x, bp.y + 0.34, bp.z);   // (clear above its crown)
+      const bp = p.bear.g.position, [bv, bx, by] = toScreen(bp.x, bp.y + 0.24, bp.z);   // (just above its crown)
       p.bear.bubble.style.display = bv ? '' : 'none'; p.bear.bubble.style.left = bx + 'px'; p.bear.bubble.style.top = by + 'px';
     }
   });
