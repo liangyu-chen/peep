@@ -275,9 +275,11 @@ export class Person {
     if (this.cup && this.cup.parent === this.hand) gripCup(this, this.act === 'sip' ? sipPose(this.cup).tilt * Math.min(1, (1.4 - this.actT) * 3) : 0);
     this.groundY = (this.groundY || 0) + ((this.g.position.z > KERB ? -RISE : 0) - (this.groundY || 0)) * Math.min(1, dt * 14);   // a step down off the kerb
     this.g.position.y = this.groundY + y + bob;
-    if (this.skirt) {   // sitting, a skirt rides up and lies forward over the lap
+    if (this.skirt) {   // sitting, a skirt rides up and lies forward over the lap (set a little lower, so where it widens
+      // is still below the shirt's hem and none of it shows through the back of the shirt)
       const lap = sitting || squat;
-      this.skirt.scale.set(1, lap ? 0.5 : 1, lap ? 1.5 : 1); this.skirt.position.z = lap ? 0.07 : 0;
+      this.skirt.scale.set(1, lap ? 0.5 : 1, lap ? 1.4 : 1); this.skirt.position.z = lap ? 0.07 : 0;
+      this.skirt.position.y = 0.72 + LEG_EXTRA - (lap ? 0.05 : 0);
     }
     this.head.rotation.y = this.pose === 'game' ? 0 : ph ? turn : rest.head;
     this.head.rotation.x = pitch;

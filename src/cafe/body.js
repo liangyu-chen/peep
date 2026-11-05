@@ -461,12 +461,14 @@ export function buildBody(look, seed = '') {
   // line round the tops of the legs, like briefs)
   const seat = mk(pantsTopGeo(W, fit === 'wide' ? 1.12 : 1), pants, 0, 0, 0);   // (baggy pants are roomy through the seat too)
   bare.push(seat);
-  // a skirt: knee length, A-line, hanging from the waist; a pivot at the waist so it can drape over the lap when sitting
+  // a skirt: knee length, A-line, hanging from the waist; a pivot at the waist so it can drape over the lap when sitting.
+  // Its waistband sits tucked up inside the shirt (narrower than the shirt all round, front and back too) and it only
+  // flares out below the shirt's hem, so none of it shows through the shirt
   let skirt = null;
   if (skirted) {
     skirt = new THREE.Group(); skirt.position.set(0, 0.72 + LEG_EXTRA, 0); g.add(skirt);
     const sm = mat(C.pants, { roughness: 0.85, side: THREE.DoubleSide });
-    mk(lathe('skirt2', [[0.21, 0.02], [0.22, -0.04], [0.24, -0.13], [0.266, -0.23], [0.288, -0.32], [0.284, -0.33]], 28), sm, 0, 0, 0, skirt).scale.z = 0.78;
+    mk(lathe('skirt3', [[0.185, -0.05], [0.19, -0.08], [0.215, -0.11], [0.24, -0.16], [0.266, -0.24], [0.288, -0.32], [0.284, -0.33]], 28), sm, 0, 0, 0, skirt).scale.z = 0.78;
   }
   // the belt at the waist, just under the shirt's hem, its buckle on its front
   const belt = mk(cy(0.196, 0.196, 0.026, 22), beltM, 0, 0.708, 0, g, false); belt.scale.z = 0.59;
