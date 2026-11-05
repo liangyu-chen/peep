@@ -365,25 +365,17 @@ function frontPillar() {
   const ease = (a, b, t) => { const k = Math.max(0, Math.min(1, (t - a) / (b - a))); return k * k * (3 - 2 * k); };
   const fore = t => Math.exp(-(((t - 0.3) / 0.2) ** 2));                            // the forehead, rising in front of the ears
   const W = t => 0.1 * (1 + 0.04 * fore(t)) * (1 - 0.5 * ease(0.35, 1, t)), TOP = t => 0.105 * (1 + 0.1 * fore(t)) * (1 - 0.5 * ease(0.4, 1, t)), BOT = t => 0.085 * (1 - 0.42 * ease(0.3, 1, t));
-  const MID = t => -0.028 * t;                                                        // dipping a little: the top slopes down to the nose, the jaw comes up to it
+  const MID = t => -0.048 * t;                                                        // dipping a little: the top slopes down to the nose, the jaw comes up to it
   const CAP = t => t < 0.1 ? 0.9 + 0.1 * Math.sqrt(t / 0.1) : t > 0.92 ? Math.sqrt(Math.max(0, 1 - ((t - 0.92) / 0.08) ** 2)) : 1;   // cut flat at the back (on the pillar), blunt at the front
   // a point on the head: t from the back of the skull (0) to the tip of the nose (1), a round from the top (0) toward
   // its left (+x)
-  // (cut: the head itself, its underside drawn up along the muzzle to make room for the lower jaw, which is a piece of
-  // its own, below)
-  const T0 = 0.5, T1 = 0.9, JA = 1.15, LIFT = 0.4;
-  const jawBand = (t, a) => {
-    const d = Math.abs(((a % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI) - Math.PI);
-    return ease(T0, T0 + 0.1, t) * (1 - ease(T1 - 0.03, T1 + 0.04, t)) * (1 - ease(JA - 0.2, JA + 0.05, d));
-  };
-  const on = (t, a, out = 0, cut = false) => {
-    const k = cut ? 1 - LIFT * jawBand(t, a) : 1;
-    const f = CAP(t) * k, c = Math.cos(a), r = (c > 0 ? TOP(t) : BOT(t)) * f;
+  const on = (t, a, out = 0) => {
+    const f = CAP(t), c = Math.cos(a), r = (c > 0 ? TOP(t) : BOT(t)) * f;
     return new THREE.Vector3(Math.sin(a) * (W(t) * f + out), MID(t) + c * (r + out), t * L);
   };
   const headGeo = (() => {
     const NT = 40, NA = 36, pos = [], idx = [];
-    for (let i = 0; i <= NT; i++) for (let j = 0; j <= NA; j++) { const v = on(i / NT, (j / NA) * Math.PI * 2, 0, true); pos.push(v.x, v.y, v.z); }
+    for (let i = 0; i <= NT; i++) for (let j = 0; j <= NA; j++) { const v = on(i / NT, (j / NA) * Math.PI * 2); pos.push(v.x, v.y, v.z); }
     for (let i = 0; i < NT; i++) for (let j = 0; j < NA; j++) { const a = i * (NA + 1) + j, b = a + NA + 1; idx.push(a, b, a + 1, b, b + 1, a + 1); }
     const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); geo.setIndex(idx); geo.computeVertexNormals(); return geo;
   })();
@@ -431,29 +423,15 @@ function frontPillar() {
   const tip = on(0.97, 0.3);
   const noseGeo = new THREE.DodecahedronGeometry(0.036, 0);
   const nose = add(noseGeo, mat(0x141414, { roughness: 0.3, flatShading: true }), 0, tip.y - 0.016, tip.z - 0.004, dog); nose.scale.set(1.15, 0.85, 0.95);
-  // the mouth: the open lips make its line; at each corner a thin crease turns up into the cheek, a smile
-  [-1, 1].forEach(s => {
-    const curl = [[T0 + 0.06, JA], [T0 + 0.02, JA + 0.06], [T0 - 0.03, JA + 0.15], [T0 - 0.07, JA + 0.28]].map(([t, a]) => on(t, s * (Math.PI - a), 0.002, true));
-    add(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(curl), 16, 0.003, 5, false), crease, 0, 0, 0, dog);
-  });
-  // and the lower jaw: the bottom of the muzzle as a piece of its own, joined on under the cheeks and dropped open a
-  // little toward the front, a round chin behind the nose, the red of the mouth showing in the gap above it
-  const OPEN = 0.02;
-  const drop = t => OPEN * ease(T0, T1, t);
-  const chin = t => t > T1 - 0.08 ? Math.sqrt(Math.max(0, 1 - ((t - (T1 - 0.08)) / 0.08) ** 2)) : 1;
-  const sheet = (a0, a1, out, shape, cut = false) => {   // a piece of the head's underside between rounds a0 and a1, t from T0 to T1
-    const NT = 20, NA = 14, pos = [], idx = [];
-    for (let i = 0; i <= NT; i++) {
-      const t = T0 + (T1 - T0) * i / NT, l = on(t, a0), r = on(t, a1), mid = new THREE.Vector3().addVectors(l, r).multiplyScalar(0.5);
-      for (let j = 0; j <= NA; j++) { const v = on(t, a0 + (a1 - a0) * j / NA, out, cut); shape(v, mid, t); pos.push(v.x, v.y, v.z); }
-    }
-    for (let i = 0; i < NT; i++) for (let j = 0; j < NA; j++) { const a = i * (NA + 1) + j, b = a + NA + 1; idx.push(a, b, a + 1, b, b + 1, a + 1); }
-    const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); geo.setIndex(idx); geo.computeVertexNormals(); return geo;
-  };
-  const jawM = mat(0xf4f1ea, { roughness: 0.4, side: THREE.DoubleSide });
-  add(sheet(Math.PI - JA, Math.PI + JA, 0.002, (v, mid, t) => { v.sub(mid).multiplyScalar(chin(t)).add(mid); v.y -= drop(t); }), jawM, 0, 0, 0, dog);
-  const mouthM = mat(0xb02a1c, { roughness: 0.6, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
-  add(sheet(Math.PI - JA, Math.PI + JA, 0.0006, () => {}, true), mouthM, 0, 0, 0, dog);   // the drawn-up underside of the upper jaw, seen only in the gap
+  // the mouth: a thin smiling crease from under the nose back along the jaw and up the cheek, just open, with a little
+  // red tongue showing at the front
+  const smile = k => [0.5 + k * 0.44, Math.PI - 1.25 * (1 - k) ** 1.5];   // k: 0 at a corner, 1 under the nose
+  const lip = [];
+  for (let k = 0; k <= 12; k++) { const [t, a] = smile(k / 12); lip.push(on(t, -a, 0.002)); }
+  for (let k = 11; k >= 0; k--) { const [t, a] = smile(k / 12); lip.push(on(t, a, 0.002)); }
+  add(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(lip), 72, 0.003, 5, false), crease, 0, 0, 0, dog);
+  const tongue = on(0.8, Math.PI, -0.002);
+  add(new THREE.SphereGeometry(0.022, 14, 8), red, tongue.x, tongue.y - 0.002, tongue.z, dog).scale.set(0.9, 0.3, 1.1);
   // the tissue: a crumpled white sheet sticking out of the front of the nose and hanging down
   const paper = mat(0xfbfbf8, { roughness: 0.9, side: THREE.DoubleSide });
   const tissue = new THREE.Group(); tissue.position.set(0.006, tip.y - 0.026, tip.z + 0.022); tissue.rotation.set(-0.6, 0.3, 0); tissue.scale.setScalar(1.3); dog.add(tissue);
