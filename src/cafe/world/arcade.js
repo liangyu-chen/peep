@@ -228,25 +228,30 @@ function storeroomWall() {
   onWall(0.32, 0.45, new THREE.MeshStandardMaterial({ map: poster, roughness: 0.8 }), 1.55, 6.5);
   const steel = mat(0xb4b7b9, { metalness: 0.6, roughness: 0.4 });
   for (let i = 0; i < 4; i++) {                              // the switches, each in its own small box
-    box(0.04, 0.09, 0.08, steel, X - 0.02, 1.98, 6.85 + i * 0.12);
-    const lever = box(0.012, 0.025, 0.012, mat(0x2a2a2a), X - 0.045, i === 0 ? 1.99 : 1.98, 6.85 + i * 0.12);
+    box(0.05, 0.12, 0.1, steel, X - 0.025, 1.98, 6.85 + i * 0.12);
+    const lever = box(0.016, 0.034, 0.016, mat(0x2a2a2a), X - 0.058, i === 0 ? 1.995 : 1.98, 6.85 + i * 0.12);
     if (i === 0) {   // the fourth counting from the breaker box end works the neon sign inside: click it (a bigger, unseen box takes the click); lever up is on
-      const hit = box(0.06, 0.14, 0.12, mat(0x000000), X - 0.03, 1.98, 6.85 + i * 0.12); hit.visible = false;
+      const hit = box(0.07, 0.16, 0.12, mat(0x000000), X - 0.035, 1.98, 6.85 + i * 0.12); hit.visible = false;
       S.neonSwitch = { lever, hit };
     }
   }
   box(0.12, 0.28, 0.32, mat(0xc9c6bd, { roughness: 0.7 }), X - 0.06, 2.4, 7.28);   // the breaker box
   const pipe = mat(0x9a9a98, { metalness: 0.4, roughness: 0.5 });
   const run = (z0, y0, z1, y1) => { const len = Math.hypot(z1 - z0, y1 - y0), p = cyl(0.012, 0.012, len, pipe, X - 0.03, (y0 + y1) / 2, (z0 + z1) / 2, ctx.scene, 6); p.rotation.x = Math.atan2(z1 - z0, y1 - y0); };
-  run(5.75, 2.48, 7.12, 2.48); run(7.3, 2.26, 7.3, 2.03); run(7.42, 2.26, 7.42, 1.2); run(7.6, 2.62, 7.6, 2.3);
+  run(5.75, 2.48, 7.12, 2.48); run(7.42, 2.26, 7.42, 1.2); run(7.6, 2.62, 7.6, 2.3);
+  // and the two wires from the breaker box to the switches, not crossing: one down and along over the tops of the row
+  // to the far switch, the other down into the nearest
+  run(7.14, 2.26, 7.14, 2.11); run(7.14, 2.11, 6.85, 2.11); run(6.85, 2.11, 6.85, 2.04);          // to the far end of the row
+  run(7.32, 2.26, 7.32, 2.075); run(7.32, 2.075, 7.235, 2.075); run(7.235, 2.075, 7.235, 2.04);   // and into the nearest
   // the work light: a flex down from the ceiling, a bare warm bulb in a wire cage, lit
   const lx = X - 0.12, lz = 7.62;
-  cyl(0.005, 0.005, 0.85, mat(0x8a3a1e), lx, 2.4, lz, ctx.scene, 4);
+  const BY = 1.7;   // how low the bulb hangs
+  cyl(0.005, 0.005, 2.825 - BY - 0.035, mat(0x8a3a1e), lx, (2.825 + BY + 0.035) / 2, lz, ctx.scene, 4);
   const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.035, 12, 10), new THREE.MeshStandardMaterial({ color: 0xfff1c4, emissive: 0xffb24a, emissiveIntensity: 2.2 }));
-  bulb.position.set(lx, 1.92, lz); ctx.scene.add(bulb);
-  for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2, w = cyl(0.003, 0.003, 0.12, mat(0x2a2a2a), lx + Math.sin(a) * 0.045, 1.92, lz + Math.cos(a) * 0.045, ctx.scene, 4); w.castShadow = false; }
-  cyl(0.05, 0.05, 0.006, mat(0x2a2a2a), lx, 1.86, lz, ctx.scene, 10);
-  const lamp = new THREE.PointLight(0xffb24a, 0.5, 3, 2); lamp.position.set(lx - 0.08, 1.9, lz);
+  bulb.position.set(lx, BY, lz); ctx.scene.add(bulb);
+  for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2, w = cyl(0.003, 0.003, 0.12, mat(0x2a2a2a), lx + Math.sin(a) * 0.045, BY, lz + Math.cos(a) * 0.045, ctx.scene, 4); w.castShadow = false; }
+  cyl(0.05, 0.05, 0.006, mat(0x2a2a2a), lx, BY - 0.06, lz, ctx.scene, 10);
+  const lamp = new THREE.PointLight(0xffb24a, 0.5, 3, 2); lamp.position.set(lx - 0.08, BY - 0.02, lz);
   if (!LOW_POWER) ctx.scene.add(lamp);   // a tablet makes do with the glowing bulb
   S.bulbs && S.bulbs.push({ pl: lamp, bm: null, base: 0.5 });
 }
