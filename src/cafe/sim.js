@@ -149,8 +149,9 @@ export function trySpawn(force) {
   return true;
 }
 
-// where people walk along the lane, out in front of the parked scooters, and how far along it they go out of sight
-const WALK_Z = 10.0, WALK_X = 16;
+// where people walk along the lane, out past the parked scooters and the tree stump at the end of the bench, and how
+// far along it they go out of sight
+const WALK_Z = 10.55, WALK_X = 16;
 const OUT = [[-1.75, WALK_Z]].concat(DOOR.slice(1));   // out of the door to the lane
 async function leave(c, zone) {
   const p = c.p;
