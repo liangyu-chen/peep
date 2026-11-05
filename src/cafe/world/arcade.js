@@ -75,7 +75,7 @@ function street() {
   [[-2.8, 7.55], [-2.35, 7.7]].forEach(([x, z]) => { cinderBlock(0.4, 0.2, 0.2, x, 0.1, z); cinderBlock(0.4, 0.2, 0.2, x, 0.3, z); pottedPlant(x, 0.4, z); });
   vespa(0.55, 8.88, 0.1);
   box(4.0, 0.3, 0.12, mat(0x2a4f8a), -1.05, 2.62, 8.2);                                  // blue lintel over the opening
-  [[-3.0, 1.8], [0.95, 1.6]].forEach(([x, y]) => box(0.18, 0.22, 0.08, mat(0xd9d9d0), x, y, 8.22));   // electricity meters
+  box(0.18, 0.22, 0.08, mat(0xd9d9d0), -3.0, 1.8, 8.22);   // the electricity meter (the box on the other pillar is the mailbox: frontPillar)
   campChair(-0.55, 8.55, 0, 0xc4a27e).position.y = -RISE;                                                    // one milk-tea camping chair facing the street
   crate(-0.55, -RISE, 9.15, 'blue'); crate(-0.55, 0.3 - RISE, 9.15, 'orange');                       // two stacked crates as its table
 }
@@ -324,6 +324,88 @@ function gallery() {
 }
 
 // figurines and a katana by the Open sign, as next to the seats
+// the street end of the storeroom, after the photos: its left part is the pillar by the arcade, with the house number
+// up top, the old mailbox and the bull terrier's head (a tissue stuck up its nose) under it; the rest is the neighbours'
+// door, a dark glass door in a metal frame behind an arched grille, a lit lattice window over it. Drawn in true metres
+// (the group undoes the set's sideways squeeze), from the wall's front face at plan x 1.0.
+function frontPillar() {
+  const g = new THREE.Group(); g.position.set(1.0, 0, 8.085); g.scale.x = 1 / K; ctx.scene.add(g);
+  const flat = (w, h, tex, x, y, z) => { const m = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.6, ...DECAL }); const p = new THREE.Mesh(new THREE.PlaneGeometry(w, h), m); p.position.set(x, y, z); g.add(p); return p; };
+  const add = (geo, m, x, y, z, parent = g) => { const me = new THREE.Mesh(geo, m); me.position.set(x, y, z); me.castShadow = true; me.receiveShadow = true; parent.add(me); return me; };
+  const PX = 0.25;   // the pillar's middle
+  // the house number: a green band with the lane's name over a big green 65 on white, a red flower in the corner
+  const plate = canvasTex(160, 104, (c, w, h) => {
+    c.fillStyle = '#f4f4ee'; c.fillRect(0, 0, w, h); c.fillStyle = '#2e8a5a'; c.fillRect(0, 0, w, 30);
+    c.fillStyle = '#fff'; c.font = 'bold 22px "Noto Sans TC", sans-serif'; c.textAlign = 'center'; c.fillText('萬全街', w / 2 + 14, 23);
+    c.fillStyle = '#2e8a5a'; c.font = 'bold italic 64px "Noto Sans TC", sans-serif'; c.fillText('65', w / 2 + 16, 92);
+    c.fillStyle = '#d8323c'; c.beginPath(); c.arc(24, 52, 13, 0, Math.PI * 2); c.fill(); c.fillStyle = '#3a9a4a'; c.fillRect(22, 64, 4, 24);
+    c.strokeStyle = '#2e8a5a'; c.lineWidth = 4; c.strokeRect(2, 2, w - 4, h - 4);
+  });
+  S.fontTex.push(plate);
+  add(new THREE.BoxGeometry(0.21, 0.14, 0.008), mat(0xf4f4ee), PX, 2.3, 0.004); flat(0.2, 0.13, plate, PX, 2.3, 0.009);
+  // the mailbox: a weathered teal tin box, its name on a plate across the top, a rusty flap below with a sticker on it
+  add(new THREE.BoxGeometry(0.2, 0.28, 0.09), mat(0x4f8a86, { roughness: 0.75, metalness: 0.2 }), PX, 1.78, 0.045);
+  const label = canvasTex(96, 36, (c, w, h) => { c.fillStyle = '#d9cbb0'; c.fillRect(0, 0, w, h); c.fillStyle = '#2a2a2a'; c.font = 'bold 24px "Noto Sans TC", sans-serif'; c.textAlign = 'center'; c.fillText('信箱', w / 2, 27); });
+  S.fontTex.push(label);
+  flat(0.14, 0.05, label, PX, 1.87, 0.092);
+  add(new THREE.BoxGeometry(0.15, 0.12, 0.012), mat(0x7a5536, { roughness: 0.9, metalness: 0.3 }), PX, 1.72, 0.094);   // the rusty flap
+  add(new THREE.BoxGeometry(0.05, 0.03, 0.002), mat(0xf2efe6), PX - 0.02, 1.75, 0.101);                                    // a sticker on it
+  add(new THREE.BoxGeometry(0.1, 0.035, 0.002), mat(0xe8e8e2, { roughness: 0.3 }), PX + 0.01, 1.69, 0.101);               // the slot's little window
+  // the bull terrier: a long egg of a head pointing out and over toward the arcade, nose down a little, ears up, a black
+  // patch round the eye on the street side, a red collar where it meets the pillar, and a tissue stuck up its nose
+  const white = mat(0xf4f1ea, { roughness: 0.4 }), black = mat(0x141414, { roughness: 0.35 }), pink = mat(0xe8a0a0, { roughness: 0.6 }), red = mat(0xc8321e, { roughness: 0.5 });
+  const dog = new THREE.Group(); dog.position.set(PX - 0.02, 1.4, 0.02); dog.rotation.set(0.25, -0.9, 0); dog.scale.setScalar(1.2); g.add(dog);
+  add(new THREE.SphereGeometry(0.1, 24, 18), white, 0, 0, 0.16, dog).scale.set(0.95, 1, 1.75);
+  [-1, 1].forEach(s => {   // the ears: tall points, pink inside
+    const e = new THREE.Group(); e.position.set(s * 0.045, 0.085, 0.07); e.rotation.set(-0.35, 0, -s * 0.25); dog.add(e);
+    add(new THREE.ConeGeometry(0.034, 0.11, 14), white, 0, 0.05, 0, e).scale.z = 0.45;
+    add(new THREE.ConeGeometry(0.022, 0.08, 12), pink, 0, 0.045, 0.012, e).scale.z = 0.3;
+  });
+  // the patch and the eye (a heavy lid over it) on the side that faces the street, a small dark eye on the other
+  add(new THREE.SphereGeometry(0.045, 16, 12), black, 0.081, 0.035, 0.19, dog).scale.set(0.25, 0.8, 1);
+  add(new THREE.SphereGeometry(0.024, 14, 10), white, 0.093, 0.035, 0.19, dog).scale.set(0.35, 0.75, 1);
+  add(new THREE.SphereGeometry(0.011, 10, 8), black, 0.1, 0.03, 0.195, dog).scale.set(0.5, 1, 1);
+  add(new THREE.BoxGeometry(0.006, 0.006, 0.05), black, 0.1, 0.047, 0.19, dog).rotation.x = 0.15;
+  add(new THREE.SphereGeometry(0.011, 10, 8), black, -0.088, 0.035, 0.19, dog).scale.set(0.5, 1, 1);
+  add(new THREE.SphereGeometry(0.038, 16, 12), black, 0, -0.012, 0.325, dog).scale.set(1.1, 0.8, 0.7);                // the nose
+  const mouth = add(new THREE.TorusGeometry(0.06, 0.006, 6, 16, Math.PI * 0.7), red, 0, -0.05, 0.25, dog); mouth.rotation.set(Math.PI / 2 + 0.3, 0, Math.PI * 0.65);
+  add(new THREE.TorusGeometry(0.085, 0.014, 8, 24), red, 0, -0.01, 0.025, dog);                                         // the collar
+  // the tissue: a crumpled white sheet hanging out of one nostril
+  const paper = mat(0xfbfbf8, { roughness: 0.9, side: THREE.DoubleSide });
+  const tissue = new THREE.Group(); tissue.position.set(0.012, -0.03, 0.345); tissue.rotation.set(0.25, 0.9, 0); dog.add(tissue);
+  [[0, -0.045, 0, 0.05, 0.09, 0.2], [0.012, -0.07, 0.008, 0.04, 0.07, -0.35], [-0.01, -0.09, -0.004, 0.035, 0.06, 0.5]].forEach(([x, y, z, w, h, r]) => {
+    add(new THREE.PlaneGeometry(w, h), paper, x, y, z, tissue).rotation.set(r * 0.5, r, r * 0.4);
+  });
+  add(new THREE.IcosahedronGeometry(0.014, 0), paper, 0, 0, 0, tissue).scale.set(1, 1.3, 1);
+  // the neighbours' door: dark glass in a black metal frame with an arched grille over it, a long bar handle, and a
+  // lattice window over it lit from inside
+  const DX = 0.95, DW = 0.84, DH = 2.12;
+  const frameM = mat(0x2c2f32, { roughness: 0.5, metalness: 0.5 });
+  [[DX - DW / 2, DH / 2, 0.04, DH], [DX + DW / 2, DH / 2, 0.04, DH], [DX, DH, DW + 0.04, 0.05], [DX, 0.06, DW, 0.12]].forEach(([x, y, w, h]) => add(new THREE.BoxGeometry(w, h, 0.05), frameM, x, y, 0.025));
+  const grille = canvasTex(168, 400, (c, w, h) => {
+    c.fillStyle = '#1b2024'; c.fillRect(0, 0, w, h);
+    const sheen = c.createLinearGradient(0, 0, w, h); sheen.addColorStop(0, 'rgba(120,140,150,0.18)'); sheen.addColorStop(0.5, 'rgba(40,50,56,0)'); sheen.addColorStop(1, 'rgba(90,100,110,0.12)');
+    c.fillStyle = sheen; c.fillRect(0, 0, w, h);
+    const R = w / 2 - 14, r = w / 2 - 40;
+    c.strokeStyle = '#4a5156'; c.lineWidth = 5;
+    c.beginPath(); c.moveTo(14, h - 10); c.lineTo(14, 120); c.arc(w / 2, 120, R, Math.PI, 0); c.lineTo(w - 14, h - 10); c.stroke();   // the arch
+    c.lineWidth = 3; c.beginPath(); c.arc(w / 2, 120, r, Math.PI, 0); c.stroke();
+    [w / 2 - 34, w / 2, w / 2 + 34].forEach(x => { c.beginPath(); c.moveTo(x, h - 10); c.lineTo(x, 120 - Math.sqrt(Math.max(0, r * r - (x - w / 2) ** 2))); c.stroke(); });
+    [190, 260, 330].forEach(y => { c.beginPath(); c.moveTo(14, y); c.lineTo(w - 14, y); c.stroke(); });
+  });
+  add(new THREE.PlaneGeometry(DW - 0.04, DH - 0.14), new THREE.MeshStandardMaterial({ map: grille, roughness: 0.15, metalness: 0.35 }), DX, DH / 2 + 0.05, 0.012);
+  const steelM = mat(0xb9bcbe, { metalness: 0.8, roughness: 0.3 });
+  add(new THREE.BoxGeometry(0.02, 0.42, 0.02), steelM, DX - DW / 2 + 0.1, 1.05, 0.085);                                  // the long bar handle
+  [0.88, 1.22].forEach(y => add(new THREE.BoxGeometry(0.02, 0.02, 0.06), steelM, DX - DW / 2 + 0.1, y, 0.055));
+  const lattice = canvasTex(84, 40, (c, w, h) => {
+    c.fillStyle = '#d8d6a8'; c.fillRect(0, 0, w, h); c.strokeStyle = '#2c2f32'; c.lineWidth = 3;
+    for (let x = 0; x <= w; x += 12) { c.beginPath(); c.moveTo(x, 0); c.lineTo(x, h); c.stroke(); }
+    for (let y = 0; y <= h; y += 13) { c.beginPath(); c.moveTo(0, y); c.lineTo(w, y); c.stroke(); }
+  });
+  add(new THREE.BoxGeometry(DW + 0.04, 0.4, 0.04), frameM, DX, DH + 0.27, 0.02);
+  add(new THREE.PlaneGeometry(DW - 0.04, 0.33), new THREE.MeshStandardMaterial({ map: lattice, emissive: 0xd8d0a0, emissiveMap: lattice, emissiveIntensity: 0.5, roughness: 0.6 }), DX, DH + 0.27, 0.042);
+}
+
 function openCorner() {
   [[-2.97, 4.42, 1.4], [-2.8, 4.45, 1.2], [-2.96, 4.7, 1.3], [-2.82, 4.68, 1.5]].forEach(([x, z, s]) => figurine(x, 0.6, z, s));
   const katana = new THREE.Group(); katana.position.set(-2.98, 0, 4.9); katana.rotation.z = 0.1; ctx.scene.add(katana);
@@ -350,6 +432,7 @@ export function buildArcade() {
   openCorner();
   beanbagNook();
   storeroomWall();
+  frontPillar();
   street();
   gallery();
   // a stack of blocks with a plant just past the street end of the seats, toys in its holes
