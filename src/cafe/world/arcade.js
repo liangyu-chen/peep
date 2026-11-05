@@ -353,12 +353,13 @@ function frontPillar() {
   add(new THREE.BoxGeometry(0.1, 0.035, 0.002), mat(0xe8e8e2, { roughness: 0.3 }), PX + 0.01, 1.69, 0.101);               // the slot's little window
   // the bull terrier, after the photos: the long head of the breed, the forehead running down in one curve to a big
   // blunt black nose with no step at the eyes ("roman nose"), widest at the cheeks and narrowing to the muzzle. It
-  // hangs on the pillar's front just under the mailbox, looking straight out at the road with its nose dipped a little.
-  // Small dark eyes set high, a black patch round its left one, tall pointed ears, a smiling red mouth a little open
-  // under the nose, a red collar on the short neck that holds it off the pillar, and a tissue stuck up a nostril.
+  // hangs on the pillar's front just under the mailbox, close against it (its red collar right at the pillar), looking
+  // out at the road with its nose dipped a little and turned a touch toward the arcade. A short, deep face, small dark
+  // eyes set high, a black patch round its right one (the side seen from the arcade), big ears with rounded tips that
+  // grow out of the head, the mouth a little open under the nose (red inside) in a smile, and a tissue stuck up a nostril.
   const white = mat(0xf4f1ea, { roughness: 0.4 }), black = mat(0x141414, { roughness: 0.35 }), pink = mat(0xe8a0a0, { roughness: 0.6 }), red = mat(0xc8321e, { roughness: 0.5 });
-  const L = 0.27;
-  const P = 1;   // the side with the patch
+  const L = 0.22;
+  const P = -1;   // the side with the patch
   const ease = (a, b, t) => { const k = Math.max(0, Math.min(1, (t - a) / (b - a))); return k * k * (3 - 2 * k); };
   const W = t => 0.105 * (1 - 0.5 * ease(0.25, 1, t)), TOP = t => 0.118 * (1 - 0.5 * ease(0.15, 1, t)), BOT = t => 0.092 * (1 - 0.32 * ease(0.3, 1, t));   // a high, round forehead
   const MID = t => -0.088 * t * t;                                                    // the whole muzzle bowing down: the roman nose
@@ -376,16 +377,17 @@ function frontPillar() {
     const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); geo.setIndex(idx); geo.computeVertexNormals(); return geo;
   })();
   const DY = 1.42;   // just under the mailbox
-  const dog = new THREE.Group(); dog.position.set(PX, DY, 0.12); dog.rotation.set(0.22, 0, 0); dog.scale.setScalar(1.25); g.add(dog);
+  const dog = new THREE.Group(); dog.position.set(PX, DY, 0.07); dog.rotation.set(0.22, -0.25, 0, 'YXZ'); dog.scale.setScalar(1.25); g.add(dog);
   add(headGeo, white, 0, 0, 0, dog);
   // the neck, straight out from the pillar into the back of the head, and its collar
-  add(new THREE.CylinderGeometry(0.075, 0.085, 0.13, 18), white, PX, DY, 0.065).rotation.x = Math.PI / 2;
-  add(new THREE.TorusGeometry(0.085, 0.015, 8, 24), red, PX, DY, 0.07);
-  // ears: tall points standing up off the back of the head and leaning out, pink inside
+  add(new THREE.CylinderGeometry(0.085, 0.09, 0.07, 18), white, PX, DY, 0.035).rotation.x = Math.PI / 2;
+  add(new THREE.TorusGeometry(0.09, 0.016, 8, 24), red, PX, DY, 0.03);
+  // ears: big and upright with rounded tips, their broad bases sunk into the head so they grow out of it, pink inside
+  const earGeo = new THREE.LatheGeometry([[0, -0.03], [0.058, -0.03], [0.06, 0.03], [0.054, 0.07], [0.042, 0.1], [0.025, 0.122], [0.008, 0.132], [0, 0.134]].map(([r, y]) => new THREE.Vector2(r, y)), 20);
   [-1, 1].forEach(s => {
-    const base = on(0.16, s * 0.5), e = new THREE.Group(); e.position.copy(base); e.rotation.set(-0.25, 0, -s * 0.35); dog.add(e);
-    add(new THREE.ConeGeometry(0.052, 0.14, 16), white, 0, 0.06, 0, e).scale.z = 0.42;
-    add(new THREE.ConeGeometry(0.037, 0.105, 12), pink, 0, 0.05, 0.014, e).scale.z = 0.25;
+    const base = on(0.22, s * 0.55, -0.012), e = new THREE.Group(); e.position.copy(base); e.rotation.set(-0.2, 0, -s * 0.28); dog.add(e);
+    add(earGeo, white, 0, 0, 0, e).scale.z = 0.42;
+    const inner = add(earGeo, pink, 0, 0.012, 0.013, e); inner.scale.set(0.68, 0.78, 0.22);
   });
   // the eyes: small dark almonds set high and well back on the long face; one in its black patch,
   // with a heavy lid
@@ -406,11 +408,11 @@ function frontPillar() {
   for (let k = 0; k <= 10; k++) { const [t, a] = smile(k / 10); lip.push(on(t, -a, 0.003)); }
   for (let k = 9; k >= 0; k--) { const [t, a] = smile(k / 10); lip.push(on(t, a, 0.003)); }
   add(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(lip), 64, 0.0065, 6, false), red, 0, 0, 0, dog);
-  const open = on(0.9, Math.PI, -0.004);
-  add(new THREE.SphereGeometry(0.04, 16, 10), red, open.x, open.y, open.z, dog).scale.set(0.95, 0.3, 0.9);
+  const open = on(0.86, Math.PI, -0.006);
+  add(new THREE.SphereGeometry(0.05, 18, 12), red, open.x, open.y - 0.012, open.z + 0.004, dog).scale.set(0.95, 0.55, 1.0);
   // the tissue: a crumpled white sheet hanging out of the nostril on the patch side
   const paper = mat(0xfbfbf8, { roughness: 0.9, side: THREE.DoubleSide });
-  const tissue = new THREE.Group(); tissue.position.set(P * 0.016, tip.y - 0.03, tip.z + 0.008); tissue.rotation.set(-0.3, P * 0.5, 0); tissue.scale.setScalar(1.4); dog.add(tissue);
+  const tissue = new THREE.Group(); tissue.position.set(P * 0.026, tip.y - 0.03, tip.z + 0.008); tissue.rotation.set(-0.3, P * 0.5, 0); tissue.scale.setScalar(1.4); dog.add(tissue);
   [[0, -0.045, 0, 0.05, 0.09, 0.2], [0.012, -0.07, 0.008, 0.04, 0.07, -0.35], [-0.01, -0.09, -0.004, 0.035, 0.06, 0.5]].forEach(([x, y, z, w, h, r]) => {
     add(new THREE.PlaneGeometry(w, h), paper, x, y, z, tissue).rotation.set(r * 0.5, r, r * 0.4);
   });
