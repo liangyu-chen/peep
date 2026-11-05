@@ -97,6 +97,18 @@ body:has(.admin){margin:0;background:#141218}
 .admin .look-preview .stage canvas{display:block;width:100%;height:100%}
 .admin .look-preview .views{display:flex;gap:6px;align-items:center;padding-top:8px}
 .admin .look-preview .views .muted{margin-left:auto;font-size:12px}
+/* on a phone, scrolled past: a small floating window in the top right, under the header */
+.admin .look-preview.floating{position:fixed;top:var(--float-top,96px);right:8px;z-index:4;width:138px;padding:4px;
+  box-shadow:0 0 0 3px var(--ink),5px 5px 0 0 #000}
+.admin .look-preview.floating .stage{height:170px}
+.admin .look-preview.floating .views{padding-top:4px;gap:4px}
+.admin .look-preview.floating .views button{flex:1;padding:4px 0;font-size:12px}
+.admin .look-preview.floating .views .muted{display:none}
+.admin .look-preview .tuck{position:absolute;top:4px;right:4px;z-index:1;padding:0 8px;min-width:28px;height:24px;font-size:14px;line-height:1}
+.admin .look-preview.tucked{width:auto;padding:0}
+.admin .look-preview.tucked .stage{height:0;overflow:hidden}
+.admin .look-preview.tucked .views{display:none}
+.admin .look-preview.tucked .tuck{position:static}
 .admin button.on{background:var(--gold);color:#1f1c27;box-shadow:inset -3px -3px 0 0 #b08d10,inset 3px 3px 0 0 #fff2a8}
 .admin .editor-fields{display:grid;gap:14px;min-width:0}
 .admin .panel-block{background:var(--panel);padding:14px 16px;display:grid;gap:12px}

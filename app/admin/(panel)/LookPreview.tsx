@@ -5,11 +5,17 @@ import { parseLook, type Look } from '@/src/content/catalog';
 
 type Preview = { update(look: Look, seed: string): void; setView(v: 'face' | 'full'): void; dispose(): void };
 
-// live 3D preview of the person the surrounding form describes; redraws on every change to the form
+// live 3D preview of the person the surrounding form describes; redraws on every change to the form.
+// On a phone, once it has scrolled up out of sight, it floats as a small window in the top right corner (under the
+// header), so the changes and colours further down the form can still be seen as they're made; it can be tucked away.
 export default function LookPreview({ initial, seed }: { initial: Look; seed: string }) {
+  const spot = useRef<HTMLDivElement>(null);
   const host = useRef<HTMLDivElement>(null);
   const preview = useRef<Preview | null>(null);
   const [view, setView] = useState<'face' | 'full'>('face');
+  const [floating, setFloating] = useState(false);
+  const [tucked, setTucked] = useState(false);
+  const [spotH, setSpotH] = useState(0);
 
   useEffect(() => {
     let cancelled = false, unbind = () => {};
@@ -33,13 +39,41 @@ export default function LookPreview({ initial, seed }: { initial: Look; seed: st
 
   useEffect(() => { preview.current?.setView(view); }, [view]);
 
+  // phones only: float once the preview's own place has scrolled up past the header
+  useEffect(() => {
+    const el = spot.current;
+    if (!el) return;
+    const phone = window.matchMedia('(max-width: 760px)');
+    const check = () => {
+      if (!phone.matches) { setFloating(false); return; }
+      const bar = document.querySelector('.admin .bar') as HTMLElement | null;
+      const top = bar ? bar.getBoundingClientRect().bottom : 0;
+      document.documentElement.style.setProperty('--float-top', `${Math.round(top + 8)}px`);
+      const r = el.getBoundingClientRect();
+      const out = r.bottom < top + 60;   // most of it gone under the header
+      if (out && r.height > 0) setSpotH(r.height);
+      setFloating(out);
+    };
+    check();
+    window.addEventListener('scroll', check, { passive: true }); window.addEventListener('resize', check);
+    phone.addEventListener('change', check);
+    return () => { window.removeEventListener('scroll', check); window.removeEventListener('resize', check); phone.removeEventListener('change', check); };
+  }, []);
+
   return (
-    <div className="look-preview">
-      <div ref={host} className="stage" aria-label="3D 預覽，可拖曳旋轉" />
-      <div className="views">
-        <button type="button" className={view === 'face' ? 'on' : ''} onClick={() => setView('face')}>臉部</button>
-        <button type="button" className={view === 'full' ? 'on' : ''} onClick={() => setView('full')}>全身</button>
-        <span className="muted">拖曳旋轉 · 滾輪縮放</span>
+    <div ref={spot} style={floating ? { minHeight: spotH } : undefined}>
+      <div className={'look-preview' + (floating ? ' floating' : '') + (floating && tucked ? ' tucked' : '')}>
+        {floating && (
+          <button type="button" className="tuck" onClick={() => setTucked(t => !t)} aria-label={tucked ? '展開預覽' : '收起預覽'}>
+            {tucked ? '預覽' : '−'}
+          </button>
+        )}
+        <div ref={host} className="stage" aria-label="3D 預覽，可拖曳旋轉" />
+        <div className="views">
+          <button type="button" className={view === 'face' ? 'on' : ''} onClick={() => setView('face')}>臉部</button>
+          <button type="button" className={view === 'full' ? 'on' : ''} onClick={() => setView('full')}>全身</button>
+          <span className="muted">拖曳旋轉 · 滾輪縮放</span>
+        </div>
       </div>
     </div>
   );
