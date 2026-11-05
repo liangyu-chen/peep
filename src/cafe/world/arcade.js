@@ -351,10 +351,11 @@ function frontPillar() {
   add(new THREE.BoxGeometry(0.15, 0.12, 0.012), mat(0x7a5536, { roughness: 0.9, metalness: 0.3 }), PX, 1.72, 0.094);   // the rusty flap
   add(new THREE.BoxGeometry(0.05, 0.03, 0.002), mat(0xf2efe6), PX - 0.02, 1.75, 0.101);                                    // a sticker on it
   add(new THREE.BoxGeometry(0.1, 0.035, 0.002), mat(0xe8e8e2, { roughness: 0.3 }), PX + 0.01, 1.69, 0.101);               // the slot's little window
-  // the bull terrier, after the photos (the side-on one most of all): a full round skull at the back, the forehead
-  // sloping down in one long curve to a blunt, angular black nose, the head about a third longer than it is high. It
-  // hangs on the pillar's front just under the mailbox, close against it (its red collar right at the pillar), looking
-  // straight out at the road, its nose dipped a little. Ears about half the head's height, pointed leaves with red-pink
+  // the bull terrier, after the photos (the side-on one most of all): a wall ornament, the head cut off flat at the
+  // back and set right on the pillar's front just under the mailbox, no neck, a red collar round the bottom of it where
+  // it meets the pillar. It looks straight out at the road: a rounded forehead rising in front of the ears, then the
+  // face sloping down in one long curve to a blunt, angular black nose, the nose dipped a little, the head about a
+  // third longer than it is high. Ears about half the head's height, pointed leaves with red-pink
   // insides; a small black eye with a brow line over it, the left one in a black patch; the mouth a thin smiling crease
   // from under the nose back up the cheek, just open, a little red tongue showing; and a tissue stuck up the nose.
   const white = mat(0xf4f1ea, { roughness: 0.4 }), black = mat(0x141414, { roughness: 0.35 }), pink = mat(0xd77a70, { roughness: 0.6 }), red = mat(0xc8321e, { roughness: 0.5 });
@@ -362,9 +363,10 @@ function frontPillar() {
   const L = 0.25;
   const P = 1;   // the side with the patch: its left
   const ease = (a, b, t) => { const k = Math.max(0, Math.min(1, (t - a) / (b - a))); return k * k * (3 - 2 * k); };
-  const W = t => 0.1 * (1 - 0.5 * ease(0.3, 1, t)), TOP = t => 0.105 * (1 - 0.52 * ease(0.2, 1, t)), BOT = t => 0.085 * (1 - 0.35 * ease(0.35, 1, t));
-  const MID = t => -0.06 * t * t;                                                     // the muzzle bowing down a little
-  const CAP = t => t < 0.24 ? Math.sqrt(Math.max(0, 1 - ((0.24 - t) / 0.24) ** 2)) : t > 0.92 ? Math.sqrt(Math.max(0, 1 - ((t - 0.92) / 0.08) ** 2)) : 1;   // a full round back, a blunt front
+  const fore = t => Math.exp(-(((t - 0.3) / 0.14) ** 2));                            // the forehead, rising in front of the ears
+  const W = t => 0.1 * (1 + 0.04 * fore(t)) * (1 - 0.5 * ease(0.35, 1, t)), TOP = t => 0.105 * (1 + 0.24 * fore(t)) * (1 - 0.55 * ease(0.36, 1, t)), BOT = t => 0.085 * (1 - 0.35 * ease(0.35, 1, t));
+  const MID = t => -0.05 * t - 0.06 * t * t;                                          // the face sloping and bowing down to the nose
+  const CAP = t => t < 0.1 ? 0.9 + 0.1 * Math.sqrt(t / 0.1) : t > 0.92 ? Math.sqrt(Math.max(0, 1 - ((t - 0.92) / 0.08) ** 2)) : 1;   // cut flat at the back (on the pillar), blunt at the front
   // a point on the head: t from the back of the skull (0) to the tip of the nose (1), a round from the top (0) toward
   // its left (+x)
   const on = (t, a, out = 0) => {
@@ -378,20 +380,21 @@ function frontPillar() {
     const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); geo.setIndex(idx); geo.computeVertexNormals(); return geo;
   })();
   const DY = 1.42;   // just under the mailbox
-  const dog = new THREE.Group(); dog.position.set(PX, DY, 0.07); dog.rotation.set(0.2, 0, 0); dog.scale.setScalar(1.25); g.add(dog);
+  const dog = new THREE.Group(); dog.position.set(PX, DY, 0.002); dog.scale.setScalar(1.25); g.add(dog);
   add(headGeo, white, 0, 0, 0, dog);
-  // the neck, straight out from the pillar into the back of the head, and its collar
-  add(new THREE.CylinderGeometry(0.08, 0.085, 0.07, 18), white, PX, DY, 0.035).rotation.x = Math.PI / 2;
-  add(new THREE.TorusGeometry(0.086, 0.02, 8, 24), red, PX, DY - 0.004, 0.034).scale.set(1, 1.05, 1.7);   // right against the pillar, hiding the neck
+  // the collar: round the bottom and sides of the head where it meets the pillar
+  const base = on(0.04, 0), under = on(0.04, Math.PI), side = on(0.04, Math.PI / 2);
+  const collar = add(new THREE.TorusGeometry(1, 0.13, 8, 28, Math.PI * 1.25), red, 0, (base.y + under.y) / 2, 0.022, dog);
+  collar.scale.set(side.x + 0.004, (base.y - under.y) / 2 + 0.004, 0.11); collar.rotation.z = Math.PI - Math.PI * 0.125;
   // ears: upright broad pointed leaves about half the head's height, their bases sunk into the head, red-pink inside
   const earGeo = new THREE.LatheGeometry([[0, -0.02], [0.04, -0.02], [0.044, 0.02], [0.039, 0.05], [0.028, 0.075], [0.013, 0.092], [0, 0.098]].map(([r, y]) => new THREE.Vector2(r, y)), 18);
   [-1, 1].forEach(s => {
-    const e = new THREE.Group(); e.position.copy(on(0.2, s * 0.5, -0.008)); e.rotation.set(-0.15, 0, -s * 0.2); dog.add(e);
-    add(earGeo, white, 0, 0, 0, e).scale.set(1.3, 1, 0.4);
-    add(earGeo, pink, 0, 0.012, 0.011, e).scale.set(0.9, 0.78, 0.2);
+    const e = new THREE.Group(); e.position.copy(on(0.13, s * 0.8, -0.01)); e.rotation.set(-0.1, 0, -s * 0.5); dog.add(e);   // well apart, on the top of the head's sides, leaning out
+    add(earGeo, white, 0, 0, 0, e).scale.set(1.3, 1.15, 0.4);
+    add(earGeo, pink, 0, 0.014, 0.011, e).scale.set(0.9, 0.9, 0.2);
   });
   // the eyes: small black ovals set high on the side of the face, a brow line arching over each; the left one in its patch
-  const EA = 1.12, eyeAt = (s, out) => on(0.46, s * EA, out);
+  const EA = 1.12, eyeAt = (s, out) => on(0.5, s * EA, out);
   const flatOn = (m, v, s, sx, sy, sz) => { m.position.copy(v); m.rotation.set(0, 0, s * (Math.PI / 2 - EA)); m.scale.set(sx, sy, sz); return m; };   // thin across the face's surface
   [-1, 1].forEach(s => {
     if (s === P) flatOn(add(new THREE.SphereGeometry(0.04, 18, 12), black, 0, 0, 0, dog), eyeAt(s, -0.006), s, 0.28, 0.8, 1.05);   // the patch
