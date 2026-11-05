@@ -60,6 +60,7 @@ async function build(root, content) {
     updateSmoke(sdt);
     updateTops(sdt);
     updateSurroundings(dt);
+    if (S.ledClock) S.ledClock();   // the corner's LED clock (redraws only when the minute changes)
     S.acFan.rotation.x += dt * 12;
     S.fans.forEach(f => { f.rotation.y += dt * 4; });
     // doors open when someone comes close
