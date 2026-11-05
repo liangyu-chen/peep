@@ -518,10 +518,14 @@ export function buildBody(look, seed = '') {
   under.rotation.x = Math.PI / 2; under.scale.y = hemZ;
   mk(neckRibGeo(topFit), shirtDark, 0, 0, 0, g, false);   // a U neck, edged with a rolled rib
   if (look.number) {
-    const t = canvasTex(32, 32, (c) => { c.fillStyle = '#fff'; c.font = `16px ${PIX}`; c.textAlign = 'center'; c.fillText(look.number, 16, 24); }, true);
+    // printed in white, or in near-black on a light shirt; and sat on the cloth however roomy the cut (an oversize top
+    // stands further out, and the number buried in it showed through as a couple of odd pale patches)
+    const light = new THREE.Color(look.shirt).getHSL({}).l > 0.6;
+    const t = canvasTex(32, 32, (c) => { c.fillStyle = light ? '#222' : '#fff'; c.font = `16px ${PIX}`; c.textAlign = 'center'; c.fillText(look.number, 16, 24); }, true);
     const numM = new THREE.MeshBasicMaterial({ map: t, transparent: true });
-    const front = new THREE.Mesh(new THREE.PlaneGeometry(0.19, 0.19), numM); front.position.set(0, 0.98, 0.147); g.add(front);
-    const back = front.clone(); back.position.z = -0.147; back.rotation.y = Math.PI; back.scale.setScalar(1.3); g.add(back);
+    const nz = 0.147 * TF.d + 0.004, ny = 0.98 - TF.drop * 0.3;
+    const front = new THREE.Mesh(new THREE.PlaneGeometry(0.19, 0.19), numM); front.position.set(0, ny, nz); g.add(front);
+    const back = front.clone(); back.position.z = -nz; back.rotation.y = Math.PI; back.scale.setScalar(1.3); g.add(back);
   }
   if (look.apron) mk(bx(0.38, 0.6, 0.02), mat(picked(look.apron)), 0, 0.8, 0.15);
 
