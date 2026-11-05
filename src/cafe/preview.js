@@ -68,7 +68,7 @@ export function mountPreview(host) {
       tickFace(body, anim, dt, t % 7 > 5.2);                     // says something every few seconds, so the mouth shows
       const p = restPose(t * 2);   // standing just as the café's people do at rest (body.js)
       poseBody(body, p); body.head.rotation.y = p.head;
-      if (bear) { body.head.getWorldPosition(bear.g.position); bear.g.position.x += 0.3; bear.g.position.z -= 0.1; bear.g.position.y += 0.06 + flapBear(bear, dt); }
+      if (bear) { body.head.getWorldPosition(bear.g.position); bear.g.position.x += 0.45; bear.g.position.z -= 0.06; bear.g.position.y += 0.1 + flapBear(bear, dt); }
     }
     if (tween) {
       tween.t = Math.min(1, tween.t + dt / 0.6);

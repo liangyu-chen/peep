@@ -127,8 +127,8 @@ const _head = new THREE.Vector3(), _to = new THREE.Vector3();
 export function followBear(bear, person, dt) {
   const bob = flapBear(bear, dt);
   person.head.getWorldPosition(_head);
-  const h = person.heading, side = 0.3, back = -0.12;
-  _to.set(_head.x + Math.cos(h) * side + Math.sin(h) * back, _head.y + 0.06 + bob, _head.z - Math.sin(h) * side + Math.cos(h) * back);
+  const h = person.heading, side = 0.45, back = -0.06;   // (well clear of a full head of hair)
+  _to.set(_head.x + Math.cos(h) * side + Math.sin(h) * back, _head.y + 0.1 + bob, _head.z - Math.sin(h) * side + Math.cos(h) * back);
   const g = bear.g;
   if (!bear.placed) { g.position.copy(_to); g.rotation.y = h; bear.placed = true; }
   else g.position.lerp(_to, 1 - Math.exp(-dt * 3.5));
