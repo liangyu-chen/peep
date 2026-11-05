@@ -87,13 +87,21 @@ async function build(root, content) {
   // a tablet or phone draws every other frame (30 a second), a computer at most 60 (a 120 or 144 Hz screen would
   // otherwise draw twice as many for nothing). (The shadows are redrawn every frame: skipping some made the lit walls
   // and posters flicker between frames.)
-  const target = LOW_POWER ? 1000 / 30 : 1000 / 60, minGap = target - 4;
-  // and the resolution follows how it's keeping up: frames coming slow for a second and a half, it draws fewer pixels
-  // (down to 0.7 of a CSS pixel); quick again for a good while, it comes back up a step
+  // A computer also drops to 30 while nobody's touching it (20 seconds without the mouse, keys or a touch, or the
+  // window in the background): the café just plays on, and that halves the work without making anything blurrier.
+  const target = LOW_POWER ? 1000 / 30 : 1000 / 60;
+  let lastInput = performance.now();
+  const poke = () => { lastInput = performance.now(); };
+  const INPUTS = ['pointermove', 'pointerdown', 'wheel', 'keydown', 'touchstart'];
+  INPUTS.forEach(e => window.addEventListener(e, poke, { passive: true }));
+  const idle = now => now - lastInput > 20000 || !document.hasFocus();
+  // and on a tablet the resolution follows how it's keeping up: frames coming slow for a second and a half, it draws
+  // fewer pixels (down to 0.7 of a CSS pixel); quick again for a good while, it comes back up a step. (A computer always
+  // draws at full sharpness.)
   const res = { max: ctx.renderer.getPixelRatio(), sum: 0, n: 0, good: 0 };
   res.min = Math.min(res.max, 0.7);
   function adapt(gap) {
-    if (S.darting || gap > 250) return;   // (the darts draw in chunky pixels of their own; a long gap is the tab coming back)
+    if (!LOW_POWER || S.darting || gap > 250) return;   // (the darts draw in chunky pixels of their own; a long gap is the tab coming back)
     res.sum += gap; res.n++;
     if (res.sum < 1500) return;
     const avg = res.sum / res.n; res.sum = res.n = 0;
@@ -105,7 +113,7 @@ async function build(root, content) {
   }
   function frame(now) {
     if (S.stopped) return;
-    if (now - last < minGap) { raf = requestAnimationFrame(frame); return; }
+    if (now - last < (idle(now) ? 1000 / 30 : target) - 4) { raf = requestAnimationFrame(frame); return; }
     adapt(now - last);
     const dt = Math.min(0.05, (now - last) / 1000); last = now;
     simulate(dt, dt * S.speed);
@@ -141,6 +149,7 @@ async function build(root, content) {
 
   return function stopCafe() {
     S.stopped = true;
+    INPUTS.forEach(e => window.removeEventListener(e, poke));
     cancelAnimationFrame(raf);
     clearInterval(hudTimer);
     unbind();
