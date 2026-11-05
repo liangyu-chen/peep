@@ -360,7 +360,7 @@ function frontPillar() {
   // from under the nose back up the cheek, just open, a little red tongue showing; and a tissue stuck up the nose.
   const white = mat(0xf4f1ea, { roughness: 0.4 }), black = mat(0x141414, { roughness: 0.35 }), pink = mat(0xd77a70, { roughness: 0.6 }), red = mat(0xc8321e, { roughness: 0.5 });
   const crease = mat(0x4a3c38, { roughness: 0.6 });
-  const L = 0.25;
+  const L = 0.21;
   const P = 1;   // the side with the patch: its left
   const ease = (a, b, t) => { const k = Math.max(0, Math.min(1, (t - a) / (b - a))); return k * k * (3 - 2 * k); };
   const fore = t => Math.exp(-(((t - 0.3) / 0.14) ** 2));                            // the forehead, rising in front of the ears
@@ -394,13 +394,14 @@ function frontPillar() {
     add(earGeo, pink, 0, 0.014, 0.011, e).scale.set(0.9, 0.9, 0.2);
   });
   // the eyes: small black ovals set high on the side of the face, a brow line arching over each; the left one in its patch
-  const EA = 1.12, eyeAt = (s, out) => on(0.5, s * EA, out);
+  const ET = 0.48, EA = 1.12, eyeAt = (s, out) => on(ET, s * EA, out);
   const flatOn = (m, v, s, sx, sy, sz) => { m.position.copy(v); m.rotation.set(0, 0, s * (Math.PI / 2 - EA)); m.scale.set(sx, sy, sz); return m; };   // thin across the face's surface
   [-1, 1].forEach(s => {
     if (s === P) flatOn(add(new THREE.SphereGeometry(0.04, 18, 12), black, 0, 0, 0, dog), eyeAt(s, -0.006), s, 0.28, 0.8, 1.05);   // the patch
     if (s === P) flatOn(add(new THREE.SphereGeometry(0.017, 14, 10), white, 0, 0, 0, dog), eyeAt(s, 0.003), s, 0.35, 0.8, 1.15);
     flatOn(add(new THREE.SphereGeometry(0.011, 12, 8), black, 0, 0, 0, dog), eyeAt(s, 0.006), s, 0.5, 1.1, 0.85);
-    const brow = [0.39, 0.44, 0.49, 0.53].map((t, i) => { const v = on(t, s * (EA - 0.2 - 0.04 * Math.sin(i)), 0.002); v.y += [0, 0.006, 0.006, 0.001][i]; return v; });
+    // the brow, centred over the eye
+    const brow = [-0.08, -0.03, 0.02, 0.06].map((d, i) => { const v = on(ET + d, s * (EA - 0.2 - 0.04 * Math.sin(i)), 0.002); v.y += [0, 0.006, 0.006, 0.001][i]; return v; });
     add(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(brow), 12, 0.0026, 5, false), black, 0, 0, 0, dog);
   });
   // the nose: black and a little angular, right at the blunt tip
