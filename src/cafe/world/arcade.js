@@ -364,8 +364,8 @@ function frontPillar() {
   const P = 1;   // the side with the patch: its left
   const ease = (a, b, t) => { const k = Math.max(0, Math.min(1, (t - a) / (b - a))); return k * k * (3 - 2 * k); };
   const fore = t => Math.exp(-(((t - 0.3) / 0.14) ** 2));                            // the forehead, rising in front of the ears
-  const W = t => 0.1 * (1 + 0.04 * fore(t)) * (1 - 0.5 * ease(0.35, 1, t)), TOP = t => 0.105 * (1 + 0.24 * fore(t)) * (1 - 0.55 * ease(0.36, 1, t)), BOT = t => 0.085 * (1 - 0.35 * ease(0.35, 1, t));
-  const MID = t => -0.05 * t - 0.06 * t * t;                                          // the face sloping and bowing down to the nose
+  const W = t => 0.1 * (1 + 0.04 * fore(t)) * (1 - 0.5 * ease(0.35, 1, t)), TOP = t => 0.105 * (1 + 0.24 * fore(t)) * (1 - 0.5 * ease(0.4, 1, t)), BOT = t => 0.085 * (1 - 0.42 * ease(0.3, 1, t));
+  const MID = t => -0.012 * t;                                                        // nearly level: the top slopes down to the nose, the jaw comes up to it
   const CAP = t => t < 0.1 ? 0.9 + 0.1 * Math.sqrt(t / 0.1) : t > 0.92 ? Math.sqrt(Math.max(0, 1 - ((t - 0.92) / 0.08) ** 2)) : 1;   // cut flat at the back (on the pillar), blunt at the front
   // a point on the head: t from the back of the skull (0) to the tip of the nose (1), a round from the top (0) toward
   // its left (+x)
@@ -387,17 +387,32 @@ function frontPillar() {
   const collar = add(new THREE.TorusGeometry(1, 0.13, 8, 28, Math.PI * 1.25), red, 0, (base.y + under.y) / 2, 0.022, dog);
   collar.scale.set(side.x + 0.004, (base.y - under.y) / 2 + 0.004, 0.11); collar.rotation.z = Math.PI - Math.PI * 0.125;
   // ears: upright broad pointed leaves about half the head's height, their bases sunk into the head, red-pink inside
-  const earGeo = new THREE.LatheGeometry([[0, -0.02], [0.04, -0.02], [0.044, 0.02], [0.039, 0.05], [0.028, 0.075], [0.013, 0.092], [0, 0.098]].map(([r, y]) => new THREE.Vector2(r, y)), 18);
+  const earGeo = new THREE.LatheGeometry([[0, -0.02], [0.04, -0.02], [0.043, 0.015], [0.04, 0.045], [0.032, 0.075], [0.02, 0.1], [0.008, 0.12], [0, 0.13]].map(([r, y]) => new THREE.Vector2(r, y)), 18);   // a long oval coming to a point
   [-1, 1].forEach(s => {
     const e = new THREE.Group(); e.position.copy(on(0.13, s * 0.8, -0.01)); e.rotation.set(-0.1, 0, -s * 0.5); dog.add(e);   // well apart, on the top of the head's sides, leaning out
-    add(earGeo, white, 0, 0, 0, e).scale.set(1.3, 1.15, 0.4);
-    add(earGeo, pink, 0, 0.014, 0.011, e).scale.set(0.9, 0.9, 0.2);
+    add(earGeo, white, 0, 0, 0, e).scale.set(1.15, 1, 0.28);
+    add(earGeo, pink, 0, 0.014, 0.008, e).scale.set(0.75, 0.82, 0.14);
   });
   // the eyes: small black ovals set high on the side of the face, a brow line arching over each; the left one in its patch
   const ET = 0.48, EA = 1.12, eyeAt = (s, out) => on(ET, s * EA, out);
+  // the patch: an oval of black lying right on the face round the eye, following its curve
+  const patchM = mat(0x141414, { roughness: 0.35, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+  const patchGeo = (() => {
+    const NR = 6, NQ = 28, pos = [...eyeAt(P, 0.0015).toArray()], idx = [];
+    for (let r = 1; r <= NR; r++) for (let q = 0; q < NQ; q++) {
+      const th = (q / NQ) * Math.PI * 2, k = r / NR;
+      pos.push(...on(ET + Math.cos(th) * k * 0.1, P * (EA + Math.sin(th) * k * 0.32), 0.0015).toArray());
+    }
+    for (let q = 0; q < NQ; q++) idx.push(0, 1 + q, 1 + ((q + 1) % NQ));
+    for (let r = 1; r < NR; r++) for (let q = 0; q < NQ; q++) {
+      const a = 1 + (r - 1) * NQ + q, b = 1 + (r - 1) * NQ + ((q + 1) % NQ), c = a + NQ, d = b + NQ;
+      idx.push(a, c, b, b, c, d);
+    }
+    const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); geo.setIndex(idx); geo.computeVertexNormals(); return geo;
+  })();
   const flatOn = (m, v, s, sx, sy, sz) => { m.position.copy(v); m.rotation.set(0, 0, s * (Math.PI / 2 - EA)); m.scale.set(sx, sy, sz); return m; };   // thin across the face's surface
   [-1, 1].forEach(s => {
-    if (s === P) flatOn(add(new THREE.SphereGeometry(0.04, 18, 12), black, 0, 0, 0, dog), eyeAt(s, -0.006), s, 0.28, 0.8, 1.05);   // the patch
+    if (s === P) add(patchGeo, patchM, 0, 0, 0, dog);   // the patch
     if (s === P) flatOn(add(new THREE.SphereGeometry(0.017, 14, 10), white, 0, 0, 0, dog), eyeAt(s, 0.003), s, 0.35, 0.8, 1.15);
     flatOn(add(new THREE.SphereGeometry(0.011, 12, 8), black, 0, 0, 0, dog), eyeAt(s, 0.006), s, 0.5, 1.1, 0.85);
     // the brow, centred over the eye
