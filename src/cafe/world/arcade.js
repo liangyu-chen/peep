@@ -360,7 +360,7 @@ function frontPillar() {
   // from under the nose back up the cheek, just open, a little red tongue showing; and a tissue stuck up the nose.
   const white = mat(0xf4f1ea, { roughness: 0.4 }), black = mat(0x141414, { roughness: 0.35 }), pink = mat(0xd77a70, { roughness: 0.6 }), red = mat(0xc8321e, { roughness: 0.5 });
   const crease = mat(0x4a3c38, { roughness: 0.6 });
-  const L = 0.21;
+  const L = 0.225;
   const P = 1;   // the side with the patch: its left
   const ease = (a, b, t) => { const k = Math.max(0, Math.min(1, (t - a) / (b - a))); return k * k * (3 - 2 * k); };
   const fore = t => Math.exp(-(((t - 0.3) / 0.14) ** 2));                            // the forehead, rising in front of the ears
@@ -390,8 +390,8 @@ function frontPillar() {
   const earGeo = new THREE.LatheGeometry([[0, -0.02], [0.04, -0.02], [0.043, 0.015], [0.04, 0.045], [0.032, 0.075], [0.02, 0.1], [0.008, 0.12], [0, 0.13]].map(([r, y]) => new THREE.Vector2(r, y)), 18);   // a long oval coming to a point
   [-1, 1].forEach(s => {
     const e = new THREE.Group(); e.position.copy(on(0.13, s * 0.8, -0.01)); e.rotation.set(-0.1, 0, -s * 0.5); dog.add(e);   // well apart, on the top of the head's sides, leaning out
-    add(earGeo, white, 0, 0, 0, e).scale.set(1.15, 1, 0.28);
-    add(earGeo, pink, 0, 0.014, 0.008, e).scale.set(0.75, 0.82, 0.14);
+    add(earGeo, white, 0, 0, 0, e).scale.set(1.05, 0.88, 0.28);
+    add(earGeo, pink, 0, 0.012, 0.008, e).scale.set(0.68, 0.72, 0.14);
   });
   // the eyes: small black ovals set high on the side of the face, a brow line arching over each; the left one in its patch
   const ET = 0.48, EA = 1.12, eyeAt = (s, out) => on(ET, s * EA, out);
