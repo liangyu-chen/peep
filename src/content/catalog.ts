@@ -291,7 +291,7 @@ export function hatOf(look: Look): { hat: string; color: number } {
 }
 
 // a little companion that goes about with them (月亮小熊 flies at their shoulder)
-export const COMPANIONS: Option[] = [{ value: 'none', label: '無' }, { value: 'bear', label: '月亮小熊' }];
+export const COMPANIONS: Option[] = [{ value: 'none', label: '無' }, { value: 'bear', label: '路易斯' }];
 export const companionOf = (look: Look) => (COMPANIONS.some(c => c.value === look.companion) ? (look.companion as string) : 'none');
 
 // ---------------------------------------------------------------- faces (捏臉)

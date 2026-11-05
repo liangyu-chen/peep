@@ -266,7 +266,7 @@ function ashtray(x, y, z, path, face) {
   cyl(0.05, 0.045, 0.018, mat(0x8f969c, { metalness: 0.7, roughness: 0.35 }), 0, 0.009, 0, g, 16);
   cyl(0.04, 0.04, 0.004, mat(0x3a3a3c, { roughness: 1 }), 0, 0.017, 0, g, 16);
   const butts = BUTTS.map(([dx, dz, r]) => { const b = cyl(0.0045, 0.0045, 0.03, buttM, dx, 0.022, dz, g, 6); b.rotation.set(Math.PI / 2, r, 0); return b; });
-  const a = { x, z, butts, n: 2, path, face };
+  const a = { x, z, butts, n: 2, path, face, g, home: { parent: ctx.scene, pos: g.position.clone(), rot: g.rotation.clone() } };
   a.show = () => butts.forEach((b, i) => { b.visible = i < a.n; });
   a.show();
   S.ashtrays.push(a);

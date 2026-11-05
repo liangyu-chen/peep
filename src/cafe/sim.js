@@ -40,16 +40,30 @@ async function ownerTo(owner, x, z, more = []) {
 
 // out from behind the bar at its back end, round the 2K stools to the walkway (a path out to the walkway, like a seat's)
 const BAR_OUT = [[LANE, -2.3], [0.6, -3.4], [-1.2, -3.95], [HUBX, -3.95]];
+// the bin in the corner past the end of the 工作台 (world/interior.js), where he stands to tip one out, out to the walkway
+const BIN = [[2.45, 2.36], [2.1, 2.8], [HUBX, 3.0]];
+// one at a time: out to the ashtray, picked up, carried in to the bin and tipped out, then carried back and put down
 async function emptyAshtrays(owner, trays) {
-  owner.status = '去戶外區倒菸灰缸';
+  owner.status = '去戶外區收菸灰缸';
   await ownerTo(owner, LANE, -2.3);
   let zone = BAR_OUT;
   for (const a of trays) {
+    owner.status = '去戶外區收菸灰缸';
     await walk(owner, route(zone, a.path)); zone = a.path;
     owner.face(a.face); await sleep(0.5);
-    owner.status = '倒菸灰缸';
-    owner.gesture('wipe', 1.6); await sleep(1.6);
-    a.n = 0; a.show();
+    owner.gesture('serve', 0.6); await sleep(0.5);
+    owner.hand.attach(a.g); a.g.position.set(0, -0.06, 0.02); a.g.rotation.set(0, 0, 0);   // in his hand
+    owner.status = '拿菸灰缸去垃圾桶倒';
+    owner.gesture('serve', 60);
+    await walk(owner, route(zone, BIN)); zone = BIN;
+    owner.face(Math.PI / 2); await sleep(0.5);
+    a.g.rotation.z = -1.2; await sleep(0.9);   // tipped over the bin
+    a.n = 0; a.show(); a.g.rotation.z = 0; await sleep(0.3);
+    owner.status = '把菸灰缸放回去';
+    await walk(owner, route(zone, a.path)); zone = a.path;
+    owner.face(a.face); await sleep(0.4);
+    a.home.parent.attach(a.g); a.g.position.copy(a.home.pos); a.g.rotation.copy(a.home.rot);   // back where it was
+    owner.act = null; owner.actT = 0; await sleep(0.4);
   }
   owner.status = '回吧台';
   const back = [[LANE, rand(-1.5, 1.5)]].concat(BAR_OUT);
