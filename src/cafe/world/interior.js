@@ -202,7 +202,7 @@ function workCounter() {
   box(0.006, 0.012, Z1 - Z0, seamM, FX, 0.05, (Z0 + Z1) / 2);
   for (let i = 0; i < BAYS; i++) box(0.012, 0.01, 0.14, seamM, FX - 0.003, 0.83, Z0 + (i + 0.5) * bw);   // a finger pull under each top edge
   for (let i = 0; i < 6; i++) cyl(0.055, 0.04, 0.06, mat(0xf2f0ea, { roughness: 0.3 }), 2.78 + (i % 2) * 0.13, 0.99, 0.2 + Math.floor(i / 2) * 0.14, ctx.scene, 12);
-  workBottles(2.92, 0.96, 1.05);   // (the back row's backs at the wall face, 3.01)
+  workBottles(2.92, 0.96, 1.66);   // (the back row's backs at the wall face, 3.01)
   buildPegboard();   // the crammed pegboard above (pegboard.js)
   // back end: two cinder seats against the wall with two stacked crates between them
   cinderSeat(2.75, -2.55); cinderSeat(2.75, -3.65);
@@ -399,7 +399,7 @@ function decor() {
     framed(['eye', 'hoop', 'toys'][i % 3], -3.02, y, z, 0.24, 0.3, pick(['#f4efe3', '#ffd23f', '#7ec8ff', '#ff4f7b']));
   });
   // ceiling fans: one over the front end of the bar, toward the door, and one over the games corner
-  ceilingFan(1.26, 2.55);   // (between the track runs)
+  ceilingFan(1.26, 3.15);   // (between the track runs, near the front door)
   ceilingFan(-0.54, -3.1);
 }
 
