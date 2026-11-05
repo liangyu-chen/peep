@@ -43,6 +43,28 @@ const shineM = new THREE.MeshBasicMaterial({ color: 0xffffff });
 const tongueM = mat(0xd9646e, { roughness: 0.5 });
 const blushM = mat(0xff8f9c, { roughness: 1, transparent: true, opacity: 0.45, depthWrite: false });
 const frameM = mat(0x1b1b1b, { roughness: 0.4, metalness: 0.3 });
+const glossM = mat(0x0c0c0e, { roughness: 0.12, metalness: 0.2 });                  // 阿亮眼鏡: thick, shiny black acetate
+const goldM = mat(0xd9ad52, { roughness: 0.25, metalness: 0.9 });                   // and the gold lines across it
+// 健誌嘴巴: a burst of light right where the mouth is, as if the camera caught a flash: a white-hot middle, a warm
+// glow fading out round it and a few thin rays
+let flareM = null;
+const flashM = () => flareM || (flareM = new THREE.MeshBasicMaterial({
+  map: canvasTex(128, 128, (g, w, h) => {
+    const c = w / 2;
+    const glow = g.createRadialGradient(c, c, 0, c, c, c);
+    glow.addColorStop(0, 'rgba(255,255,255,1)'); glow.addColorStop(0.18, 'rgba(255,252,236,1)'); glow.addColorStop(0.4, 'rgba(255,236,170,0.55)'); glow.addColorStop(1, 'rgba(255,220,140,0)');
+    g.fillStyle = glow; g.fillRect(0, 0, w, h);
+    g.translate(c, c);
+    [[0, 1], [Math.PI / 2, 0.8], [Math.PI / 4, 0.55], [-Math.PI / 4, 0.55]].forEach(([a, len]) => {
+      g.save(); g.rotate(a);
+      const ray = g.createLinearGradient(-c * len, 0, c * len, 0);
+      ray.addColorStop(0, 'rgba(255,245,210,0)'); ray.addColorStop(0.5, 'rgba(255,255,255,0.95)'); ray.addColorStop(1, 'rgba(255,245,210,0)');
+      g.fillStyle = ray; g.fillRect(-c * len, -1.5, 2 * c * len, 3);
+      g.restore();
+    });
+  }),
+  transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false,
+}));
 const lensM = mat(0xdff2ff, { roughness: 0.05, metalness: 0.2, transparent: true, opacity: 0.12, depthWrite: false });
 const sunLensM = mat(0x0d0d10, { roughness: 0.08, metalness: 0.6 });
 const beltM = mat(0x2a2420, { roughness: 0.6 });
@@ -578,6 +600,7 @@ export function buildBody(look, seed = '') {
     smirk: () => { fm(bx(0.042, 0.01, 0.006), darkM, 0.006, 0, 0, mouth).rotation.z = 0.2; fm(bx(0.014, 0.01, 0.006), darkM, 0.03, 0.008, -0.002, mouth).rotation.z = 0.7; },
     flat: () => fm(bx(0.046, 0.01, 0.006), darkM, 0, 0, 0, mouth),
     open: () => { fm(bx(0.044, 0.032, 0.012), darkM, 0, -0.004, 0, mouth); fm(bx(0.03, 0.01, 0.006), tongueM, 0, -0.013, 0.005, mouth); },
+    jianzhi: () => { const m = new THREE.Mesh(geo('flare', () => new THREE.PlaneGeometry(0.16, 0.16)), flashM()); m.position.z = 0.012; m.renderOrder = 2; mouth.add(m); },   // the mouth hidden behind a flash of light
   }[f.mouth] || (() => fm(bx(0.038, 0.01, 0.006), darkM, 0, 0, 0, mouth)))();
   if (f.blush) [-1, 1].forEach(s => { const x = s * 0.1 * H.s[0]; fm(disc(0.026), blushM, x, -0.038, surf(x, -0.038) - 0.002).rotation.set(Math.PI / 2, 0, -s * 0.6); });
   // moustache and goatee
@@ -589,6 +612,7 @@ export function buildBody(look, seed = '') {
   if (f.facialHair === 'goatee' || f.facialHair === 'both') fm(bx(0.05 * BD.k, 0.055 * BD.k, 0.04), beardM, 0, -0.128, surf(0, -0.128) - 0.004);
   // glasses
   if (f.glasses !== 'none') {
+    const AR = 0.037, AT = 0.011;   // 阿亮眼鏡's rim: its radius and how thick the acetate is
     const gy = EY + 0.002, gz = Math.max(surf(EX, EY), surf(0, NY) - 0.01) + 0.03;
     const earX = at(1, 0.02, 0).x - 0.004;
     [-1, 1].forEach(s => {
@@ -596,17 +620,30 @@ export function buildBody(look, seed = '') {
       if (f.glasses === 'round') {
         const ring = new THREE.Mesh(geo('torus', () => new THREE.TorusGeometry(0.037, 0.006, 8, 20)), frameM); ring.position.set(cx, gy, gz); face.add(ring);
         fm(disc(0.034), lensM, cx, gy, gz).rotation.x = Math.PI / 2;
+      } else if (f.glasses === 'aliang') {
+        // thick round rims, a touch flat across the top, glossy black
+        const ring = new THREE.Mesh(geo('aliangRim', () => new THREE.TorusGeometry(AR, AT, 10, 28)), glossM); ring.position.set(cx, gy, gz); ring.scale.set(1, 0.94, 0.8); face.add(ring);
+        fm(disc(AR - AT * 0.6), lensM, cx, gy, gz).rotation.x = Math.PI / 2;
       } else {
         const w = 0.078, h = f.glasses === 'sun' ? 0.05 : 0.054, t = 0.008;
         fm(bx(w, t, t), frameM, cx, gy + h / 2, gz); fm(bx(w, t, t), frameM, cx, gy - h / 2, gz);
         fm(bx(t, h, t), frameM, cx - w / 2, gy, gz); fm(bx(t, h, t), frameM, cx + w / 2, gy, gz);
         fm(bx(w, h, 0.003), f.glasses === 'sun' ? sunLensM : lensM, cx, gy, gz);
       }
-      const outer = EX + (f.glasses === 'round' ? 0.037 : 0.039);
+      const outer = EX + ({ round: 0.037, aliang: AR + AT }[f.glasses] || 0.039);
       fm(bx(earX - outer + 0.006, 0.007, 0.007), frameM, s * (outer + earX) / 2, gy + 0.004, gz);   // hinge out to the side of the head
       fm(bx(0.006, 0.006, gz), frameM, s * earX, gy + 0.004, gz / 2);                              // temple arm back to the ear
     });
-    fm(bx(0.03, 0.007, 0.007), frameM, 0, gy + 0.012, gz);                                          // bridge
+    if (f.glasses === 'aliang') {
+      fm(bx(EX * 2 - AR * 2 + AT, 0.014, 0.012), glossM, 0, gy + 0.016, gz);                       // a thick bridge, set high
+      // the gold lines, like cracks mended in gold: a short one across the lower left of one rim, a long one from that
+      // rim's top over the bridge onto the other's, and one down the far side of the other rim
+      const zF = gz + AT * 0.8, rim = (cx, deg, k) => { const a = deg * Math.PI / 180, r = AR + AT * k; return new THREE.Vector3(cx + Math.cos(a) * r, gy + Math.sin(a) * r * 0.94, zF); };
+      const line = pts => { const m = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 24, 0.0011, 4, false), goldM); face.add(m); };
+      line([rim(-EX, 205, 1), rim(-EX, 200, 0), rim(-EX, 196, -1)]);
+      line([rim(-EX, 40, -1), rim(-EX, 32, 0), new THREE.Vector3(-0.012, gy + 0.019, zF), new THREE.Vector3(0.012, gy + 0.021, zF), rim(EX, 148, 0), rim(EX, 128, 0.6), rim(EX, 112, 1)]);
+      line([rim(EX, 32, 1), rim(EX, 18, 0.1), rim(EX, -10, 0), rim(EX, -32, -0.6), rim(EX, -40, -1)]);
+    } else fm(bx(0.03, 0.007, 0.007), frameM, 0, gy + 0.012, gz);                                   // bridge
   }
 
   // ---------------------------------------------------------------- arms: shoulder -> elbow -> hand
