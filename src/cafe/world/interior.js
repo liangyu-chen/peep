@@ -229,10 +229,10 @@ function cornerNook() {
   const st = new THREE.Group(); st.position.set(2.82, 0, 2.6); st.scale.x = 1 / K; ctx.scene.add(st);
   const dk = mat(0x241a14, { roughness: 0.45 });
   cyl(0.12, 0.12, 0.035, dk, 0, 0.64, 0, st, 18);
-  // four straight legs under the seat, like the steel stools', and a rung between each pair
+  // four straight legs under the seat, like the steel stools', braced by two bars crossing corner to corner
   const L = 0.08;
   [[1, 1], [1, -1], [-1, 1], [-1, -1]].forEach(([a, b]) => cyl(0.016, 0.016, 0.64, dk, a * L, 0.32, b * L, st, 8));
-  [-1, 1].forEach(s => { box(2 * L, 0.018, 0.018, dk, 0, 0.24, s * L, st); box(0.018, 0.018, 2 * L, dk, s * L, 0.3, 0, st); });
+  [Math.PI / 4, -Math.PI / 4].forEach((r, i) => { const x = box(2 * L * Math.SQRT2, 0.02, 0.02, dk, 0, 0.27 + i * 0.021, 0, st); x.rotation.y = r; });
   // the little black desk fan on the floor by it
   const fan = new THREE.Group(); fan.position.set(2.55, 0, 2.5); fan.scale.x = 1 / K; fan.rotation.y = -0.9; ctx.scene.add(fan);
   const fanM = mat(0x161616, { roughness: 0.5 });
