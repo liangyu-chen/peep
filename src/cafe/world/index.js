@@ -43,10 +43,13 @@ export function buildWorld() {
   });
   // the step's faces: at the sliding door, along the partition (showing in the two doorways), and under the walls round it
   const step = (x0, x1, z0, z1) => { const m = new THREE.Mesh(new THREE.BoxGeometry(x1 - x0, BACK_DROP, z1 - z0), stepM); m.position.set((x0 + x1) / 2, -BACK_DROP / 2, (z0 + z1) / 2); m.receiveShadow = true; scene.add(m); };
-  step(H.x0, H.x1, H.z1 - 0.002, H.z1 + 0.08);       // under the sliding door's threshold
-  step(H.x1, H.x1 + 0.08, H.z0, H.z1);               // the rooms' edge, under the partition
-  step(H.x0 - 0.08, H.x0 + 0.002, H.z0, H.z1);       // under the outer wall
-  step(H.x0, H.x1, H.z0 - 0.08, H.z0 + 0.002);       // and the back wall
+  // (each runs the wall's full 0.16 thickness, so its face is flush with the wall's face above it, and the doorways'
+  // thresholds line up with the walls either side)
+  const T = 0.08;
+  step(H.x0 - T, H.x1 + T, H.z1 - T, H.z1 + T);      // under the neon wall and the sliding door's threshold
+  step(H.x1 - T, H.x1 + T, H.z0, H.z1);              // under the partition, and the storeroom's and toilet's thresholds
+  step(H.x0 - T, H.x0 + T, H.z0, H.z1);              // under the outer wall
+  step(H.x0 - T, H.x1 + T, H.z0 - T, H.z0 + T);      // and the back wall
   // squeeze the whole set left-right; people and anything placed later convert plan x with K
   const world = new THREE.Group(); world.scale.x = K;
   scene.children.slice().forEach(o => { if (!skip(o)) world.add(o); });
