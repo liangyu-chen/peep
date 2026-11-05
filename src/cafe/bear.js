@@ -36,12 +36,13 @@ function wingShape() {
   // like the plush's: narrow at the spine, the top edge sweeping up and out to a rounded tip that shows over the
   // shoulder, the outer edge falling away and the bottom curving back in, the whole pair a big soft bow
   s.moveTo(0, 0.012);
-  s.bezierCurveTo(0.03, 0.022, 0.07, 0.045, 0.1, 0.048);
-  s.bezierCurveTo(0.118, 0.05, 0.12, 0.025, 0.112, 0.01);
-  s.bezierCurveTo(0.1, -0.02, 0.06, -0.035, 0.035, -0.03);
+  s.bezierCurveTo(0.035, 0.026, 0.08, 0.046, 0.108, 0.052);
+  s.quadraticCurveTo(0.118, 0.054, 0.116, 0.044);
+  s.bezierCurveTo(0.114, 0.02, 0.108, -0.005, 0.098, -0.016);
+  s.bezierCurveTo(0.08, -0.032, 0.055, -0.034, 0.035, -0.03);
   s.bezierCurveTo(0.018, -0.026, 0.006, -0.018, 0, -0.012);
   s.closePath();
-  wingGeo = new THREE.ExtrudeGeometry(s, { depth: 0.004, bevelEnabled: true, bevelThickness: 0.003, bevelSize: 0.003, bevelSegments: 2, curveSegments: 10 });
+  wingGeo = new THREE.ExtrudeGeometry(s, { depth: 0.004, bevelEnabled: true, bevelThickness: 0.0025, bevelSize: 0.0015, bevelSegments: 2, curveSegments: 10 });
   wingGeo.translate(0, 0, -0.002);
   return wingGeo;
 }
