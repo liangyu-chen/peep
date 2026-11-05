@@ -7,7 +7,7 @@ import { TVX, TVZ, TVY, LW, LSEATS } from '../layout.js';
 import { buildMenuClipboard } from './menu.js';
 import { drawBoard } from '../dartboard.js';
 import { buildPegboard } from './pegboard.js';
-import { woodM, steel, blackM, cinderSeat, crate, crateTable, stump, highStool, figurine, framed, trackRun, ceilingFan, cinderBlock, stoolStack } from './props.js';
+import { woodM, steel, blackM, cinderSeat, crate, crateTable, stump, highStool, figurine, framed, trackRun, trackLine, ceilingFan, cinderBlock, stoolStack } from './props.js';
 
 // the PS5 standing upright on the cart's shelf, its front to the room, in true size (39 cm tall, 10.4 wide, 26 deep): a
 // glossy black core between two matte white panels that stand a little proud of it all round and sweep out at the
@@ -202,7 +202,7 @@ function workCounter() {
   box(0.006, 0.012, Z1 - Z0, seamM, FX, 0.05, (Z0 + Z1) / 2);
   for (let i = 0; i < BAYS; i++) box(0.012, 0.01, 0.14, seamM, FX - 0.003, 0.83, Z0 + (i + 0.5) * bw);   // a finger pull under each top edge
   for (let i = 0; i < 6; i++) cyl(0.055, 0.04, 0.06, mat(0xf2f0ea, { roughness: 0.3 }), 2.78 + (i % 2) * 0.13, 0.99, 0.2 + Math.floor(i / 2) * 0.14, ctx.scene, 12);
-  workBottles(3.0, 0.96, 1.05);   // (back against the wall)
+  workBottles(2.92, 0.96, 1.05);   // (the back row's backs at the wall face, 3.01)
   buildPegboard();   // the crammed pegboard above (pegboard.js)
   // back end: two cinder seats against the wall with two stacked crates between them
   cinderSeat(2.75, -2.55); cinderSeat(2.75, -3.65);
@@ -327,18 +327,18 @@ function workBottles(x, y, z) {
     put(new THREE.Mesh(C(0.016, 0.016, 0.03), red), px, 0.34, pz);
     put(new THREE.Mesh(C(0.017, 0.017, 0.008), cap), px, 0.358, pz);
   };
-  [[0xb8621c, -0.2], [0xd29a4a, -0.12], [0x7fc84a, -0.04], [0xe8d8a8, 0.04], [0xc8902e, 0.12]].forEach(([c, dz], i) => syrup(-0.07 + (i % 2) * 0.012, dz, c));
+  [[0xb8621c, -0.2], [0xd29a4a, -0.12], [0x7fc84a, -0.04], [0xe8d8a8, 0.04], [0xc8902e, 0.12]].forEach(([c, dz], i) => syrup(-0.056 + (i % 2) * 0.008, dz, c));
   // behind: the liqueurs
-  put(new THREE.Mesh(C(0.04, 0.04, 0.2), mat(0x1e1410, { roughness: 0.3 })), 0.03, 0.1, -0.06);           // Baileys
-  put(new THREE.Mesh(C(0.0405, 0.0405, 0.07), mat(0x2a2a2a, { roughness: 0.5 })), 0.03, 0.1, -0.06);
-  put(new THREE.Mesh(C(0.016, 0.03, 0.08), mat(0x1e1410, { roughness: 0.3 })), 0.03, 0.24, -0.06);
-  put(new THREE.Mesh(C(0.036, 0.036, 0.26), glass), 0.04, 0.13, -0.17).renderOrder = 12;                    // tall clear one
-  put(new THREE.Mesh(C(0.037, 0.037, 0.08), mat(0xc8b070, { roughness: 0.6 })), 0.04, 0.12, -0.17);
-  put(new THREE.Mesh(C(0.012, 0.012, 0.09), glass), 0.04, 0.3, -0.17).renderOrder = 12;
-  put(new THREE.Mesh(C(0.014, 0.014, 0.025), red), 0.04, 0.35, -0.17);
-  put(new THREE.Mesh(C(0.038, 0.038, 0.22), mat(0xe8e4dc, { roughness: 0.2, transparent: true, opacity: 0.6 })), 0.05, 0.11, 0.05).renderOrder = 12;   // the red-label one
-  put(new THREE.Mesh(C(0.039, 0.039, 0.07), red), 0.05, 0.13, 0.05);
-  put(new THREE.Mesh(C(0.013, 0.013, 0.1), mat(0xe8e4dc, { roughness: 0.2 })), 0.05, 0.27, 0.05);
+  put(new THREE.Mesh(C(0.04, 0.04, 0.2), mat(0x1e1410, { roughness: 0.3 })), 0.022, 0.1, -0.06);           // Baileys
+  put(new THREE.Mesh(C(0.0405, 0.0405, 0.07), mat(0x2a2a2a, { roughness: 0.5 })), 0.022, 0.1, -0.06);
+  put(new THREE.Mesh(C(0.016, 0.03, 0.08), mat(0x1e1410, { roughness: 0.3 })), 0.022, 0.24, -0.06);
+  put(new THREE.Mesh(C(0.036, 0.036, 0.26), glass), 0.026, 0.13, -0.17).renderOrder = 12;                    // tall clear one
+  put(new THREE.Mesh(C(0.037, 0.037, 0.08), mat(0xc8b070, { roughness: 0.6 })), 0.026, 0.12, -0.17);
+  put(new THREE.Mesh(C(0.012, 0.012, 0.09), glass), 0.026, 0.3, -0.17).renderOrder = 12;
+  put(new THREE.Mesh(C(0.014, 0.014, 0.025), red), 0.026, 0.35, -0.17);
+  put(new THREE.Mesh(C(0.038, 0.038, 0.22), mat(0xe8e4dc, { roughness: 0.2, transparent: true, opacity: 0.6 })), 0.023, 0.11, 0.05).renderOrder = 12;   // the red-label one
+  put(new THREE.Mesh(C(0.039, 0.039, 0.07), red), 0.023, 0.13, 0.05);
+  put(new THREE.Mesh(C(0.013, 0.013, 0.1), mat(0xe8e4dc, { roughness: 0.2 })), 0.023, 0.27, 0.05);
   // the red box, a pepper mill, a squeeze bottle
   put(new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.12, 0.09), red), -0.06, 0.06, -0.3);
   put(new THREE.Mesh(new THREE.BoxGeometry(0.061, 0.03, 0.06), mat(0xf2d24a, { roughness: 0.6 })), -0.06, 0.08, -0.3);
@@ -381,9 +381,15 @@ function decor() {
   // conduit + track lights
   const conduitM = mat(0x2a2a2a, { roughness: 0.5 });
   const c1 = cyl(0.02, 0.02, 8.4, conduitM, -3.0, 2.62, -0.3, ctx.scene, 6); c1.rotation.x = Math.PI / 2;
-  // the track lights run round a rectangle over the room: the two long runs and the two short ones closing it off
-  trackRun(-1.0, -4.2, -1.0, 3.6); trackRun(1.7, -4.2, 1.7, 3.6);
-  trackRun(-1.0, -4.2, 1.7, -4.2, 2.75, 1.0); trackRun(-1.0, 3.6, 1.7, 3.6, 2.75, 1.0);
+  // the track lights, as they hang in the shop: three long runs down the room on wires (one over the bar, one each side
+  // of it), joined across at both ends; the bar's spots turned onto the bar top, the side runs' onto the walls' pictures
+  // and the seats
+  const BX = 0.475, BY = 1.06, TY = 2.6, XL = -1.55, XM = BX, XR = 2.05, ZB = -4.3, ZF = 3.6;
+  trackLine(XM, ZB, XM, ZF, TY, [[0.3, [BX - 0.25, BY, -1.5]], [0.45, [BX + 0.25, BY, -0.4]], [0.62, [BX - 0.2, BY, 0.9]], [0.78, [BX + 0.2, BY, 2.1]]]);
+  trackLine(XL, ZB, XL, ZF, TY, [[0.12, [-3.02, 1.6, -3.4]], [0.36, [-3.02, 1.9, -1.4]], [0.55, [-3.02, 1.9, 0.0]], [0.78, [-3.02, 1.9, 1.9]]]);
+  trackLine(XR, ZB, XR, ZF, TY, [[0.2, [3.0, 1.2, -2.9]], [0.45, [3.0, 1.6, -0.6]], [0.68, [3.0, 1.6, 1.2]], [0.88, [3.0, 1.5, 3.0]]]);
+  trackLine(XL, ZB, XR, ZB, TY, [[0.3, [-0.8, 1.6, -5.4]], [0.7, [1.0, 1.9, -5.4]]]);
+  trackLine(XL, ZF, XR, ZF, TY, []);
   framed('hoop', -3.02, 1.9, -1.4, 0.55, 0.75, '#c0282d');
   framed('toys', -3.02, 2.0, -0.4, 0.5, 0.7, '#ffd23f', 0x7a1c1c);
   framed('eye', -3.02, 1.75, 0.25, 0.3, 0.25, '#ff4f7b', 0x7a1c1c);
@@ -393,8 +399,8 @@ function decor() {
     framed(['eye', 'hoop', 'toys'][i % 3], -3.02, y, z, 0.24, 0.3, pick(['#f4efe3', '#ffd23f', '#7ec8ff', '#ff4f7b']));
   });
   // ceiling fans: one over the front end of the bar, toward the door, and one over the games corner
-  ceilingFan(0.6, 2.55);
-  ceilingFan(-1.5, -3.1);
+  ceilingFan(1.26, 2.55);   // (between the track runs)
+  ceilingFan(-0.54, -3.1);
 }
 
 // under the peep window, inside, after the photo: an old wooden stool with a cloth over it, a cup with a bug-eyed toy on

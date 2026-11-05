@@ -1,7 +1,7 @@
 // Reusable furniture and bits: cinder blocks and seats, crates, stools, chairs, figurines, framed art.
 import * as THREE from 'three';
 import { ctx, mat, box, cyl, canvasTex, plane, pixelArt } from '../engine.js';
-import { rand, pick } from '../util.js';
+import { rand, pick, K } from '../util.js';
 import { S } from '../state.js';
 import { ART, PAL } from '../art.js';
 
@@ -20,6 +20,31 @@ export function trackRun(x0, z0, x1, z1, y = 2.75, every = 1.5) {
     cyl(0.008, 0.008, 0.08, blackM, sx, y - 0.05, sz, ctx.scene, 6);
     const s = cyl(0.05, 0.06, 0.16, blackM, sx, y - 0.13, sz, ctx.scene, 10); s.rotation.set(0.5 * along.x, 0, 0.5 * along.y);
   }
+}
+
+// a length of track hung on thin wires from the ceiling, with spot heads on it each aimed at a point. spots: [k, target]
+// with k from 0 to 1 along the run and target a plan-coordinate [x, y, z] (or null to point straight down). The heads are
+// built in true size (unsqueezed), turned to their target in true space
+const _dir = new THREE.Vector3(), _down = new THREE.Vector3(0, -1, 0);
+export function trackLine(x0, z0, x1, z1, y, spots = [], ceil = 2.8) {
+  const len = Math.hypot((x1 - x0) * K, z1 - z0);
+  const t = new THREE.Group(); t.position.set((x0 + x1) / 2, y, (z0 + z1) / 2); t.scale.x = 1 / K; ctx.scene.add(t);
+  const rail = box(0.035, 0.03, len, blackM, 0, 0, 0, t); rail.rotation.y = Math.atan2((x1 - x0) * K, z1 - z0);
+  // the drop wires, every metre or so
+  const nw = Math.max(2, Math.round(len / 1.4) + 1);
+  for (let i = 0; i < nw; i++) { const k = i / (nw - 1); cyl(0.002, 0.002, ceil - y, blackM, x0 + (x1 - x0) * k, (ceil + y) / 2, z0 + (z1 - z0) * k, ctx.scene, 3).castShadow = false; }
+  spots.forEach(([k, target]) => {
+    const sx = x0 + (x1 - x0) * k, sz = z0 + (z1 - z0) * k;
+    const g = new THREE.Group(); g.position.set(sx, y - 0.015, sz); g.scale.x = 1 / K; ctx.scene.add(g);
+    cyl(0.012, 0.012, 0.05, blackM, 0, -0.025, 0, g, 8);                       // the adaptor in the track
+    const head = new THREE.Group(); head.position.y = -0.05; g.add(head);
+    const can = cyl(0.035, 0.035, 0.13, blackM, 0, -0.065, 0, head, 12);       // the can, hanging from its knuckle
+    const lens = cyl(0.03, 0.03, 0.004, mat(0xfff2d8, { emissive: 0xffe2b0, emissiveIntensity: 1.2 }), 0, -0.131, 0, head, 12); lens.castShadow = false;
+    if (target) {
+      _dir.set((target[0] - sx) * K, target[1] - (y - 0.1), target[2] - sz).normalize();
+      head.quaternion.setFromUnitVectors(_down, _dir);
+    }
+  });
 }
 
 // a three-blade ceiling fan hanging from a downrod; its blades turn in index.js
