@@ -1,4 +1,4 @@
-import { CLOTHES, COLOR_PRESETS, FACE, HAIR, HAT_STYLES, clothesOf, faceOf, hairOf, hatOf, type Look } from '@/src/content/catalog';
+import { CLOTHES, COLOR_PRESETS, COMPANIONS, FACE, HAIR, HAT_STYLES, clothesOf, companionOf, faceOf, hairOf, hatOf, type Look } from '@/src/content/catalog';
 import ColorField from './ColorField';
 
 function Pick({ name, label, value, options }: { name: string; label: string; value: string; options: { value: string; label: string }[] }) {
@@ -42,6 +42,7 @@ export default function LookFields({ look, seed }: { look: Look; seed: string })
         <Pick name="hairFront" label="前額" value={hair.front} options={HAIR.front} />
         <Pick name="hairTie" label="綁髮（中長髮、長髮）" value={hair.tie} options={HAIR.tie} />
         <Pick name="hat" label="帽子" value={hat.hat} options={HAT_STYLES} />
+        <Pick name="companion" label="配件" value={companionOf(look)} options={COMPANIONS} />
         <Pick name="topFit" label="上衣版型" value={clothes.top} options={CLOTHES.top} />
         <Pick name="sleeve" label="袖長" value={clothes.sleeve} options={CLOTHES.sleeve} />
         <Pick name="bottom" label="下身" value={clothes.bottom} options={CLOTHES.bottom} />

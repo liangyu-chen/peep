@@ -2,6 +2,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { buildBody, tickFace, restPose, poseBody } from './body.js';
+import { makeBear, flapBear } from './bear.js';
 
 const VIEWS = {
   face: { pos: [0.28, 1.5, 1.35], target: [0, 1.42, 0] },
@@ -41,15 +42,17 @@ export function mountPreview(host) {
   setView('face', true);
   controls.addEventListener('start', () => { tween = null; });
 
-  let body = null;
+  let body = null, bear = null;
   const anim = {};
   const disposeMaterials = root => root.traverse(o => {
     (Array.isArray(o.material) ? o.material : o.material ? [o.material] : []).forEach(m => { if (m.map) m.map.dispose(); m.dispose(); });
   });
   function update(look, seed) {
     if (body) { scene.remove(body.g); disposeMaterials(body.g); }
+    if (bear) { scene.remove(bear.g); bear = null; }
     body = buildBody(look, seed);
     scene.add(body.g);
+    if (look.companion === 'bear') { bear = makeBear(); scene.add(bear.g); }   // 月亮小熊 at the shoulder
   }
 
   const resize = () => {
@@ -65,6 +68,7 @@ export function mountPreview(host) {
       tickFace(body, anim, dt, t % 7 > 5.2);                     // says something every few seconds, so the mouth shows
       const p = restPose(t * 2);   // standing just as the café's people do at rest (body.js)
       poseBody(body, p); body.head.rotation.y = p.head;
+      if (bear) { body.head.getWorldPosition(bear.g.position); bear.g.position.x += 0.3; bear.g.position.z -= 0.1; bear.g.position.y += 0.06 + flapBear(bear, dt); }
     }
     if (tween) {
       tween.t = Math.min(1, tween.t + dt / 0.6);

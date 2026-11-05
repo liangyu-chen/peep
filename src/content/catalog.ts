@@ -290,6 +290,10 @@ export function hatOf(look: Look): { hat: string; color: number } {
   return { hat, color };
 }
 
+// a little companion that goes about with them (月亮小熊 flies at their shoulder)
+export const COMPANIONS: Option[] = [{ value: 'none', label: '無' }, { value: 'bear', label: '月亮小熊' }];
+export const companionOf = (look: Look) => (COMPANIONS.some(c => c.value === look.companion) ? (look.companion as string) : 'none');
+
 // ---------------------------------------------------------------- faces (捏臉)
 export const FACE: Record<'faceShape' | 'eyes' | 'brows' | 'nose' | 'mouth' | 'facialHair' | 'beard' | 'glasses', Option[]> = {
   faceShape: [{ value: 'round', label: '圓臉' }, { value: 'oval', label: '鵝蛋臉' }, { value: 'square', label: '方臉' }, { value: 'long', label: '長臉' }],
@@ -350,6 +354,7 @@ export function parseLook(get: (k: string) => string | null, prev?: Look): Look 
     faceShape: opt('faceShape', face.faceShape), eyes: opt('eyes', face.eyes), brows: opt('brows', face.brows),
     nose: opt('nose', face.nose), mouth: opt('mouth', face.mouth), facialHair: opt('facialHair', face.facialHair), beard: opt('beard', face.beard),
     glasses: opt('glasses', face.glasses), eyeColor: hex('eyeColor', face.eyeColor), blush: get('blush') === 'on',
+    companion: COMPANIONS.some(c => c.value === get('companion')) ? (get('companion') as string) : companionOf(base),
   };
   delete look.mustache; delete look.goatee;   // superseded by facialHair
   delete look.beanie; delete look.cap;          // superseded by hat / hatColor

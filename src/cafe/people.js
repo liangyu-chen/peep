@@ -5,6 +5,7 @@ import { buildBody, tickFace, LEG_EXTRA, restPose, poseBody } from './body.js';
 import { S } from './state.js';
 import { K } from './util.js';
 import { KERB, RISE } from './layout.js';
+import { makeBear, followBear } from './bear.js';
 
 const teaCupM = mat(0xf2f0ea, { roughness: 0.3 });
 const coffeeM = mat(0x5a3220, { roughness: 0.3 });
@@ -145,6 +146,9 @@ export class Person {
     this.faceAnim = { blinkT: Math.random() * 4 };
     this.g.traverse(o => { if (o.isMesh) o.userData.person = this; });
     ctx.scene.add(this.g);
+    if (profile.look?.companion === 'bear') {   // 月亮小熊, flying along with them (click it and it's their card)
+      this.bear = makeBear(); this.bear.g.traverse(o => { if (o.isMesh) o.userData.person = this; }); ctx.scene.add(this.bear.g);
+    }
     this.path = []; this.onArrive = null; this.speed = 1.4; this.heading = 0; this.targetHeading = 0;
     this.pose = 'stand'; this.walkPhase = Math.random() * 10; this.act = null; this.actT = 0;
     this.cup = null; this.status = '剛進門'; this.seat = null; this.gone = false;
@@ -207,7 +211,7 @@ export class Person {
     burn(this.cig, Math.max(0.12, k.life / k.dur), k.phase === 'drag' || k.phase === 'light' ? Math.min(1, (1.2 - k.t) * 2) : 0);
   }
   remove() {
-    this.gone = true; ctx.scene.remove(this.g); this.dropCup(); this.putOut(); this.tag.remove(); this.bubble.remove();
+    this.gone = true; ctx.scene.remove(this.g); if (this.bear) ctx.scene.remove(this.bear.g); this.dropCup(); this.putOut(); this.tag.remove(); this.bubble.remove();
     S.people.splice(S.people.indexOf(this), 1);
   }
   update(dt) {
@@ -290,6 +294,7 @@ export class Person {
       _cam.sub(at); _cam.y = 0; if (_cam.lengthSq() > 1e-6) at.addScaledVector(_cam.normalize(), 0.2);
     }
     if (this.exhaleT > 0 && !this.bubbleT) this.mouth.scale.set(0.55, 2.4, 1); else this.mouth.scale.x = 1;   // an O while blowing smoke
+    if (this.bear) { this.g.updateMatrixWorld(); followBear(this.bear, this, dt); }
   }
 }
 
