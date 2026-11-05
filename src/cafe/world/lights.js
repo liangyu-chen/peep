@@ -29,9 +29,10 @@ function bareBulb(x, z, y = 2.15, power = 0.7, dist = 6, minor = false) {
   S.bulbs.push({ pl, bm, base: power });
 }
 
-// the back storeroom's bulb: dark unless it's switched on, by the switch outside its door (clicked, or by the owner on
-// his way in for beans). Its lamp stays in the scene at nothing when off, so switching it doesn't change the light count.
-function storeroomLight(x, z, y) {
+// a bulb that's dark until it's switched on, by a switch on the corridor side of the wall right by its doorway
+// (clicked, or flicked by whoever goes in). Its lamp stays in the scene at nothing when off, so switching it doesn't
+// change the light count. sz: the switch's z, just off the door frame
+function switchedBulb(x, z, y, sz, power) {
   const scene = ctx.scene;
   cyl(0.006, 0.006, 2.8 - y, 0x111111, x, (2.8 + y) / 2 + 0.05, z, scene, 4).castShadow = false;
   cyl(0.03, 0.03, 0.07, 0x3a2a1a, x, y + 0.08, z, scene, 8);
@@ -39,19 +40,21 @@ function storeroomLight(x, z, y) {
   const b = new THREE.Mesh(new THREE.SphereGeometry(0.06, 10, 8), bm); b.position.set(x, y, z); scene.add(b);
   const pl = new THREE.PointLight(0xffb15c, 0, 4, 2); pl.position.set(x, y - 0.1, z);
   if (!LOW_POWER) scene.add(pl);
-  // the switch: a little white plate on the corridor side of the wall, just by the doorway, its toggle up when on
-  box(0.012, 0.11, 0.075, mat(0xf2f0ea, { roughness: 0.5 }), -0.89, 1.3, -5.72);
-  const lever = box(0.014, 0.03, 0.016, mat(0xdedad0, { roughness: 0.4 }), -0.9, 1.29, -5.72);
-  const hit = box(0.06, 0.2, 0.16, mat(0x000000), -0.9, 1.3, -5.72); hit.visible = false;   // a bigger, unseen box takes the click
-  S.storeLight = { pl, bm, lever, hit, on: false };
+  // the switch: a little white plate, its toggle up when on
+  box(0.012, 0.11, 0.075, mat(0xf2f0ea, { roughness: 0.5 }), -0.89, 1.3, sz);
+  const lever = box(0.014, 0.03, 0.016, mat(0xdedad0, { roughness: 0.4 }), -0.9, 1.29, sz);
+  const hit = box(0.06, 0.2, 0.16, mat(0x000000), -0.9, 1.3, sz); hit.visible = false;   // a bigger, unseen box takes the click
+  return { pl, bm, lever, hit, power, on: false };
 }
-export function setStoreLight(on) {
-  const L = S.storeLight; if (!L) return;
+export function setLight(L, on) {
+  if (!L) return;
   L.on = on;
-  L.pl.intensity = on ? 0.55 : 0;
+  L.pl.intensity = on ? L.power : 0;
   L.bm.emissiveIntensity = on ? 2.4 : 0; L.bm.color.set(on ? 0xffe0a8 : 0xd8d2c4);
   L.lever.position.y = 1.3 + (on ? 0.012 : -0.012);
 }
+export const setStoreLight = on => setLight(S.storeLight, on);
+export const setToiletLight = on => setLight(S.toiletLight, on);
 
 // red neon wash, bar track spots, bare bulbs in the arcade and back of house
 export function buildRoomLights() {
@@ -65,8 +68,11 @@ export function buildRoomLights() {
   });
   // the arcade is lit from its track (in arcade.js), not a bare bulb
   const arcadeLight = new THREE.PointLight(0xffe2b8, 0.7, 7, 2); arcadeLight.position.set(-1.0, 2.5, 5.6); scene.add(arcadeLight); S.bulbs.push({ pl: arcadeLight, bm: null, base: 0.7 });
-  bareBulb(1.2, -8.7, 2.3, 0.35, 4, true); bareBulb(-1.9, -8, 2.3, 0.25, 4, true);
-  storeroomLight(1.2, -6.8, 2.3);
+  bareBulb(-1.9, -8, 2.3, 0.25, 4, true);
+  // the storeroom's bulb and the toilet's, each with its switch right by its doorway (the storeroom's opening runs
+  // z -6.9..-6.1, the toilet door -9.2..-8.2, both in the wall at x -0.8)
+  S.storeLight = switchedBulb(1.2, -6.8, 2.3, -6.0, 0.55);
+  S.toiletLight = switchedBulb(1.2, -8.7, 2.3, -8.08, 0.45);
 }
 
 // ---------------------------------------------------------------- day/night

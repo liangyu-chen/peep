@@ -10,7 +10,7 @@ import { doTops } from './tops.js';
 import { sayLine, priceOf, drinkFor, pickVariant, orderName, menuNames } from './content.js';
 import { log, floatText } from './feed.js';
 import { closeCard } from './hud.js';
-import { setStoreLight } from './world/lights.js';
+import { setStoreLight, setToiletLight } from './world/lights.js';
 export const DAYS = ['週日', '週一', '週二', '週三', '週四', '週五', '週六'];
 // open 15:00; closes 22:00 Fri/Sat, 20:00 other days
 export const closeHour = () => (S.dow === 5 || S.dow === 6) ? 22 : 20;
@@ -289,12 +289,20 @@ async function doTable(c, zone, s) {
     if (Math.random() < 0.025 && !S.toiletBusy && !c.tops) {
       S.toiletBusy = true; c.busy = true; c.status = '去廁所'; c.pose = 'stand';
       c.putOut();
-      await walk(c, route(s.path, TOILET)); await walk(c, [[1.7, -7.55]]);   // to the squat pan, facing the hood
+      // up to the door, the light switched on by it, then in to the squat pan, facing the hood
+      const toDoor = route(s.path, TOILET).slice(0, -2);
+      await walk(c, toDoor.concat([[-1.2, -7.05]]));
+      c.face(Math.PI / 2); await sleep(0.4);
+      const lit = S.toiletLight?.on; if (!lit) { c.gesture('serve', 0.4); setToiletLight(true); await sleep(0.4); }
+      await walk(c, [[-1.2, -7.7], TOILET[1], TOILET[0]]); await walk(c, [[1.7, -7.55]]);
       c.face(Math.PI); await sleep(0.6);
       c.gesture('pull', 0.8); await sleep(0.8); c.pantsDown(true); c.pose = 'squat'; c.status = '蹲廁所';
       await sleep(rand(6, 10));
       c.pose = 'stand'; c.gesture('pull', 0.8); await sleep(0.8); c.pantsDown(false); c.status = '去廁所';
-      await walk(c, [TOILET[0]]); await walk(c, route(TOILET, s.path)); S.toiletBusy = false; c.busy = false;
+      // out of the door, the light switched off behind them if they found it off, and back to the seat
+      await walk(c, [TOILET[0], TOILET[1], [-1.2, -7.7], [-1.2, -7.05]]);
+      if (!lit) { c.face(Math.PI / 2); await sleep(0.3); setToiletLight(false); await sleep(0.2); }
+      await walk(c, [[TOILET[2][0], -7.05]].concat(route(TOILET.slice(2), s.path))); S.toiletBusy = false; c.busy = false;
       c.face(s.face); c.pose = 'sit'; c.status = '坐著喝咖啡'; t += 8;
     }
     if (Math.random() < (vsCpu() ? 0.12 : c.p.regular && !S.tv.match ? 0.05 : 0) && canJoinTv(c)) { sayLine(c, 'customer.wantsTv'); c.invited = true; break; }
