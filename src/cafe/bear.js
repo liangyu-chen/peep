@@ -9,10 +9,10 @@ const SIZE = 1.35;   // the keychain's ~13 cm, a little larger so it reads at ca
 
 let M = null;
 const mats = () => M || (M = {
-  fur: mat(picked(0x86a9b4), { roughness: 0.95 }),
-  beige: mat(picked(0xb5ada3), { roughness: 0.95 }),
-  wing: mat(picked(0xb3b0ab), { roughness: 0.95, side: THREE.DoubleSide }),
-  moon: mat(picked(0x3f6f86), { roughness: 0.8 }),
+  fur: mat(picked(0x5f8593), { roughness: 0.95 }),
+  beige: mat(picked(0x948b80), { roughness: 0.95 }),
+  wing: mat(picked(0x8f8d89), { roughness: 0.95, side: THREE.DoubleSide }),
+  moon: mat(picked(0x2f5a70), { roughness: 0.8 }),
   heart: mat(picked(0x5a8fa6), { roughness: 0.7 }),
   star: mat(picked(0xf2c935), { roughness: 0.6 }),
   crown: mat(picked(0xe8c62e), { roughness: 0.7, side: THREE.DoubleSide }),
