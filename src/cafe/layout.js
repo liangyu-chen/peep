@@ -5,11 +5,11 @@ import { K } from './util.js';
 
 export const WH = 2.8;            // wall height
 export const BACK_SHIFT = 1.0;
-// the two back rooms whose floors stand a step up (in the room as it stands, after the shift): the storeroom and the
-// toilet, each from the inside of the corridor wall (x -0.8) to the right wall
-export const BACK_STEP = 0.15;
-export const BACK_ROOMS = [{ x0: -0.72, x1: 3.04, z0: -6.27, z1: -4.58 }, { x0: -0.72, x1: 3.04, z0: -8.27, z1: -7.05 }];
-export const onBackStep = (x, z) => BACK_ROOMS.some(r => x > r.x0 - 0.04 && x < r.x1 && z > r.z0 && z < r.z1);
+// the whole shop stands raised; past the sliding door the back corridor's floor is a step lower, and the storeroom
+// and the toilet off it are back up at the shop's level (in the room as it stands, after the shift)
+export const BACK_DROP = 0.15;
+export const BACK_HALL = { x0: -3.1, x1: -0.8, z0: -8.35, z1: -4.5 };
+export const inBackHall = (x, z) => x > BACK_HALL.x0 && x < BACK_HALL.x1 && z > BACK_HALL.z0 && z < BACK_HALL.z1;
 export const KERB = 8.08, RISE = 0.18;   // the shop front is raised RISE above the street, out to the kerb at z = KERB (the Vespa and the kerb camping chair stand below it)
 export const HUBX = -1.6;          // the main walkway runs along this x
 

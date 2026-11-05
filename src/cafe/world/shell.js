@@ -47,7 +47,19 @@ function peepWindow() {
 export function buildShell() {
   // floor plan (x: -3.1..3.1 wide, z: -11 back .. 8 street)
   const floorTex = makeFloorTex();
-  floorPlane(6.2, 12.85, 0, -1.925, new THREE.MeshStandardMaterial({ map: floorTex, roughness: 0.45 }));
+  // the floor in three parts sharing the one texture (as if a single sheet): the shop, and past the neon wall the back
+  // corridor (later dropped a step, world/index.js) and the storeroom and toilet beside it. In the room as it stands,
+  // so none of them is shifted
+  const floorM = new THREE.MeshStandardMaterial({ map: floorTex, roughness: 0.45 });
+  [[-3.1, 3.1, -4.5, 4.5], [-3.1, -0.8, -8.35, -4.5], [-0.8, 3.1, -8.35, -4.5]].forEach(([x0, x1, z0, z1]) => {
+    const f = floorPlane(x1 - x0, z1 - z0, (x0 + x1) / 2, (z0 + z1) / 2, floorM);
+    const uv = f.geometry.attributes.uv, pos = f.geometry.attributes.position;
+    for (let i = 0; i < uv.count; i++) {
+      const wx = f.position.x + pos.getX(i), wz = f.position.z - pos.getY(i);
+      uv.setXY(i, (wx + 3.1) / 6.2, (4.5 - wz) / 12.85);
+    }
+    uv.needsUpdate = true;
+  });
   // toilet floor: plain concrete painted orange, no tiles or seams
   const orangeFloor = canvasTex(256, 256, (g, w, h) => concreteWall(g, w, h, '#d8692a'));
   floorPlane(3.9, 1.3, 1.15, -8.7, new THREE.MeshStandardMaterial({ map: orangeFloor, roughness: 0.55 }), 0.012);

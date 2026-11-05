@@ -4,7 +4,7 @@ import { ctx, mat, cyl } from './engine.js';
 import { buildBody, tickFace, LEG_EXTRA, restPose, poseBody } from './body.js';
 import { S } from './state.js';
 import { K } from './util.js';
-import { KERB, RISE, BACK_STEP, onBackStep } from './layout.js';
+import { KERB, RISE, BACK_DROP, inBackHall } from './layout.js';
 import { makeBear, followBear } from './bear.js';
 
 const teaCupM = mat(0xf2f0ea, { roughness: 0.3 });
@@ -280,7 +280,7 @@ export class Person {
     if (this.act === 'carry') { armLx = armRx = -0.9; elL = elR = -0.7; armLz = 0.25; armRz = -0.25; }
     poseBody(this, { hipL, hipR, kL, kR, armLx, armLy, armLz, armRx, armRy, armRz, elL, elR });
     if (this.cup && this.cup.parent === this.hand) gripCup(this, this.act === 'sip' ? sipPose(this.cup).tilt * Math.min(1, (1.4 - this.actT) * 3) : 0);
-    const ground = this.g.position.z > KERB ? -RISE : onBackStep(this.g.position.x / K, this.g.position.z) ? BACK_STEP : 0;   // down off the kerb, up into the storeroom or the toilet
+    const ground = this.g.position.z > KERB ? -RISE : inBackHall(this.g.position.x / K, this.g.position.z) ? -BACK_DROP : 0;   // down off the kerb, down into the back corridor
     this.groundY = (this.groundY || 0) + (ground - (this.groundY || 0)) * Math.min(1, dt * 14);
     this.g.position.y = this.groundY + y + bob;
     if (this.skirt) {   // sitting, a skirt rides up and lies forward over the lap (set a little lower, so where it widens
