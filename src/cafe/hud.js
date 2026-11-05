@@ -6,8 +6,9 @@ import { S } from './state.js';
 import { $, K } from './util.js';
 import { fmtTime } from './feed.js';
 import { matchClock } from './tv.js';
-import { DAYS } from './sim.js';
+import { DAYS, smokeState, sendOutToSmoke } from './sim.js';
 import { canInviteTops, inviteTops } from './tops.js';
+import { portraitOf } from './portrait.js';
 import { tvGames, GAME_LABEL } from './profiles.js';
 import { openGame, closeGame } from './games.js';
 import { playWallDarts, stopWallDarts } from './wallDarts.js';
@@ -38,6 +39,7 @@ export function fillCard() {
   const s = S.selected; if (!s) return;
   const p = s.p;
   $('cName').textContent = p.name;
+  const av = $('cAvatar'), pic = portraitOf(s); if (av.getAttribute('src') !== pic) av.setAttribute('src', pic);
   const kind = $('cKind');
   kind.className = 'kind ' + (s.role === 'owner' ? 'boss' : p.regular ? 'reg' : 'new');
   kind.textContent = s.role === 'owner' ? '老闆 · 一人顧店' : p.regular ? '熟客' : '新客';
@@ -51,6 +53,13 @@ export function fillCard() {
   rows.forEach(([k, v]) => { const dt = document.createElement('dt'); dt.textContent = k; const dd = document.createElement('dd'); dd.textContent = v; dl.append(dt, dd); });
   $('cStatus').textContent = '現在：' + s.status;
   $('cInvite').hidden = !(s.role === 'customer' && canInviteTops(s));
+  // 來根小菸: for anyone who smokes; greyed out, saying why, when they can't go just now
+  const smoke = $('cSmoke'), st = s.role === 'customer' && p.smokes ? smokeState(s) : null;
+  smoke.hidden = !st;
+  if (st) {
+    smoke.disabled = st !== 'ready';
+    smoke.textContent = { ready: '來根小菸', gaming: '來根小菸（正在遊戲中）', smoking: '來根小菸（正在抽了）', going: '來根小菸（正要出去抽）', busy: '來根小菸（現在走不開）' }[st];
+  }
 }
 
 // ---------------------------------------------------------------- the neon sign, worked by the fourth switch outside
@@ -143,6 +152,7 @@ export function bindHUD(root, stage) {
   camTween = null;
 
   on($('closeCard'), 'click', closeCard);
+  on($('cSmoke'), 'click', () => { const sel = S.selected; if (sel) { sendOutToSmoke(sel); fillCard(); } });
   on($('cInvite'), 'click', () => {
     const sel = S.selected; if (!sel) return;
     // invited to spin tops (the TV's nearly always full): with whoever else is sitting down

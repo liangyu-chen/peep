@@ -201,10 +201,12 @@ const vsCpu = () => !!S.tv.match && !S.tv.match.away.person;
 async function stayAWhile(c, zone, hops) {
   const { gameSeats, specSpots } = S.seats;
   const wantsPlay = wantsToPlay(c);
-  while (!S.closing && (hops < 3 || c.tops)) {   // a tops game they've been pulled into always gets played
+  while (!S.closing && (hops < 3 || c.tops || c.smokeNow)) {   // a tops game they've been pulled into, or a smoke they've been sent out for, always happens
     hops++;
     let s = null;
+    if (c.smokeNow && !freePorchSeat()) { c.smokeNow = false; c.say('外面沒位子了，算了'); }   // taken while they got up: they just carry on
     if (c.tops) { zone = await doTops(c, zone); c.nextGoal = true; }
+    else if (c.smokeNow && (s = freePorchSeat())) zone = await doTable(c, zone, s);
     else if ((wantsPlay || c.invited || (vsCpu() && Math.random() < 0.7)) && canJoinTv(c) && (s = freeSeat(gameSeats))) zone = await doGame(c, zone, s);
     else if (wantsPlay && S.tv.match && hops === 1 && (s = freeSeat(specSpots))) zone = await doSpectate(c, zone, s);
     else if ((s = freeTableSeat(Math.random() < (c.p.smokes ? 0.85 : 0.3)))) zone = await doTable(c, zone, s);   // smokers head outside
@@ -215,6 +217,25 @@ async function stayAWhile(c, zone, hops) {
   return zone;
 }
 
+// 來根小菸, from their card: someone who smokes, sitting at a table, lights up; sitting inside, they first go and find a
+// seat outside (smoking's for outside only). Not while they're at a game, already smoking, or up and about.
+const freePorchSeat = () => S.seats.tableSeats.filter(s => s.porch && !s.occ).length ? pick(S.seats.tableSeats.filter(s => s.porch && !s.occ)) : null;
+function lightOne(c) { if (!c.cig) { c.lightUp(rand(30, 50)); sayLine(c, 'customer.smoke', { name: c.p.name }); } }
+export function smokeState(c) {
+  if (c.pose === 'game' || c.tops || (c.seat && c.seat.type === 'game')) return 'gaming';
+  if (c.cig) return 'smoking';
+  if (c.smokeNow) return 'going';
+  if (c.busy || c.pose !== 'sit' || !c.seat || c.seat.type !== 'table' || c.gone || S.closing) return 'busy';
+  return 'ready';
+}
+export function sendOutToSmoke(c) {
+  if (smokeState(c) !== 'ready') return false;
+  if (c.seat.porch) { lightOne(c); return true; }
+  if (!freePorchSeat()) { c.say('外面沒位子了，等等再抽'); return false; }
+  c.smokeNow = true; c.say('好，出去抽一根');
+  return true;
+}
+
 async function doTable(c, zone, s) {
   s.occ = c; c.seat = s;
   c.status = s.porch ? '去戶外區坐' : '找位子坐';
@@ -222,11 +243,12 @@ async function doTable(c, zone, s) {
   c.face(s.face); c.pose = 'sit';
   c.putCup(...s.cup);
   c.status = s.porch ? '在戶外區喝咖啡看街景' : '坐著喝咖啡';
+  if (c.smokeNow && s.porch) { c.smokeNow = false; lightOne(c); }   // out here for a smoke
   const stay = rand(45, 100);
   let t = 0;
-  while (t < stay && !S.closing && !c.tops) {
+  while (t < stay && !S.closing && !c.tops && !c.smokeNow) {
     await sleep(2); t += 2;
-    if (c.tops) break;
+    if (c.tops || c.smokeNow) break;
     if (Math.random() < 0.25) { c.pickCup(); c.gesture('sip', 1.4); await sleep(1.4); t += 1.4; c.putCup(...s.cup); }
     if (Math.random() < 0.08) sayLine(c, s.porch ? 'customer.chatPorch' : 'customer.chatTable', { name: c.p.name });
     // smoking is allowed outside only
@@ -246,7 +268,7 @@ async function doTable(c, zone, s) {
     if (c.invited && canJoinTv(c)) break;
   }
   c.pickCup(); c.putOut(); c.pose = 'stand'; s.occ = null; c.seat = null;   // stubbed out in the ashtray before getting up
-  if (c.invited || c.tops) c.nextGoal = true;
+  if (c.invited || c.tops || c.smokeNow) c.nextGoal = true;
   return s.path;
 }
 

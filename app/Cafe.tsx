@@ -94,10 +94,11 @@ export default function Cafe({ content }: { content: CafeContent }) {
       </section>
 
       <aside id="card" className="win" hidden aria-live="polite">
-        <div className="head"><div><h3 id="cName">-</h3><span id="cKind" className="kind">-</span></div><button id="closeCard" aria-label="關閉">✕</button></div>
+        <div className="head">{/* eslint-disable-next-line @next/next/no-img-element */}<img id="cAvatar" className="avatar" alt="" /><div className="who"><h3 id="cName">-</h3><span id="cKind" className="kind">-</span></div><button id="closeCard" aria-label="關閉">✕</button></div>
         <dl id="cInfo"></dl>
         <div className="status" id="cStatus">-</div>
         <button id="cInvite" className="primary" hidden>▶ 邀去打陀螺</button>
+        <button id="cSmoke" hidden>來根小菸</button>
       </aside>
 
       <div id="hint">拖曳旋轉 · 滾輪縮放 · 點人物看資料 · 點電視、飛鏢靶、戰鬥盤可以玩</div>

@@ -96,4 +96,4 @@ left = Image.open('public/loading/hand-left.png'); left.alpha_composite(caps, (C
 
 # the page shows small WebP copies (a few dozen KB instead of a few hundred)
 for name in ('hand-left', 'hand-right'):
-    Image.open(f'public/loading/{name}.png').save(f'public/loading/{name}.webp', 'WEBP', quality=80, method=6)
+    Image.open(f'public/loading/{name}.png').save(f'public/loading/{name}.webp', 'WEBP', quality=92, method=6)

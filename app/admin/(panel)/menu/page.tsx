@@ -17,7 +17,7 @@ export default async function MenuPage({ searchParams }: { searchParams: Promise
     <>
       <h1>菜單</h1>
       <p className="hint">
-        直接在表格裡改，改完按下方「儲存菜單」一次存好。價格欄寫什麼就印什麼（例如 <code>120</code>、<code>∞</code>、<code>???</code>），留白代表沒有這個做法；
+        直接在表格裡改，改完按下方「儲存」。價格欄寫什麼就印什麼（例如 <code>120</code>、<code>∞</code>、<code>???</code>），留白代表沒有這個做法；
         兩欄都有的飲料，客人會點冰或熱。用 ▲▼ 調整順序，就是紙菜單上的順序。
       </p>
       {msg && <p className="note ok">{msg}</p>}

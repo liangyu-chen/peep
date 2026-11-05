@@ -16,6 +16,7 @@ import { createStadium, updateTops } from './tops.js';
 import { SMOKE_POSE, DRINK_POSE } from './people.js';
 import { updateSurroundings } from './world/surroundings.js';
 import { mergeStatic } from './optimize.js';
+import { disposePortraits } from './portrait.js';
 // (one café at a time: a new one waits until the one before is built and, if it was let go meanwhile, torn down)
 let queue = Promise.resolve();
 export function startCafe(root, content, onReady) {
@@ -149,6 +150,7 @@ async function build(root, content) {
 
   return function stopCafe() {
     S.stopped = true;
+    disposePortraits();
     INPUTS.forEach(e => window.removeEventListener(e, poke));
     cancelAnimationFrame(raf);
     clearInterval(hudTimer);
