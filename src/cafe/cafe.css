@@ -146,7 +146,18 @@ body:has(.cafe-root){margin:0;overflow:hidden;background:#141218}
   .cafe-root .gameSheet{padding:8px}
   .cafe-root .gamePad{gap:8px}
   .cafe-root .gamePad button{min-width:52px}
-  .cafe-root #card{top:auto;bottom:calc(150px + env(safe-area-inset-bottom,0px));transform:none;left:calc(16px + env(safe-area-inset-left,0px));width:auto}
+  .cafe-root #card{top:auto;bottom:calc(178px + env(safe-area-inset-bottom,0px));transform:none;left:calc(16px + env(safe-area-inset-left,0px));width:auto;
+    padding:8px 10px;gap:6px;max-height:42vh;overflow-y:auto;grid-template-columns:1fr 1fr}
+  /* compact on a phone: a small picture, the details two pairs to a row, the buttons side by side */
+  .cafe-root #card .head,.cafe-root #card dl,.cafe-root #card .status{grid-column:1 / -1}
+  .cafe-root #card .avatar{width:40px;height:40px}
+  .cafe-root #card h3{font-size:17px}
+  .cafe-root #card .kind{font-size:11px;margin-top:2px}
+  .cafe-root #card dl{grid-template-columns:auto 1fr auto 1fr;gap:3px 8px;font-size:12px}
+  .cafe-root #card dt{font-size:11px}
+  .cafe-root #card .status{font-size:12px;padding:4px 6px}
+  .cafe-root #card button#cInvite,.cafe-root #card button#cSmoke{font-size:12px;padding:5px 6px}
+  .cafe-root #card button#cInvite[hidden]+button#cSmoke,.cafe-root #card button#cInvite:has(+ button#cSmoke[hidden]){grid-column:1 / -1}   /* one button on its own: full width */
 }
 @media (prefers-reduced-motion:reduce){.cafe-root .bubble{transition:none}}
 
