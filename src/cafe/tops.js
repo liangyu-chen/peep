@@ -104,8 +104,11 @@ const place = () => { ctx.scene.add(S.stadium); S.stadium.position.set(TABLE.x *
 const stow = () => { ctx.scene.add(S.stadium); S.stadium.position.set(SHELF.x * K, SHELF.y, SHELF.z); S.stadium.rotation.set(0, 0, 0); S.stadium.visible = true; };
 
 // one player's part in a session; returns the zone they end up in
+// a game that never gets going is called off: the other one went home (closing time), or didn't turn up after a good
+// wait. Whoever's waiting gives up, and the stadium goes back where it came from.
+const gaveUp = (ses, other, waited) => ses.cancelled || (ses.cancelled = other.gone || other.tops !== ses || waited > 45);
 export async function doTops(c, zone) {
-  const ses = c.tops, i = ses.players.indexOf(c), spot = SPOTS[i];
+  const ses = c.tops, i = ses.players.indexOf(c), spot = SPOTS[i], other = ses.players[1 - i];
   c.dropCup();
   if (i === 0) {
     c.status = '去後面搬戰鬥盤';
@@ -119,15 +122,19 @@ export async function doTops(c, zone) {
     c.status = '等戰鬥盤搬來';
     await walk(c, route(zone, spot.path));
     c.face(spot.face);
-    while (!ses.placed) await sleep(0.4);
+    let waited = 0;
+    while (!ses.placed && !gaveUp(ses, other, waited)) { await sleep(0.4); waited += 0.4; }
+    if (ses.cancelled && !ses.placed) { c.say('不打了啦'); c.tops = null; ses.finish(); return spot.path; }
   }
   c.face(spot.face);
   c.status = '打戰鬥陀螺';
   ses.arrived++;
   if (i === 1) { await ses.done; c.tops = null; return spot.path; }
 
-  while (ses.arrived < 2) await sleep(0.3);
-  await battle(ses);
+  let waited = 0;
+  while (ses.arrived < 2 && !gaveUp(ses, other, waited)) { await sleep(0.3); waited += 0.3; }
+  if (ses.arrived < 2) { c.say('對手跑掉了，收一收'); ses.finish(); }   // called off: put it away
+  else await battle(ses);
   c.status = '把戰鬥盤收回去';
   carry(c); c.gesture('carry', 600);
   await walk(c, route(spot.path, FETCH));

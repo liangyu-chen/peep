@@ -156,6 +156,7 @@ async function leave(c, zone) {
   const p = c.p;
   c.status = '準備離開';
   await walk(c, route(zone, OUT));
+  c.outside = true;
   sayLine(c, p.regular ? 'customer.leaveRegular' : 'customer.leaveNew');
   if (p.regular) c.gesture('wave', 1.5);
   if (Math.random() < 0.6) sleep(0.7).then(() => sayLine(S.owner, p.regular ? 'owner.byeRegular' : 'owner.byeNew', { name: p.name }));
@@ -353,9 +354,11 @@ export function seedOpeningScene() {
 export function tickShop(sdt) {
   S.minutes += sdt;
   if (S.open && !S.closing && S.minutes >= closeHour() * 60) {
+    if (S.topsSession && S.topsSession.state === 'gather') S.topsSession.cancelled = true;   // a tops game not yet under way is off
     S.closing = true; log(`${closeHour()} 點，${S.owner.p.name}準備打烊`); sayLine(S.owner, 'owner.closing', { name: S.customers.length ? pick(S.customers).p.name : '大家' }, 3.5);
   }
-  if (S.closing && S.customers.length === 0 && S.orderQueue.length === 0) {
+  // the next day starts once the last of them is out of the door (they may still be walking off along the lane)
+  if (S.closing && S.customers.every(c => c.outside) && S.orderQueue.length === 0) {
     S.closing = false; S.dow = (S.dow + 1) % 7; S.minutes = 15 * 60; S.revenue = 0; S.cupsSold = 0;
     log(`${DAYS[S.dow]}下午三點，開門！`); sayLine(S.owner, 'owner.opening', {}, 3);
     S.spawnCooldown = 3;
