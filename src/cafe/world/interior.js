@@ -384,7 +384,7 @@ function decor() {
   // the track lights, as they hang in the shop: three long runs down the room on wires (one over the bar, one each side
   // of it), joined across at both ends; the bar's spots turned onto the bar top, the side runs' onto the walls' pictures
   // and the seats
-  const BX = 0.475, BY = 1.06, TY = 2.6, XL = -1.55, XM = BX, XR = 2.05, ZB = -4.3, ZF = 3.6;
+  const BX = 0.475, BY = 1.06, TY = 2.6, XL = -1.55, XM = BX, XR = 2.05, ZB = -2.85, ZF = 2.3;   // (ending short of the fans at both ends)
   trackLine(XM, ZB, XM, ZF, TY, [[0.3, [BX - 0.25, BY, -1.5]], [0.45, [BX + 0.25, BY, -0.4]], [0.62, [BX - 0.2, BY, 0.9]], [0.78, [BX + 0.2, BY, 2.1]]]);
   trackLine(XL, ZB, XL, ZF, TY, [[0.12, [-3.02, 1.6, -3.4]], [0.36, [-3.02, 1.9, -1.4]], [0.55, [-3.02, 1.9, 0.0]], [0.78, [-3.02, 1.9, 1.9]]]);
   trackLine(XR, ZB, XR, ZF, TY, [[0.2, [3.0, 1.2, -2.9]], [0.45, [3.0, 1.6, -0.6]], [0.68, [3.0, 1.6, 1.2]], [0.88, [3.0, 1.5, 3.0]]]);
