@@ -126,7 +126,10 @@ export function updateTV(dt) {
     log(`${tv.match.home.name} 不打電腦了，改成雙人對戰`);
     tv.match = null; tv.startDelay = 0.6; tv.flash = null;
   }
+  // closing time: the game on now is wrapped up within ten minutes, and no new one starts: the players go home
+  if (S.closing && tv.match) { tv.match.closeIn ??= 10; if ((tv.match.closeIn -= dt) <= 0) { endMatch(); return; } }
   if (tv.match) { if (tv.match.kind === 'fight') stepFight(tv.match, dt, endMatch); else stepMatch(dt); }
+  else if (S.closing) S.seats.gameSeats.forEach(s => { const p = s.occ; if (p && p.resolveDone) { const r = p.resolveDone; p.resolveDone = null; r(); } });
   else { tv.startDelay -= dt; if (tv.startDelay <= 0 && S.seats.gameSeats.some(s => s.occ && s.occ.ready)) startMatch(); }
   if (tv.flash) { tv.flash.t -= dt; if (tv.flash.t <= 0) tv.flash = null; }
   tv.attract += dt;

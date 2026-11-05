@@ -80,7 +80,7 @@ async function ownerLoop(owner) {
       owner.face(toBar ? -Math.PI / 2 : Math.PI / 2);
       await sleep(0.5);   // turned all the way round before his hands go out, or they sweep through the other counter
       owner.gesture(Math.random() < 0.5 ? 'wipe' : 'pour', 2);
-      if (Math.random() < 0.12) sayLine(owner, 'owner.idle');
+      if (Math.random() < 0.12 && !S.closing && S.customers.length) sayLine(owner, 'owner.idle');   // (no chatter to an empty shop, or while closing up)
       for (let i = 0; i < 4 && !S.orderQueue.length; i++) await sleep(0.6);
       continue;
     }
@@ -142,19 +142,24 @@ export function trySpawn(force) {
   const c = new Person(prof, 'customer');
   S.customers.push(c);
   spot.occ = c; c.spot = spot;
-  c.setPos(-1.75, 11); c.heading = Math.PI;
+  // they come along the lane from one end or the other, and turn in at the door
+  const from = Math.random() < 0.5 ? -1 : 1;
+  c.setPos(from * WALK_X, WALK_Z + rand(-0.15, 0.15)); c.heading = -from * Math.PI / 2; c.fromLane = true;
   customerLife(c);
   return true;
 }
 
+// where people walk along the lane, out in front of the parked scooters, and how far along it they go out of sight
+const WALK_Z = 10.0, WALK_X = 16;
+const OUT = [[-1.75, WALK_Z]].concat(DOOR.slice(1));   // out of the door to the lane
 async function leave(c, zone) {
   const p = c.p;
   c.status = '準備離開';
-  await walk(c, route(zone, DOOR));
+  await walk(c, route(zone, OUT));
   sayLine(c, p.regular ? 'customer.leaveRegular' : 'customer.leaveNew');
   if (p.regular) c.gesture('wave', 1.5);
   if (Math.random() < 0.6) sleep(0.7).then(() => sayLine(S.owner, p.regular ? 'owner.byeRegular' : 'owner.byeNew', { name: p.name }));
-  await walk(c, [[-1.75, 11.5]]);
+  await walk(c, [[(Math.random() < 0.5 ? -1 : 1) * WALK_X, WALK_Z + rand(-0.15, 0.15)]]);   // and off along it, one way or the other
   await sleep(0.3);
   log(`${p.name} 離開了`);
   S.customers.splice(S.customers.indexOf(c), 1);
@@ -167,6 +172,7 @@ async function customerLife(c) {
   if (p.regular) p.visits++;
   c.status = '走進店裡';
   log(p.regular ? `熟客 ${p.name} 來了（第 ${p.visits} 次）` : `新客人 ${p.name} 推門進來`);
+  if (c.fromLane) await walk(c, [[-1.75, WALK_Z]]);   // along the lane to the door
   floatText('bang', '!', new THREE.Vector3(c.g.position.x / K, 2.1, c.g.position.z), 1);
   await walk(c, route(DOOR, zoneSpot(c.spot)));
   c.face(Math.PI / 2);
