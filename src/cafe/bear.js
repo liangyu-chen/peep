@@ -95,7 +95,7 @@ export function makeBear() {
 
   // the wings, on its back, hinged at the spine
   const wings = [-1, 1].map(s => {
-    const hinge = new THREE.Group(); hinge.position.set(s * 0.006, -0.022, -0.03); b.add(hinge);
+    const hinge = new THREE.Group(); hinge.position.set(s * 0.006, -0.016, -0.04); hinge.scale.setScalar(0.75); b.add(hinge);
     const w = new THREE.Mesh(wingShape(), m.wing); w.scale.x = s; w.castShadow = true; hinge.add(w);
     // the quilting stitched across it, on both faces, and a blue heart near each tip
     [[[0.01, 0.004], [0.05, 0.018], [0.1, 0.032]], [[0.012, -0.008], [0.055, 0.0], [0.105, 0.012]], [[0.02, -0.019], [0.06, -0.018], [0.095, -0.006]]].forEach(pts => {
@@ -114,7 +114,7 @@ export function makeBear() {
 export function flapBear(bear, dt) {
   bear.t += dt;
   const f = Math.sin(bear.t * 13);
-  bear.wings.forEach(w => { w.rotation.y = -w.userData.side * (0.25 + f * 0.3); });
+  bear.wings.forEach(w => { w.rotation.y = w.userData.side * (0.2 + f * 0.25); });
   return Math.sin(bear.t * 2.1) * 0.035;   // the bob
 }
 
