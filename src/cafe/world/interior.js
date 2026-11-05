@@ -399,7 +399,7 @@ function decor() {
     framed(['eye', 'hoop', 'toys'][i % 3], -3.02, y, z, 0.24, 0.3, pick(['#f4efe3', '#ffd23f', '#7ec8ff', '#ff4f7b']));
   });
   // ceiling fans: one over the front end of the bar, toward the door, and one over the games corner
-  ceilingFan(1.26, 3.15);   // (between the track runs, near the front door)
+  ceilingFan(1.26, 3.4);   // (between the track runs, near the front door)
   ceilingFan(-0.54, -3.1);
 }
 
