@@ -71,7 +71,7 @@ export default function MenuEditor({ initial, sections, readOnly }: { initial: M
         );
       })}
 
-      <SaveBar label="儲存菜單" readOnly={readOnly} />
+      <SaveBar label="儲存" readOnly={readOnly} />
     </form>
   );
 }

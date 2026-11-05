@@ -25,7 +25,7 @@ export default async function OwnerPage({ searchParams }: { searchParams: Promis
   return (
     <>
       <h1>老闆</h1>
-      <p className="hint">店裡唯一的員工。名字會出現在名牌上，客人的台詞裡也可以用 <code>{'{owner}'}</code> 叫老闆。資料、長相和台詞改完按最下面「儲存」一次存好。</p>
+      <p className="hint">客人的台詞裡也可以用 <code>{'{owner}'}</code> 叫老闆。資料、長相和台詞改完後按最下面「儲存」。</p>
       {msg && <p className="note ok">{msg}</p>}
 
       <form action={updateOwner} key={Date.now()}>
