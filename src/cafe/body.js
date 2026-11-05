@@ -546,7 +546,10 @@ export function buildBody(look, seed = '') {
   if (f.brows !== 'none') {
     const [w, h] = f.brows === 'thick' || f.brows === 'angry' ? [0.068, 0.02] : [0.06, 0.011];
     const tilt = { angry: 0.32, worried: -0.3, thick: 0.04, thin: -0.06 }[f.brows] || 0;
-    [-1, 1].forEach(s => { fm(bx(w, h, 0.014), hairM, s * EX, 0.074, surf(s * EX, 0.074) + 0.004).rotation.z = s * tilt; });
+    // under a hat they sit just below its front edge (which is at height elev straight in front), or they'd show through it
+    const hs = HATS[hatOf(look).hat];
+    const BY = hs ? Math.min(0.074, at(0, Math.sin(hs.elev), Math.cos(hs.elev)).y - h / 2 - Math.abs(Math.sin(tilt)) * w / 2 - 0.004) : 0.074;
+    [-1, 1].forEach(s => { fm(bx(w, h, 0.014), hairM, s * EX, BY, surf(s * EX, BY) + 0.004).rotation.z = s * tilt; });
   }
   // nose: soft rounded shapes, a shade darker than the face
   const NY = -0.024, nz = surf(0, NY);
@@ -660,7 +663,9 @@ export function buildBody(look, seed = '') {
 }
 
 // hats, each a shell round its own tipped crown down to a front edge `elev` above the eyes; own is the hat's own thickness
-const HATS = { cap: { tilt: 0.25, elev: 0.4, own: 0.012 }, bucket: { tilt: 0.1, elev: 0.5, own: 0.014 }, beanie: { tilt: 0.42, elev: 0.4, own: 0.016 } };   // (the beanie pulled down a little lower, its crown slouching back)
+// (elev: how high the hat's front edge comes on the forehead, in radians up from the eyes' level: clear of the brows,
+// which are tucked down under it)
+const HATS = { cap: { tilt: 0.25, elev: 0.52, own: 0.012 }, bucket: { tilt: 0.1, elev: 0.52, own: 0.014 }, beanie: { tilt: 0.42, elev: 0.5, own: 0.016 } };   // (the beanie pulled down a little lower, its crown slouching back)
 // the top of the head for each way the front can go: the hairline (radians above the eyes' horizon) all the way round,
 // and how full it stands, both by φ, the angle from straight ahead; lift is how far it stands off the head at most
 const line = phi => -0.16 + 0.66 * Math.cos(phi);                          // just above the brows, past the temples, down the nape
