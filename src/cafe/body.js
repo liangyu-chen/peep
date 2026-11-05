@@ -600,7 +600,7 @@ export function buildBody(look, seed = '') {
     smirk: () => { fm(bx(0.042, 0.01, 0.006), darkM, 0.006, 0, 0, mouth).rotation.z = 0.2; fm(bx(0.014, 0.01, 0.006), darkM, 0.03, 0.008, -0.002, mouth).rotation.z = 0.7; },
     flat: () => fm(bx(0.046, 0.01, 0.006), darkM, 0, 0, 0, mouth),
     open: () => { fm(bx(0.044, 0.032, 0.012), darkM, 0, -0.004, 0, mouth); fm(bx(0.03, 0.01, 0.006), tongueM, 0, -0.013, 0.005, mouth); },
-    jianzhi: () => { const m = new THREE.Mesh(geo('flare', () => new THREE.PlaneGeometry(0.16, 0.16)), flashM()); m.position.z = 0.012; m.renderOrder = 2; mouth.add(m); },   // the mouth hidden behind a flash of light
+    jianzhi: () => { const m = new THREE.Mesh(geo('flare', () => new THREE.PlaneGeometry(0.13, 0.13)), flashM()); m.position.z = 0.04; m.renderOrder = 2; mouth.add(m); },   // the mouth hidden behind a flash of light (held out in front of the nose, so it's never cut off by it)
   }[f.mouth] || (() => fm(bx(0.038, 0.01, 0.006), darkM, 0, 0, 0, mouth)))();
   if (f.blush) [-1, 1].forEach(s => { const x = s * 0.1 * H.s[0]; fm(disc(0.026), blushM, x, -0.038, surf(x, -0.038) - 0.002).rotation.set(Math.PI / 2, 0, -s * 0.6); });
   // moustache and goatee
