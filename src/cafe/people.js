@@ -6,6 +6,7 @@ import { S } from './state.js';
 import { K } from './util.js';
 import { KERB, RISE, BACK_DROP, inBackHall } from './layout.js';
 import { makeBear, followBear } from './bear.js';
+import { moverShadows, highQuality } from './quality.js';
 
 const teaCupM = mat(0xf2f0ea, { roughness: 0.3 });
 const coffeeM = mat(0x5a3220, { roughness: 0.3 });
@@ -154,12 +155,14 @@ export class Person {
     this.p = profile; this.role = role;
     Object.assign(this, buildBody(profile.look, profile.name));
     this.faceAnim = { blinkT: Math.random() * 4 };
-    this.g.traverse(o => { if (o.isMesh) { o.userData.person = this; o.castShadow = false; } });
-    // a soft round shadow on the floor under them, in place of a cast one (the sun's shadows are drawn once, index.js)
-    this.blob = new THREE.Mesh(blobGeo, blobM()); this.blob.rotation.x = -Math.PI / 2; this.blob.renderOrder = 1; this.g.add(this.blob);
+    this.g.traverse(o => { if (o.isMesh) o.userData.person = this; });
+    // a soft round shadow on the floor under them, in place of a cast one when the sun's shadows are drawn just once
+    // (畫質 一般, quality.js)
+    this.blob = new THREE.Mesh(blobGeo, blobM()); this.blob.rotation.x = -Math.PI / 2; this.blob.renderOrder = 1; this.blob.userData.blob = true; this.g.add(this.blob);
+    this.blob.visible = !highQuality(); moverShadows(this.g);
     ctx.scene.add(this.g);
     if (profile.look?.companion === 'bear') {   // 月亮小熊, flying along with them (click it and it's their card)
-      this.bear = makeBear(); this.bear.g.traverse(o => { if (o.isMesh) o.userData.bearOf = this; }); ctx.scene.add(this.bear.g);
+      this.bear = makeBear(); this.bear.g.traverse(o => { if (o.isMesh) o.userData.bearOf = this; }); ctx.scene.add(this.bear.g); moverShadows(this.bear.g);
       this.bear.bubble = document.createElement('div'); this.bear.bubble.className = 'bubble'; this.bear.bubble.style.opacity = 0; this.bear.bubbleT = 0;
       S.labelsEl.append(this.bear.bubble);
     }
@@ -179,7 +182,7 @@ export class Person {
   face(a) { this.targetHeading = a; }
   bearSay(text, dur = 2.4) { const b = this.bear; if (!b) return; b.bubble.textContent = text; b.bubble.style.opacity = 1; b.bubbleT = dur; }
   say(text, dur = 2.8) { this.bubble.textContent = text; this.bubble.style.opacity = 1; this.bubbleT = dur; }
-  hold(cup) { this.cup = cup; cup.traverse(o => { o.castShadow = false; }); this.hand.add(cup); cup.position.set(0, -0.05, 0); cup.rotation.set(0, 0, 0); }
+  hold(cup) { this.cup = cup; moverShadows(cup); this.hand.add(cup); cup.position.set(0, -0.05, 0); cup.rotation.set(0, 0, 0); }
   putCup(x, y, z) { if (!this.cup) return; ctx.scene.attach(this.cup); this.cup.position.set(x * K, y, z); this.cup.rotation.set(0, 0, 0); }
   pickCup() { if (this.cup) this.hold(this.cup); }
   dropCup() { if (this.cup) { this.cup.parent.remove(this.cup); this.cup = null; } }

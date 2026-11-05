@@ -16,6 +16,7 @@ import { createStadium, updateTops } from './tops.js';
 import { SMOKE_POSE, DRINK_POSE } from './people.js';
 import { updateSurroundings } from './world/surroundings.js';
 import { mergeStatic } from './optimize.js';
+import { setQuality, savedQuality } from './quality.js';
 import { disposePortraits } from './portrait.js';
 // (one café at a time: a new one waits until the one before is built and, if it was let go meanwhile, torn down)
 let queue = Promise.resolve();
@@ -29,14 +30,6 @@ export function startCafe(root, content, onReady) {
 }
 // a moment for the page to draw between the heavy steps of building
 const breathe = () => new Promise(r => setTimeout(r, 0));
-// the things in the set that move cast no shadow, as the shadow map is drawn once: the doors, the fans, the stadium,
-// the ashtrays the owner carries off
-function stillShadows() {
-  const off = o => o && o.traverse(m => { m.castShadow = false; });
-  [S.frontDoor, S.slideDoor, S.toiletDoor, S.acFan, S.stadium].forEach(off);
-  (S.fans || []).forEach(off);
-  (S.ashtrays || []).forEach(a => off(a.g));
-}
 
 async function build(root, content) {
   resetState(content);
@@ -143,12 +136,11 @@ async function build(root, content) {
     .then(() => { if (!S.stopped) S.fontTex.forEach(t => t.redraw()); }).catch(() => {});
   // the first frame has every shader to compile and every mesh and texture to hand to the GPU: done in two goes
   ctx.renderer.compile(ctx.scene, ctx.camera); await breathe();
-  // the sun's shadows are drawn once, for the set as it stands (its position never changes), and again only when
-  // something that casts them changes (a wall fading as the camera goes behind it); what moves casts none of its own:
-  // people get a soft round shadow under them instead (people.js). Redrawing the shadow map every frame was the
-  // largest single cost on a tablet
-  stillShadows();
-  ctx.renderer.shadowMap.autoUpdate = false; ctx.renderer.shadowMap.needsUpdate = true;
+  // 畫質 (quality.js): in 一般 the sun's shadows are drawn once, for the set as it stands (its position never changes),
+  // and again only when something that casts them changes (a wall fading as the camera goes behind it); what moves
+  // casts none of its own, and people get a soft round shadow under them instead (people.js). 高效能 redraws them
+  // every frame, everything casting its own
+  setQuality(savedQuality());
   ctx.renderer.render(ctx.scene, ctx.camera); await breathe();
   raf = requestAnimationFrame(frame);
   // development only: step the simulation from the console without rendering, e.g. await __cafe.step(60)

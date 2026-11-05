@@ -72,6 +72,10 @@ export default function Cafe({ content }: { content: CafeContent }) {
           <button data-speed="4">4x</button>
           <button id="tagToggle" className="on">名牌</button>
         </div>
+        <div className="row"><span>畫質</span>
+          <button data-quality="normal">一般</button>
+          <button data-quality="high">高效能</button>
+        </div>
         <div className="row"><span>聲音</span><button id="sfxToggle" className="on">音效</button><button id="musicToggle" className="on">音樂</button><a href="/admin" className="adminLink">後台登入</a></div>
       </section>
 

@@ -25,7 +25,7 @@ const mats = () => M || (M = {
 
 function ball(r, m, x, y, z, parent, sx = 1, sy = 1, sz = 1) {
   const me = new THREE.Mesh(new THREE.SphereGeometry(r, 14, 10), m);
-  me.position.set(x, y, z); me.scale.set(sx, sy, sz); parent.add(me); return me;
+  me.position.set(x, y, z); me.scale.set(sx, sy, sz); me.castShadow = true; parent.add(me); return me;
 }
 
 // one wing: a soft rounded lobe, puffy (extruded with a bevel), its root at the origin and reaching out along +x
@@ -100,7 +100,7 @@ export function makeBear() {
   // the wings, on its back, hinged at the spine
   const wings = [-1, 1].map(s => {
     const hinge = new THREE.Group(); hinge.position.set(s * 0.004, -0.024, -0.038); hinge.scale.setScalar(0.75); hinge.rotation.z = s * 0.38; b.add(hinge);
-    const w = new THREE.Mesh(wingShape(), m.wing); w.scale.x = s; hinge.add(w);
+    const w = new THREE.Mesh(wingShape(), m.wing); w.scale.x = s; w.castShadow = true; hinge.add(w);
     // the quilting stitched across it, on both faces, and a blue heart near each tip
     [[[0.01, 0.004], [0.05, 0.018], [0.1, 0.032]], [[0.012, -0.008], [0.055, 0.0], [0.105, 0.012]], [[0.02, -0.019], [0.06, -0.018], [0.095, -0.006]]].forEach(pts => {
       const curve = new THREE.CatmullRomCurve3(pts.map(([x, y]) => new THREE.Vector3(s * x, y, 0)));
