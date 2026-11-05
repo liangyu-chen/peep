@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { ctx, cyl, LOW_POWER } from '../engine.js';
+import { ctx, cyl, box, mat, LOW_POWER } from '../engine.js';
 import { S } from '../state.js';
 
 // sky and the sun, created first so the world builders can skip them when shifting and squeezing the set
@@ -29,6 +29,30 @@ function bareBulb(x, z, y = 2.15, power = 0.7, dist = 6, minor = false) {
   S.bulbs.push({ pl, bm, base: power });
 }
 
+// the back storeroom's bulb: dark unless it's switched on, by the switch outside its door (clicked, or by the owner on
+// his way in for beans). Its lamp stays in the scene at nothing when off, so switching it doesn't change the light count.
+function storeroomLight(x, z, y) {
+  const scene = ctx.scene;
+  cyl(0.006, 0.006, 2.8 - y, 0x111111, x, (2.8 + y) / 2 + 0.05, z, scene, 4).castShadow = false;
+  cyl(0.03, 0.03, 0.07, 0x3a2a1a, x, y + 0.08, z, scene, 8);
+  const bm = new THREE.MeshStandardMaterial({ color: 0xd8d2c4, emissive: 0xffb44a, emissiveIntensity: 0 });
+  const b = new THREE.Mesh(new THREE.SphereGeometry(0.06, 10, 8), bm); b.position.set(x, y, z); scene.add(b);
+  const pl = new THREE.PointLight(0xffb15c, 0, 4, 2); pl.position.set(x, y - 0.1, z);
+  if (!LOW_POWER) scene.add(pl);
+  // the switch: a little white plate on the corridor side of the wall, just by the doorway, its toggle up when on
+  box(0.012, 0.11, 0.075, mat(0xf2f0ea, { roughness: 0.5 }), -0.89, 1.3, -5.72);
+  const lever = box(0.014, 0.03, 0.016, mat(0xdedad0, { roughness: 0.4 }), -0.9, 1.29, -5.72);
+  const hit = box(0.06, 0.2, 0.16, mat(0x000000), -0.9, 1.3, -5.72); hit.visible = false;   // a bigger, unseen box takes the click
+  S.storeLight = { pl, bm, lever, hit, on: false };
+}
+export function setStoreLight(on) {
+  const L = S.storeLight; if (!L) return;
+  L.on = on;
+  L.pl.intensity = on ? 0.55 : 0;
+  L.bm.emissiveIntensity = on ? 2.4 : 0; L.bm.color.set(on ? 0xffe0a8 : 0xd8d2c4);
+  L.lever.position.y = 1.3 + (on ? 0.012 : -0.012);
+}
+
 // red neon wash, bar track spots, bare bulbs in the arcade and back of house
 export function buildRoomLights() {
   const scene = ctx.scene;
@@ -41,7 +65,8 @@ export function buildRoomLights() {
   });
   // the arcade is lit from its track (in arcade.js), not a bare bulb
   const arcadeLight = new THREE.PointLight(0xffe2b8, 0.7, 7, 2); arcadeLight.position.set(-1.0, 2.5, 5.6); scene.add(arcadeLight); S.bulbs.push({ pl: arcadeLight, bm: null, base: 0.7 });
-  bareBulb(1.2, -8.7, 2.3, 0.35, 4, true); bareBulb(1.2, -6.8, 2.3, 0.3, 4, true); bareBulb(-1.9, -8, 2.3, 0.25, 4, true);
+  bareBulb(1.2, -8.7, 2.3, 0.35, 4, true); bareBulb(-1.9, -8, 2.3, 0.25, 4, true);
+  storeroomLight(1.2, -6.8, 2.3);
 }
 
 // ---------------------------------------------------------------- day/night

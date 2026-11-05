@@ -4,7 +4,9 @@
 // one line of the paper menu. hot / ice are what's printed in those columns: a price like '120', or '∞', '???'…;
 // empty means that version isn't served. Iced drinks come in a tall glass, hot ones in a Taiwanese tea cup.
 export type MenuItem = { name: string; en: string; section: string; hot: string; ice: string };
-export const MENU_SECTIONS = ['Original', 'Coffee late', 'Something special', 'Not coffee'];
+// 隱藏菜單: drinks that aren't on the menu customers see, but that some of them order anyway
+export const HIDDEN_SECTION = '隱藏菜單';
+export const MENU_SECTIONS = ['Original', 'Coffee late', 'Something special', 'Not coffee', HIDDEN_SECTION];
 
 // how a person looks; colours are 0xRRGGBB numbers. Face fields left out are filled in by faceOf().
 // Anything the editor doesn't know (long sleeves…) is kept as it is.
@@ -68,6 +70,7 @@ export const LINE_GROUPS: LineGroup[] = [
       { key: 'customer.arriveNew', label: '新客進門', vars: ['owner'] },
       { key: 'customer.orderRegular', label: '熟客點餐', vars: ['drink'] },
       { key: 'customer.orderNew', label: '新客點餐', vars: ['drink'] },
+      { key: 'customer.orderOther', label: '熟客換點別的', vars: ['drink'] },
       { key: 'customer.takeaway', label: '沒位子改外帶' },
       { key: 'customer.chatTable', label: '室內座位閒聊', vars: ['owner'] },
       { key: 'customer.chatPorch', label: '戶外區座位閒聊', vars: ['owner'] },
@@ -169,6 +172,7 @@ export const DEFAULT_LINES: Record<string, string[]> = {
   'customer.arriveNew': ['菜單怎麼都是 $???', '哇，這裡可以打 2K？'],
   'customer.orderRegular': ['老樣子，{drink}！', '對，{drink}，謝啦', '一樣一樣～'],
   'customer.orderNew': ['那我要{drink}', '{drink}是什麼？來一杯！'],
+  'customer.orderOther': ['今天換{drink}好了', '不要老樣子，來杯{drink}', '我今天想喝{drink}'],
   'customer.takeaway': ['那我外帶好了'],
   'customer.chatTable': ['等等換我打 2K', '吧台公仔又變多了', '漫畫借我看', '這杯真的好喝', '（滑手機）'],
   'customer.chatPorch': ['外面吹風好舒服', '隔壁五金行好熱鬧', '這盆栽是新的嗎', '機車停好近'],

@@ -9,6 +9,7 @@ import { matchClock } from './tv.js';
 import { DAYS, smokeState, sendOutToSmoke } from './sim.js';
 import { canInviteTops, inviteTops } from './tops.js';
 import { portraitOf } from './portrait.js';
+import { setStoreLight } from './world/lights.js';
 import { tvGames, GAME_LABEL } from './profiles.js';
 import { openGame, closeGame } from './games.js';
 import { playWallDarts, stopWallDarts } from './wallDarts.js';
@@ -194,10 +195,11 @@ export function bindHUD(root, stage) {
     const stadium = [], menu = [];
     if (S.stadium?.visible) S.stadium.traverse(o => { if (o.isMesh) stadium.push(o); });
     S.menuClip?.traverse(o => { if (o.isMesh) menu.push(o); });
-    const targets = []; S.people.forEach(p => p.g.traverse(o => { if (o.isMesh) targets.push(o); })); targets.push(S.tvScreen, S.tvFrame, S.dartboard, S.neonSwitch?.hit, ...stadium, ...menu);
+    const targets = []; S.people.forEach(p => p.g.traverse(o => { if (o.isMesh) targets.push(o); })); targets.push(S.tvScreen, S.tvFrame, S.dartboard, S.neonSwitch?.hit, S.storeLight?.hit, ...stadium, ...menu);
     const h = ray.intersectObjects(targets.filter(Boolean), false)[0];
     if (!h) return null;
     if (h.object === S.neonSwitch?.hit) return 'neon';
+    if (h.object === S.storeLight?.hit) return 'storeLight';
     if (menu.includes(h.object)) return 'menu';
     if (h.object === S.tvScreen || h.object === S.tvFrame) return 'tv';
     if (h.object === S.dartboard) return 'darts';
@@ -211,6 +213,7 @@ export function bindHUD(root, stage) {
     const h = hit(e);
     if (h === 'menu') setCam('menu');   // the clipboard on the bar: lean over and read it
     else if (h === 'neon') toggleNeon();
+    else if (h === 'storeLight') { setStoreLight(!S.storeLight.on); sfx('flick'); }
     else if (typeof h === 'string') playAt(h, root); else if (h) openCard(h); else closeCard();
   });
   on(canvas, 'pointermove', e => {

@@ -7,9 +7,10 @@ import { DOOR, TOILET, zoneSpot, route, LANE, MACHINE, HUBX } from './layout.js'
 import { Person, makeCup, walk } from './people.js';
 import { newProfile, tvGames, GAME_LABEL } from './profiles.js';
 import { doTops } from './tops.js';
-import { sayLine, priceOf, drinkFor, pickVariant, orderName } from './content.js';
+import { sayLine, priceOf, drinkFor, pickVariant, orderName, menuNames } from './content.js';
 import { log, floatText } from './feed.js';
 import { closeCard } from './hud.js';
+import { setStoreLight } from './world/lights.js';
 export const DAYS = ['週日', '週一', '週二', '週三', '週四', '週五', '週六'];
 // open 15:00; closes 22:00 Fri/Sat, 20:00 other days
 export const closeHour = () => (S.dow === 5 || S.dow === 6) ? 22 : 20;
@@ -61,11 +62,16 @@ async function ownerLoop(owner) {
     if (!S.orderQueue.length) {
       if (Math.random() < 0.08 && !S.closing) {
         owner.status = '去倉庫拿豆子';
-        const back = [[LANE, -2.3], [0.6, -3.4], [-1.2, -3.95], [-1.85, -4.1], [-1.85, -5.8], [-0.3, -5.8], [1.0, -5.8]];
+        // in at the storeroom door, the light flicked on at the switch outside it (and back off, if it was off, coming out)
+        const back = [[LANE, -2.3], [0.6, -3.4], [-1.2, -3.95], [-1.85, -4.1], [-1.85, -5.8], [-0.3, -5.8]], shelf = [1.0, -5.8];
         await ownerTo(owner, LANE, null, back);
+        const wasOn = S.storeLight?.on; if (!wasOn) { setStoreLight(true); await sleep(0.3); }
+        await walk(owner, [shelf]);
         owner.face(Math.PI); await sleep(1.5);
         owner.gesture('carry', 30);
-        await walk(owner, back.slice().reverse().concat([[LANE, rand(-1.5, 2)]]));
+        await walk(owner, [back[back.length - 1]]);
+        if (!wasOn) setStoreLight(false);
+        await walk(owner, back.slice(0, -1).reverse().concat([[LANE, rand(-1.5, 2)]]));
         owner.act = null; owner.actT = 0;
         if (Math.random() < 0.5) sayLine(owner, 'owner.beansDone');
         continue;
@@ -86,16 +92,19 @@ async function ownerLoop(owner) {
     }
     const c = S.orderQueue.shift();
     if (c.gone) continue;
-    const drink = drinkFor(c.p.drink);   // a regular's usual, on the menu or not
+    // a regular's usual (on the menu or not), though now and then they try something else, hidden menu and all
+    const usual = drinkFor(c.p.drink), others = menuNames().filter(n => n !== usual);
+    const tryOther = c.p.regular && others.length && Math.random() < 0.3;
+    const drink = tryOther ? pick(others) : usual;
     const variant = pickVariant(drink);
     c.drink = orderName(drink, variant);
-    const vars = { name: c.p.name, drink: c.drink };
+    const vars = { name: c.p.name, drink: c.drink }, greet = tryOther ? { name: c.p.name, drink: usual } : vars;
     owner.status = `幫${c.p.name}點餐`;
     await ownerTo(owner, 1.62, c.spot.z);
     owner.face(-Math.PI / 2);
-    sayLine(owner, c.p.regular ? 'owner.greetRegular' : 'owner.greetNew', vars);
+    sayLine(owner, c.p.regular ? 'owner.greetRegular' : 'owner.greetNew', greet);   // (the owner offers a regular their usual)
     await sleep(1.6);
-    sayLine(c, c.p.regular ? 'customer.orderRegular' : 'customer.orderNew', vars);
+    sayLine(c, c.p.regular ? (tryOther ? 'customer.orderOther' : 'customer.orderRegular') : 'customer.orderNew', vars);
     await sleep(1.4);
     owner.status = `做${c.drink}`;
     await ownerTo(owner, MACHINE[0], MACHINE[1]);
