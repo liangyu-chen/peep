@@ -120,8 +120,19 @@ function arcadeStairs() {
   [[za, ya], [zb, yb]].forEach(([z, y]) => box(0.05, 0.02, 0.02, mat(0x3a3a3c, { metalness: 0.5, roughness: 0.4 }), X0 + 0.03, y, z));   // its brackets on the wall
   // under the top of the stairs: what little storage there is, the boxes pushed back under the slope of the flight so
   // the floor just inside the door stays clear to reach in
-  [[1.4, 0.2, 6.88, 0.5, 0.4], [1.92, 0.2, 6.92, 0.5, 0.4], [2.5, 0.17, 6.95, 0.6, 0.34], [1.65, 0.6, 6.76, 0.55, 0.4], [2.4, 0.5, 6.74, 0.45, 0.3]].forEach(([x, y, z, w, h]) =>
-    box(w, h, 0.34, mat(pick([0xb8915e, 0x8d6e4a, 0xa47c50])), x, y, z));
+  // (squared up in one neat row against each other, two more stacked square on top, with a helmet on each of those)
+  const BZ = 6.9, boxM = [0xb8915e, 0x8d6e4a, 0xa47c50].map(c => mat(c, { roughness: 0.9 }));
+  [[1.36, 0, 0.5, 0.4, 0], [1.88, 0, 0.5, 0.4, 1], [2.47, 0, 0.62, 0.34, 2], [1.36, 0.4, 0.46, 0.36, 2], [2.47, 0.34, 0.5, 0.3, 0]].forEach(([x, y0, w, h, m]) =>
+    box(w, h, 0.36, boxM[m], x, y0 + h / 2, BZ));
+  // two plain open-face scooter helmets, the old round "watermelon rind" kind, one red, one white
+  [[1.36, 0.76, 0xc8231e, 0.4], [2.47, 0.64, 0xf2f0ea, -0.7]].forEach(([x, y, c, ry]) => {
+    const h = new THREE.Group(); h.position.set(x, y, BZ); h.rotation.y = ry; h.scale.x = 1 / K; ctx.scene.add(h);
+    const shellM = mat(c, { roughness: 0.3 });
+    const shell = new THREE.Mesh(new THREE.SphereGeometry(0.13, 20, 10, 0, Math.PI * 2, 0, Math.PI / 2), shellM); shell.scale.y = 0.82; shell.position.y = 0.012; shell.castShadow = true; h.add(shell);
+    const rim = new THREE.Mesh(new THREE.TorusGeometry(0.13, 0.009, 6, 24), mat(0x1c1c1e, { roughness: 0.6 })); rim.rotation.x = Math.PI / 2; rim.position.y = 0.012; h.add(rim);
+    const inner = new THREE.Mesh(new THREE.CircleGeometry(0.122, 20), mat(0x2a2522, { roughness: 1 })); inner.rotation.x = -Math.PI / 2; inner.position.y = 0.006; h.add(inner);
+    [-1, 1].forEach(s => { const strap = new THREE.Mesh(new THREE.BoxGeometry(0.018, 0.004, 0.09), mat(0x1c1c1e)); strap.position.set(s * 0.1, 0.004, 0.06); strap.rotation.y = s * 0.5; h.add(strap); });   // the chin straps, lying loose
+  });
   crate(2.75, 0, 7.3, 'blue');
   // and by the door, the big glass jar of plum wine steeping: round shouldered and ribbed, a red lid, the plums settled
   // in amber liquor
