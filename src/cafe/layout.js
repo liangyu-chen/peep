@@ -7,7 +7,7 @@ export const WH = 2.8;            // wall height
 export const BACK_SHIFT = 1.0;
 // the whole shop stands raised; past the sliding door the back corridor's floor is a step lower, and the storeroom
 // and the toilet off it are back up at the shop's level (in the room as it stands, after the shift)
-export const BACK_DROP = 0.15;
+export const BACK_DROP = 0.18;   // = RISE: down to the street's level, the same step as at the shop's front
 export const BACK_HALL = { x0: -3.1, x1: -0.8, z0: -8.35, z1: -4.5 };
 export const inBackHall = (x, z) => x > BACK_HALL.x0 && x < BACK_HALL.x1 && z > BACK_HALL.z0 && z < BACK_HALL.z1;
 export const KERB = 8.08, RISE = 0.18;   // the shop front is raised RISE above the street, out to the kerb at z = KERB (the Vespa and the kerb camping chair stand below it)

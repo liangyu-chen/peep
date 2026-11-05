@@ -8,7 +8,7 @@ import * as THREE from 'three';
 import { ctx, mat as rawMat, canvasTex } from '../engine.js';
 import { S } from '../state.js';
 import { rand, randi, pick, K as SQ } from '../util.js';
-import { KERB, RISE } from '../layout.js';
+import { KERB, RISE, BACK_HALL } from '../layout.js';
 
 let env;
 // colours as they should look on screen
@@ -381,8 +381,14 @@ export function buildSurroundings() {
   shopUpstairs();
   // only our shop stands raised: a concrete plinth under it, its front edge flush with the pillar and the storeroom wall
   const stepM = new THREE.MeshStandardMaterial({ map: washed('step', '#9a968e'), roughness: 0.95 });
-  const half = 3.18 * SQ, plinth = new THREE.Mesh(new THREE.BoxGeometry(2 * half, RISE, KERB - BACK + 0.1), stepM);
-  plinth.position.set(0, -RISE / 2 - 0.006, (KERB + BACK - 0.1) / 2); plinth.receiveShadow = true; env.add(plinth);
+  // (all but the back corridor past the sliding door, which is down at the street's level: the plinth stops at the neon
+  // wall there and carries on only under the storeroom and toilet beside it)
+  const half = 3.18 * SQ, plinthBox = (x0, x1, z0, z1) => {
+    const p = new THREE.Mesh(new THREE.BoxGeometry(x1 - x0, RISE, z1 - z0), stepM);
+    p.position.set((x0 + x1) / 2, -RISE / 2 - 0.006, (z0 + z1) / 2); p.receiveShadow = true; env.add(p);
+  };
+  plinthBox(-half, half, BACK_HALL.z1 - 0.08, KERB);
+  plinthBox((BACK_HALL.x1 - 0.08) * SQ, half, BACK - 0.1, BACK_HALL.z1 - 0.08);
   // nothing across the lane or behind: just the lane and the row either side, so nothing hides the shop
   wires(FRONT + 0.25, 3.45, -40, CROSS0); wires(FRONT + 0.25, 3.45, CROSS1, end);
   // parked scooters and bikes, pot plants and crates along both sides, clear of the shop front
