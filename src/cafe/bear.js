@@ -11,6 +11,7 @@ let M = null;
 const mats = () => M || (M = {
   fur: mat(picked(0x5f8593), { roughness: 0.95 }),
   beige: mat(picked(0x948b80), { roughness: 0.95 }),
+  stitch: mat(picked(0x6f6d69), { roughness: 1 }),
   wing: mat(picked(0x8f8d89), { roughness: 0.95, side: THREE.DoubleSide }),
   moon: mat(picked(0x2f5a70), { roughness: 0.8 }),
   heart: mat(picked(0x5a8fa6), { roughness: 0.7 }),
@@ -32,10 +33,13 @@ let wingGeo = null;
 function wingShape() {
   if (wingGeo) return wingGeo;
   const s = new THREE.Shape();
+  // like the plush's: narrow at the spine, the top edge sweeping up and out to a rounded tip that shows over the
+  // shoulder, the outer edge falling away and the bottom curving back in, the whole pair a big soft bow
   s.moveTo(0, 0.012);
-  s.bezierCurveTo(0.02, 0.06, 0.075, 0.068, 0.082, 0.03);
-  s.bezierCurveTo(0.086, 0.005, 0.07, -0.022, 0.05, -0.03);
-  s.bezierCurveTo(0.03, -0.038, 0.01, -0.025, 0, -0.012);
+  s.bezierCurveTo(0.03, 0.022, 0.07, 0.045, 0.1, 0.048);
+  s.bezierCurveTo(0.118, 0.05, 0.12, 0.025, 0.112, 0.01);
+  s.bezierCurveTo(0.1, -0.02, 0.06, -0.035, 0.035, -0.03);
+  s.bezierCurveTo(0.018, -0.026, 0.006, -0.018, 0, -0.012);
   s.closePath();
   wingGeo = new THREE.ExtrudeGeometry(s, { depth: 0.004, bevelEnabled: true, bevelThickness: 0.003, bevelSize: 0.003, bevelSegments: 2, curveSegments: 10 });
   wingGeo.translate(0, 0, -0.002);
@@ -76,9 +80,12 @@ export function makeBear() {
   // the body, the tummy patch with its crescent moon and star
   ball(0.04, m.fur, 0, -0.03, 0, b, 1, 1.15, 0.9);
   ball(0.029, m.beige, 0, -0.028, 0.026, b, 0.9, 1.1, 0.4);
-  const moon = new THREE.Mesh(new THREE.TorusGeometry(0.0125, 0.0035, 6, 16, Math.PI * 1.25), m.moon);
-  moon.position.set(-0.002, -0.028, 0.0375); moon.rotation.z = Math.PI * 0.35; moon.scale.z = 0.5; b.add(moon);
-  ball(0.0035, m.star, 0.008, -0.017, 0.038, b, 1, 1, 0.5);
+  // the moon embroidered flat on it: a crescent cut from two circles, lying just on the patch
+  const cres = new THREE.Shape(); cres.absarc(0, 0, 0.015, Math.PI * 0.3, Math.PI * 1.7, false);
+  cres.absarc(0.007, 0.001, 0.0115, Math.PI * 1.55, Math.PI * 0.45, true);
+  const moon = new THREE.Mesh(new THREE.ShapeGeometry(cres, 16), m.moon);
+  moon.position.set(-0.002, -0.028, 0.0379); moon.rotation.z = -0.35; b.add(moon);
+  const star = new THREE.Mesh(new THREE.CircleGeometry(0.0032, 5), m.star); star.position.set(0.008, -0.016, 0.0377); b.add(star);
 
   // stubby arms held out, little legs dangling
   [-1, 1].forEach(s => {
@@ -88,9 +95,15 @@ export function makeBear() {
 
   // the wings, on its back, hinged at the spine
   const wings = [-1, 1].map(s => {
-    const hinge = new THREE.Group(); hinge.position.set(s * 0.006, -0.005, -0.03); b.add(hinge);
+    const hinge = new THREE.Group(); hinge.position.set(s * 0.006, -0.022, -0.03); b.add(hinge);
     const w = new THREE.Mesh(wingShape(), m.wing); w.scale.x = s; w.castShadow = true; hinge.add(w);
-    ball(0.006, m.heart, s * 0.06, 0.03, 0.004, hinge, 1, 1, 0.35);                // a blue heart near each tip
+    // the quilting stitched across it, on both faces, and a blue heart near each tip
+    [[[0.01, 0.004], [0.05, 0.018], [0.1, 0.032]], [[0.012, -0.008], [0.055, 0.0], [0.105, 0.012]], [[0.02, -0.019], [0.06, -0.018], [0.095, -0.006]]].forEach(pts => {
+      const curve = new THREE.CatmullRomCurve3(pts.map(([x, y]) => new THREE.Vector3(s * x, y, 0)));
+      const geo = new THREE.TubeGeometry(curve, 12, 0.0009, 4, false);
+      [-0.0062, 0.0062].forEach(z => { const t = new THREE.Mesh(geo, m.stitch); t.position.z = z; hinge.add(t); });
+    });
+    [-0.0058, 0.0058].forEach(z => { const h = new THREE.Mesh(new THREE.CircleGeometry(0.0055, 10), m.heart); h.position.set(s * 0.1, 0.03, z); h.rotation.y = z < 0 ? Math.PI : 0; hinge.add(h); });
     hinge.userData.side = s;
     return hinge;
   });
@@ -101,7 +114,7 @@ export function makeBear() {
 export function flapBear(bear, dt) {
   bear.t += dt;
   const f = Math.sin(bear.t * 13);
-  bear.wings.forEach(w => { w.rotation.y = -w.userData.side * (0.35 + f * 0.45); });
+  bear.wings.forEach(w => { w.rotation.y = -w.userData.side * (0.25 + f * 0.3); });
   return Math.sin(bear.t * 2.1) * 0.035;   // the bob
 }
 
