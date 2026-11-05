@@ -612,7 +612,7 @@ export function buildBody(look, seed = '') {
   if (f.facialHair === 'goatee' || f.facialHair === 'both') fm(bx(0.05 * BD.k, 0.055 * BD.k, 0.04), beardM, 0, -0.128, surf(0, -0.128) - 0.004);
   // glasses
   if (f.glasses !== 'none') {
-    const AR = 0.037, AT = 0.0085;   // 阿亮眼鏡: the round frames' size, in thick acetate
+    const AR = 0.0345, AT = 0.0085;   // 阿亮眼鏡: the round frames, a touch narrower, in thick acetate
     const gy = EY + 0.002, gz = Math.max(surf(EX, EY), surf(0, NY) - 0.01) + 0.03;
     const earX = at(1, 0.02, 0).x - 0.004;
     [-1, 1].forEach(s => {
@@ -633,8 +633,8 @@ export function buildBody(look, seed = '') {
         fm(bx(w, h, 0.003), f.glasses === 'sun' ? sunLensM : lensM, cx, gy, gz);
       }
       const outer = EX + ({ round: 0.037, aliang: AR + AT + 0.012 }[f.glasses] || 0.039);
-      // the arms: out to the side of the head and back to the ear (阿亮眼鏡's thinner, in the frames' own black, from the wings)
-      const [armM, aw, ay] = f.glasses === 'aliang' ? [glossM, 0.0045, gy + 0.012] : [frameM, 0.007, gy + 0.004];
+      // the arms: out to the side of the head and back to the ear (阿亮眼鏡's as thick as its rims, in their black, from the wings)
+      const [armM, aw, ay] = f.glasses === 'aliang' ? [glossM, AT * 1.6, gy + 0.012] : [frameM, 0.007, gy + 0.004];
       fm(bx(earX - outer + 0.006, aw, aw), armM, s * (outer + earX) / 2, ay, gz);
       fm(bx(aw * 0.85, aw * 0.85, gz), armM, s * earX, ay, gz / 2);
     });
