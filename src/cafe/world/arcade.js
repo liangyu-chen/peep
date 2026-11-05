@@ -360,11 +360,11 @@ function frontPillar() {
   // from under the nose back up the cheek, just open, a little red tongue showing; and a tissue stuck up the nose.
   const white = mat(0xf4f1ea, { roughness: 0.4 }), black = mat(0x141414, { roughness: 0.35 }), pink = mat(0xd77a70, { roughness: 0.6 }), red = mat(0xc8321e, { roughness: 0.5 });
   const crease = mat(0x4a3c38, { roughness: 0.6 });
-  const L = 0.225;
+  const L = 0.25;
   const P = 1;   // the side with the patch: its left
   const ease = (a, b, t) => { const k = Math.max(0, Math.min(1, (t - a) / (b - a))); return k * k * (3 - 2 * k); };
   const fore = t => Math.exp(-(((t - 0.36) / 0.2) ** 2));                            // the forehead, rising in front of the ears
-  const W = t => 0.1 * (1 + 0.04 * fore(t)) * (1 - 0.5 * ease(0.35, 1, t)), TOP = t => 0.105 * (1 + 0.1 * fore(t)) * (1 - 0.68 * ease(0.42, 1, t)), BOT = t => 0.085 * (1 - 0.55 * ease(0.5, 1, t));   // from over the eyes the face drops steeply to the nose; the jaw stays nearly level
+  const W = t => 0.1 * (1 + 0.04 * fore(t)) * (1 - 0.5 * ease(0.35, 1, t)), TOP = t => 0.1 * (1 + 0.1 * fore(t)) * (1 - 0.68 * ease(0.42, 1, t)), BOT = t => 0.081 * (1 - 0.55 * ease(0.5, 1, t));   // from over the eyes the face drops steeply to the nose; the jaw stays nearly level
   const MID = t => -0.035 * t;                                                        // the nose sitting low, three quarters of the way down the head
   const CAP = t => t < 0.1 ? 0.9 + 0.1 * Math.sqrt(t / 0.1) : t > 0.92 ? Math.sqrt(Math.max(0, 1 - ((t - 0.92) / 0.08) ** 2)) : 1;   // cut flat at the back (on the pillar), blunt at the front
   // a point on the head: t from the back of the skull (0) to the tip of the nose (1), a round from the top (0) toward
@@ -382,10 +382,10 @@ function frontPillar() {
   const DY = 1.42;   // just under the mailbox
   const dog = new THREE.Group(); dog.position.set(PX, DY, 0.002); dog.scale.setScalar(1.25); g.add(dog);
   add(headGeo, white, 0, 0, 0, dog);
-  // the collar: round the bottom and sides of the head where it meets the pillar
+  // the collar: round the bottom of the head where it meets the pillar, up its lower sides
   const base = on(0.04, 0), under = on(0.04, Math.PI), side = on(0.04, Math.PI / 2);
-  const collar = add(new THREE.TorusGeometry(1, 0.16, 8, 28, Math.PI * 1.25), red, 0, (base.y + under.y) / 2, 0.022, dog);
-  collar.scale.set(side.x + 0.004, (base.y - under.y) / 2 + 0.004, 0.12); collar.rotation.z = Math.PI - Math.PI * 0.125;
+  const collar = add(new THREE.TorusGeometry(1, 0.16, 8, 24, Math.PI * 0.85), red, 0, (base.y + under.y) / 2, 0.022, dog);
+  collar.scale.set(side.x + 0.004, (base.y - under.y) / 2 + 0.004, 0.12); collar.rotation.z = Math.PI * 1.5 - Math.PI * 0.425;   // the bottom and the lower sides only, well clear of the ears
   // ears: upright broad pointed leaves about half the head's height, their bases sunk into the head, red-pink inside
   const earGeo = new THREE.LatheGeometry([[0, -0.02], [0.04, -0.02], [0.043, 0.015], [0.04, 0.045], [0.032, 0.075], [0.02, 0.1], [0.008, 0.12], [0, 0.13]].map(([r, y]) => new THREE.Vector2(r, y)), 18);   // a long oval coming to a point
   [-1, 1].forEach(s => {
