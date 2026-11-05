@@ -16,7 +16,7 @@ import { createStadium, updateTops } from './tops.js';
 import { SMOKE_POSE, DRINK_POSE } from './people.js';
 import { updateSurroundings } from './world/surroundings.js';
 import { mergeStatic } from './optimize.js';
-import { setQuality, savedQuality } from './quality.js';
+import { setQuality, DEFAULT_QUALITY } from './quality.js';
 import { disposePortraits } from './portrait.js';
 // (one café at a time: a new one waits until the one before is built and, if it was let go meanwhile, torn down)
 let queue = Promise.resolve();
@@ -136,11 +136,11 @@ async function build(root, content) {
     .then(() => { if (!S.stopped) S.fontTex.forEach(t => t.redraw()); }).catch(() => {});
   // the first frame has every shader to compile and every mesh and texture to hand to the GPU: done in two goes
   ctx.renderer.compile(ctx.scene, ctx.camera); await breathe();
-  // 畫質 (quality.js): in 一般 the sun's shadows are drawn once, for the set as it stands (its position never changes),
+  // 畫質 (quality.js), 高效能 to start with: in 一般 the sun's shadows are drawn once, for the set as it stands (its position never changes),
   // and again only when something that casts them changes (a wall fading as the camera goes behind it); what moves
   // casts none of its own, and people get a soft round shadow under them instead (people.js). 高效能 redraws them
   // every frame, everything casting its own
-  setQuality(savedQuality());
+  setQuality(DEFAULT_QUALITY);
   ctx.renderer.render(ctx.scene, ctx.camera); await breathe();
   raf = requestAnimationFrame(frame);
   // development only: step the simulation from the console without rendering, e.g. await __cafe.step(60)

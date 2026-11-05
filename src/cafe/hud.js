@@ -10,7 +10,7 @@ import { DAYS, smokeState, sendOutToSmoke } from './sim.js';
 import { canInviteTops, inviteTops } from './tops.js';
 import { portraitOf } from './portrait.js';
 import { setStoreLight, setToiletLight } from './world/lights.js';
-import { setQuality, savedQuality } from './quality.js';
+import { setQuality, DEFAULT_QUALITY } from './quality.js';
 import { tvGames, GAME_LABEL } from './profiles.js';
 import { openGame, closeGame } from './games.js';
 import { playWallDarts, stopWallDarts } from './wallDarts.js';
@@ -170,8 +170,8 @@ export function bindHUD(root, stage) {
     S.speed = +b.dataset.speed; root.querySelectorAll('[data-speed]').forEach(x => x.classList.toggle('on', x === b));
   }));
   on($('tagToggle'), 'click', e => { S.showTags = !S.showTags; e.currentTarget.classList.toggle('on', S.showTags); });
-  // 畫質: 一般 (shadows drawn once) or 高效能 (redrawn every frame, everything casting its own), remembered
-  const qBtns = [...root.querySelectorAll('[data-quality]')], showQ = () => qBtns.forEach(b => b.classList.toggle('on', b.dataset.quality === (S.quality || savedQuality())));
+  // 畫質: 高效能 (shadows redrawn every frame, everything casting its own; the default) or 一般 (drawn once)
+  const qBtns = [...root.querySelectorAll('[data-quality]')], showQ = () => qBtns.forEach(b => b.classList.toggle('on', b.dataset.quality === (S.quality || DEFAULT_QUALITY)));
   showQ(); qBtns.forEach(b => on(b, 'click', () => { setQuality(b.dataset.quality); showQ(); sfx('pop'); }));
   // a soft pop for the HUD's buttons (camera moves swoosh instead; the games make their own sounds), and the sound switch
   on(root, 'click', e => {

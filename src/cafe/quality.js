@@ -1,14 +1,11 @@
-// 畫質: 一般 (the default) draws the sun's shadows once, for what stands still, and gives people a soft round shadow
-// under them; 高效能 redraws the shadows every frame, so people, doors, fans, cups and the traffic cast their own as they
-// move (it costs a good deal more, on a tablet especially). The choice is remembered on this device.
+// 畫質: 高效能 (the default) redraws the sun's shadows every frame, so people, doors, fans, cups and the traffic cast
+// their own as they move; 一般 draws them once, for what stands still, and gives people a soft round shadow under them
+// (much lighter work, on a tablet especially). Each visit starts at 高效能.
 import { ctx } from './engine.js';
 import { S } from './state.js';
 
-const KEY = 'peep.quality';
-export function savedQuality() {
-  try { return localStorage.getItem(KEY) === 'high' ? 'high' : 'normal'; } catch { return 'normal'; }
-}
-export const highQuality = () => S.quality === 'high';
+export const DEFAULT_QUALITY = 'high';
+export const highQuality = () => (S.quality || DEFAULT_QUALITY) === 'high';
 
 // a moving thing's meshes: shadows off in 一般, back to what they were made with in 高效能
 export function moverShadows(root) {
@@ -28,7 +25,6 @@ function movers() {
 
 export function setQuality(q) {
   S.quality = q === 'high' ? 'high' : 'normal';
-  try { localStorage.setItem(KEY, S.quality); } catch { /* private mode */ }
   const high = highQuality();
   movers().forEach(moverShadows);
   (S.people || []).forEach(p => { if (p.blob) p.blob.visible = !high; });
