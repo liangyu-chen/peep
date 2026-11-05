@@ -134,9 +134,11 @@ export function buildShell() {
   // its front wall sits a quarter metre back from where it was first drawn, leaving room for the beanbag nook outside its door
   wall(1.0, 5.65, 3.1, 5.65, WH, greyM);
   wall(1.0, 5.65, 1.0, 8, WH, greyM);
-  // hidden door: same grey as the wall, only a thin seam gives it away (on the side facing the front wall)
-  [1.55, 2.45].forEach(x => box(0.012, 2.0, 0.012, mat(0x5e5c5a), x, 1.0, 5.565));
-  box(0.9, 0.012, 0.012, mat(0x5e5c5a), 2.0, 2.0, 5.565);
+  // hidden door: same grey as the wall, only a thin seam gives it away, on both faces (the arcade's, and the stairs')
+  [5.565, 5.735].forEach(z => {
+    [1.55, 2.45].forEach(x => box(0.012, 2.0, 0.012, mat(0x5e5c5a), x, 1.0, z));
+    box(0.9, 0.012, 0.012, mat(0x5e5c5a), 2.0, 2.0, z);
+  });
   wall(1.0, 8, 3.1, 8, WH, greyM);
   box(6.4, 0.35, 0.3, greyM, 0, 2.95, 8.0);
   box(0.35, WH, 0.35, greyM, -2.95, WH / 2, 7.9);

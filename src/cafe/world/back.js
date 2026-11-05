@@ -2,7 +2,7 @@
 import * as THREE from 'three';
 import { ctx, mat, box, cyl, plane, pixelArt } from '../engine.js';
 import { S } from '../state.js';
-import { rand, pick } from '../util.js';
+import { rand, pick, K } from '../util.js';
 import { ART, PAL } from '../art.js';
 import { steel, crate } from './props.js';
 import { WH } from '../layout.js';
@@ -113,13 +113,37 @@ function arcadeStairs() {
   const len = Math.hypot(Z1 - Z0, WH), ang = Math.atan2(WH, Z1 - Z0);
   const slab = box(X1 - X0, 0.08, len, mat(0x7a7772, { roughness: 0.95 }), (X0 + X1) / 2, WH / 2 - 0.06, (Z0 + Z1) / 2);
   slab.rotation.x = ang;
-  // a handrail up the open side
-  const rail = cyl(0.018, 0.018, len, mat(0x3a3a3c, { metalness: 0.5, roughness: 0.4 }), X0 + 0.06, WH / 2 + 0.85, (Z0 + Z1) / 2, ctx.scene, 8);
+  // a handrail up the open side, 0.9 m over the line of the steps, from the second step to just under the floor above
+  const railAt = t => [Z1 - t * (Z1 - Z0), t * WH + 0.9], [za, ya] = railAt(0.08), [zb, yb] = railAt((WH - 0.12 - 0.9) / WH);
+  const rail = cyl(0.018, 0.018, Math.hypot(zb - za, yb - ya), mat(0x3a3a3c, { metalness: 0.5, roughness: 0.4 }), X0 + 0.06, (ya + yb) / 2, (za + zb) / 2, ctx.scene, 8);
   rail.rotation.x = ang - Math.PI / 2;
-  // under the top of the stairs: what little storage there is
-  [[1.35, 0.2, 6.02, 0.45, 0.4], [1.85, 0.2, 6.0, 0.5, 0.4], [1.6, 0.6, 5.98, 0.55, 0.4], [2.5, 0.17, 6.05, 0.6, 0.34], [2.45, 0.5, 5.95, 0.4, 0.3]].forEach(([x, y, z, w, h]) =>
+  [[za, ya], [zb, yb]].forEach(([z, y]) => box(0.05, 0.02, 0.02, mat(0x3a3a3c, { metalness: 0.5, roughness: 0.4 }), X0 + 0.03, y, z));   // its brackets on the wall
+  // under the top of the stairs: what little storage there is, the boxes pushed back under the slope of the flight so
+  // the floor just inside the door stays clear to reach in
+  [[1.4, 0.2, 6.88, 0.5, 0.4], [1.92, 0.2, 6.92, 0.5, 0.4], [2.5, 0.17, 6.95, 0.6, 0.34], [1.65, 0.6, 6.76, 0.55, 0.4], [2.4, 0.5, 6.74, 0.45, 0.3]].forEach(([x, y, z, w, h]) =>
     box(w, h, 0.34, mat(pick([0xb8915e, 0x8d6e4a, 0xa47c50])), x, y, z));
-  crate(2.75, 0, 6.5, 'blue');
+  crate(2.75, 0, 7.3, 'blue');
+  // and by the door, the big glass jar of plum wine steeping: round shouldered and ribbed, a red lid, the plums settled
+  // in amber liquor
+  const jar = new THREE.Group(); jar.position.set(1.32, 0, 6.42); jar.scale.x = 1 / K; ctx.scene.add(jar);
+  const glass = new THREE.MeshStandardMaterial({ color: 0xd4e6e8, emissive: 0x3a4a4e, roughness: 0.08, metalness: 0.35, transparent: true, opacity: 0.5, side: THREE.DoubleSide, depthWrite: false, flatShading: true });   // (a faint glow of its own, or it vanishes in the dark under the stairs)
+  const body = new THREE.Mesh(new THREE.LatheGeometry([[0, 0.004], [0.1, 0.004], [0.115, 0.02], [0.12, 0.06], [0.12, 0.25], [0.112, 0.29], [0.09, 0.315], [0.072, 0.325], [0.072, 0.34]].map(([r, y]) => new THREE.Vector2(r, y)), 24), glass);
+  body.renderOrder = 12; jar.add(body);   // (drawn after the walls that fade see-through, or they'd paint over it)
+  const wine = new THREE.Mesh(new THREE.LatheGeometry([[0, 0.008], [0.098, 0.008], [0.11, 0.022], [0.113, 0.06], [0.113, 0.22], [0, 0.22]].map(([r, y]) => new THREE.Vector2(r, y)), 24),
+    new THREE.MeshStandardMaterial({ color: 0xa8560e, emissive: 0x5a2a06, roughness: 0.12, transparent: true, opacity: 0.85, depthWrite: false }));
+  wine.renderOrder = 11; jar.add(wine);
+  const plumM = mat(0xb5a648, { roughness: 0.55 });
+  [[0.04, 0.035, 0.03], [-0.05, 0.034, 0.02], [0.0, 0.034, -0.06], [0.07, 0.036, -0.04], [-0.03, 0.035, 0.07], [-0.07, 0.034, -0.04],
+    [0.02, 0.08, 0.0], [-0.03, 0.082, -0.02], [0.05, 0.085, 0.05], [-0.05, 0.088, 0.05], [0.01, 0.13, 0.04]].forEach(([x, y, z]) => {
+    const plum = new THREE.Mesh(new THREE.SphereGeometry(0.024, 10, 8), plumM); plum.position.set(x, y, z); plum.scale.y = 0.92; jar.add(plum);
+  });
+  const ribM = new THREE.MeshBasicMaterial({ color: 0xe8f2f2, transparent: true, opacity: 0.45, depthWrite: false });
+  for (let i = 0; i < 16; i++) {   // the ribs down its sides, catching the light
+    const a = (i / 16) * Math.PI * 2, rib = new THREE.Mesh(new THREE.BoxGeometry(0.004, 0.2, 0.004), ribM);
+    rib.position.set(Math.sin(a) * 0.121, 0.155, Math.cos(a) * 0.121); rib.renderOrder = 13; jar.add(rib);
+  }
+  const lid = new THREE.Mesh(new THREE.CylinderGeometry(0.078, 0.078, 0.04, 24), mat(0xd8281e, { roughness: 0.4 })); lid.position.y = 0.355; lid.castShadow = true; jar.add(lid);
+  const rimL = new THREE.Mesh(new THREE.TorusGeometry(0.078, 0.004, 6, 24), mat(0xb81e16, { roughness: 0.4 })); rimL.rotation.x = Math.PI / 2; rimL.position.y = 0.337; jar.add(rimL);
 }
 
 export function buildBack() {
