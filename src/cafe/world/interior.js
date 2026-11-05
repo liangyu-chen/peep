@@ -202,7 +202,7 @@ function workCounter() {
   box(0.006, 0.012, Z1 - Z0, seamM, FX, 0.05, (Z0 + Z1) / 2);
   for (let i = 0; i < BAYS; i++) box(0.012, 0.01, 0.14, seamM, FX - 0.003, 0.83, Z0 + (i + 0.5) * bw);   // a finger pull under each top edge
   for (let i = 0; i < 6; i++) cyl(0.055, 0.04, 0.06, mat(0xf2f0ea, { roughness: 0.3 }), 2.78 + (i % 2) * 0.13, 0.99, 0.2 + Math.floor(i / 2) * 0.14, ctx.scene, 12);
-  workBottles(2.96, 0.96, 1.05);
+  workBottles(3.0, 0.96, 1.05);   // (back against the wall)
   buildPegboard();   // the crammed pegboard above (pegboard.js)
   // back end: two cinder seats against the wall with two stacked crates between them
   cinderSeat(2.75, -2.55); cinderSeat(2.75, -3.65);
@@ -218,23 +218,23 @@ function cornerNook() {
   cinderSeat(2.75, 2.95); cinderSeat(2.05, 3.7);
   crate(2.75, 0, 3.66, 'orange'); crate(2.75, 0.3, 3.66, 'orange', 0.06);
   // the bin: a dull green-grey box, a white board over it with its orange lettering, a bag poking out
-  box(0.3, 0.52, 0.28, mat(0x7d9088, { roughness: 0.9 }), 2.9, 0.26, 2.36);
+  box(0.3, 0.52, 0.24, mat(0x7d9088, { roughness: 0.9 }), 2.88, 0.26, 2.33);
   const lidTex = canvasTex(96, 96, (g, w, h) => {
     g.fillStyle = '#e8e4da'; g.fillRect(0, 0, w, h); g.strokeStyle = '#c8c0b0'; g.lineWidth = 6; g.strokeRect(3, 3, w - 6, h - 6);
     g.save(); g.translate(w / 2, h / 2); g.rotate(-1.2); g.fillStyle = '#e8781e'; g.font = 'bold 15px sans-serif'; g.textAlign = 'center'; g.fillText('PUMP IT UP!', 0, 5); g.restore();
   });
-  box(0.34, 0.02, 0.32, mat(0xffffff, { map: lidTex, roughness: 0.8 }), 2.9, 0.53, 2.36);
-  box(0.04, 0.12, 0.24, mat(0xe8ecee, { roughness: 0.4, transparent: true, opacity: 0.7 }), 2.74, 0.48, 2.36);
+  box(0.34, 0.02, 0.27, mat(0xffffff, { map: lidTex, roughness: 0.8 }), 2.88, 0.53, 2.33);
+  box(0.04, 0.12, 0.2, mat(0xe8ecee, { roughness: 0.4, transparent: true, opacity: 0.7 }), 2.72, 0.48, 2.33);
   // the stool: a round dark seat, four splayed legs, crossed rungs
-  const st = new THREE.Group(); st.position.set(2.92, 0, 2.66); st.scale.x = 1 / K; ctx.scene.add(st);
+  const st = new THREE.Group(); st.position.set(2.82, 0, 2.6); st.scale.x = 1 / K; ctx.scene.add(st);
   const dk = mat(0x241a14, { roughness: 0.45 });
-  cyl(0.15, 0.15, 0.035, dk, 0, 0.64, 0, st, 18);
+  cyl(0.12, 0.12, 0.035, dk, 0, 0.64, 0, st, 18);
   [[1, 1], [1, -1], [-1, 1], [-1, -1]].forEach(([a, b]) => {
-    const leg = cyl(0.016, 0.016, 0.64, dk, a * 0.1, 0.32, b * 0.1, st, 6); leg.rotation.set(b * 0.12, 0, -a * 0.12);
+    const leg = cyl(0.016, 0.016, 0.64, dk, a * 0.07, 0.32, b * 0.07, st, 6); leg.rotation.set(b * 0.07, 0, -a * 0.07);
   });
-  box(0.22, 0.02, 0.024, dk, 0, 0.26, 0, st); box(0.024, 0.02, 0.22, dk, 0, 0.3, 0, st);
+  box(0.17, 0.02, 0.024, dk, 0, 0.26, 0, st); box(0.024, 0.02, 0.17, dk, 0, 0.3, 0, st);
   // the little black desk fan on the floor by it
-  const fan = new THREE.Group(); fan.position.set(2.62, 0, 2.62); fan.scale.x = 1 / K; fan.rotation.y = -0.9; ctx.scene.add(fan);
+  const fan = new THREE.Group(); fan.position.set(2.55, 0, 2.5); fan.scale.x = 1 / K; fan.rotation.y = -0.9; ctx.scene.add(fan);
   const fanM = mat(0x161616, { roughness: 0.5 });
   const cage = new THREE.Mesh(new THREE.TorusGeometry(0.1, 0.008, 6, 20), fanM); cage.position.y = 0.13; fan.add(cage);
   const hub = cyl(0.03, 0.03, 0.04, fanM, 0, 0.13, 0, fan, 10); hub.rotation.x = Math.PI / 2;
