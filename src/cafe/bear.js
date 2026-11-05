@@ -57,11 +57,12 @@ export function makeBear() {
     ball(0.017, m.fur, s * 0.038, 0.083, -0.004, b, 1, 1, 0.65);                 // ears
     ball(0.01, m.beige, s * 0.038, 0.083, 0.005, b, 1, 1, 0.4);                  // and their insides
     // the big eyes, set wide over the muzzle: dark, a ring of blue, a white catchlight
-    const ex = s * 0.021, ey = 0.054, ez = 0.043;
-    ball(0.0095, m.eye, ex, ey, ez, b, 0.85, 1.05, 0.45);
-    ball(0.006, m.iris, ex, ey - 0.002, ez + 0.003, b, 0.85, 1, 0.3);
-    ball(0.0032, m.eye, ex, ey - 0.002, ez + 0.0045, b, 1, 1, 0.3);
-    ball(0.0022, m.shine, ex + s * 0.003, ey + 0.004, ez + 0.005, b, 1, 1, 0.4);
+    // (embroidered, so they sit nearly flush with the fur, only just standing proud of it)
+    const ex = s * 0.021, ey = 0.054, ez = 0.0415;
+    ball(0.0095, m.eye, ex, ey, ez, b, 0.85, 1.05, 0.22);
+    ball(0.006, m.iris, ex, ey - 0.002, ez + 0.0012, b, 0.85, 1, 0.18);
+    ball(0.0032, m.eye, ex, ey - 0.002, ez + 0.0019, b, 1, 1, 0.18);
+    ball(0.0022, m.shine, ex + s * 0.003, ey + 0.004, ez + 0.0021, b, 1, 1, 0.2);
   });
   ball(0.022, m.beige, 0, 0.028, 0.04, b, 1.2, 0.85, 0.6);                        // the muzzle
   // a heart of a nose: two little lobes and a point
