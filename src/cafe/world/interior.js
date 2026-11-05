@@ -185,22 +185,171 @@ function underBar() {
 }
 
 function workCounter() {
-  // 工作台 along the right wall, narrower: sink, tea cups; pegboard of stuff above
-  // its little sink is sunk into the top too
-  const WS = { x0: 2.68, x1: 3.04, z0: 1.0, z1: 1.4, floor: 0.76 }, ctrM = mat(0x3a3a3c, { roughness: 0.5 });
-  box(0.45, WS.floor, 4.2, ctrM, 2.85, WS.floor / 2, 0.1);
-  holed(2.625, 3.075, -2.0, 2.2, WS.floor, 0.92, WS, ctrM);
-  holed(2.6, 3.1, -2.025, 2.175, 0.92, 0.96, WS, steel);
-  basin(WS, 0.96);
-  cyl(0.012, 0.012, 0.3, steel, 3.0, 1.1, 1.2, ctx.scene, 6);
+  // 工作台 along the right wall, as it is in the shop: a dark wood cabinet, a row of drawers over cupboard doors, and on
+  // its wood top a crowd of bottles (MONIN syrups, liqueurs), the knock box on a towel, tea cups; pegboard of stuff above
+  const grain = canvasTex(64, 256, (g, w, h) => {
+    g.fillStyle = '#4a3324'; g.fillRect(0, 0, w, h);
+    for (let i = 0; i < 70; i++) { g.fillStyle = `rgba(${pick(['20,12,6', '110,80,52', '60,40,26'])},${rand(0.15, 0.45)})`; g.fillRect(rand(0, w), 0, rand(0.5, 2.5), h); }
+    for (let i = 0; i < 10; i++) { g.fillStyle = 'rgba(160,130,100,0.18)'; g.fillRect(rand(0, w), rand(0, h), rand(4, 14), 1); }   // the scuffs
+  });
+  const cabM = mat(0xffffff, { roughness: 0.75, map: grain }), seamM = mat(0x1a120c, { roughness: 0.9 });
+  box(0.45, 0.92, 4.2, cabM, 2.85, 0.46, 0.1);
+  box(0.5, 0.04, 4.2, cabM, 2.85, 0.94, 0.1);                         // the wood top, a little proud of the front
+  // the fronts: bays of a drawer over a door, the seams between them dark
+  const FX = 2.623, Z0 = -2.0, Z1 = 2.2, BAYS = 5, bw = (Z1 - Z0) / BAYS;
+  for (let i = 0; i <= BAYS; i++) box(0.006, 0.86, 0.012, seamM, FX, 0.47, Z0 + i * bw);
+  box(0.006, 0.012, Z1 - Z0, seamM, FX, 0.7, (Z0 + Z1) / 2);
+  box(0.006, 0.012, Z1 - Z0, seamM, FX, 0.05, (Z0 + Z1) / 2);
+  for (let i = 0; i < BAYS; i++) box(0.012, 0.01, 0.14, seamM, FX - 0.003, 0.83, Z0 + (i + 0.5) * bw);   // a finger pull under each top edge
   for (let i = 0; i < 6; i++) cyl(0.055, 0.04, 0.06, mat(0xf2f0ea, { roughness: 0.3 }), 2.78 + (i % 2) * 0.13, 0.99, 0.2 + Math.floor(i / 2) * 0.14, ctx.scene, 12);
+  workBottles(2.96, 0.96, 1.05);
   buildPegboard();   // the crammed pegboard above (pegboard.js)
   // back end: two cinder seats against the wall with two stacked crates between them
   cinderSeat(2.75, -2.55); cinderSeat(2.75, -3.65);
   crate(2.72, 0, -3.1, 'green'); crate(2.72, 0.3, -3.1, 'orange');
-  // door end: corner seats in an L, crates stacked in the corner
+  cornerNook();
+}
+
+// the corner past the end of the 工作台, as it is: a foam box bin with a board on it, a dark wooden stool, then the two
+// cinder seats with their grey cushions in an L round two orange crates, a bulb lamp on top; on the teal wall above, a
+// red LED clock, a deer poster, a shadow box of a camera and film, a street photo, an anime poster, and a patch where the
+// plaster has come away
+function cornerNook() {
   cinderSeat(2.75, 2.95); cinderSeat(2.05, 3.7);
-  crate(2.75, 0, 3.66, 'blue'); crate(2.75, 0.3, 3.66, 'orange');
+  crate(2.75, 0, 3.66, 'orange'); crate(2.75, 0.3, 3.66, 'orange', 0.06);
+  // the bin: a dull green-grey box, a white board over it with its orange lettering, a bag poking out
+  box(0.3, 0.52, 0.28, mat(0x7d9088, { roughness: 0.9 }), 2.9, 0.26, 2.36);
+  const lidTex = canvasTex(96, 96, (g, w, h) => {
+    g.fillStyle = '#e8e4da'; g.fillRect(0, 0, w, h); g.strokeStyle = '#c8c0b0'; g.lineWidth = 6; g.strokeRect(3, 3, w - 6, h - 6);
+    g.save(); g.translate(w / 2, h / 2); g.rotate(-1.2); g.fillStyle = '#e8781e'; g.font = 'bold 15px sans-serif'; g.textAlign = 'center'; g.fillText('PUMP IT UP!', 0, 5); g.restore();
+  });
+  box(0.34, 0.02, 0.32, mat(0xffffff, { map: lidTex, roughness: 0.8 }), 2.9, 0.53, 2.36);
+  box(0.04, 0.12, 0.24, mat(0xe8ecee, { roughness: 0.4, transparent: true, opacity: 0.7 }), 2.74, 0.48, 2.36);
+  // the stool: a round dark seat, four splayed legs, crossed rungs
+  const st = new THREE.Group(); st.position.set(2.92, 0, 2.66); st.scale.x = 1 / K; ctx.scene.add(st);
+  const dk = mat(0x241a14, { roughness: 0.45 });
+  cyl(0.15, 0.15, 0.035, dk, 0, 0.64, 0, st, 18);
+  [[1, 1], [1, -1], [-1, 1], [-1, -1]].forEach(([a, b]) => {
+    const leg = cyl(0.016, 0.016, 0.64, dk, a * 0.1, 0.32, b * 0.1, st, 6); leg.rotation.set(b * 0.12, 0, -a * 0.12);
+  });
+  box(0.22, 0.02, 0.024, dk, 0, 0.26, 0, st); box(0.024, 0.02, 0.22, dk, 0, 0.3, 0, st);
+  // the little black desk fan on the floor by it
+  const fan = new THREE.Group(); fan.position.set(2.62, 0, 2.62); fan.scale.x = 1 / K; fan.rotation.y = -0.9; ctx.scene.add(fan);
+  const fanM = mat(0x161616, { roughness: 0.5 });
+  const cage = new THREE.Mesh(new THREE.TorusGeometry(0.1, 0.008, 6, 20), fanM); cage.position.y = 0.13; fan.add(cage);
+  const hub = cyl(0.03, 0.03, 0.04, fanM, 0, 0.13, 0, fan, 10); hub.rotation.x = Math.PI / 2;
+  for (let i = 0; i < 6; i++) { const sp = box(0.004, 0.2, 0.004, fanM, 0, 0.13, 0.01, fan); sp.rotation.z = i * Math.PI / 6; }
+  box(0.05, 0.03, 0.12, fanM, 0, 0.015, 0, fan); box(0.02, 0.03, 0.02, fanM, 0, 0.04, 0, fan);
+  // the lamp on the crates, back in the corner (clear of where a cup goes): a black plate, a thin stem, a globe bulb
+  const lx = 2.93, lz = 3.8, ly = 0.6;
+  box(0.13, 0.012, 0.13, fanM, lx, ly + 0.006, lz);
+  cyl(0.005, 0.005, 0.42, fanM, lx, ly + 0.22, lz, ctx.scene, 6);
+  cyl(0.014, 0.014, 0.03, fanM, lx, ly + 0.445, lz, ctx.scene, 8);
+  const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.055, 14, 10), mat(0xffd9a0, { emissive: 0xff9a3a, emissiveIntensity: 0.9, transparent: true, opacity: 0.75, roughness: 0.1 }));
+  bulb.position.set(lx, ly + 0.5, lz); bulb.scale.x = 1 / K; ctx.scene.add(bulb);
+  const fil = new THREE.Mesh(new THREE.TorusGeometry(0.016, 0.003, 4, 10), mat(0xffb040, { emissive: 0xff8a20, emissiveIntensity: 3 }));
+  fil.position.copy(bulb.position); fil.rotation.y = Math.PI / 2; ctx.scene.add(fil);
+
+  // the wall: everything just off it, facing the room
+  const WX = 3.0, onWall = (w, h, tex, y, z, basic) => plane(w, h, tex, WX - 0.015, y, z, -Math.PI / 2, basic);
+  const frame = (w, h, y, z, tex, col = 0x141414) => { box(0.025, h + 0.04, w + 0.04, mat(col, { roughness: 0.5 }), WX, y, z); onWall(w, h, tex, y, z); };
+  // the plaster patch, worn away to the grey render under it
+  onWall(0.62, 0.16, canvasTex(124, 32, g => {
+    g.fillStyle = '#9a968c'; g.beginPath(); g.moveTo(4, 8); [[40, 2], [90, 6], [120, 3], [118, 26], [80, 30], [30, 27], [2, 22]].forEach(([x, y]) => g.lineTo(x, y)); g.closePath(); g.fill();
+    for (let i = 0; i < 160; i++) { g.fillStyle = `rgba(${pick(['70,66,60', '190,184,170', '120,100,80'])},0.5)`; g.fillRect(rand(6, 116), rand(5, 26), 2, 2); }
+  }), 1.02, 3.3);
+  // the deer
+  frame(0.36, 0.5, 1.62, 2.55, canvasTex(72, 100, g => {
+    g.fillStyle = '#2a2418'; g.fillRect(0, 0, 72, 100); g.fillStyle = '#6a5a38'; g.fillRect(0, 70, 72, 30);
+    g.fillStyle = '#b07a48'; g.beginPath(); g.ellipse(38, 70, 16, 24, 0, 0, Math.PI * 2); g.fill();
+    g.beginPath(); g.ellipse(34, 36, 9, 13, -0.2, 0, Math.PI * 2); g.fill();
+    g.strokeStyle = '#8a6a48'; g.lineWidth = 2; g.beginPath(); g.moveTo(30, 24); g.lineTo(24, 10); g.lineTo(20, 14); g.moveTo(38, 24); g.lineTo(44, 10); g.lineTo(48, 14); g.stroke();
+    g.fillStyle = '#1a1410'; g.fillRect(30, 34, 2, 2); g.fillRect(37, 34, 2, 2);
+    g.fillStyle = '#e8e0c8'; g.font = '6px sans-serif'; g.fillText('SIKA DEER', 22, 60);
+  }));
+  // the shadow box: a camera and rolls of film on white
+  frame(0.28, 0.32, 1.82, 3.0, canvasTex(56, 64, g => {
+    g.fillStyle = '#ecebe6'; g.fillRect(0, 0, 56, 64);
+    g.fillStyle = '#3a3a3c'; g.fillRect(14, 10, 28, 18); g.fillStyle = '#1a1a1a'; g.beginPath(); g.arc(28, 19, 6, 0, Math.PI * 2); g.fill();
+    [[6, 12], [44, 12], [6, 36], [44, 36]].forEach(([x, y], i) => { g.fillStyle = i % 2 ? '#3a8a4a' : '#e8c21a'; g.fillRect(x, y, 6, 12); });
+    g.fillStyle = '#4a4a4c'; g.fillRect(16, 32, 24, 10); g.fillStyle = '#2a2a2c'; g.fillRect(16, 48, 24, 10);
+  }), 0x1a1a1a);
+  // the street photo: a crossing, a double-decker
+  frame(0.3, 0.4, 1.18, 2.85, canvasTex(60, 80, g => {
+    g.fillStyle = '#5a5a54'; g.fillRect(0, 0, 60, 80); g.fillStyle = '#8a8e88'; g.fillRect(0, 0, 60, 30);
+    g.fillStyle = '#3a3a36'; g.fillRect(4, 4, 12, 40); g.fillRect(44, 0, 14, 44);
+    g.fillStyle = '#a83a2a'; g.fillRect(18, 26, 26, 18); g.fillStyle = '#e8e0c0'; g.fillRect(20, 30, 22, 3); g.fillRect(20, 37, 22, 3);
+    g.fillStyle = '#d8d4c8'; for (let i = 0; i < 6; i++) g.fillRect(4 + i * 9, 58, 5, 16);
+    g.fillStyle = '#2a2a28'; for (let i = 0; i < 14; i++) g.fillRect(rand(2, 56), rand(46, 70), 2, 6);
+  }));
+  // the anime poster: a title band, a figure against stars
+  frame(0.2, 0.3, 1.32, 3.32, canvasTex(40, 60, g => {
+    g.fillStyle = '#141826'; g.fillRect(0, 0, 40, 60); g.fillStyle = '#f2f2f2'; g.fillRect(0, 0, 40, 7);
+    g.fillStyle = '#c8d8f0'; for (let i = 0; i < 30; i++) g.fillRect(rand(0, 40), rand(8, 60), 1, 1);
+    g.fillStyle = '#d8a040'; g.beginPath(); g.moveTo(20, 14); g.lineTo(30, 52); g.lineTo(10, 52); g.closePath(); g.fill();
+    g.fillStyle = '#c83a3a'; g.fillRect(4, 52, 32, 6);
+  }));
+  // the LED clock: red digits on black, showing the café's own time (redrawn as the minutes go by)
+  box(0.03, 0.17, 0.5, mat(0x0c0c0c, { roughness: 0.4 }), WX, 2.08, 3.25);
+  const clockTex = canvasTex(200, 64, () => {});
+  let shown = -1;
+  const draw = () => {
+    const m = Math.floor(S.minutes ?? 0);
+    if (m === shown) return; shown = m;
+    const c = clockTex.image, g = c.getContext('2d');
+    g.fillStyle = '#100404'; g.fillRect(0, 0, c.width, c.height);
+    g.shadowColor = '#ff2a1a'; g.shadowBlur = 8; g.fillStyle = '#ff3a26'; g.textAlign = 'center';
+    g.font = 'bold 40px monospace'; g.fillText(`${String(Math.floor(m / 60) % 24).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`, c.width / 2, 40);
+    g.shadowBlur = 0; g.font = '11px monospace'; g.fillText('2026  11  5', c.width / 2, 58);
+    clockTex.needsUpdate = true;
+  };
+  onWall(0.46, 0.15, clockTex, 2.08, 3.25, true);
+  S.ledClock = draw; draw();
+}
+
+// the bottles crowded on the 工作台 against the wall, in true size (a group unsqueezed): a row of MONIN syrup bottles in
+// front, caramel, hazelnut, cucumber green, vanilla, their white labels and red-capped necks; behind them the liqueurs
+// (a stout dark Baileys, a red-label one, a tall clear one); a red box of 枇杷膏, a pepper mill, a squeeze bottle; then
+// along from them the steel knock box with its black bar, on a brown towel
+function workBottles(x, y, z) {
+  const g = new THREE.Group(); g.position.set(x, y, z); g.scale.x = 1 / K; ctx.scene.add(g);
+  const glass = mat(0xe8f0f0, { roughness: 0.05, metalness: 0.1, transparent: true, opacity: 0.35, depthWrite: false });
+  const label = mat(0xf4f1ea, { roughness: 0.8 }), cap = mat(0xb8b8bc, { roughness: 0.3, metalness: 0.7 }), red = mat(0xc4281e, { roughness: 0.5 });
+  const put = (mesh, px, py, pz) => { mesh.position.set(px, py, pz); mesh.castShadow = true; g.add(mesh); return mesh; };
+  const C = (rt, rb, h, seg = 12) => new THREE.CylinderGeometry(rt, rb, h, seg);
+  // a syrup bottle: tall and slim, shoulders, a long neck, liquid most of the way up
+  const syrup = (px, pz, liquid) => {
+    put(new THREE.Mesh(C(0.032, 0.032, 0.2), mat(liquid, { roughness: 0.2, transparent: true, opacity: 0.85 })), px, 0.1, pz);
+    put(new THREE.Mesh(C(0.034, 0.034, 0.22), glass), px, 0.11, pz).renderOrder = 12;
+    put(new THREE.Mesh(C(0.0345, 0.0345, 0.09), label), px, 0.1, pz);
+    put(new THREE.Mesh(C(0.014, 0.034, 0.05), glass), px, 0.245, pz).renderOrder = 12;
+    put(new THREE.Mesh(C(0.013, 0.013, 0.06), glass), px, 0.3, pz).renderOrder = 12;
+    put(new THREE.Mesh(C(0.016, 0.016, 0.03), red), px, 0.34, pz);
+    put(new THREE.Mesh(C(0.017, 0.017, 0.008), cap), px, 0.358, pz);
+  };
+  [[0xb8621c, -0.2], [0xd29a4a, -0.12], [0x7fc84a, -0.04], [0xe8d8a8, 0.04], [0xc8902e, 0.12]].forEach(([c, dz], i) => syrup(-0.07 + (i % 2) * 0.012, dz, c));
+  // behind: the liqueurs
+  put(new THREE.Mesh(C(0.04, 0.04, 0.2), mat(0x1e1410, { roughness: 0.3 })), 0.03, 0.1, -0.06);           // Baileys
+  put(new THREE.Mesh(C(0.0405, 0.0405, 0.07), mat(0x2a2a2a, { roughness: 0.5 })), 0.03, 0.1, -0.06);
+  put(new THREE.Mesh(C(0.016, 0.03, 0.08), mat(0x1e1410, { roughness: 0.3 })), 0.03, 0.24, -0.06);
+  put(new THREE.Mesh(C(0.036, 0.036, 0.26), glass), 0.04, 0.13, -0.17).renderOrder = 12;                    // tall clear one
+  put(new THREE.Mesh(C(0.037, 0.037, 0.08), mat(0xc8b070, { roughness: 0.6 })), 0.04, 0.12, -0.17);
+  put(new THREE.Mesh(C(0.012, 0.012, 0.09), glass), 0.04, 0.3, -0.17).renderOrder = 12;
+  put(new THREE.Mesh(C(0.014, 0.014, 0.025), red), 0.04, 0.35, -0.17);
+  put(new THREE.Mesh(C(0.038, 0.038, 0.22), mat(0xe8e4dc, { roughness: 0.2, transparent: true, opacity: 0.6 })), 0.05, 0.11, 0.05).renderOrder = 12;   // the red-label one
+  put(new THREE.Mesh(C(0.039, 0.039, 0.07), red), 0.05, 0.13, 0.05);
+  put(new THREE.Mesh(C(0.013, 0.013, 0.1), mat(0xe8e4dc, { roughness: 0.2 })), 0.05, 0.27, 0.05);
+  // the red box, a pepper mill, a squeeze bottle
+  put(new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.12, 0.09), red), -0.06, 0.06, -0.3);
+  put(new THREE.Mesh(new THREE.BoxGeometry(0.061, 0.03, 0.06), mat(0xf2d24a, { roughness: 0.6 })), -0.06, 0.08, -0.3);
+  put(new THREE.Mesh(C(0.018, 0.02, 0.11), mat(0x2a2a2a, { roughness: 0.4 })), -0.02, 0.055, -0.38);
+  put(new THREE.Mesh(C(0.025, 0.025, 0.12), mat(0xf2f2ee, { roughness: 0.4 })), 0.02, 0.06, -0.36);
+  put(new THREE.Mesh(C(0.006, 0.014, 0.03), mat(0xf2f2ee, { roughness: 0.4 })), 0.02, 0.135, -0.36);
+  // the knock box on its towel
+  put(new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.012, 0.26), mat(0x5a3a28, { roughness: 1 })), -0.02, 0.006, 0.32);
+  put(new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.13, 0.15), steel), -0.02, 0.077, 0.32);
+  const bar = put(new THREE.Mesh(C(0.01, 0.01, 0.15, 8), blackM), -0.02, 0.15, 0.32); bar.rotation.x = Math.PI / 2;
+  put(new THREE.Mesh(C(0.03, 0.03, 0.07), steel), 0.0, 0.047, 0.47);   // a steel cup by it
 }
 
 // neon over exposed brick, AC, conduit and track lights, framed art, the ceiling fan
