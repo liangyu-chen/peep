@@ -52,6 +52,7 @@ async function emptyAshtrays(owner, trays) {
     await walk(owner, route(zone, a.path)); zone = a.path;
     owner.face(a.face); await sleep(0.5);
     owner.gesture('serve', 0.6); await sleep(0.5);
+    const home = a.g.parent;
     owner.hand.attach(a.g); a.g.position.set(0, -0.06, 0.02); a.g.rotation.set(0, 0, 0);   // in his hand
     owner.status = '拿菸灰缸去垃圾桶倒';
     owner.gesture('serve', 60);
@@ -62,7 +63,7 @@ async function emptyAshtrays(owner, trays) {
     owner.status = '把菸灰缸放回去';
     await walk(owner, route(zone, a.path)); zone = a.path;
     owner.face(a.face); await sleep(0.4);
-    a.home.parent.attach(a.g); a.g.position.copy(a.home.pos); a.g.rotation.copy(a.home.rot);   // back where it was
+    home.attach(a.g); a.g.position.copy(a.home.pos); a.g.rotation.copy(a.home.rot);   // back where it was
     owner.act = null; owner.actT = 0; await sleep(0.4);
   }
   owner.status = '回吧台';

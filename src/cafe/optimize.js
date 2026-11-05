@@ -13,6 +13,8 @@ function held(roots) {
   const walk = (v, depth) => {
     if (!v || typeof v !== 'object' || seen.has(v) || roots.has(v) || depth > 3) return;
     seen.add(v);
+    // (never the scene, or anything holding the groups being merged: that would hold back every material in the set)
+    if (v.isObject3D && [...roots].some(r => { for (let p = r; p; p = p.parent) if (p === v) return true; return false; })) return;
     if (v.isObject3D) {   // and its materials, which the code may change (a wall fading): never shared out to others
       objs.add(v); v.traverse(c => { if (c.material) [].concat(c.material).forEach(m => mats.add(m)); }); return;
     }
