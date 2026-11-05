@@ -612,7 +612,7 @@ export function buildBody(look, seed = '') {
   if (f.facialHair === 'goatee' || f.facialHair === 'both') fm(bx(0.05 * BD.k, 0.055 * BD.k, 0.04), beardM, 0, -0.128, surf(0, -0.128) - 0.004);
   // glasses
   if (f.glasses !== 'none') {
-    const AR = 0.037, AT = 0.011;   // 阿亮眼鏡's rim: its radius and how thick the acetate is
+    const AR = 0.031, AT = 0.009;   // 阿亮眼鏡's rim: its radius and how thick the acetate is
     const gy = EY + 0.002, gz = Math.max(surf(EX, EY), surf(0, NY) - 0.01) + 0.03;
     const earX = at(1, 0.02, 0).x - 0.004;
     [-1, 1].forEach(s => {
@@ -622,7 +622,7 @@ export function buildBody(look, seed = '') {
         fm(disc(0.034), lensM, cx, gy, gz).rotation.x = Math.PI / 2;
       } else if (f.glasses === 'aliang') {
         // thick round rims, a touch flat across the top, glossy black
-        const ring = new THREE.Mesh(geo('aliangRim', () => new THREE.TorusGeometry(AR, AT, 10, 28)), glossM); ring.position.set(cx, gy, gz); ring.scale.set(1, 0.94, 0.8); face.add(ring);
+        const ring = new THREE.Mesh(geo(`aliangRim:${AR},${AT}`, () => new THREE.TorusGeometry(AR, AT, 10, 28)), glossM); ring.position.set(cx, gy, gz); ring.scale.set(1, 0.94, 0.8); face.add(ring);
         fm(disc(AR - AT * 0.6), lensM, cx, gy, gz).rotation.x = Math.PI / 2;
       } else {
         const w = 0.078, h = f.glasses === 'sun' ? 0.05 : 0.054, t = 0.008;
