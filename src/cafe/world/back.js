@@ -97,29 +97,29 @@ function storage() {
   arcadeStairs();
 }
 
-// the door in the arcade's storeroom wall opens straight onto the stairs up to the flat above: a steep straight flight
-// the width of the room, rising from just inside the door toward the street, with only the low space under its top
-// end left for storage, a few boxes squeezed in there
+// behind the neighbours' glass door on the street: the stairs up to the flat above, a steep straight flight the width of
+// the room rising from just inside that door back toward the arcade's storeroom wall. The door in that wall opens
+// onto the space under the top of the flight, all the storeroom there is, a few boxes squeezed in
 function arcadeStairs() {
   const X0 = 1.08, X1 = 3.02, Z0 = 5.8, Z1 = 7.92, N = 13, rise = WH / N, run = (Z1 - Z0) / N;
   const treadM = mat(0x8d8a84, { roughness: 0.85 }), riserM = mat(0x9c9993, { roughness: 0.9 }), noseM = mat(0x5e5c58, { roughness: 0.6 });
   for (let k = 0; k < N; k++) {
-    const y = (k + 1) * rise, z = Z0 + (k + 0.5) * run;
+    const y = (k + 1) * rise, z = Z1 - (k + 0.5) * run;
     box(X1 - X0, 0.04, run + 0.02, treadM, (X0 + X1) / 2, y - 0.02, z);                            // the tread
-    box(X1 - X0, rise, 0.03, riserM, (X0 + X1) / 2, y - rise / 2, Z0 + k * run + 0.015);           // the riser
-    box(X1 - X0, 0.012, 0.025, noseM, (X0 + X1) / 2, y + 0.002, Z0 + k * run + 0.012);              // a darker nosing strip
+    box(X1 - X0, rise, 0.03, riserM, (X0 + X1) / 2, y - rise / 2, Z1 - k * run - 0.015);           // the riser
+    box(X1 - X0, 0.012, 0.025, noseM, (X0 + X1) / 2, y + 0.002, Z1 - k * run - 0.012);              // a darker nosing strip
   }
-  // the slab under the flight, sloping down from the top to the floor at the door
+  // the slab under the flight, sloping down from the top to the floor at the street door
   const len = Math.hypot(Z1 - Z0, WH), ang = Math.atan2(WH, Z1 - Z0);
   const slab = box(X1 - X0, 0.08, len, mat(0x7a7772, { roughness: 0.95 }), (X0 + X1) / 2, WH / 2 - 0.06, (Z0 + Z1) / 2);
-  slab.rotation.x = -ang;
+  slab.rotation.x = ang;
   // a handrail up the open side
   const rail = cyl(0.018, 0.018, len, mat(0x3a3a3c, { metalness: 0.5, roughness: 0.4 }), X0 + 0.06, WH / 2 + 0.85, (Z0 + Z1) / 2, ctx.scene, 8);
-  rail.rotation.x = Math.PI / 2 - ang;
+  rail.rotation.x = ang - Math.PI / 2;
   // under the top of the stairs: what little storage there is
-  [[1.35, 0.2, 7.6, 0.45, 0.4], [1.85, 0.2, 7.62, 0.5, 0.4], [1.6, 0.6, 7.66, 0.55, 0.4], [2.5, 0.17, 7.55, 0.6, 0.34], [2.45, 0.5, 7.7, 0.4, 0.3]].forEach(([x, y, z, w, h]) =>
+  [[1.35, 0.2, 6.02, 0.45, 0.4], [1.85, 0.2, 6.0, 0.5, 0.4], [1.6, 0.6, 5.98, 0.55, 0.4], [2.5, 0.17, 6.05, 0.6, 0.34], [2.45, 0.5, 5.95, 0.4, 0.3]].forEach(([x, y, z, w, h]) =>
     box(w, h, 0.34, mat(pick([0xb8915e, 0x8d6e4a, 0xa47c50])), x, y, z));
-  crate(2.75, 0, 7.15, 'blue');
+  crate(2.75, 0, 6.5, 'blue');
 }
 
 export function buildBack() {

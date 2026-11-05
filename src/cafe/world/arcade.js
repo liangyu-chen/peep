@@ -238,7 +238,7 @@ function storeroomWall() {
   box(0.12, 0.28, 0.32, mat(0xc9c6bd, { roughness: 0.7 }), X - 0.06, 2.4, 7.28);   // the breaker box
   const pipe = mat(0x9a9a98, { metalness: 0.4, roughness: 0.5 });
   const run = (z0, y0, z1, y1) => { const len = Math.hypot(z1 - z0, y1 - y0), p = cyl(0.012, 0.012, len, pipe, X - 0.03, (y0 + y1) / 2, (z0 + z1) / 2, ctx.scene, 6); p.rotation.x = Math.atan2(z1 - z0, y1 - y0); };
-  run(5.75, 2.48, 7.12, 2.48); run(7.42, 2.26, 7.42, 1.2); run(7.6, 2.62, 7.6, 2.3);
+  run(5.75, 2.48, 7.12, 2.48);   // the feed along the top into the breaker box
   // and the two wires from the breaker box to the switches, not crossing: one down and along over the tops of the row
   // to the far switch, the other down into the nearest
   run(7.14, 2.26, 7.14, 2.11); run(7.14, 2.11, 6.85, 2.11); run(6.85, 2.11, 6.85, 2.04);          // to the far end of the row
