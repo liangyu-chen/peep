@@ -195,7 +195,7 @@ export function bindHUD(root, stage) {
     const stadium = [], menu = [];
     if (S.stadium?.visible) S.stadium.traverse(o => { if (o.isMesh) stadium.push(o); });
     S.menuClip?.traverse(o => { if (o.isMesh) menu.push(o); });
-    const targets = []; S.people.forEach(p => p.g.traverse(o => { if (o.isMesh) targets.push(o); })); targets.push(S.tvScreen, S.tvFrame, S.dartboard, S.neonSwitch?.hit, S.storeLight?.hit, ...stadium, ...menu);
+    const targets = []; S.people.forEach(p => { p.g.traverse(o => { if (o.isMesh) targets.push(o); }); p.bear?.g.traverse(o => { if (o.isMesh) targets.push(o); }); }); targets.push(S.tvScreen, S.tvFrame, S.dartboard, S.neonSwitch?.hit, S.storeLight?.hit, ...stadium, ...menu);
     const h = ray.intersectObjects(targets.filter(Boolean), false)[0];
     if (!h) return null;
     if (h.object === S.neonSwitch?.hit) return 'neon';
@@ -204,6 +204,7 @@ export function bindHUD(root, stage) {
     if (h.object === S.tvScreen || h.object === S.tvFrame) return 'tv';
     if (h.object === S.dartboard) return 'darts';
     if (stadium.includes(h.object)) return 'tops';
+    if (h.object.userData.bearOf) return { bearOf: h.object.userData.bearOf };
     return h.object.userData.person || null;
   };
   let downAt = null, hoverT = 0;
@@ -214,6 +215,7 @@ export function bindHUD(root, stage) {
     if (h === 'menu') setCam('menu');   // the clipboard on the bar: lean over and read it
     else if (h === 'neon') toggleNeon();
     else if (h === 'storeLight') { setStoreLight(!S.storeLight.on); sfx('flick'); }
+    else if (h && h.bearOf) h.bearOf.bearSay('愛老公');   // 月亮小熊 just says its piece, no card
     else if (typeof h === 'string') playAt(h, root); else if (h) openCard(h); else closeCard();
   });
   on(canvas, 'pointermove', e => {
@@ -243,6 +245,10 @@ export function updateLabels(dt, W, H) {
     p.tag.style.left = x + 'px'; p.tag.style.top = y + 'px';
     p.bubble.style.display = vis ? '' : 'none';
     p.bubble.style.left = x + 'px'; p.bubble.style.top = (y - (S.showTags ? 24 : 4)) + 'px';
+    if (p.bear) {
+      const bp = p.bear.g.position, [bv, bx, by] = toScreen(bp.x, bp.y + 0.16, bp.z);
+      p.bear.bubble.style.display = bv ? '' : 'none'; p.bear.bubble.style.left = bx + 'px'; p.bear.bubble.style.top = by + 'px';
+    }
   });
   for (let i = S.floaters.length - 1; i >= 0; i--) {
     const f = S.floaters[i]; f.life -= dt;

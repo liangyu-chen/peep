@@ -242,7 +242,9 @@ export function smokeState(c) {
   if (c.pose === 'game' || c.tops || (c.seat && c.seat.type === 'game')) return 'gaming';
   if (c.cig) return 'smoking';
   if (c.smokeNow) return 'going';
-  if (c.busy || c.pose !== 'sit' || !c.seat || c.seat.type !== 'table' || c.gone || S.closing) return 'busy';
+  if (c.busy || c.gone || S.closing) return 'busy';
+  if (c.seat && c.seat.type === 'spec') return 'ready';   // only watching the game: free to step out for one
+  if (c.pose !== 'sit' || !c.seat || c.seat.type !== 'table') return 'busy';
   return 'ready';
 }
 export function sendOutToSmoke(c) {
@@ -319,8 +321,9 @@ async function doSpectate(c, zone, s) {
   c.face(s.face);
   const stay = rand(25, 50);
   let t = 0;
-  while (t < stay && !S.closing) {
+  while (t < stay && !S.closing && !c.smokeNow) {
     await sleep(1); t += 1;
+    if (c.smokeNow) break;
     if (canJoinTv(c) && Math.random() < 0.4) { c.invited = true; break; }
   }
   s.occ = null; c.seat = null;

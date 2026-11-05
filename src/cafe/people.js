@@ -147,7 +147,9 @@ export class Person {
     this.g.traverse(o => { if (o.isMesh) o.userData.person = this; });
     ctx.scene.add(this.g);
     if (profile.look?.companion === 'bear') {   // 月亮小熊, flying along with them (click it and it's their card)
-      this.bear = makeBear(); this.bear.g.traverse(o => { if (o.isMesh) o.userData.person = this; }); ctx.scene.add(this.bear.g);
+      this.bear = makeBear(); this.bear.g.traverse(o => { if (o.isMesh) o.userData.bearOf = this; }); ctx.scene.add(this.bear.g);
+      this.bear.bubble = document.createElement('div'); this.bear.bubble.className = 'bubble'; this.bear.bubble.style.opacity = 0; this.bear.bubbleT = 0;
+      S.labelsEl.append(this.bear.bubble);
     }
     this.path = []; this.onArrive = null; this.speed = 1.4; this.heading = 0; this.targetHeading = 0;
     this.pose = 'stand'; this.walkPhase = Math.random() * 10; this.act = null; this.actT = 0;
@@ -163,6 +165,7 @@ export class Person {
   }
   setPos(x, z) { this.g.position.set(x * K, 0, z); }
   face(a) { this.targetHeading = a; }
+  bearSay(text, dur = 2.4) { const b = this.bear; if (!b) return; b.bubble.textContent = text; b.bubble.style.opacity = 1; b.bubbleT = dur; }
   say(text, dur = 2.8) { this.bubble.textContent = text; this.bubble.style.opacity = 1; this.bubbleT = dur; }
   hold(cup) { this.cup = cup; this.hand.add(cup); cup.position.set(0, -0.05, 0); cup.rotation.set(0, 0, 0); }
   putCup(x, y, z) { if (!this.cup) return; ctx.scene.attach(this.cup); this.cup.position.set(x * K, y, z); this.cup.rotation.set(0, 0, 0); }
@@ -211,7 +214,7 @@ export class Person {
     burn(this.cig, Math.max(0.12, k.life / k.dur), k.phase === 'drag' || k.phase === 'light' ? Math.min(1, (1.2 - k.t) * 2) : 0);
   }
   remove() {
-    this.gone = true; ctx.scene.remove(this.g); if (this.bear) ctx.scene.remove(this.bear.g); this.dropCup(); this.putOut(); this.tag.remove(); this.bubble.remove();
+    this.gone = true; ctx.scene.remove(this.g); if (this.bear) { ctx.scene.remove(this.bear.g); this.bear.bubble.remove(); } this.dropCup(); this.putOut(); this.tag.remove(); this.bubble.remove();
     S.people.splice(S.people.indexOf(this), 1);
   }
   update(dt) {
@@ -294,7 +297,10 @@ export class Person {
       _cam.sub(at); _cam.y = 0; if (_cam.lengthSq() > 1e-6) at.addScaledVector(_cam.normalize(), 0.2);
     }
     if (this.exhaleT > 0 && !this.bubbleT) this.mouth.scale.set(0.55, 2.4, 1); else this.mouth.scale.x = 1;   // an O while blowing smoke
-    if (this.bear) { this.g.updateMatrixWorld(); followBear(this.bear, this, dt); }
+    if (this.bear) {
+      this.g.updateMatrixWorld(); followBear(this.bear, this, dt);
+      if (this.bear.bubbleT > 0) { this.bear.bubbleT -= dt; if (this.bear.bubbleT <= 0) this.bear.bubble.style.opacity = 0; }
+    }
   }
 }
 

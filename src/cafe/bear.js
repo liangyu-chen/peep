@@ -89,6 +89,8 @@ export function makeBear() {
   moon.position.set(-0.002, -0.028, 0.0379); moon.rotation.z = -0.35; b.add(moon);
   const star = new THREE.Mesh(new THREE.CircleGeometry(0.0032, 5), m.star); star.position.set(0.008, -0.016, 0.0377); b.add(star);
 
+  ball(0.013, m.fur, 0, -0.058, -0.035, b, 1, 0.9, 0.8);                         // a little round tail
+
   // stubby arms held out, little legs dangling
   [-1, 1].forEach(s => {
     const arm = ball(0.015, m.fur, s * 0.046, -0.018, 0.006, b, 1, 1.6, 1); arm.rotation.z = s * 0.9;
