@@ -62,7 +62,7 @@ export function buildShell() {
   });
   // toilet floor: plain concrete painted orange, no tiles or seams
   const orangeFloor = canvasTex(256, 256, (g, w, h) => concreteWall(g, w, h, '#d8692a'));
-  floorPlane(3.9, 1.3, 1.15, -8.7, new THREE.MeshStandardMaterial({ map: orangeFloor, roughness: 0.55 }), 0.012);
+  floorPlane(3.9, 1.3, 1.15, -8.7, new THREE.MeshStandardMaterial({ map: orangeFloor, roughness: 0.55 }), 0.02);
   floorPlane(6.2, 4.0, 0, 6, new THREE.MeshStandardMaterial({ map: floorTex, roughness: 0.6 }), 0.01);   // the arcade is the same grey concrete
   // the lane outside, its buildings and its traffic are built in surroundings.js
 
