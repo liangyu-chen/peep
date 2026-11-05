@@ -22,7 +22,7 @@ export default async function RandomPage({ searchParams }: { searchParams: Promi
     <>
       <h1>新客隨機值</h1>
       <p className="hint">
-        第一次來的客人是隨機組出來的：名字 =「姓氏」+「稱呼」，外加一個「身分」。這裡維護每一欄可以抽到的值，改完按最下面「儲存」一次存好。
+        第一次來的客人是隨機組出來的：名字 =「姓氏」+「稱呼」，外加一個「身分」。這裡維護每一欄可以抽到的值，改完按最下面「儲存」。
         某一欄沒有任何啟用的值時，會改用預設值。
       </p>
       {sample.length > 0 && <p className="hint">目前可能出現的名字，例如：{sample.join('、')}⋯</p>}
