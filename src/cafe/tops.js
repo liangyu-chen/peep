@@ -87,13 +87,13 @@ function begin(players) {
   log(`${players[0].p.name} 和 ${players[1].p.name} 要打戰鬥陀螺`);
 }
 
-// invited by the owner: anyone sitting at a table, with someone else sitting at one to play against (someone who
-// plays tops if there is one). 'busy' if a game's already on, 'alone' if there's nobody to play.
-const free = c => c.pose === 'sit' && c.seat && c.seat.type === 'table' && !c.invited && !c.tops && !c.busy && !c.gone;
+// invited by the owner: someone who plays tops (as the back office has it), sitting at a table, with someone else who
+// plays sitting at one to play against. 'busy' if a game's already on, 'alone' if there's nobody to play.
+const free = c => c.p.playsTops && c.pose === 'sit' && c.seat && c.seat.type === 'table' && !c.invited && !c.tops && !c.busy && !c.gone;
 export const canInviteTops = c => free(c) && !S.topsSession && !S.closing;
 export function inviteTops(c) {
   if (S.topsSession) return 'busy';
-  const others = S.customers.filter(o => o !== c && free(o)).sort((a, b) => (b.p.playsTops ? 1 : 0) - (a.p.playsTops ? 1 : 0) || Math.random() - 0.5);
+  const others = S.customers.filter(o => o !== c && free(o)).sort(() => Math.random() - 0.5);
   if (!others.length) return 'alone';
   begin([c, others[0]]);
   return others[0];
