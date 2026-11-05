@@ -379,7 +379,7 @@ function frontPillar() {
     for (let i = 0; i < NT; i++) for (let j = 0; j < NA; j++) { const a = i * (NA + 1) + j, b = a + NA + 1; idx.push(a, b, a + 1, b, b + 1, a + 1); }
     const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); geo.setIndex(idx); geo.computeVertexNormals(); return geo;
   })();
-  const DY = 1.42;   // just under the mailbox
+  const DY = 1.36;   // a little way under the mailbox
   const dog = new THREE.Group(); dog.position.set(PX, DY, 0.002); dog.scale.setScalar(1.25); g.add(dog);
   add(headGeo, white, 0, 0, 0, dog);
   // the collar: round the bottom of the head where it meets the pillar, up its lower sides
