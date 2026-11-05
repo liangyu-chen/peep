@@ -43,7 +43,7 @@ const shineM = new THREE.MeshBasicMaterial({ color: 0xffffff });
 const tongueM = mat(0xd9646e, { roughness: 0.5 });
 const blushM = mat(0xff8f9c, { roughness: 1, transparent: true, opacity: 0.45, depthWrite: false });
 const frameM = mat(0x1b1b1b, { roughness: 0.4, metalness: 0.3 });
-const glossM = mat(0x0c0c0e, { roughness: 0.12, metalness: 0.2 });                  // 阿亮眼鏡: thick, shiny black acetate
+const glossM = mat(0x070708, { roughness: 0.22, metalness: 0 });                  // 阿亮眼鏡: thick, shiny black acetate
 const goldM = mat(0xd9ad52, { roughness: 0.25, metalness: 0.9 });                   // and the gold lines across it
 // 健誌嘴巴: a burst of light right where the mouth is, as if the camera caught a flash: a white-hot middle, a warm
 // glow fading out round it and a few thin rays
@@ -612,7 +612,7 @@ export function buildBody(look, seed = '') {
   if (f.facialHair === 'goatee' || f.facialHair === 'both') fm(bx(0.05 * BD.k, 0.055 * BD.k, 0.04), beardM, 0, -0.128, surf(0, -0.128) - 0.004);
   // glasses
   if (f.glasses !== 'none') {
-    const AR = 0.031, AT = 0.009;   // 阿亮眼鏡's rim: its radius and how thick the acetate is
+    const AR = 0.037, AT = 0.0085;   // 阿亮眼鏡: the round frames' size, in thick acetate
     const gy = EY + 0.002, gz = Math.max(surf(EX, EY), surf(0, NY) - 0.01) + 0.03;
     const earX = at(1, 0.02, 0).x - 0.004;
     [-1, 1].forEach(s => {
@@ -621,16 +621,18 @@ export function buildBody(look, seed = '') {
         const ring = new THREE.Mesh(geo('torus', () => new THREE.TorusGeometry(0.037, 0.006, 8, 20)), frameM); ring.position.set(cx, gy, gz); face.add(ring);
         fm(disc(0.034), lensM, cx, gy, gz).rotation.x = Math.PI / 2;
       } else if (f.glasses === 'aliang') {
-        // thick round rims, a touch flat across the top, glossy black
-        const ring = new THREE.Mesh(geo(`aliangRim:${AR},${AT}`, () => new THREE.TorusGeometry(AR, AT, 10, 28)), glossM); ring.position.set(cx, gy, gz); ring.scale.set(1, 0.94, 0.8); face.add(ring);
+        // the round frames, in thick glossy black, the rims cut in a few flat facets rather than perfectly round, with a
+        // little wing sticking out at each outer top corner where the arm hinges on
+        const ring = new THREE.Mesh(geo(`aliangRim:${AR},${AT}`, () => new THREE.TorusGeometry(AR, AT, 8, 16)), glossM); ring.position.set(cx, gy, gz); ring.scale.z = 0.8; face.add(ring);
         fm(disc(AR - AT * 0.6), lensM, cx, gy, gz).rotation.x = Math.PI / 2;
+        fm(bx(0.018, 0.011, 0.012), glossM, s * (EX + AR + AT + 0.004), gy + 0.012, gz);
       } else {
         const w = 0.078, h = f.glasses === 'sun' ? 0.05 : 0.054, t = 0.008;
         fm(bx(w, t, t), frameM, cx, gy + h / 2, gz); fm(bx(w, t, t), frameM, cx, gy - h / 2, gz);
         fm(bx(t, h, t), frameM, cx - w / 2, gy, gz); fm(bx(t, h, t), frameM, cx + w / 2, gy, gz);
         fm(bx(w, h, 0.003), f.glasses === 'sun' ? sunLensM : lensM, cx, gy, gz);
       }
-      const outer = EX + ({ round: 0.037, aliang: AR + AT }[f.glasses] || 0.039);
+      const outer = EX + ({ round: 0.037, aliang: AR + AT + 0.012 }[f.glasses] || 0.039);
       fm(bx(earX - outer + 0.006, 0.007, 0.007), frameM, s * (outer + earX) / 2, gy + 0.004, gz);   // hinge out to the side of the head
       fm(bx(0.006, 0.006, gz), frameM, s * earX, gy + 0.004, gz / 2);                              // temple arm back to the ear
     });
