@@ -633,8 +633,10 @@ export function buildBody(look, seed = '') {
         fm(bx(w, h, 0.003), f.glasses === 'sun' ? sunLensM : lensM, cx, gy, gz);
       }
       const outer = EX + ({ round: 0.037, aliang: AR + AT + 0.012 }[f.glasses] || 0.039);
-      fm(bx(earX - outer + 0.006, 0.007, 0.007), frameM, s * (outer + earX) / 2, gy + 0.004, gz);   // hinge out to the side of the head
-      fm(bx(0.006, 0.006, gz), frameM, s * earX, gy + 0.004, gz / 2);                              // temple arm back to the ear
+      // the arms: out to the side of the head and back to the ear (阿亮眼鏡's thinner, in the frames' own black, from the wings)
+      const [armM, aw, ay] = f.glasses === 'aliang' ? [glossM, 0.0045, gy + 0.012] : [frameM, 0.007, gy + 0.004];
+      fm(bx(earX - outer + 0.006, aw, aw), armM, s * (outer + earX) / 2, ay, gz);
+      fm(bx(aw * 0.85, aw * 0.85, gz), armM, s * earX, ay, gz / 2);
     });
     if (f.glasses === 'aliang') {
       fm(bx(EX * 2 - AR * 2 + AT, 0.014, 0.012), glossM, 0, gy + 0.016, gz);                       // a thick bridge, set high
