@@ -291,6 +291,7 @@ function spawn(kind) {
   const dir = ONE_WAY;
   const z = kind === 'car' ? LANE_Z + 0.2 : LANE_Z + rand(-0.3, 0.3);
   v.g.position.set(-dir * 42, -RISE, z); v.g.rotation.y = dir * Math.PI / 2; env.add(v.g);
+  v.g.traverse(o => { o.castShadow = false; });   // (the shadows are drawn once, for what stands still: index.js)
   traffic.push({ ...v, dir, speed: v.vmax, z });
 }
 function updateTraffic(sdt) {
@@ -322,7 +323,7 @@ function updateFade(dt) {
     const see = b.fade < 0.99;
     b.mats.forEach(m => { if (m.transparent !== see) { m.transparent = see; m.needsUpdate = true; } m.opacity = b.fade; m.depthWrite = !see; });
     b.group.visible = b.fade > 0.03;   // gone altogether once it has faded, so no ghostly bars or cages stay over the view
-    b.group.traverse(o => { if (o.isMesh) o.castShadow = !see; });
+    if (b.cast !== !see) { b.cast = !see; b.group.traverse(o => { if (o.isMesh) o.castShadow = !see; }); S.shadowDirty = true; }
   });
 }
 

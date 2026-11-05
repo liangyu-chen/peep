@@ -29,6 +29,14 @@ export function startCafe(root, content, onReady) {
 }
 // a moment for the page to draw between the heavy steps of building
 const breathe = () => new Promise(r => setTimeout(r, 0));
+// the things in the set that move cast no shadow, as the shadow map is drawn once: the doors, the fans, the stadium,
+// the ashtrays the owner carries off
+function stillShadows() {
+  const off = o => o && o.traverse(m => { m.castShadow = false; });
+  [S.frontDoor, S.slideDoor, S.toiletDoor, S.acFan, S.stadium].forEach(off);
+  (S.fans || []).forEach(off);
+  (S.ashtrays || []).forEach(a => off(a.g));
+}
 
 async function build(root, content) {
   resetState(content);
@@ -83,7 +91,7 @@ async function build(root, content) {
       const behind = (w.side === 'L' && cp.x < -3.1 * K) || (w.side === 'R' && cp.x > 3.1 * K) || (w.side === 'B' && cp.z < -8.35);
       w.me.material.opacity += ((behind ? 0.12 : 1) - w.me.material.opacity) * Math.min(1, dt * 8);
       w.me.material.depthWrite = w.me.material.opacity > 0.9;
-      w.me.castShadow = !behind;
+      if (w.me.castShadow !== !behind) { w.me.castShadow = !behind; S.shadowDirty = true; }
     });
   }
   // a tablet or phone draws every other frame (30 a second), a computer at most 60 (a 120 or 144 Hz screen would
@@ -123,6 +131,7 @@ async function build(root, content) {
 
     updateCamera(dt);
     ctx.controls.update();
+    if (S.shadowDirty) { S.shadowDirty = false; ctx.renderer.shadowMap.needsUpdate = true; }
     ctx.renderer.render(ctx.scene, ctx.camera);
     updateLabels(dt, stage.clientWidth || window.innerWidth, stage.clientHeight || window.innerHeight);
     raf = requestAnimationFrame(frame);
@@ -134,6 +143,12 @@ async function build(root, content) {
     .then(() => { if (!S.stopped) S.fontTex.forEach(t => t.redraw()); }).catch(() => {});
   // the first frame has every shader to compile and every mesh and texture to hand to the GPU: done in two goes
   ctx.renderer.compile(ctx.scene, ctx.camera); await breathe();
+  // the sun's shadows are drawn once, for the set as it stands (its position never changes), and again only when
+  // something that casts them changes (a wall fading as the camera goes behind it); what moves casts none of its own:
+  // people get a soft round shadow under them instead (people.js). Redrawing the shadow map every frame was the
+  // largest single cost on a tablet
+  stillShadows();
+  ctx.renderer.shadowMap.autoUpdate = false; ctx.renderer.shadowMap.needsUpdate = true;
   ctx.renderer.render(ctx.scene, ctx.camera); await breathe();
   raf = requestAnimationFrame(frame);
   // development only: step the simulation from the console without rendering, e.g. await __cafe.step(60)

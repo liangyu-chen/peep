@@ -138,13 +138,25 @@ function makeMosaic() {
   return sp;
 }
 const MOSAIC_AT = new THREE.Vector3(0, 0.5 + LEG_EXTRA, 0.02), _cam = new THREE.Vector3();
+// the soft round shadow under each person
+const blobGeo = new THREE.CircleGeometry(0.3, 20);
+let blobMat = null;
+const blobM = () => blobMat || (blobMat = (() => {
+  const c = document.createElement('canvas'); c.width = c.height = 64;
+  const g = c.getContext('2d'), grd = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+  grd.addColorStop(0, 'rgba(0,0,0,0.5)'); grd.addColorStop(0.55, 'rgba(0,0,0,0.3)'); grd.addColorStop(1, 'rgba(0,0,0,0)');
+  g.fillStyle = grd; g.fillRect(0, 0, 64, 64);
+  return new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(c), transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 });
+})());
 
 export class Person {
   constructor(profile, role) {
     this.p = profile; this.role = role;
     Object.assign(this, buildBody(profile.look, profile.name));
     this.faceAnim = { blinkT: Math.random() * 4 };
-    this.g.traverse(o => { if (o.isMesh) o.userData.person = this; });
+    this.g.traverse(o => { if (o.isMesh) { o.userData.person = this; o.castShadow = false; } });
+    // a soft round shadow on the floor under them, in place of a cast one (the sun's shadows are drawn once, index.js)
+    this.blob = new THREE.Mesh(blobGeo, blobM()); this.blob.rotation.x = -Math.PI / 2; this.blob.renderOrder = 1; this.g.add(this.blob);
     ctx.scene.add(this.g);
     if (profile.look?.companion === 'bear') {   // 月亮小熊, flying along with them (click it and it's their card)
       this.bear = makeBear(); this.bear.g.traverse(o => { if (o.isMesh) o.userData.bearOf = this; }); ctx.scene.add(this.bear.g);
@@ -167,7 +179,7 @@ export class Person {
   face(a) { this.targetHeading = a; }
   bearSay(text, dur = 2.4) { const b = this.bear; if (!b) return; b.bubble.textContent = text; b.bubble.style.opacity = 1; b.bubbleT = dur; }
   say(text, dur = 2.8) { this.bubble.textContent = text; this.bubble.style.opacity = 1; this.bubbleT = dur; }
-  hold(cup) { this.cup = cup; this.hand.add(cup); cup.position.set(0, -0.05, 0); cup.rotation.set(0, 0, 0); }
+  hold(cup) { this.cup = cup; cup.traverse(o => { o.castShadow = false; }); this.hand.add(cup); cup.position.set(0, -0.05, 0); cup.rotation.set(0, 0, 0); }
   putCup(x, y, z) { if (!this.cup) return; ctx.scene.attach(this.cup); this.cup.position.set(x * K, y, z); this.cup.rotation.set(0, 0, 0); }
   pickCup() { if (this.cup) this.hold(this.cup); }
   dropCup() { if (this.cup) { this.cup.parent.remove(this.cup); this.cup = null; } }
@@ -283,6 +295,7 @@ export class Person {
     const ground = this.g.position.z > KERB ? -RISE : inBackHall(this.g.position.x / K, this.g.position.z) ? -BACK_DROP : 0;   // down off the kerb, down into the back corridor
     this.groundY = (this.groundY || 0) + (ground - (this.groundY || 0)) * Math.min(1, dt * 14);
     this.g.position.y = this.groundY + y + bob;
+    this.blob.position.y = 0.012 - y - bob;   // kept on the floor, whatever the pose
     if (this.skirt) {   // sitting, a skirt rides up and lies forward over the lap (set a little lower, so where it widens
       // is still below the shirt's hem and none of it shows through the back of the shirt)
       const lap = sitting || squat;
