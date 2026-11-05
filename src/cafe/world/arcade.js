@@ -363,9 +363,9 @@ function frontPillar() {
   const L = 0.225;
   const P = 1;   // the side with the patch: its left
   const ease = (a, b, t) => { const k = Math.max(0, Math.min(1, (t - a) / (b - a))); return k * k * (3 - 2 * k); };
-  const fore = t => Math.exp(-(((t - 0.3) / 0.14) ** 2));                            // the forehead, rising in front of the ears
-  const W = t => 0.1 * (1 + 0.04 * fore(t)) * (1 - 0.5 * ease(0.35, 1, t)), TOP = t => 0.105 * (1 + 0.24 * fore(t)) * (1 - 0.5 * ease(0.4, 1, t)), BOT = t => 0.085 * (1 - 0.42 * ease(0.3, 1, t));
-  const MID = t => -0.012 * t;                                                        // nearly level: the top slopes down to the nose, the jaw comes up to it
+  const fore = t => Math.exp(-(((t - 0.3) / 0.2) ** 2));                            // the forehead, rising in front of the ears
+  const W = t => 0.1 * (1 + 0.04 * fore(t)) * (1 - 0.5 * ease(0.35, 1, t)), TOP = t => 0.105 * (1 + 0.1 * fore(t)) * (1 - 0.5 * ease(0.4, 1, t)), BOT = t => 0.085 * (1 - 0.42 * ease(0.3, 1, t));
+  const MID = t => -0.028 * t;                                                        // dipping a little: the top slopes down to the nose, the jaw comes up to it
   const CAP = t => t < 0.1 ? 0.9 + 0.1 * Math.sqrt(t / 0.1) : t > 0.92 ? Math.sqrt(Math.max(0, 1 - ((t - 0.92) / 0.08) ** 2)) : 1;   // cut flat at the back (on the pillar), blunt at the front
   // a point on the head: t from the back of the skull (0) to the tip of the nose (1), a round from the top (0) toward
   // its left (+x)
