@@ -257,7 +257,7 @@ function bodyKeep(b) {
   // (each one itself: what's inside one that's a group still merges, as it moves, scales and hides with the group)
   const keep = new Set(), add = o => o && keep.add(o);
   [b.mouth, b.pad, b.skirt].forEach(add); (b.eyes || []).forEach(add);
-  [...(b.strip?.bare || []), ...(b.strip?.bunch || [])].forEach(add);
+  [...(b.strip?.bare || []), ...(b.strip?.bunch || []), ...(b.strip?.cover || [])].forEach(add);
   return keep;
 }
 
@@ -304,9 +304,10 @@ export class Person {
   gesture(a, t = 1.4) { this.act = a; this.actT = t; }
   // pants down (thighs and hips show skin, the pants bunch round the shins) with a mosaic over the bits; or back up
   pantsDown(down) {
-    const { bare, bunch, pants, skin } = this.strip;
+    const { bare, bunch, cover = [], pants, skin } = this.strip;
     bare.forEach(m => { m.material = down ? skin : pants; });
     bunch.forEach(m => { m.visible = down; });
+    cover.forEach(m => { m.visible = !down; });   // shorts' legs
     if (this.skirt) this.skirt.visible = !down;   // a skirt is lifted out of the way
     if (down && !this.mosaic) { this.mosaic = makeMosaic(); this.g.add(this.mosaic); this.mosaicT = 0; }
     if (!down && this.mosaic) { this.g.remove(this.mosaic); this.mosaic.material.map.dispose(); this.mosaic.material.dispose(); this.mosaic = null; }

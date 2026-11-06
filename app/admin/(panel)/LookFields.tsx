@@ -1,4 +1,4 @@
-import { CLOTHES, COLOR_PRESETS, COMPANIONS, FACE, HAIR, HAT_STYLES, clothesOf, companionOf, faceOf, hairOf, hatOf, type Look } from '@/src/content/catalog';
+import { CLOTHES, COLOR_PRESETS, COMPANIONS, FACE, HAIR, HAT_STYLES, SHOE_STYLES, SOCKS, TATTOO, clothesOf, companionOf, faceOf, hairOf, hatOf, shoeOf, socksOf, tattooOf, type Look } from '@/src/content/catalog';
 import ColorField from './ColorField';
 
 function Pick({ name, label, value, options }: { name: string; label: string; value: string; options: { value: string; label: string }[] }) {
@@ -15,7 +15,7 @@ function Pick({ name, label, value, options }: { name: string; label: string; va
 // the 捏臉 fields shared by the regulars' editor and the owner's page; parseLook() reads them back
 export default function LookFields({ look, seed }: { look: Look; seed: string }) {
   const f = faceOf(look, seed);
-  const hat = hatOf(look), hair = hairOf(look), clothes = clothesOf(look);
+  const hat = hatOf(look), hair = hairOf(look), clothes = clothesOf(look), shoe = shoeOf(look), socks = socksOf(look), tattoo = tattooOf(look);
   return (
     <>
       <section className="panel-block">
@@ -33,6 +33,8 @@ export default function LookFields({ look, seed }: { look: Look; seed: string })
         <Pick name="facialHair" label="鬍子" value={f.facialHair} options={FACE.facialHair} />
         <Pick name="beard" label="鬍子濃淡" value={f.beard} options={FACE.beard} />
         <Pick name="glasses" label="眼鏡" value={f.glasses} options={FACE.glasses} />
+        <Pick name="tattoo" label="刺青" value={tattoo.side} options={TATTOO.side} />
+        <Pick name="tattooCover" label="刺青範圍" value={tattoo.cover} options={TATTOO.cover} />
       </section>
 
       <section className="panel-block">
@@ -47,11 +49,15 @@ export default function LookFields({ look, seed }: { look: Look; seed: string })
         <Pick name="sleeve" label="袖長" value={clothes.sleeve} options={CLOTHES.sleeve} />
         <Pick name="bottom" label="下身" value={clothes.bottom} options={CLOTHES.bottom} />
         <Pick name="pantsFit" label="褲子寬度" value={clothes.fit} options={CLOTHES.fit} />
+        <Pick name="shoeStyle" label="鞋子" value={shoe.style} options={SHOE_STYLES} />
+        <Pick name="socks" label="襪子（短褲、裙子、拖鞋看得到）" value={socks.style} options={SOCKS} />
         <div className="colors">
           <ColorField name="hair" label="髮色" value={look.hair} presets={COLOR_PRESETS.hair} />
           <ColorField name="shirt" label="上衣" value={look.shirt} presets={COLOR_PRESETS.clothes} />
           <ColorField name="pants" label="褲子／裙子" value={look.pants} presets={COLOR_PRESETS.clothes} />
           <ColorField name="hatColor" label="帽子顏色" value={hat.color} presets={COLOR_PRESETS.clothes} />
+          <ColorField name="shoe" label="鞋子顏色" value={shoe.color} presets={COLOR_PRESETS.clothes} />
+          <ColorField name="sock" label="襪子顏色" value={socks.color} presets={COLOR_PRESETS.clothes} />
         </div>
         <div className="colors">
           <label className="short">背號<input name="number" defaultValue={look.number ?? ''} maxLength={2} placeholder="無" /></label>

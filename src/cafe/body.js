@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import { BufferGeometryUtils } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { mat, canvasTex } from './engine.js';
 import { PIX } from './util.js';
-import { faceOf, hairOf, hatOf, clothesOf } from '../content/catalog';
+import { faceOf, hairOf, hatOf, clothesOf, shoeOf, socksOf, tattooOf } from '../content/catalog';
 
 // how much longer the legs are than first drawn: the hips sit this much higher (people.js lowers sitting and squatting to match)
 export const LEG_EXTRA = 0.08;
@@ -91,6 +91,62 @@ const strands = () => strandTex || (strandTex = (() => {
     g.fillStyle = root; g.fillRect(0, 0, 64, 32);
   });
   t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(5, 1); return t;
+})());
+
+// tattoos: blue-black line work multiplied over the skin, wrapped round an arm (the texture's width is once round it, its
+// height the length of the forearm or upper arm). Traditional-ish and busy, like a full sleeve: waves and swirls, a
+// few flowers and leaves, a band of stipple shading between them, all running together, with a clear strip at the
+// bottom (toward the wrist) where it stops. Two variants, so the two arms aren't alike; it tiles round the arm.
+const TAT = [];
+const tattooTex = v => TAT[v] || (TAT[v] = (() => {
+  let s = 977 + v * 131;
+  const r = () => { s = (s * 16807) % 2147483647; return s / 2147483647; };
+  const t = canvasTex(256, 256, (g, W, H) => {
+    g.fillStyle = '#fff'; g.fillRect(0, 0, W, H);
+    const top = 0, bot = H * 0.86;   // the bottom 14% (the wrist end) left bare
+    const ink = '#2c3340', soft = 'rgba(44,51,64,0.42)';
+    const wrap = draw => [-W, 0, W].forEach(dx => { g.save(); g.translate(dx, 0); draw(); g.restore(); });   // so it tiles round the arm
+    g.save(); g.beginPath(); g.rect(0, top, W, bot - top); g.clip();
+    // soft shading: stipple drifting in bands
+    for (let i = 0; i < 2600; i++) {
+      const x = r() * W, y = top + r() * (bot - top), band = 0.5 + 0.5 * Math.sin(y / 22 + Math.sin(x / 40) * 2);
+      if (r() < band * 0.9) { g.fillStyle = soft; g.fillRect(x, y, 3, 3); }
+    }
+    // waves: long swells across, each with curling crests
+    g.strokeStyle = ink; g.lineCap = 'round';
+    for (let k = 0; k < 4; k++) {
+      const y0 = top + 30 + k * 58 + r() * 14, amp = 9 + r() * 7, ph = r() * 6;
+      wrap(() => {
+        g.lineWidth = 6; g.beginPath();
+        for (let x = 0; x <= W; x += 4) { const y = y0 + Math.sin(x / W * Math.PI * 4 + ph) * amp; x ? g.lineTo(x, y) : g.moveTo(x, y); }
+        g.stroke();
+        g.lineWidth = 4;
+        for (let c = 0; c < 4; c++) {   // a curl at each crest
+          const cx = ((c + 0.25) / 4 - ph / (Math.PI * 4)) * W, cy = y0 - amp;
+          g.beginPath(); for (let a = 0; a < Math.PI * 3.2; a += 0.2) { const rr = 15 - a * 3.8; g.lineTo(cx + Math.cos(a) * Math.max(1, rr), cy + 6 + Math.sin(a) * Math.max(1, rr)); } g.stroke();
+        }
+      });
+    }
+    // flowers: rings of petals with a dark middle, leaves off them
+    for (let k = 0; k < 5; k++) {
+      const fx = r() * W, fy = top + 20 + r() * (bot - top - 40), fr = 20 + r() * 12;
+      wrap(() => {
+        g.fillStyle = '#fff'; g.beginPath(); g.arc(fx, fy, fr * 1.1, 0, Math.PI * 2); g.fill();   // the flower sits over the waves
+        g.lineWidth = 4.5; g.strokeStyle = ink;
+        for (let p = 0; p < 7; p++) { const a = p / 7 * Math.PI * 2; g.beginPath(); g.ellipse(fx + Math.cos(a) * fr * 0.55, fy + Math.sin(a) * fr * 0.55, fr * 0.5, fr * 0.3, a, 0, Math.PI * 2); g.stroke(); }
+        g.fillStyle = ink; g.beginPath(); g.arc(fx, fy, fr * 0.22, 0, Math.PI * 2); g.fill();
+        for (let l = 0; l < 2; l++) {
+          const a = r() * Math.PI * 2, lx = fx + Math.cos(a) * fr * 1.5, ly = fy + Math.sin(a) * fr * 1.5;
+          g.beginPath(); g.ellipse(lx, ly, fr * 0.55, fr * 0.2, a, 0, Math.PI * 2); g.fillStyle = soft; g.fill(); g.stroke();
+          g.beginPath(); g.moveTo(lx - Math.cos(a) * fr * 0.5, ly - Math.sin(a) * fr * 0.5); g.lineTo(lx + Math.cos(a) * fr * 0.5, ly + Math.sin(a) * fr * 0.5); g.lineWidth = 2.5; g.stroke(); g.lineWidth = 4.5;
+        }
+      });
+    }
+    g.restore();
+    // where it stops, a slightly ragged edge
+    g.fillStyle = soft; for (let x = 0; x < W; x += 3) g.fillRect(x, bot - 2 + r() * 4, 2, 2);
+  });
+  t.wrapS = THREE.RepeatWrapping; return t;
 })());
 
 // ---------------------------------------------------------------- the head and what's built on it
@@ -233,6 +289,47 @@ const shoeGeo = sole => geo(`shoe:${sole}`, () => {
 // the height of the top of the shoe above its centre, a distance z forward (for laying the laces on it)
 const shoeTop = z => SHOE.h * Math.sqrt(Math.max(0, 1 - ((z - SHOE.fwd) / SHOE.l) ** 2)) * (1 - 0.35 * Math.max(0, (z - SHOE.fwd) / SHOE.l) ** 2);
 const laceM = mat(0xeeeeea, { roughness: 0.7 });
+const SH_LIGHT = mat(0xe9e5da, { roughness: 0.8 });    // a canvas shoe's white rubber sole and toe cap
+const bootSoleM = mat(0x1c1917, { roughness: 0.85 });
+// one foot's shoe, in its style, hung from the knee (the foot's centre 0.287 below it)
+function buildShoe(style, knee, mk, { shoe, skin, light }) {
+  const Y = -0.287;
+  const laces = (zs, lift = 0) => zs.forEach(z => mk(bx(0.05, 0.006, 0.01), laceM, 0, Y + shoeTop(z) + 0.002 + lift, z, knee, false));
+  if (style === 'slides') {
+    // 拖鞋: a bare foot on a thick flat sole, one wide strap over the instep
+    const foot = mk(shoeGeo(false), skin, 0, Y + 0.002, -0.004, knee); foot.scale.set(0.86, 0.72, 0.9);
+    const sole = mk(shoeGeo(true), shoe, 0, Y - 0.004, 0, knee); sole.scale.set(1.02, 1.6, 1);
+    // (half a band round the foot's length, arching up over it from sole to sole, both faces drawn)
+    const strapM = shoe.clone(); strapM.side = THREE.DoubleSide;
+    const strap = mk(lathe('slideStrap', [[0.0645, -0.03], [0.068, 0], [0.0645, 0.03]], 20, -Math.PI / 2, Math.PI), strapM, 0, Y - 0.008, 0.05, knee, false);
+    strap.rotation.x = -Math.PI / 2; strap.scale.set(1, 1, 0.62);
+    return;
+  }
+  if (style === 'hightop') {
+    // 高筒帆布鞋: canvas up over the ankle, a white rubber sole and toe cap, laced up to the top
+    mk(shoeGeo(false), shoe, 0, Y, 0, knee);
+    const sole = mk(shoeGeo(true), light, 0, Y + 0.002, 0, knee, false); sole.scale.set(1.01, 1.9, 1.01);
+    const toe = mk(sp(1, 16, 10, 0, Math.PI * 2, 0, Math.PI / 2), light, 0, Y - 0.012, 0.118, knee, false); toe.scale.set(0.066, 0.034, 0.05);
+    mk(cy(0.068, 0.07, 0.085, 16, true), shoe, 0, Y + 0.06, -0.008, knee);   // (wide enough to go over a long sock)
+    mk(cy(0.07, 0.07, 0.008, 16, true), light, 0, Y + 0.1, -0.008, knee, false);   // the collar's edge
+    laces([0.02, 0.045, 0.07]);
+    [0.07, 0.085].forEach(y => mk(bx(0.05, 0.006, 0.01), laceM, 0, Y + y, 0.05, knee, false));
+    return;
+  }
+  if (style === 'boots') {
+    // 靴子: leather up the ankle, a thick dark sole with a heel, a pull tab at the back
+    const up = mk(shoeGeo(false), shoe, 0, Y + 0.003, 0, knee); up.scale.set(1.06, 1.08, 1.04);
+    const sole = mk(shoeGeo(true), bootSoleM, 0, Y - 0.003, 0, knee, false); sole.scale.set(1.06, 2.2, 1.05);
+    mk(bx(0.07, 0.022, 0.05), bootSoleM, 0, Y - 0.026, -0.065, knee, false);   // the heel
+    mk(cy(0.066, 0.07, 0.11, 16, true), shoe, 0, Y + 0.07, -0.012, knee);
+    mk(bx(0.016, 0.03, 0.006), shoe, 0, Y + 0.13, -0.08, knee, false);         // the pull tab
+    return;
+  }
+  // 球鞋: one rounded piece on a sole that follows its outline, with laces across the top
+  mk(shoeGeo(false), shoe, 0, Y, 0, knee);
+  mk(shoeGeo(true), soleM, 0, Y, 0, knee, false);
+  laces([0.03, 0.055, 0.08]);
+}
 // the torso: slices up the body, each an oval [y, half-width, half-depth]; it narrows a little to the waist, widens to
 // the shoulders and then slopes up to the neck in one curve
 // (the shoulders kept fairly narrow, so nobody looks built broader than they are)
@@ -446,7 +543,8 @@ export function buildBody(look, seed = '', { detail = 1 } = {}) {
 }
 function buildBodyAt(look, seed) {
   const f = faceOf(look, seed);
-  const C = { skin: picked(look.skin), hair: picked(look.hair), shirt: picked(look.shirt), pants: picked(look.pants), shoe: picked(look.shoe || 0x1d1d1d) };
+  const SH = shoeOf(look), tat = tattooOf(look);
+  const C = { skin: picked(look.skin), hair: picked(look.hair), shirt: picked(look.shirt), pants: picked(look.pants), shoe: picked(SH.color) };
   const shape = HEADS[f.faceShape] ? f.faceShape : 'round', H = HEADS[shape];
   const g = new THREE.Group();
   const shade = (c, k) => new THREE.Color(c).multiplyScalar(k);
@@ -463,11 +561,15 @@ function buildBodyAt(look, seed) {
   // ---------------------------------------------------------------- legs and hips
   // the legs are LEG_EXTRA longer than first drawn (thigh and shin), the hips raised by that much and the torso
   // shortened to match, so shoulders, arms and head stay where every pose was tuned
-  const { bottom, fit } = clothesOf(look), skirted = bottom === 'skirt';
-  const legM = skirted ? skin : pants;                    // bare legs under a skirt
-  const W = { slim: 0.85, regular: 1, wide: 1.45 }[fit] || 1, flare = fit === 'wide' ? 0.125 : 0.062 * W;   // wide legs: baggy all the way, flaring out to the hem
+  const { bottom, fit } = clothesOf(look), skirted = bottom === 'skirt', shorts = bottom === 'shorts', bareLegs = skirted || shorts;
+  const legM = bareLegs ? skin : pants;                   // bare legs under a skirt or shorts
+  // wide legs: baggy all the way, flaring out to the hem (bare legs are just legs: the fit is the shorts' width)
+  const W = shorts ? 1 : { slim: 0.85, regular: 1, wide: 1.45 }[fit] || 1, flare = fit === 'wide' && !shorts ? 0.125 : 0.062 * W;
+  const SW = { slim: 1.06, regular: 1.14, wide: 1.32 }[fit] || 1.14;   // how far the shorts stand off the thigh
   const bare = [];   // what shows skin when the pants come down (thighs, knees, hips)
   const bunch = [];  // the pants bunched round the shins, only seen then
+  const cover = [];  // shorts' legs, gone when they come down
+  const SK = socksOf(look), sockM = SK.style !== 'none' ? mat(picked(SK.color), { roughness: 0.95 }) : null, sockRib = sockM && mat(shade(picked(SK.color), 0.8), { roughness: 0.95 });
   const THIGH = 0.32, HIP_Y = 0.55 + LEG_EXTRA;
   const legs = [-0.094, 0.094].map(x => {   // close enough that the tops of the thighs meet, so the crotch is just where the legs join
     const hip = new THREE.Group(); hip.position.set(x, HIP_Y, 0); g.add(hip);
@@ -477,16 +579,26 @@ function buildBodyAt(look, seed) {
     // the thigh: rounded over its top, which sits up inside the hips, fullest just below them, tapering to the knee, so
     // the hips flow on down into the leg instead of a tube coming out from under them (profile from the knee up, faces out)
     const thigh = mk(lathe(`thigh2:${W}`, [[RK, -THIGH], [0.078 * W, -0.24], [0.086 * W, -0.12], [0.09 * W, -0.04], [0.088 * W, -0.005], [0.074 * W, 0.022], [0.044 * W, 0.042], [0.001, 0.05]], 20), legM, 0, 0, 0, hip);
-    if (!skirted) bare.push(thigh);
+    if (!bareLegs) bare.push(thigh);
+    if (shorts) {   // the shorts' leg: an open tube a little clear of the thigh, ending a hand above the knee, its hem turned up
+      const r0 = 0.091 * SW, r1 = 0.084 * SW;
+      const leg = mk(cy(r0, r1, 0.2, 18, true), pants, 0, -0.08, 0, hip); cover.push(leg);
+      const hem = mk(cy(r1 + 0.004, r1 + 0.004, 0.022, 18, true), pantsDark, 0, -0.17, 0, hip, false); cover.push(hem);
+      cover.push(mk(cy(r1 - 0.002, r1 - 0.002, 0.03, 18, true), mat(shade(C.pants, 0.4), { roughness: 1, side: THREE.BackSide }), 0, -0.165, 0, hip, false));   // its shadowed inside
+    }
     const knee = new THREE.Group(); knee.position.set(0, -THIGH, 0); hip.add(knee);
-    const kn = mk(sp(RK * 0.96, 16, 12), legM, 0, 0, 0, knee); if (!skirted) bare.push(kn);
+    const kn = mk(sp(RK * 0.96, 16, 12), legM, 0, 0, 0, knee); if (!bareLegs) bare.push(kn);
     const b = mk(cy(0.088 * W, 0.082 * W, 0.09, 14), skirted ? mat(0xf2efe9, { roughness: 0.9 }) : pants, 0, -0.03, 0, knee, false); b.visible = false; bunch.push(b);
-    mk(cy(RK, skirted ? 0.052 : flare, 0.25, 16, true), legM, 0, -0.125, 0, knee);   // shin, down into the shoe
-    if (!skirted) mk(cy(flare + 0.006, flare + 0.006, 0.025, 14), pantsDark, 0, -0.225, 0, knee, false);   // turned-up hem
-    // the shoe: one rounded piece on a sole that follows its outline, with laces across the top
-    mk(shoeGeo(false), shoe, 0, -0.287, 0, knee);
-    mk(shoeGeo(true), soleM, 0, -0.287, 0, knee, false);
-    [0.03, 0.055, 0.08].forEach(z => mk(bx(0.05, 0.006, 0.01), laceM, 0, -0.287 + shoeTop(z) + 0.002, z, knee, false));
+    mk(cy(RK, bareLegs ? 0.052 : flare, 0.25, 16, true), legM, 0, -0.125, 0, knee);   // shin, down into the shoe
+    if (!bareLegs) mk(cy(flare + 0.006, flare + 0.006, 0.025, 14), pantsDark, 0, -0.225, 0, knee, false);   // turned-up hem
+    // socks: only where they'd show, on a bare shin (a short one round the ankle, a long one up to under the knee, a
+    // ribbed band at the top), and over the foot in slides
+    if (sockM && bareLegs) {
+      const top = SK.style === 'long' ? 0.2 : 0.06, rAt = h => 0.052 + (RK - 0.052) * (h / 0.25) + 0.004;   // h: up from the shin's foot
+      mk(cy(rAt(top), rAt(0), top, 16, true), sockM, 0, -0.25 + top / 2, 0, knee, false);
+      mk(cy(rAt(top) + 0.002, rAt(top - 0.02) + 0.002, 0.02, 16, true), sockRib, 0, -0.25 + top - 0.01, 0, knee, false);
+    }
+    buildShoe(SH.style, knee, mk, { shoe, skin: sockM || skin, light: SH_LIGHT });
     return { hip, knee };
   });
   // hips: one piece from the waist splitting into the two legs, no join between them (separate hips and thighs leave a
@@ -671,7 +783,11 @@ function buildBodyAt(look, seed) {
     const sh = new THREE.Group(); sh.position.set(x, 1.16, 0); g.add(sh);   // tucked under the slope of the shoulders
     // sleeves are cloth over the arm, not the arm in another colour: open at the end with their shadowed inside
     // showing, a rolled hem or cuff; a loose cut stands well clear of the arm
-    const long = look.longSleeve, sleeveM = long ? shirt : skin, S = long ? TF.s : 1, loose = topFit === 'oversize';
+    const long = look.longSleeve, S = long ? TF.s : 1, loose = topFit === 'oversize';
+    // a tattooed arm's skin: the forearm, or the whole arm (under a long sleeve only the hand would show, so nothing)
+    const inked = tat.side === 'both' || tat.side === (s < 0 ? 'right' : 'left');   // (the arm at -x is the person's right)
+    const tatM = inked ? mat(C.skin, { roughness: 0.6, map: tattooTex(s < 0 ? 0 : 1) }) : skin;
+    const sleeveM = long ? shirt : tat.cover === 'sleeve' ? tatM : skin, foreM = long ? shirt : tatM;
     const lining = (rt, rb, h, y, par) => mk(cy(rt - 0.002, rb - 0.002, h, 14, true), shirtIn, 0, y, 0, par, false);   // the inside of a sleeve, seen at its opening
     const roll = (r, y, par) => { const e = mk(geo(`roll:${r.toFixed(3)}`, () => new THREE.TorusGeometry(r, 0.006, D(6, 3), D(24, 10))), shirtDark, 0, y, 0, par, false); e.rotation.x = Math.PI / 2; };   // a rolled edge round an opening
     // the upper arm: rounded over its top, fullest just below the shoulder, tapering to the elbow (open there, where
@@ -697,7 +813,7 @@ function buildBodyAt(look, seed) {
     const elbow = new THREE.Group(); elbow.position.set(0, -0.27, 0); sh.add(elbow); elbows.push(elbow);
     mk(sp(0.05 * S, 14, 10), sleeveM, 0, 0, 0, elbow);                                             // fills the elbow only when it bends
     const wrist = long ? (loose ? 0.05 : 0.046) * S : 0.044;
-    mk(cy(0.052 * S, wrist, 0.24, 14, true), sleeveM, 0, -0.12, 0, elbow);                          // forearm, the same width where they meet
+    mk(cy(0.052 * S, wrist, 0.24, 14, true), foreM, 0, -0.12, 0, elbow);                            // forearm, the same width where they meet
     if (long) {   // the cuff: a band at the wrist, the sleeve's inside showing round the hand; a loose sleeve bunches above it
       mk(cy(wrist + 0.003, wrist + 0.003, 0.03, 14, true), shirtDark, 0, -0.225, 0, elbow, false);
       lining(wrist + 0.003, wrist + 0.003, 0.04, -0.22, elbow); roll(wrist + 0.003, -0.238, elbow);
@@ -721,7 +837,7 @@ function buildBodyAt(look, seed) {
   [[0.05, 0.008], [0.05, -0.008], [0.042, 0], [0.058, 0]].forEach(([x, z]) => mk(sp(0.004, 6, 4), mat(0xb8b8bc), x, 0.017, z, pad, false));   // face buttons
   mk(bx(0.018, 0.004, 0.006), padB, -0.05, 0.017, 0, pad, false); mk(bx(0.006, 0.004, 0.018), padB, -0.05, 0.017, 0, pad, false);          // d-pad
   pad.position.set(0, 0.95, 0.43); pad.visible = false; g.add(pad);
-  return { g, legs, arms, elbows, head, hand, handL, pad, eyes, mouth, skirt, skinM: skin, strip: { bare, bunch, pants, skin } };
+  return { g, legs, arms, elbows, head, hand, handL, pad, eyes, mouth, skirt, skinM: skin, strip: { bare, bunch, cover, pants, skin } };
 }
 
 // hats, each a shell round its own tipped crown down to a front edge `elev` above the eyes; own is the hat's own thickness

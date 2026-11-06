@@ -261,8 +261,8 @@ export function hairLabel(h: Hair): string {
 }
 // what's worn below the waist: pants or a skirt, and for pants how wide they are
 export const CLOTHES: Record<'bottom' | 'fit' | 'top' | 'sleeve', Option[]> = {
-  bottom: [{ value: 'pants', label: '褲子' }, { value: 'skirt', label: '裙子' }],
-  fit: [{ value: 'slim', label: '窄管' }, { value: 'regular', label: '一般' }, { value: 'wide', label: '寬褲' }],
+  bottom: [{ value: 'pants', label: '褲子' }, { value: 'shorts', label: '短褲' }, { value: 'skirt', label: '裙子' }],
+  fit: [{ value: 'slim', label: '窄管' }, { value: 'regular', label: '一般' }, { value: 'wide', label: '寬褲' }],   // (for shorts: how roomy their legs are)
   top: [{ value: 'slim', label: '合身' }, { value: 'regular', label: '一般' }, { value: 'oversize', label: '寬鬆' }],   // how the top is cut
   sleeve: [{ value: 'short', label: '短袖' }, { value: 'long', label: '長袖' }],
 };
@@ -288,6 +288,30 @@ export function hatOf(look: Look): { hat: string; color: number } {
     : look.hat == null && (look.hairStyle === 'cap' || look.hairStyle === 'bucket') && typeof look.cap === 'number' ? look.cap
     : look.hat == null && typeof look.beanie === 'number' ? look.beanie : HAT_COLOR[hat] ?? 0xd08a1e;
   return { hat, color };
+}
+
+// shoes: a style, in the shoe colour
+export const SHOE_STYLES: Option[] = [
+  { value: 'sneaker', label: '球鞋' }, { value: 'hightop', label: '高筒帆布鞋' }, { value: 'boots', label: '靴子' }, { value: 'slides', label: '拖鞋' },
+];
+export function shoeOf(look: Look): { style: string; color: number } {
+  return { style: SHOE_STYLES.some(o => o.value === look.shoeStyle) ? (look.shoeStyle as string) : 'sneaker', color: typeof look.shoe === 'number' ? look.shoe : 0x1d1d1d };
+}
+// socks (seen on bare legs, under shorts or a skirt, and in slides)
+export const SOCKS: Option[] = [{ value: 'none', label: '無' }, { value: 'short', label: '短襪' }, { value: 'long', label: '長襪' }];
+export function socksOf(look: Look): { style: string; color: number } {
+  return { style: SOCKS.some(o => o.value === look.socks) ? (look.socks as string) : 'none', color: typeof look.sock === 'number' ? look.sock : 0xf2efe9 };
+}
+// tattoos: inked line work on the arms, on one or both, the forearm only or the whole arm
+export const TATTOO: Record<'side' | 'cover', Option[]> = {
+  side: [{ value: 'none', label: '無' }, { value: 'left', label: '左手' }, { value: 'right', label: '右手' }, { value: 'both', label: '雙手' }],
+  cover: [{ value: 'forearm', label: '小臂' }, { value: 'sleeve', label: '整隻手臂' }],
+};
+export function tattooOf(look: Look): { side: string; cover: string } {
+  return {
+    side: TATTOO.side.some(o => o.value === look.tattoo) ? (look.tattoo as string) : 'none',
+    cover: TATTOO.cover.some(o => o.value === look.tattooCover) ? (look.tattooCover as string) : 'forearm',
+  };
 }
 
 // a little companion that goes about with them (月亮小熊 flies at their shoulder)
@@ -355,6 +379,12 @@ export function parseLook(get: (k: string) => string | null, prev?: Look): Look 
     nose: opt('nose', face.nose), mouth: opt('mouth', face.mouth), facialHair: opt('facialHair', face.facialHair), beard: opt('beard', face.beard),
     glasses: opt('glasses', face.glasses), eyeColor: hex('eyeColor', face.eyeColor), blush: get('blush') === 'on',
     companion: COMPANIONS.some(c => c.value === get('companion')) ? (get('companion') as string) : companionOf(base),
+    shoe: hex('shoe', shoeOf(base).color),
+    socks: SOCKS.some(o => o.value === get('socks')) ? (get('socks') as string) : socksOf(base).style,
+    sock: hex('sock', socksOf(base).color),
+    shoeStyle: SHOE_STYLES.some(o => o.value === get('shoeStyle')) ? (get('shoeStyle') as string) : shoeOf(base).style,
+    tattoo: TATTOO.side.some(o => o.value === get('tattoo')) ? (get('tattoo') as string) : tattooOf(base).side,
+    tattooCover: TATTOO.cover.some(o => o.value === get('tattooCover')) ? (get('tattooCover') as string) : tattooOf(base).cover,
   };
   delete look.mustache; delete look.goatee;   // superseded by facialHair
   delete look.beanie; delete look.cap;          // superseded by hat / hatColor
