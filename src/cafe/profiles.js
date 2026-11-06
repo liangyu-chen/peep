@@ -8,14 +8,25 @@ import { FACE, FIGHTER_NAMES } from '../content/catalog';
 // any face option except 'none' (a first-timer always has brows and a nose)
 const pickFace = key => pick(FACE[key].filter(o => o.value !== 'none')).value;
 
+// all thirty NBA teams (East, then West), their abbreviation and jersey colours (main, trim)
 export const TEAMS = {
-  '湖人': { ab: 'LAL', c1: '#552583', c2: '#FDB927' }, '勇士': { ab: 'GSW', c1: '#1D428A', c2: '#FFC72C' },
-  '塞爾提克': { ab: 'BOS', c1: '#007A33', c2: '#ffffff' }, '公牛': { ab: 'CHI', c1: '#CE1141', c2: '#111111' },
-  '熱火': { ab: 'MIA', c1: '#98002E', c2: '#F9A01B' }, '獨行俠': { ab: 'DAL', c1: '#00538C', c2: '#B8C4CA' },
-  '金塊': { ab: 'DEN', c1: '#0E2240', c2: '#FEC524' }, '公鹿': { ab: 'MIL', c1: '#00471B', c2: '#EEE1C6' },
-  '太陽': { ab: 'PHX', c1: '#E56020', c2: '#1D1160' }, '尼克': { ab: 'NYK', c1: '#006BB6', c2: '#F58426' }
-};
-export const TEAM_NAMES = Object.keys(TEAMS);
+  '塞爾提克': { ab: 'BOS', c1: '#007A33', c2: '#ffffff' }, '籃網': { ab: 'BKN', c1: '#111111', c2: '#ffffff' },
+  '尼克': { ab: 'NYK', c1: '#006BB6', c2: '#F58426' }, '76人': { ab: 'PHI', c1: '#006BB6', c2: '#ED174C' },
+  '暴龍': { ab: 'TOR', c1: '#CE1141', c2: '#111111' }, '公牛': { ab: 'CHI', c1: '#CE1141', c2: '#111111' },
+  '騎士': { ab: 'CLE', c1: '#860038', c2: '#FDBB30' }, '活塞': { ab: 'DET', c1: '#C8102E', c2: '#1D42BA' },
+  '溜馬': { ab: 'IND', c1: '#002D62', c2: '#FDBB30' }, '公鹿': { ab: 'MIL', c1: '#00471B', c2: '#EEE1C6' },
+  '老鷹': { ab: 'ATL', c1: '#E03A3E', c2: '#C1D32F' }, '黃蜂': { ab: 'CHA', c1: '#1D1160', c2: '#00788C' },
+  '熱火': { ab: 'MIA', c1: '#98002E', c2: '#F9A01B' }, '魔術': { ab: 'ORL', c1: '#0077C0', c2: '#C4CED4' },
+  '巫師': { ab: 'WAS', c1: '#002B5C', c2: '#E31837' },
+  '金塊': { ab: 'DEN', c1: '#0E2240', c2: '#FEC524' }, '灰狼': { ab: 'MIN', c1: '#0C2340', c2: '#78BE20' },
+  '雷霆': { ab: 'OKC', c1: '#007AC1', c2: '#EF3B24' }, '拓荒者': { ab: 'POR', c1: '#E03A3E', c2: '#111111' },
+  '爵士': { ab: 'UTA', c1: '#4B2A86', c2: '#ffffff' }, '勇士': { ab: 'GSW', c1: '#1D428A', c2: '#FFC72C' },
+  '快艇': { ab: 'LAC', c1: '#C8102E', c2: '#1D428A' }, '湖人': { ab: 'LAL', c1: '#552583', c2: '#FDB927' },
+  '太陽': { ab: 'PHX', c1: '#E56020', c2: '#1D1160' }, '國王': { ab: 'SAC', c1: '#5A2D81', c2: '#63727A' },
+  '獨行俠': { ab: 'DAL', c1: '#00538C', c2: '#B8C4CA' }, '火箭': { ab: 'HOU', c1: '#CE1141', c2: '#111111' },
+  '灰熊': { ab: 'MEM', c1: '#5D76A9', c2: '#12173F' }, '鵜鶘': { ab: 'NOP', c1: '#0C2340', c2: '#C8102E' },
+  '馬刺': { ab: 'SAS', c1: '#111111', c2: '#C4CED4' },
+};export const TEAM_NAMES = Object.keys(TEAMS);
 
 const SKINS = [0xf1c9a5, 0xe0ac80, 0xc68a5e, 0x8d5a3b, 0xf6d7bd, 0xd9a27c];
 const HAIRS = [0x1b1410, 0x3b2618, 0x6b4423, 0x111111, 0xb07a3b, 0x8a8a8a];

@@ -216,7 +216,9 @@ export const RENAMED_LINES: [string, string, string][] = [
 
 
 // ---------------------------------------------------------------- regulars
-export const TEAM_NAMES = ['湖人', '勇士', '塞爾提克', '公牛', '熱火', '獨行俠', '金塊', '公鹿', '太陽', '尼克'];
+// all thirty NBA teams, East then West (the same as profiles.js TEAMS, which has their colours)
+export const TEAM_NAMES = ['塞爾提克', '籃網', '尼克', '76人', '暴龍', '公牛', '騎士', '活塞', '溜馬', '公鹿', '老鷹', '黃蜂', '熱火', '魔術', '巫師',
+  '金塊', '灰狼', '雷霆', '拓荒者', '爵士', '勇士', '快艇', '湖人', '太陽', '國王', '獨行俠', '火箭', '灰熊', '鵜鶘', '馬刺'];
 type Option = { value: string; label: string };
 // hair is chosen part by part: how long, straight or curly, what it does at the forehead, and whether it's tied up
 export const HAIR: Record<'length' | 'curl' | 'front' | 'tie', Option[]> = {
