@@ -130,7 +130,7 @@ export function makeDog() {
   return { g, b, head, legs, tail, t: Math.random() * 10, placed: false, sit: 0, name: '夜叉丸', line: '汪！', bubbleY: 0.32, trail: [], spot: null };
 }
 
-// 柯基: a Pembroke corgi. A long low loaf of a body on very short legs, red-tan over the back and sides with white
+// 蘿蔔糕: a Pembroke corgi. A long low loaf of a body on very short legs, red-tan over the back and sides with white
 // underneath (chest, belly, the fluffy seat of his "pants"), white paws; a fox face, tan with a white blaze up the middle
 // and a white muzzle, big upright ears pink inside, his tongue out and his head tipped to one side; a little stub of a
 // tail. Goes about just as 夜叉丸 does (the same trot, sit and following).
@@ -264,7 +264,7 @@ export function makeCorgi() {
   tg.setAttribute('color', new THREE.Float32BufferAttribute(tc, 3)); tg.computeVertexNormals();
   const tm = new THREE.Mesh(tg, m.tail); tm.castShadow = true; tail.add(tm);
 
-  return { g, b, head, legs, tail, paw: new THREE.Vector3(0, 0.011, 0.093), t: Math.random() * 10, placed: false, sit: 0, name: '柯基', line: '汪！', bubbleY: 0.4, trail: [], spot: null };
+  return { g, b, head, legs, tail, paw: new THREE.Vector3(0, 0.011, 0.093), t: Math.random() * 10, placed: false, sit: 0, name: '蘿蔔糕', line: '汪！', bubbleY: 0.4, trail: [], spot: null };
 }
 
 // trot (legs swinging, a little bounce) or sit; the tail wags all the while. Sitting, he rocks back about where his front
