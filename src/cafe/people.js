@@ -79,6 +79,7 @@ export const SMOKE_POSE = {
 };
 
 // an iced drink's colour in the glass, by what it is
+const strawM = mat(0x161616, { roughness: 0.4 });
 const iceM = mat(0xeef6fa, { roughness: 0.1, transparent: true, opacity: 0.7 });
 function icedColour(drink = '') {
   const d = String(drink);
@@ -105,6 +106,8 @@ export function makeCup(drink, variant) {
       const cube = new THREE.Mesh(new THREE.BoxGeometry(0.022, 0.022, 0.022), iceM); cube.position.set(x, y, z); cube.rotation.set(r, r * 0.7, 0); fill.add(cube);
     });
     g.userData.fill = fill;
+    // a straw, leaning against the rim and standing well up out of it
+    const straw = cyl(0.0035, 0.0035, 0.26, strawM, 0.016, 0.15, 0.006, g, 6); straw.rotation.z = -0.14;
   } else { // Taiwanese tea cup for hot lattes
     cyl(0.06, 0.04, 0.06, teaCupM, 0, 0.03, 0, g, 14);
     g.userData.top = cyl(0.056, 0.056, 0.006, mat(0xc89b6c), 0, 0.058, 0, g, 14);   // the latte's surface, sinking as it's drunk
