@@ -389,7 +389,7 @@ const laceM = mat(0xeeeeea, { roughness: 0.7 });
 const SH_LIGHT = mat(0xe9e5da, { roughness: 0.8 });    // a canvas shoe's white rubber sole and toe cap
 const bootSoleM = mat(0x1c1917, { roughness: 0.85 });
 // one foot's shoe, in its style, hung from the knee (the foot's centre 0.287 below it)
-function buildShoe(style, knee, mk, { shoe, skin, light }) {
+function buildShoe(style, knee, mk, { shoe, skin, light, ankle = true }) {   // ankle: it shows (bare legs), not under a trouser hem
   const Y = -0.287;
   // the top of a boot's or high-top's shaft: a lip closing the gap down to the leg, so no ankle shows inside it
   const collarTop = (r, y, z) => { const m = shoe.clone(); m.color.multiplyScalar(0.55); m.side = THREE.DoubleSide; const ring = mk(geo(`collar:${r}`, () => new THREE.RingGeometry(0.03, r, D(20, 10))), m, 0, y, z, knee, false); ring.rotation.x = -Math.PI / 2; };
@@ -428,10 +428,12 @@ function buildShoe(style, knee, mk, { shoe, skin, light }) {
     mk(bx(0.016, 0.03, 0.006), shoe, 0, Y + 0.13, -0.075, knee, false);         // the pull tab
     return;
   }
-  // 球鞋: one rounded piece on a sole that follows its outline, with laces across the top
+  // 球鞋: one rounded piece on a sole that follows its outline, a padded collar a little way up the ankle, laces across the top
   mk(shoeGeo(false), shoe, 0, Y, 0, knee);
   mk(shoeGeo(true), soleM, 0, Y, 0, knee, false);
+  if (ankle) { mk(cy(0.066, 0.069, 0.046, 18, true), shoe, 0, Y + 0.052, -0.004, knee); collarTop(0.066, Y + 0.075, -0.004); }   // (under trousers, their hem's over it)
   laces([0.03, 0.055, 0.08]);
+  if (ankle) mk(bx(0.05, 0.006, 0.01), laceM, 0, Y + 0.066, 0.06, knee, false);   // one more, up the collar
 }
 // the torso: slices up the body, each an oval [y, half-width, half-depth]; it narrows a little to the waist, widens to
 // the shoulders and then slopes up to the neck in one curve
@@ -699,13 +701,13 @@ function buildBodyAt(look, seed) {
     // socks: only where they'd show, on a bare shin (a short one round the ankle, a long one up to under the knee, a
     // ribbed band at the top), and over the foot in slides
     // (in boots or high-tops only what rises above the shoe is drawn, so a short one is hidden in it altogether)
-    const sockFrom = { boots: 0.07, hightop: 0.05 }[SH.style] || 0, sockTop = SK.style === 'long' ? 0.2 : 0.06;
+    const sockFrom = { boots: 0.07, hightop: 0.05, sneaker: 0.025 }[SH.style] || 0, sockTop = SK.style === 'long' ? 0.2 : 0.06;
     if (sockM && bareLegs && sockTop > sockFrom + 0.02) {
       const top = sockTop, h0 = sockFrom, rAt = h => 0.052 + (RK - 0.052) * (h / 0.25) + 0.004;   // h: up from the shin's foot
       mk(cy(rAt(top), rAt(h0), top - h0, 16, true), sockM, 0, -0.25 + (top + h0) / 2, 0, knee, false);
       mk(cy(rAt(top) + 0.002, rAt(top - 0.02) + 0.002, 0.02, 16, true), sockRib, 0, -0.25 + top - 0.01, 0, knee, false);
     }
-    buildShoe(SH.style, knee, mk, { shoe, skin: sockM || skin, light: SH_LIGHT });
+    buildShoe(SH.style, knee, mk, { shoe, skin: sockM || skin, light: SH_LIGHT, ankle: bareLegs });
     return { hip, knee };
   });
   // hips: one piece from the waist splitting into the two legs, no join between them (separate hips and thighs leave a
