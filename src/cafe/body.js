@@ -369,7 +369,8 @@ const SHOE = { w: 0.062, h: 0.052, l: 0.128, fwd: 0.035, flat: -0.016 };
 const shoeShape = (x, y, z) => {
   const t = z;                                                            // -1 at the heel, 1 at the toe
   const X = x * SHOE.w * (1 + 0.14 * Math.max(0, t) - 0.08 * Math.max(0, -t));
-  const Z = t * SHOE.l + SHOE.fwd;
+  let Z = t * SHOE.l + SHOE.fwd;
+  if (Z < 0) Z *= 0.78;                                                   // the heel drawn in, just behind the ankle rather than well out behind it
   let Y = y * SHOE.h * (1 - 0.35 * Math.max(0, t) ** 2);                  // lower over the toes
   Y = Math.max(SHOE.flat, Y) + 0.012 * Math.max(0, t) ** 3;               // flat under the foot, the toe turned up
   return [X, Y, Z];
@@ -389,14 +390,12 @@ const laceM = mat(0xeeeeea, { roughness: 0.7 });
 // a canvas shoe's rubber: the upper's own outline a hair larger, from the ground up the sides to FOX (a band wrapping
 // the foot, not a plate under it); its flat underside on the ground where a sneaker's sole is
 const FOX = 0.006;
-const CANVAS_HEEL = 0.78;   // a canvas shoe's heel drawn in, to sit just behind the ankle rather than well out behind it
 const smooth = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 const foxGeo = () => geo('fox', () => {
   const g = new THREE.SphereGeometry(1, D(56), D(36)), p = g.attributes.position;   // (fine, so its top edge runs smooth)
   for (let i = 0; i < p.count; i++) {
     const z0 = p.getZ(i), curl = 0.012 * Math.max(0, z0) ** 3;   // (the upper's toe turns up; the sole stays flat out to the tip, wrapping up over it)
     let [X, Y, Z] = shoeShape(p.getX(i), p.getY(i), z0);
-    if (Z < 0) Z *= CANVAS_HEEL;
     X *= 1.018; Z = (Z - SHOE.fwd) * 1.015 + SHOE.fwd;
     const cap = 0.036 * smooth(0.4, 0.8, z0);   // over the toe it rises into the rounded rubber toe cap, one piece with the sole
     // (stood just proud of the upper all over, so the two never flicker where they meet)
@@ -415,7 +414,6 @@ const hiTopGeo = (S = HI) => geo(`shoeRaised:${S.top}`, () => {
   for (let i = 0; i < p.count; i++) {
     const x = p.getX(i), y = p.getY(i), z = p.getZ(i);
     let [X, Y, Z] = shoeShape(x, y, z);
-    if (Z < 0) Z *= CANVAS_HEEL;
     if (y > 0) {
       const w = smooth(S.z0 ?? 0.14, S.z1 ?? 0.05, Z) * smooth(0.15, 0.7, y);   // how much it's drawn up: the back half, the upper part
       const phi = uv.getX(i) * Math.PI * 2, a = Math.atan2(-Math.cos(phi), Math.sin(phi));   // its angle round the leg (from the sphere's own u, so even the pole's points have one)
@@ -495,7 +493,7 @@ function buildShoe(style, knee, mk, { shoe, skin, light, ankle = true }) {   // 
     // 靴子: leather up the ankle, a thick dark sole with a heel, a pull tab at the back
     const up = mk(shoeGeo(false), shoe, 0, Y + 0.003, 0, knee); up.scale.set(1.06, 1.08, 1.04);
     const sole = mk(shoeGeo(true), bootSoleM, 0, Y - 0.003, 0, knee, false); sole.scale.set(1.06, 2.2, 1.05);
-    mk(bx(0.07, 0.022, 0.05), bootSoleM, 0, Y - 0.026, -0.065, knee, false);   // the heel
+    mk(bx(0.07, 0.022, 0.05), bootSoleM, 0, Y - 0.026, -0.05, knee, false);   // the heel
     mk(cy(0.073, 0.075, 0.11, 18, true), shoe, 0, Y + 0.07, 0, knee);   // (round the leg's own centre, clear of it all round)
     collarTop(0.073, Y + 0.125, 0);
     mk(bx(0.016, 0.03, 0.006), shoe, 0, Y + 0.13, -0.075, knee, false);         // the pull tab
