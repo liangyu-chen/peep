@@ -1690,9 +1690,10 @@ function buildHair(hairParts, shape, head, hairM, mk, at, look) {
       const crownTop = deform(HEADS[shape], v.copy(hatN)).addScaledVector(hatN, T).sub(c).dot(hatN), h = crownTop - 0.012;   // (sat down close over the crown, soft and flattened; kept clear of the hair below)
       // (a flat soft disc more than a dome: snug at the band, flaring out wide, a rounded rim, the top nearly flat)
       // (its edge a full round roll, not a thin lip: swelling out over a good depth and rounding back in smoothly)
-      const body = new THREE.LatheGeometry([[rb * 0.99, -0.03], [rb * 1.0, -0.008], [rb * 1.05, h * 0.12], [rb * 1.11, h * 0.26],
-        [rb * 1.16, h * 0.4], [rb * 1.185, h * 0.53], [rb * 1.19, h * 0.64], [rb * 1.165, h * 0.75], [rb * 1.1, h * 0.84],
-        [rb * 0.98, h * 0.91], [rb * 0.78, h * 0.965], [rb * 0.45, h * 0.993], [0.001, h]].map(([r, y]) => new THREE.Vector2(r, y)), 56);
+      // (the roll near enough a half circle in section, from just over the band up to the top, then the top rounding in)
+      const roll = []; for (let s = 0; s <= 12; s++) { const th = -Math.PI / 2 + Math.PI * s / 12; roll.push([rb * (1.0 + 0.22 * Math.cos(th)), h * (0.5 + 0.42 * Math.sin(th))]); }
+      const body = new THREE.LatheGeometry([[rb * 0.99, -0.03], [rb * 1.0, -0.008], ...roll,
+        [rb * 0.86, h * 0.95], [rb * 0.62, h * 0.982], [rb * 0.34, h * 0.997], [0.001, h]].map(([r, y]) => new THREE.Vector2(r, y)), 56);
       // the band stays snug round the head all the way round (nothing lifts off it to show the hair under it); only the
       // soft body above it slouches over to one side, the more the higher it is: tighter on the side it slouches away
       // from, fuller on the other, where it hangs down over the edge
