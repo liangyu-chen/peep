@@ -137,7 +137,8 @@ export function makeDog() {
 let CM = null;
 const corgiMats = () => CM || (CM = {
   body: mat(0xffffff, { roughness: 0.95, vertexColors: true }),
-  tan: mat(picked(0xd2873f), { roughness: 0.95 }),
+  tan: mat(picked(0xc99a62), { roughness: 0.95 }),        // a light golden fawn
+  tail: mat(0xffffff, { roughness: 0.95, vertexColors: true }),   // fawn going paler to its tip
   white: mat(picked(0xf6f0e6), { roughness: 0.95 }),
   earIn: mat(picked(0xe9a9a6), { roughness: 0.9 }),
   dark: mat(0x141214, { roughness: 0.35 }),
@@ -150,7 +151,8 @@ let corgiBodyGeo = null;
 function corgiBody() {
   if (corgiBodyGeo) return corgiBodyGeo;
   const g = new THREE.SphereGeometry(1, 28, 20), p = g.attributes.position, col = [];
-  const tan = new THREE.Color(picked(0xd2873f)), white = new THREE.Color(picked(0xf6f0e6)), c = new THREE.Color();
+  const tan = new THREE.Color(picked(0xc99a62)), white = new THREE.Color(picked(0xf6f0e6)), c = new THREE.Color();
+  const saddle = new THREE.Color(picked(0xa97c4a));   // a shade darker down the back, where the coat's tips are
   for (let i = 0; i < p.count; i++) {
     const x = p.getX(i), y = p.getY(i), z = p.getZ(i);
     // a loaf: long, flat-ish on top, the ends rounded off (fuller at the chest, a round seat behind)
@@ -163,7 +165,7 @@ function corgiBody() {
     p.setXYZ(i, X, Y, Z);
     // white underneath and up the chest, tan over the back and sides
     const under = smooth(-0.05, -0.45, y), chest = smooth(0.55, 0.85, z) * smooth(0.45, -0.1, y);
-    c.copy(tan).lerp(white, Math.min(1, under + chest)); col.push(c.r, c.g, c.b);
+    c.copy(tan).lerp(saddle, smooth(0.35, 0.9, y) * 0.8).lerp(white, Math.min(1, under + chest)); col.push(c.r, c.g, c.b);
   }
   g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
   g.computeVertexNormals(); return (corgiBodyGeo = g);
@@ -206,9 +208,28 @@ export function makeCorgi() {
     hip.userData.front = front;
     return hip;
   });
-  // a short stub of a tail on the round of his seat
-  const tail = new THREE.Group(); tail.position.set(0, C_HIP + 0.06, -0.124); b.add(tail);
-  fuzz(0.018, 17, m.tan, 0, 0, 0, tail, 1, 0.9, 1.1);
+  // his tail: long and bushy, carried up off his seat and curling forward over his back, thick at the root (sunk into
+  // him) and tapering, its fur tufted along it, paler toward the tip
+  const tail = new THREE.Group(); tail.position.set(0, C_HIP + 0.05, -0.112); b.add(tail);
+  const curve = new THREE.CatmullRomCurve3([[0, -0.01, 0.012], [0, 0.02, -0.022], [0, 0.065, -0.036], [0, 0.105, -0.022], [0, 0.124, 0.008], [0, 0.118, 0.04]].map(a => new THREE.Vector3(...a)));
+  // (one bushy piece: the tube's surface tufted, each point pushed out or in a little at random, and fullest in its
+  // middle, rounding off at the tip; not a string of fluff balls)
+  const SEG = 26, SIDES = 11;
+  const tg = taperedTube(curve, 0.026, 0.012, SEG, SIDES), tp = tg.attributes.position, tc = [];
+  const fawn = new THREE.Color(picked(0xc99a62)), pale = new THREE.Color(picked(0xf0e4cf)), cc = new THREE.Color(), ctr = new THREE.Vector3(), tv = new THREE.Vector3();
+  let sd = 4242; const rnd = () => { sd = (sd * 16807) % 2147483647; return sd / 2147483647; };
+  for (let i = 0; i <= SEG; i++) {
+    const u = i / SEG; curve.getPointAt(u, ctr);
+    const bulge = (1 + 0.35 * Math.sin(Math.PI * Math.min(1, u * 1.15))) * (u > 0.92 ? 1 - (u - 0.92) * 8 : 1);
+    const ring = []; for (let j = 0; j < SIDES; j++) ring.push(1 + (rnd() - 0.45) * 0.3);
+    for (let j = 0; j <= SIDES; j++) {
+      const k = i * (SIDES + 1) + j, f = bulge * ring[j % SIDES];   // (the ring's seam pushed alike, so it stays closed)
+      tv.fromBufferAttribute(tp, k).sub(ctr).multiplyScalar(f).add(ctr); tp.setXYZ(k, tv.x, tv.y, tv.z);
+      cc.copy(fawn).lerp(pale, smooth(0.6, 1, u)); tc.push(cc.r, cc.g, cc.b);
+    }
+  }
+  tg.setAttribute('color', new THREE.Float32BufferAttribute(tc, 3)); tg.computeVertexNormals();
+  const tm = new THREE.Mesh(tg, m.tail); tm.castShadow = true; tail.add(tm);
 
   return { g, b, head, legs, tail, paw: new THREE.Vector3(0, 0.011, 0.087), t: Math.random() * 10, placed: false, sit: 0, name: '柯基', line: '汪！', bubbleY: 0.4, trail: [], spot: null };
 }
