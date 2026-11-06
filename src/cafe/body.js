@@ -930,13 +930,17 @@ function buildBodyAt(look, seed) {
     const surfY = (x, z) => { for (let i = shirtTop; i > 0; i--) { const [y, rx, rz] = rows[i]; if ((x / rx) ** 2 + (z / rz) ** 2 <= 1) { if (i === shirtTop) return y; const [y1, rx1, rz1] = rows[i + 1], e = (x / rx) ** 2 + (z / rz) ** 2, e1 = (x / rx1) ** 2 + (z / rz1) ** 2; return y + (y1 - y) * Math.min(1, (1 - e) / Math.max(1e-4, e1 - e)); } } return -1; };
     // the top's U neckline is wide for a shirt: its two fronts fill it, leaving only a V open down to the top button
     const vEdges = [];   // (each front's edge down the V, drawn in once the seams are)
+    // how far the neckline dips below the neck at x across the front: most under the throat, none by the sides
+    const neckDip = x => 0.028 * Math.max(0, 1 - (x / 0.078) ** 2);
     for (const sgn of [-1, 1]) {
       const R = 8, C = 6, fp = [], fi = [], edge = [];
       for (let r = 0; r <= R; r++) {
         const y = UNECK.bot - 0.012 + (UNECK.neck - UNECK.bot + 0.012) * r / R;   // (up to the collar)
         const v = 0.004 + 0.044 * Math.max(0, (y - UNECK.bot + 0.008) / (UNECK.neck - UNECK.bot + 0.008)) ** 0.9, u = uHalf(Math.min(y, UNECK.neck)) + 0.008;
-        for (let c = 0; c <= C; c++) { const x = sgn * (v + (Math.max(u, v + 0.01) - v) * c / C); fp.push(x, y, surfZ(x, y) + 0.0025); }
-        edge.push(new THREE.Vector3(sgn * v, y, surfZ(sgn * v, y) + 0.003));
+        // (each point no higher than the neckline's curve over it: above that is the throat)
+        for (let c = 0; c <= C; c++) { const x = sgn * (v + (Math.max(u, v + 0.01) - v) * c / C), yy = Math.min(y, UNECK.neck - neckDip(x)); fp.push(x, yy, surfZ(x, yy) + 0.0025); }
+        const ye = Math.min(y, UNECK.neck - neckDip(v));
+        edge.push(new THREE.Vector3(sgn * v, ye, surfZ(sgn * v, ye) + 0.003));
       }
       vEdges.push(edge);
       for (let r = 0; r < R; r++) for (let c = 0; c < C; c++) { const a = r * (C + 1) + c, b = a + C + 1; fi.push(a, a + 1, b, a + 1, b + 1, b); }
@@ -951,9 +955,12 @@ function buildBodyAt(look, seed) {
       const fromFront = (phi <= Math.PI ? phi : Math.PI * 2 - phi) - gap;
       const front = Math.max(0, 1 - fromFront / 0.95);
       const back = Math.min(1, Math.max(0, 0.35 - sz) / 1.1) ** 0.8;   // and how much it's round the back
-      // on the neckline itself (any lower and the shirt's shoulders cover it)
-      const yb = UNECK.neck, [rx, rz] = slice(UNECK.neck);
-      const at = (k, dy, ox = 0) => new THREE.Vector3(sx * rx * 1.015 * k + Math.sign(sx) * ox, yb + dy, sz * rz * 1.015 * k);
+      // on the neckline: level round the back and sides, and in front curving down in a U under the throat (the way a
+      // shirt's neck is cut), sat on the chest's own surface there
+      const [rx, rz] = slice(UNECK.neck), bx0 = sx * rx * 1.015;
+      const yb = sz > 0 ? UNECK.neck - neckDip(bx0) : UNECK.neck;
+      const bz0 = sz > 0 ? Math.max(surfZ(bx0, yb), sz * rz) * 1.015 : sz * rz * 1.015;
+      const at = (k, dy, ox = 0) => new THREE.Vector3(bx0 * k + Math.sign(sx) * ox, yb + dy, bz0 * k);
       // a stand up from the neckline all the way round (taller round the back of the neck, as a shirt's is, but seen in
       // front too, wrapping the throat), a rounded fold over its top, and the fall turned down outside it, hiding the
       // stand; in front the fall runs on down the chest into the two points, a narrow V between them.
