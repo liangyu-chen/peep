@@ -62,10 +62,6 @@ body:has(.cafe-root){margin:0;overflow:hidden;background:#141218}
 /* the music and the sound effects on one switch, under the menu (their own row in the panel is gone); the panel's
    fold tab is for phones only */
 .cafe-root #controls .soundRow,.cafe-root #ctrlFold{display:none}
-.cafe-root .tileSound{background:#7ec8ff;color:#1f1c27}
-.cafe-root .tileSound .icoOff,.cafe-root .tileSound.on .icoOn{display:block}
-.cafe-root .tileSound .icoOn,.cafe-root .tileSound.on .icoOff{display:none}
-.cafe-root .tileSound:not(.on){background:#5a5868;color:#d8d4e0}
 /* 8-bit tiles: flat colours with hard bands, a chunky pixel bevel, pixel icons and pixel lettering; pressed, they drop */
 .cafe-root .tile{width:62px;height:50px;display:grid;place-items:center;align-content:center;gap:5px;padding:0;text-decoration:none;cursor:pointer;
   box-shadow:0 0 0 3px #000,inset -4px -4px 0 0 rgba(0,0,0,.32),inset 4px 4px 0 0 rgba(255,255,255,.45),5px 5px 0 0 #000;transition:none}
@@ -76,6 +72,14 @@ body:has(.cafe-root){margin:0;overflow:hidden;background:#141218}
 .cafe-root .tileMenu{background:#ffd23f;color:#1f1c27}
 .cafe-root .tileMenu.on{background:#ffe27a}
 .cafe-root .tile:focus-visible{outline:3px solid #fff;outline-offset:4px}
+/* the sound switch: blue and raised when sound is on, grey with the speaker crossed out when it's off (not the
+   pressed look the other tiles take when on) */
+.cafe-root .tileSound,.cafe-root .tileSound.on{background:#7ec8ff;color:#1f1c27;transform:none;
+  box-shadow:0 0 0 3px #000,inset -4px -4px 0 0 rgba(0,0,0,.32),inset 4px 4px 0 0 rgba(255,255,255,.45),5px 5px 0 0 #000}
+.cafe-root .tileSound:not(.on){background:#5a5868;color:#d8d4e0}
+.cafe-root .tileSound:active{transform:translate(4px,4px)}
+.cafe-root .tileSound .icoOff,.cafe-root .tileSound.on .icoOn{display:block}
+.cafe-root .tileSound .icoOn,.cafe-root .tileSound.on .icoOff{display:none}
 /* a game's window, over the café with it dimmed behind; the canvas keeps its 16:9 and fits the screen */
 .cafe-root .gameSheet{position:absolute;inset:0;z-index:20;display:grid;place-items:center;background:rgba(10,8,16,.4);padding:16px}
 .cafe-root .gameWin{position:relative;width:min(760px,100%);padding:12px 14px;display:grid;gap:10px;max-height:100%;overflow:auto}
