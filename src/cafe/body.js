@@ -392,9 +392,10 @@ const FOX = 0.006;
 const foxGeo = () => geo('fox', () => {
   const g = new THREE.SphereGeometry(1, D(32), D(20)), p = g.attributes.position;
   for (let i = 0; i < p.count; i++) {
-    let [X, Y, Z] = shoeShape(p.getX(i), p.getY(i), p.getZ(i));
-    X *= 1.018; Z = (Z - SHOE.fwd) * 1.012 + SHOE.fwd;
-    Y = Y <= SHOE.flat + 1e-4 ? SHOE.flat - 0.012 : Math.min(Y, FOX);
+    const z0 = p.getZ(i), curl = 0.012 * Math.max(0, z0) ** 3;   // (the upper's toe turns up; the sole stays flat out to the tip, wrapping up over it)
+    let [X, Y, Z] = shoeShape(p.getX(i), p.getY(i), z0);
+    X *= 1.018; Z = (Z - SHOE.fwd) * 1.015 + SHOE.fwd;
+    Y = p.getY(i) <= 0 ? SHOE.flat - 0.012 : Math.min(Y, FOX + curl);
     p.setXYZ(i, X, Y, Z);
   }
   g.computeVertexNormals(); return g;
@@ -461,7 +462,8 @@ function buildShoe(style, knee, mk, { shoe, skin, light, ankle = true }) {   // 
     const high = style === 'hightop', upper = high ? hiTopGeo() : shoeGeo(false);
     mk(upper, shoe, 0, Y, 0, knee);
     mk(foxGeo(), light, 0, Y, 0, knee, false);
-    const toe = mk(sp(1, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2), light, 0, Y - 0.013, 0.12, knee, false); toe.scale.set(0.072, 0.047, 0.06);
+    // (the toe cap stays within the sole's outline, sitting on the rubber band, so the sole runs right out under it)
+    const toe = mk(sp(1, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2), light, 0, Y + FOX - 0.004, 0.113, knee, false); toe.scale.set(0.071, 0.043, 0.056);
     if (high) {
       mk(cy(HI.r + 0.002, HI.r + 0.002, 0.008, 18, true), light, 0, Y + HI.top - 0.004, 0, knee, false);   // the collar's white edge
       collarTop(HI.r + 0.002, Y + HI.top, 0);
