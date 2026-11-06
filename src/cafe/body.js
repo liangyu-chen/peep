@@ -929,18 +929,21 @@ function buildBodyAt(look, seed) {
     const shirtTop = rows.findIndex(r => r[0] >= UNECK.neck - 1e-4);
     const surfY = (x, z) => { for (let i = shirtTop; i > 0; i--) { const [y, rx, rz] = rows[i]; if ((x / rx) ** 2 + (z / rz) ** 2 <= 1) { if (i === shirtTop) return y; const [y1, rx1, rz1] = rows[i + 1], e = (x / rx) ** 2 + (z / rz) ** 2, e1 = (x / rx1) ** 2 + (z / rz1) ** 2; return y + (y1 - y) * Math.min(1, (1 - e) / Math.max(1e-4, e1 - e)); } } return -1; };
     // the top's U neckline is wide for a shirt: its two fronts fill it, leaving only a V open down to the top button
+    const vEdges = [];   // (each front's edge down the V, drawn in once the seams are)
     for (const sgn of [-1, 1]) {
-      const R = 8, C = 6, fp = [], fi = [];
+      const R = 8, C = 6, fp = [], fi = [], edge = [];
       for (let r = 0; r <= R; r++) {
         const y = UNECK.bot - 0.012 + (UNECK.neck - UNECK.bot + 0.012) * r / R;   // (up to the collar)
-        const v = 0.004 + 0.03 * Math.max(0, (y - UNECK.bot + 0.008) / (UNECK.neck - UNECK.bot + 0.008)), u = uHalf(Math.min(y, UNECK.neck)) + 0.008;
+        const v = 0.004 + 0.044 * Math.max(0, (y - UNECK.bot + 0.008) / (UNECK.neck - UNECK.bot + 0.008)) ** 0.9, u = uHalf(Math.min(y, UNECK.neck)) + 0.008;
         for (let c = 0; c <= C; c++) { const x = sgn * (v + (Math.max(u, v + 0.01) - v) * c / C); fp.push(x, y, surfZ(x, y) + 0.0025); }
+        edge.push(new THREE.Vector3(sgn * v, y, surfZ(sgn * v, y) + 0.003));
       }
+      vEdges.push(edge);
       for (let r = 0; r < R; r++) for (let c = 0; c < C; c++) { const a = r * (C + 1) + c, b = a + C + 1; fi.push(a, a + 1, b, a + 1, b + 1, b); }
       const fg = new THREE.BufferGeometry(); fg.setAttribute('position', new THREE.Float32BufferAttribute(fp, 3)); fg.setIndex(fi); fg.computeVertexNormals();
       mk(fg, colM, 0, 0, 0, g, false);
     }
-    const gap = 0.11;   // (the two ends close to meeting at the top button, a little V of throat between)
+    const gap = 0.2;   // (the two ends parted over the open top button: the neckline's V, the throat showing)
     for (let i = 0; i <= N; i++) {
       const phi = gap + (Math.PI * 2 - 2 * gap) * i / N, sx = Math.sin(phi), sz = Math.cos(phi);
       // how near the front end this is: the points grow there, falling off evenly (a straight outer edge back from
@@ -978,13 +981,19 @@ function buildBodyAt(look, seed) {
     cross.forEach(c => c.forEach(v => pos.push(v.x, v.y, v.z)));
     for (let i = 0; i < N; i++) for (let j = 0; j < M - 1; j++) { const a0 = i * M + j, b0 = a0 + M; idx.push(a0, b0, a0 + 1, b0, b0 + 1, a0 + 1); }
     const cg = new THREE.BufferGeometry(); cg.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); cg.setIndex(idx); cg.computeVertexNormals();
-    mk(cg, colM, 0, 0, 0, g, false);
+    // its outside in the shirt's cloth, its inside (seen at the open neck, and under the fold) a shade darker, the way the
+    // inside of a collar sits in shadow
+    // (the strip is wound so its outside is the back face)
+    const colOut = patterned(shirt.clone(), pattern, C.shirt); colOut.side = THREE.BackSide;
+    mk(cg, colOut, 0, 0, 0, g, false);
+    mk(cg, mat(shade(C.shirt, 0.6), { roughness: 0.9, side: THREE.FrontSide }), 0, 0, 0, g, false);
     // its edges drawn in a thin darker seam (round the fall, and down each front to its point), so the turned-down collar
     // reads against the shirt beneath it
     const seam = (key, ptsList) => mk(geo(key, () => new THREE.TubeGeometry(new THREE.CatmullRomCurve3(ptsList), ptsList.length * 3, 0.0022, 5, false)), shirtDark, 0, 0, 0, g, false);
     const tag = `${topFit}:${TF.drop}`;
     seam(`colEdge:${tag}`, cross.map(c => c[M - 1]));
     seam(`colFrontL:${tag}`, cross[0].slice(1)); seam(`colFrontR:${tag}`, cross[N].slice(1));
+    vEdges.forEach((e, n) => seam(`shirtV${n}:${tag}`, e));   // (the fronts' edges, down either side of the open neck)
     const hemTop = 0.71 - TF.drop + 0.02, buttonM = mat(0xf4f1ea, { roughness: 0.4 });
     for (let y = 1.2; y > hemTop; y -= 0.04) {   // the placket, in short lengths following the curve of the front
       const a = on(0, y, 0.003), b = on(0, Math.max(hemTop, y - 0.04), 0.003), mid = a.clone().add(b).multiplyScalar(0.5);
