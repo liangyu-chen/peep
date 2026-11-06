@@ -62,24 +62,25 @@ body:has(.cafe-root){margin:0;overflow:hidden;background:#141218}
 /* the music and the sound effects on one switch, under the menu (their own row in the panel is gone); the panel's
    fold tab is for phones only */
 .cafe-root #controls .soundRow,.cafe-root #ctrlFold{display:none}
+.cafe-root #brand h1{padding-right:30px}   /* (clear of the speaker) */
 /* 8-bit tiles: flat colours with hard bands, a chunky pixel bevel, pixel icons and pixel lettering; pressed, they drop */
-.cafe-root .tile{width:62px;height:50px;display:grid;place-items:center;align-content:center;gap:5px;padding:0;text-decoration:none;cursor:pointer;
+.cafe-root .tile{width:50px;height:40px;display:grid;place-items:center;align-content:center;gap:5px;padding:0;text-decoration:none;cursor:pointer;
   box-shadow:0 0 0 3px #000,inset -4px -4px 0 0 rgba(0,0,0,.32),inset 4px 4px 0 0 rgba(255,255,255,.45),5px 5px 0 0 #000;transition:none}
-.cafe-root .tile svg{width:18px;height:18px;image-rendering:pixelated}
+.cafe-root .tile svg{width:15px;height:15px;image-rendering:pixelated}
 .cafe-root .tile span{font-family:var(--f-pixel);font-size:6px;letter-spacing:.04em;line-height:1}
 .cafe-root .tile:hover{transform:translate(1px,1px);box-shadow:0 0 0 3px #000,inset -4px -4px 0 0 rgba(0,0,0,.32),inset 4px 4px 0 0 rgba(255,255,255,.45),4px 4px 0 0 #000}
 .cafe-root .tile:active,.cafe-root .tile.on{transform:translate(4px,4px);box-shadow:0 0 0 3px #000,inset 4px 4px 0 0 rgba(0,0,0,.32),inset -4px -4px 0 0 rgba(255,255,255,.25),1px 1px 0 0 #000}
 .cafe-root .tileMenu{background:#ffd23f;color:#1f1c27}
 .cafe-root .tileMenu.on{background:#ffe27a}
 .cafe-root .tile:focus-visible{outline:3px solid #fff;outline-offset:4px}
-/* the sound switch: blue and raised when sound is on, grey with the speaker crossed out when it's off (not the
-   pressed look the other tiles take when on) */
-.cafe-root .tileSound,.cafe-root .tileSound.on{background:#7ec8ff;color:#1f1c27;transform:none;
-  box-shadow:0 0 0 3px #000,inset -4px -4px 0 0 rgba(0,0,0,.32),inset 4px 4px 0 0 rgba(255,255,255,.45),5px 5px 0 0 #000}
-.cafe-root .tileSound:not(.on){background:#5a5868;color:#d8d4e0}
-.cafe-root .tileSound:active{transform:translate(4px,4px)}
-.cafe-root .tileSound .icoOff,.cafe-root .tileSound.on .icoOn{display:block}
-.cafe-root .tileSound .icoOn,.cafe-root .tileSound.on .icoOff{display:none}
+/* the sound switch: a pixel speaker tucked in the name panel's top right corner, crossed out and dimmed when off */
+.cafe-root #brand .soundIcon{position:absolute;top:8px;right:8px;width:26px;height:26px;padding:4px;display:grid;place-items:center;
+  background:none;box-shadow:none;color:var(--ink)}
+.cafe-root #brand .soundIcon:hover{background:#2c2838;color:var(--gold)}
+.cafe-root #brand .soundIcon:not(.on){color:var(--muted)}
+.cafe-root #brand .soundIcon svg{width:18px;height:18px;image-rendering:pixelated}
+.cafe-root .soundIcon .icoOff,.cafe-root .soundIcon.on .icoOn{display:block}
+.cafe-root .soundIcon .icoOn,.cafe-root .soundIcon.on .icoOff{display:none}
 /* a game's window, over the café with it dimmed behind; the canvas keeps its 16:9 and fits the screen */
 .cafe-root .gameSheet{position:absolute;inset:0;z-index:20;display:grid;place-items:center;background:rgba(10,8,16,.4);padding:16px}
 .cafe-root .gameWin{position:relative;width:min(760px,100%);padding:12px 14px;display:grid;gap:10px;max-height:100%;overflow:auto}
@@ -153,10 +154,17 @@ body:has(.cafe-root){margin:0;overflow:hidden;background:#141218}
   .cafe-root #brand h1{font-size:18px}
   .cafe-root #controls{top:auto;bottom:calc(16px + env(safe-area-inset-bottom,0px));left:calc(16px + env(safe-area-inset-left,0px));right:calc(16px + env(safe-area-inset-right,0px));max-width:none;position:absolute}
   /* the panel can fold away to a tab */
-  .cafe-root #ctrlFold{display:block;position:absolute;top:-14px;right:10px;padding:2px 10px;font-size:12px;z-index:1}
-  .cafe-root #controls.folded{left:auto;padding:0;background:none;box-shadow:none}
+  .cafe-root #ctrlFold{display:grid;place-items:center;position:absolute;bottom:100%;right:14px;width:46px;height:20px;padding:0;z-index:1;
+    background:var(--panel);box-shadow:0 -4px 0 0 var(--edge),-4px 0 0 0 var(--edge),4px 0 0 0 var(--edge)}
+  .cafe-root #ctrlFold:hover{background:#2c2838}
+  /* its chevron, in pixels: pointing down to fold the panel away, up to bring it back */
+  .cafe-root #ctrlFold i{width:10px;height:6px;background:var(--gold);
+    clip-path:polygon(0 0,20% 0,50% 50%,80% 0,100% 0,100% 33%,50% 100%,0 33%)}
+  .cafe-root #ctrlFold.folded i{transform:scaleY(-1)}
+  .cafe-root #controls.folded{left:auto;width:auto;padding:0;background:none;box-shadow:none}
   .cafe-root #controls.folded .row{display:none}
-  .cafe-root #controls.folded #ctrlFold{position:static}
+  .cafe-root #controls.folded #ctrlFold{position:static;width:54px;height:26px;
+    box-shadow:0 -4px 0 0 var(--edge),0 4px 0 0 var(--edge),-4px 0 0 0 var(--edge),4px 0 0 0 var(--edge),8px 8px 0 0 var(--shade)}
   .cafe-root:has(#controls.folded) #card{bottom:calc(56px + env(safe-area-inset-bottom,0px))}
   .cafe-root #tvCard{bottom:auto;top:calc(16px + env(safe-area-inset-top,0px));width:150px;padding:8px 10px}
   .cafe-root #tvCard .team,.cafe-root #results,.cafe-root #tvCard h2{display:none}

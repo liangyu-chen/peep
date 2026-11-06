@@ -197,7 +197,7 @@ export function bindHUD(root, stage) {
   const fold = $('ctrlFold');
   on(fold, 'click', () => {
     const c = $('controls'), folded = c.classList.toggle('folded');
-    fold.textContent = folded ? '控制 ▴' : '▾'; fold.setAttribute('aria-expanded', String(!folded)); fold.setAttribute('aria-label', folded ? '展開控制' : '收起控制');
+    fold.classList.toggle('folded', folded); fold.setAttribute('aria-expanded', String(!folded)); fold.setAttribute('aria-label', folded ? '展開控制' : '收起控制');
   });
   on(root, 'pointerdown', () => startMusic());
   off.push(stopMusic);

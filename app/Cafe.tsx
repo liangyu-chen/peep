@@ -46,6 +46,11 @@ export default function Cafe({ content }: { content: CafeContent }) {
       <div id="topLeft">
       <section id="brand" className="win" aria-label="店況">
         <h1>窺視咖啡</h1>
+        {/* the music and the sound effects on one switch: a speaker in the panel's corner */}
+        <button id="soundToggle" className="soundIcon on" aria-label="聲音開關" title="聲音">
+          <PixelIcon rows={SPEAKER} className="icoOn" />
+          <PixelIcon rows={SPEAKER_OFF} className="icoOff" />
+        </button>
         <div id="clockRow"><span id="day">週五</span><b id="clock">16:00</b><span id="openPill">營業中</span></div>
         <div className="stats">
           <div><b id="sRev">0</b><span>營收(模擬)</span></div>
@@ -59,18 +64,12 @@ export default function Cafe({ content }: { content: CafeContent }) {
           <PixelIcon rows={CUP} />
           <span>MENU</span>
         </button>
-        {/* the music and the sound effects on one switch, under the menu */}
-        <button id="soundToggle" className="tile tileSound on" aria-label="聲音">
-          <PixelIcon rows={SPEAKER} className="icoOn" />
-          <PixelIcon rows={SPEAKER_OFF} className="icoOff" />
-          <span>SOUND</span>
-        </button>
       </nav>
       </div>
 
       <section id="controls" className="win" aria-label="控制">
         {/* phones only: fold the panel away to a small tab, and back */}
-        <button id="ctrlFold" type="button" aria-label="收起控制" aria-expanded="true">▾</button>
+        <button id="ctrlFold" type="button" aria-label="收起控制" aria-expanded="true"><i aria-hidden="true" /></button>
         <div className="row"><span>視角</span>
           <button data-cam="overview" className="on">全景</button>
           <button data-cam="counter">吧台</button>
