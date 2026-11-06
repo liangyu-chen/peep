@@ -164,12 +164,16 @@ function corgiBody() {
     });
     p.setXYZ(i, X, Y, Z);
     // white underneath and up the chest, tan over the back and sides
-    const under = smooth(-0.05, -0.45, y), chest = smooth(0.55, 0.85, z) * smooth(0.45, -0.1, y);
+    // (the chest the coat's colour too, but for a narrow white bib down its middle)
+    const under = smooth(-0.05, -0.45, y), chest = smooth(0.6, 0.9, z) * smooth(0.25, -0.2, y) * smooth(0.45, 0.15, Math.abs(x));
     c.copy(tan).lerp(saddle, smooth(0.35, 0.9, y) * 0.8).lerp(white, Math.min(1, under + chest)); col.push(c.r, c.g, c.b);
   }
   g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
   g.computeVertexNormals(); return (corgiBodyGeo = g);
 }
+// an ear: broad at the base (which sits down inside the head), narrowing to a rounded tip
+let earG = null;
+const earGeo = () => earG || (earG = new THREE.LatheGeometry([[0.0001, -0.02], [0.03, -0.012], [0.032, 0.008], [0.026, 0.032], [0.017, 0.052], [0.009, 0.063], [0.0001, 0.067]].map(([r, y]) => new THREE.Vector2(r, y)), 16));
 let corgiLegGeo = null;
 const corgiLeg = () => corgiLegGeo || (corgiLegGeo = new THREE.LatheGeometry([[0.0001, -C_LEG], [0.014, -C_LEG + 0.004], [0.016, -C_LEG * 0.5], [0.019, -C_LEG * 0.1], [0.02, 0.012], [0.0001, 0.03]].map(([r, y]) => new THREE.Vector2(r, y)), 12));
 
@@ -179,7 +183,8 @@ export function makeCorgi() {
   const body = new THREE.Mesh(corgiBody(), m.body); body.position.set(0, C_HIP + 0.03, 0); body.castShadow = true; b.add(body);
   // the fluffy white seat at the back, and the white ruff of his chest
   fuzz(0.045, 11, m.white, 0, C_HIP + 0.016, -0.104, b, 1.25, 0.9, 0.75);
-  fuzz(0.05, 13, m.white, 0, C_HIP + 0.04, 0.104, b, 1.05, 1.1, 0.7);
+  fuzz(0.05, 13, m.tan, 0, C_HIP + 0.04, 0.104, b, 1.05, 1.1, 0.7);   // the chest ruff, in the coat's colour
+  fuzz(0.022, 14, m.white, 0, C_HIP + 0.026, 0.142, b, 0.9, 1.6, 0.6);   // and its white bib
 
   // the head: tan, a long white muzzle, a white blaze up the middle, white cheeks; tipped to one side
   const head = new THREE.Group(); head.position.set(0, C_HIP + 0.105, 0.134); b.add(head);
@@ -192,10 +197,11 @@ export function makeCorgi() {
   [-1, 1].forEach(s => {
     ball(0.0085, m.dark, s * 0.024, 0.01, 0.046, skull);                           // eyes
     ball(0.0025, m.shine, s * 0.024 + 0.003, 0.014, 0.053, skull);
-    // big upright ears, set wide and leaning out, tan outside and pink in
-    const ear = new THREE.Group(); ear.position.set(s * 0.032, 0.04, -0.004); ear.rotation.set(-0.15, 0, -s * 0.38); skull.add(ear);
-    const outer = new THREE.Mesh(new THREE.ConeGeometry(0.031, 0.066, 12), m.tan); outer.position.y = 0.03; outer.scale.z = 0.45; outer.castShadow = true; ear.add(outer);
-    const inner = new THREE.Mesh(new THREE.ConeGeometry(0.022, 0.05, 12), m.earIn); inner.position.set(0, 0.025, 0.006); inner.scale.z = 0.32; ear.add(inner);
+    // big upright ears, set wide and leaning out, tan outside and pink in: a rounded triangle (not a sharp cone), their
+    // broad bases sunk into the head so they grow out of it
+    const ear = new THREE.Group(); ear.position.set(s * 0.03, 0.03, -0.004); ear.rotation.set(-0.15, 0, -s * 0.38); skull.add(ear);
+    const outer = new THREE.Mesh(earGeo(), m.tan); outer.scale.set(1, 1, 0.42); outer.castShadow = true; ear.add(outer);
+    const inner = new THREE.Mesh(earGeo(), m.earIn); inner.position.set(0, 0.008, 0.007); inner.scale.set(0.68, 0.78, 0.3); ear.add(inner);
   });
   const tongue = new THREE.Mesh(new THREE.SphereGeometry(0.011, 8, 6), m.tongue);
   tongue.position.set(0.004, -0.04, 0.062); tongue.scale.set(0.95, 1.6, 0.35); tongue.rotation.x = 0.35; skull.add(tongue);
@@ -215,13 +221,13 @@ export function makeCorgi() {
   // (one bushy piece: the tube's surface tufted, each point pushed out or in a little at random, and fullest in its
   // middle, rounding off at the tip; not a string of fluff balls)
   const SEG = 26, SIDES = 11;
-  const tg = taperedTube(curve, 0.026, 0.012, SEG, SIDES), tp = tg.attributes.position, tc = [];
+  const tg = taperedTube(curve, 0.018, 0.008, SEG, SIDES), tp = tg.attributes.position, tc = [];
   const fawn = new THREE.Color(picked(0xc99a62)), pale = new THREE.Color(picked(0xf0e4cf)), cc = new THREE.Color(), ctr = new THREE.Vector3(), tv = new THREE.Vector3();
   let sd = 4242; const rnd = () => { sd = (sd * 16807) % 2147483647; return sd / 2147483647; };
   for (let i = 0; i <= SEG; i++) {
     const u = i / SEG; curve.getPointAt(u, ctr);
-    const bulge = (1 + 0.35 * Math.sin(Math.PI * Math.min(1, u * 1.15))) * (u > 0.92 ? 1 - (u - 0.92) * 8 : 1);
-    const ring = []; for (let j = 0; j < SIDES; j++) ring.push(1 + (rnd() - 0.45) * 0.3);
+    const bulge = (1 + 0.15 * Math.sin(Math.PI * Math.min(1, u * 1.15))) * (u > 0.92 ? 1 - (u - 0.92) * 8 : 1);
+    const ring = []; for (let j = 0; j < SIDES; j++) ring.push(1 + (rnd() - 0.45) * 0.08);   // (just a hint of fur, smooth)
     for (let j = 0; j <= SIDES; j++) {
       const k = i * (SIDES + 1) + j, f = bulge * ring[j % SIDES];   // (the ring's seam pushed alike, so it stays closed)
       tv.fromBufferAttribute(tp, k).sub(ctr).multiplyScalar(f).add(ctr); tp.setXYZ(k, tv.x, tv.y, tv.z);
