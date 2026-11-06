@@ -1,7 +1,7 @@
 import { asc, eq } from 'drizzle-orm';
 import { getDb, schema } from './db';
 import {
-  DEFAULT_CONTENT, DEFAULT_MENU, DEFAULT_OWNER, DEFAULT_POOLS, DEFAULT_REGULARS, LINE_KEYS, POOL_KEYS,
+  DEFAULT_CONTENT, DEFAULT_MENU, DEFAULT_OWNER, DEFAULT_POOLS, DEFAULT_REGULARS, LINE_KEYS, POOL_KEYS, menuSection,
   type CafeContent, type RandomPools,
 } from '../content/catalog';
 
@@ -25,7 +25,7 @@ export async function getContent(): Promise<CafeContent & { source: 'db' | 'defa
       optional(db.select().from(schema.randomValues).orderBy(asc(schema.randomValues.sort), asc(schema.randomValues.id)), 'random_values'),
       optional(db.select().from(schema.settings).where(eq(schema.settings.key, 'owner')), 'settings'),
     ]);
-    const menu = menuRows.filter(r => r.active && (r.hot || r.ice)).map(({ name, en, section, hot, ice }) => ({ name, en, section, hot, ice }));
+    const menu = menuRows.filter(r => r.active && (r.hot || r.ice)).map(({ name, en, section, hot, ice }) => ({ name, en, section: menuSection(name, section), hot, ice }));
     const lines: Record<string, string[]> = {};
     for (const key of LINE_KEYS) {
       lines[key] = lineRows.filter(r => r.category === key && r.active).map(r => r.text);

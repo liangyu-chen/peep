@@ -9,7 +9,14 @@ export * from './look';
 export type MenuItem = { name: string; en: string; section: string; hot: string; ice: string };
 // 隱藏菜單: drinks that aren't on the menu customers see, but that some of them order anyway
 export const HIDDEN_SECTION = '隱藏菜單';
-export const MENU_SECTIONS = ['Original', 'Coffee late', 'Something special', 'Not coffee', HIDDEN_SECTION];
+// 蛋糕: the cakes, not on the menu either; nobody orders one on a whim (a first-timer's pick, a regular trying something
+// new), only a regular whose usual it is
+export const CAKE_SECTION = '蛋糕';
+export const MENU_SECTIONS = ['Original', 'Coffee late', 'Something special', 'Not coffee', HIDDEN_SECTION, CAKE_SECTION];
+export const OFF_MENU = [HIDDEN_SECTION, CAKE_SECTION];   // sections not printed on the paper menu
+// the cakes that were kept in the hidden menu before there was a 蛋糕 section: read as cakes until the menu's next saved
+const MOVED_TO_CAKES = ['伯爵茶肉鬆', '檸檬生乳酪', '提拉米蘇'];
+export const menuSection = (name: string, section: string) => (section === HIDDEN_SECTION && MOVED_TO_CAKES.includes(name) ? CAKE_SECTION : section);
 
 // the games a regular plays: NBA 2K and the fighting game on the TV, spinning tops in the arcade.
 // An empty team or fighter means a random one each visit. The fighting game is 快打旋風, its fighters in SF_FIGHTERS.

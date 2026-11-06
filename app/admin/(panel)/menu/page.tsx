@@ -1,7 +1,7 @@
 import { asc } from 'drizzle-orm';
 import { requireAdmin } from '@/src/lib/auth';
 import { getDb, schema } from '@/src/lib/db';
-import { DEFAULT_MENU, MENU_SECTIONS } from '@/src/content/catalog';
+import { DEFAULT_MENU, MENU_SECTIONS, menuSection } from '@/src/content/catalog';
 import MenuEditor, { type MenuRow } from './MenuEditor';
 
 export default async function MenuPage({ searchParams }: { searchParams: Promise<{ msg?: string }> }) {
@@ -10,7 +10,7 @@ export default async function MenuPage({ searchParams }: { searchParams: Promise
   const db = getDb();
   const rows: MenuRow[] = db
     ? (await db.select().from(schema.menuItems).orderBy(asc(schema.menuItems.sort), asc(schema.menuItems.id)))
-      .map(({ id, name, en, section, hot, ice, active }) => ({ id, name, en, section, hot, ice, active }))
+      .map(({ id, name, en, section, hot, ice, active }) => ({ id, name, en, section: menuSection(name, section), hot, ice, active }))
     : DEFAULT_MENU.map(m => ({ ...m, id: null, active: true }));
 
   return (
@@ -18,7 +18,7 @@ export default async function MenuPage({ searchParams }: { searchParams: Promise
       <h1>菜單</h1>
       <p className="hint">
         直接在表格裡改，改完按下方「儲存」。價格欄寫什麼就印什麼（例如 <code>120</code>、<code>∞</code>、<code>???</code>），留白代表沒有這個做法；
-        兩欄都有的飲料，客人會點冰或熱。用 ▲▼ 調整順序，就是紙菜單上的順序。放在「隱藏菜單」的品項不會印在菜單上，但客人還是可能會點。
+        兩欄都有的飲料，客人會點冰或熱。用 ▲▼ 調整順序，就是紙菜單上的順序。放在「隱藏菜單」的品項不會印在菜單上，但客人還是可能會點；「蛋糕」也不會印在菜單上，而且只有常點是它的熟客才會點。
       </p>
       {msg && <p className="note ok">{msg}</p>}
       {/* a fresh key each render, so the editor starts from what was just saved */}

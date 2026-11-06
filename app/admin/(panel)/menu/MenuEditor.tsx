@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { saveMenu } from '../../actions';
 import SaveBar, { notify } from '../SaveBar';
-import { HIDDEN_SECTION } from '@/src/content/catalog';
+import { CAKE_SECTION, HIDDEN_SECTION } from '@/src/content/catalog';
 
 export type MenuRow = { id: number | null; name: string; en: string; section: string; hot: string; ice: string; active: boolean };
 type Row = MenuRow & { key: string };
@@ -47,7 +47,7 @@ export default function MenuEditor({ initial, sections, readOnly }: { initial: M
         const inSection = rows.map((r, i) => ({ r, i })).filter(({ r }) => r.section === section);
         return (
           <section key={section} className="menu-section">
-            <header><h2>{section}</h2><span className="muted">{inSection.length} 項{section === HIDDEN_SECTION && '・不會出現在店裡的菜單上，但有些客人會點'}</span></header>
+            <header><h2>{section}</h2><span className="muted">{inSection.length} 項{section === HIDDEN_SECTION && '・不會出現在店裡的菜單上，但有些客人會點'}{section === CAKE_SECTION && '・不會出現在店裡的菜單上，只有常點蛋糕的熟客會點'}</span></header>
             <div className="th menu-row"><span></span><span>中文名</span><span>英文名</span><span>熱</span><span>冰</span><span>分類</span><span>上架</span><span></span></div>
             {inSection.map(({ r, i }, n) => (
               <div key={r.key} className={`menu-row${r.active ? '' : ' off'}${r.id == null ? ' new' : ''}`}>

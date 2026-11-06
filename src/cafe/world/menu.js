@@ -3,7 +3,7 @@
 import * as THREE from 'three';
 import { ctx, mat, box, cyl, canvasTex } from '../engine.js';
 import { S } from '../state.js';
-import { MENU_SECTIONS, MENU_FOOTER, HIDDEN_SECTION } from '../../content/catalog';
+import { MENU_SECTIONS, MENU_FOOTER, OFF_MENU } from '../../content/catalog';
 import { logoPath, logoLines, LOGO_W } from './logo.js';
 
 const W = 640, H = 1000;            // the sheet, in canvas units (drawn at 1.2x for sharpness)
@@ -68,8 +68,8 @@ function drawSheet(g) {
   doodles(g);
 
   // the menu, section by section
-  const menu = S.content.menu.filter(m => m.section !== HIDDEN_SECTION);   // (the hidden menu isn't on it)
-  const sections = [...MENU_SECTIONS, ...new Set(menu.map(m => m.section).filter(s => !MENU_SECTIONS.includes(s)))]
+  const menu = S.content.menu.filter(m => !OFF_MENU.includes(m.section));   // (the hidden menu and the cakes aren't on it)
+  const sections = [...MENU_SECTIONS.filter(s => !OFF_MENU.includes(s)), ...new Set(menu.map(m => m.section).filter(s => !MENU_SECTIONS.includes(s)))]
     .map(name => ({ name, items: menu.filter(m => m.section === name) })).filter(s => s.items.length);
   const TOP = 150, BOTTOM = H - 140;                         // leave room for the small print
   const rowH = Math.min(38, (BOTTOM - TOP) / Math.max(1, menu.length + sections.length * 1.7));
