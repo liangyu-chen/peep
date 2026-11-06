@@ -1,5 +1,6 @@
 // People in the café: animation poses, speech bubble and name tag, walking along plan-coordinate paths (the body is body.js).
 import * as THREE from 'three';
+import { BufferGeometryUtils } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { ctx, mat, cyl } from './engine.js';
 import { buildBody, tickFace, LEG_EXTRA, restPose, poseBody } from './body.js';
 import { S } from './state.js';
@@ -202,10 +203,72 @@ const blobM = () => blobMat || (blobMat = (() => {
   return new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(c), transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 });
 })());
 
+// fewer draws for each person: the pieces that hang off the same part of the body (the head, a forearm, the torso...)
+// and share a material are merged into one mesh in that part, so they still move with it. Whatever the code changes
+// on its own (the eyes blink, the mouth talks, the controller and the skirt show and hide, the bare legs and the pants
+// swap materials) is left as it was, and so is anything see-through, mirrored or holding children of its own. Merged
+// geometry is this person's own, and is let go with them
+// (plain colours share one material for everyone, reading each piece's colour off its vertices, so pieces alike in all
+// but colour merge too)
+const TINTED = new Map();
+const plainMat = m => m.isMeshStandardMaterial && !m.map && !m.emissiveMap && !m.normalMap && !m.alphaMap && !m.vertexColors && !m.transparent;
+function tintedFor(m) {
+  const k = [m.emissive.getHex(), m.emissiveIntensity, m.roughness, m.metalness, m.side, m.flatShading, m.polygonOffset, m.polygonOffsetFactor].join('|');
+  if (!TINTED.has(k)) { const t = m.clone(); t.color.set(0xffffff); t.vertexColors = true; TINTED.set(k, t); }
+  return TINTED.get(k);
+}
+export function mergeParts(root, keep = new Set()) {
+  root.updateMatrixWorld(true);
+  const parents = new Set();
+  root.traverse(o => { if (o.isMesh && !keep.has(o)) parents.add(o.parent); });
+  parents.forEach(par => {
+    const groups = new Map();
+    par.children.forEach(o => {
+      if (!o.isMesh || keep.has(o) || o.children.length || Array.isArray(o.material) || o.material.transparent || o.geometry.morphAttributes.position) return;
+      o.updateMatrix(); if (o.matrix.determinant() <= 0) return;
+      const mm = plainMat(o.material) ? tintedFor(o.material) : o.material;
+      const g = o.geometry, key = [mm.uuid, o.castShadow, o.receiveShadow, o.visible, o.renderOrder, g.index ? 1 : 0, Object.keys(g.attributes).filter(a => a !== 'color').sort().join(',')].join('/');
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(o);
+    });
+    groups.forEach(list => {
+      if (list.length < 2) return;
+      const tinted = plainMat(list[0].material);
+      const geos = list.map(o => {
+        const g = o.geometry.clone().applyMatrix4(o.matrix); g.clearGroups();
+        if (tinted) {   // its colour, onto its vertices
+          const n = g.attributes.position.count, c = new Float32Array(n * 3), col = o.material.color;
+          for (let i = 0; i < n; i++) { c[i * 3] = col.r; c[i * 3 + 1] = col.g; c[i * 3 + 2] = col.b; }
+          g.setAttribute('color', new THREE.BufferAttribute(c, 3));
+        } else if (g.attributes.color) g.deleteAttribute('color');
+        return g;
+      });
+      const merged = BufferGeometryUtils.mergeBufferGeometries(geos);
+      geos.forEach(g => g.dispose());
+      if (!merged) return;
+      const m = new THREE.Mesh(merged, tinted ? tintedFor(list[0].material) : list[0].material);
+      m.castShadow = list[0].castShadow; m.receiveShadow = list[0].receiveShadow; m.renderOrder = list[0].renderOrder; m.userData.merged = true;
+      Object.assign(m.userData, { castWas: list[0].userData.castWas });
+      par.add(m); list.forEach(o => par.remove(o));
+    });
+  });
+}
+function bodyKeep(b) {
+  // (each one itself: what's inside one that's a group still merges, as it moves, scales and hides with the group)
+  const keep = new Set(), add = o => o && keep.add(o);
+  [b.mouth, b.pad, b.skirt].forEach(add); (b.eyes || []).forEach(add);
+  [...(b.strip?.bare || []), ...(b.strip?.bunch || [])].forEach(add);
+  return keep;
+}
+
+// how finely the café's people are built (body.js): enough for the size they're seen at
+const CAFE_DETAIL = 0.55;
+
 export class Person {
   constructor(profile, role) {
     this.p = profile; this.role = role;
-    Object.assign(this, buildBody(profile.look, profile.name));
+    Object.assign(this, buildBody(profile.look, profile.name, { detail: CAFE_DETAIL }));
+    mergeParts(this.g, bodyKeep(this));
     this.faceAnim = { blinkT: Math.random() * 4 };
     this.g.traverse(o => { if (o.isMesh) o.userData.person = this; });
     // a soft round shadow on the floor under them, in place of a cast one when the sun's shadows are drawn just once
@@ -214,7 +277,7 @@ export class Person {
     this.blob.visible = !highQuality(); moverShadows(this.g);
     ctx.scene.add(this.g);
     if (profile.look?.companion === 'bear') {   // 月亮小熊, flying along with them (click it and it's their card)
-      this.bear = makeBear(); this.bear.g.traverse(o => { if (o.isMesh) o.userData.bearOf = this; }); ctx.scene.add(this.bear.g); moverShadows(this.bear.g);
+      this.bear = makeBear(); mergeParts(this.bear.g); this.bear.g.traverse(o => { if (o.isMesh) o.userData.bearOf = this; }); ctx.scene.add(this.bear.g); moverShadows(this.bear.g);
       this.bear.bubble = document.createElement('div'); this.bear.bubble.className = 'bubble'; this.bear.bubble.style.opacity = 0; this.bear.bubbleT = 0;
       S.labelsEl.append(this.bear.bubble);
     }
@@ -281,7 +344,8 @@ export class Person {
     burn(this.cig, Math.max(0.12, k.life / k.dur), k.phase === 'drag' || k.phase === 'light' ? Math.min(1, (1.2 - k.t) * 2) : 0);
   }
   remove() {
-    this.gone = true; ctx.scene.remove(this.g); if (this.bear) { ctx.scene.remove(this.bear.g); this.bear.bubble.remove(); } this.dropCup(); this.putOut(); this.tag.remove(); this.bubble.remove();
+    this.gone = true; ctx.scene.remove(this.g);
+    [this.g, this.bear?.g].forEach(r => r?.traverse(o => { if (o.userData.merged) o.geometry.dispose(); })); if (this.bear) { ctx.scene.remove(this.bear.g); this.bear.bubble.remove(); } this.dropCup(); this.putOut(); this.tag.remove(); this.bubble.remove();
     S.people.splice(S.people.indexOf(this), 1);
   }
   update(dt) {

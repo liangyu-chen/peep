@@ -63,8 +63,10 @@ export function buildRoomLights() {
   const neonLight = new THREE.SpotLight(0xff3020, 1.6, 6, Math.PI * 0.45, 0.6, 2); neonLight.position.set(1.0, 1.9, -4.9);
   neonLight.target.position.set(1.0, 1.2, -2.0); scene.add(neonLight, neonLight.target);
   S.neonLight = neonLight;   // goes out with the sign (hud.js, the switch outside)
-  [[-1.0, -1.2, 0.7], [-1.0, 1.8, 0.6], [0.8, -0.4, 0.8], [0.8, 1.8, 0.6], [2.2, 0.5, 0.4], [-1.6, -3.4, 0.35]].forEach(([x, z, p]) => {
-    const l = new THREE.PointLight(0xffe2b8, p, 5.5, 2); l.position.set(x, 2.5, z); scene.add(l); S.bulbs.push({ pl: l, bm: null, base: p });
+  // the room's warm light from up by the track: four lamps (each one costs on every pixel, so the two pairs either side
+  // of the bar's middle are one lamp each, a touch brighter and reaching a little further)
+  [[-0.1, -0.8, 1.15, 6.5], [-0.1, 1.8, 0.95, 6.5], [2.2, 0.5, 0.4, 5.5], [-1.6, -3.4, 0.35, 5.5]].forEach(([x, z, p, d]) => {
+    const l = new THREE.PointLight(0xffe2b8, p, d, 2); l.position.set(x, 2.5, z); scene.add(l); S.bulbs.push({ pl: l, bm: null, base: p });
   });
   // the arcade is lit from its track (in arcade.js), not a bare bulb
   const arcadeLight = new THREE.PointLight(0xffe2b8, 0.7, 7, 2); arcadeLight.position.set(-1.0, 2.5, 5.6); scene.add(arcadeLight); S.bulbs.push({ pl: arcadeLight, bm: null, base: 0.7 });

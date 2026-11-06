@@ -29,13 +29,17 @@ export function poseBody(b, p) {
 
 // ---------------------------------------------------------------- shared geometry and materials
 // geometries are shared between everyone; materials stay per person since their colours differ
+// (DETAIL scales the round things' segment counts: the people walking about the café are built coarser than the
+// back office's close-up preview and the portraits, which they're seen far too small to miss; see buildBody)
+let DETAIL = 1;
+const D = (n, min = 4) => Math.max(min, Math.round(n * DETAIL));
 const GEO = new Map();
-const geo = (key, make) => { let g = GEO.get(key); if (!g) { g = make(); GEO.set(key, g); } return g; };
+const geo = (key, make) => { key = `${DETAIL}|${key}`; let g = GEO.get(key); if (!g) { g = make(); GEO.set(key, g); } return g; };
 const bx = (w, h, d) => geo(`b${w},${h},${d}`, () => new THREE.BoxGeometry(w, h, d));
-const sp = (r, ws = 12, hs = 10, ...part) => geo(`s${r},${ws},${hs},${part}`, () => new THREE.SphereGeometry(r, ws, hs, ...part));
-const cy = (rt, rb, h, seg = 12, ...rest) => geo(`c${rt},${rb},${h},${seg},${rest}`, () => new THREE.CylinderGeometry(rt, rb, h, seg, 1, ...rest));
+const sp = (r, ws = 12, hs = 10, ...part) => geo(`s${r},${ws},${hs},${part}`, () => new THREE.SphereGeometry(r, D(ws, 6), D(hs, 4), ...part));
+const cy = (rt, rb, h, seg = 12, ...rest) => geo(`c${rt},${rb},${h},${seg},${rest}`, () => new THREE.CylinderGeometry(rt, rb, h, D(seg, 6), 1, ...rest));
 const disc = r => cy(r, r, 0.006, 18);
-const lathe = (key, pts, seg = 24, ...arc) => geo(`l${key}`, () => new THREE.LatheGeometry(pts.map(([r, y]) => new THREE.Vector2(r, y)), seg, ...arc));
+const lathe = (key, pts, seg = 24, ...arc) => geo(`l${key}`, () => new THREE.LatheGeometry(pts.map(([r, y]) => new THREE.Vector2(r, y)), D(seg, 8), ...arc));
 
 const darkM = mat(0x161210, { roughness: 0.4 });
 const whiteM = mat(0xfbfaf5, { roughness: 0.35 });
@@ -106,7 +110,7 @@ function deform(h, v) {
   return v.set(v.x * h.s[0] * R, v.y * h.s[1] * R, v.z * h.s[2] * R);
 }
 const headGeo = shape => geo(`head:${shape}`, () => {
-  const h = HEADS[shape], g = new THREE.SphereGeometry(1, 40, 30), p = g.attributes.position, v = new THREE.Vector3();
+  const h = HEADS[shape], g = new THREE.SphereGeometry(1, D(40), D(30)), p = g.attributes.position, v = new THREE.Vector3();
   for (let i = 0; i < p.count; i++) { deform(h, v.fromBufferAttribute(p, i)); p.setXYZ(i, v.x, v.y, v.z); }
   g.computeVertexNormals(); return g;
 });
@@ -115,7 +119,7 @@ const headGeo = shape => geo(`head:${shape}`, () => {
 // xMax trims it to one side (a side-swept fringe).
 const UP = new THREE.Vector3(0, 1, 0);
 const shellGeo = (shape, thick, n, from, to, xMax = 9) => geo(`shell:${shape},${thick},${n.toArray()},${from},${to},${xMax}`, () => {
-  const h = HEADS[shape], g = new THREE.SphereGeometry(1, 56, 22, 0, Math.PI * 2, from, to - from);
+  const h = HEADS[shape], g = new THREE.SphereGeometry(1, D(56), D(22), 0, Math.PI * 2, from, to - from);
   const p = g.attributes.position, q = new THREE.Quaternion().setFromUnitVectors(UP, n), v = new THREE.Vector3(), u = new THREE.Vector3();
   const keep = new Uint8Array(p.count);
   for (let i = 0; i < p.count; i++) {
@@ -147,7 +151,7 @@ const tier = s => { const f = s - Math.floor(s); return f < 0.72 ? 0.5 - 0.5 * M
 const layerAt = (phi, t) => LAYER_DEPTH * tier(t * 3.3 + 0.1 * Math.sin(3 * phi)) * Math.min(1, Math.max(0, (t - 0.15) / 0.15))
   * Math.min(1, Math.max(0, (2.1 - Math.abs(Math.atan2(Math.sin(phi), Math.cos(phi)))) / 0.6));
 const capGeo = (shape, key, edge, thick, bump = null, groove = null, flow = null) => geo(`cap7:${shape},${key}`, () => {
-  const h = HEADS[shape], NA = groove ? 320 : bump ? 180 : 160, NT = bump ? 54 : 60, pos = [], uv = [], idx = [], v = new THREE.Vector3(), u = new THREE.Vector3();
+  const h = HEADS[shape], NA = D(groove ? 320 : bump ? 180 : 160, 48), NT = D(bump ? 54 : 60, 18), pos = [], uv = [], idx = [], v = new THREE.Vector3(), u = new THREE.Vector3();
   // with a parting, curls lie flat along it (a band about twice the crease's width), so the line reads clean between them
   let gmax = 0; if (groove) for (let i = 0; i < 720; i++) gmax = Math.max(gmax, groove(i / 720 * Math.PI * 2));
   const calm = phi => (groove && gmax ? 1 - (groove(phi) / gmax) ** 0.12 : 1);
@@ -218,7 +222,7 @@ const shoeShape = (x, y, z) => {
   return [X, Y, Z];
 };
 const shoeGeo = sole => geo(`shoe:${sole}`, () => {
-  const g = new THREE.SphereGeometry(1, 28, 18), p = g.attributes.position;
+  const g = new THREE.SphereGeometry(1, D(28), D(18)), p = g.attributes.position;
   for (let i = 0; i < p.count; i++) {
     const x = p.getX(i), y = p.getY(i), z = p.getZ(i);
     if (!sole) { const [X, Y, Z] = shoeShape(x, y, z); p.setXYZ(i, X, Y, Z); }
@@ -304,7 +308,7 @@ const neckRibGeo = (fit = 'regular') => geo(`neckrib11:${fit}`, () => {
   pts.push(...left.slice(0, -1), new THREE.Vector3(0, UNECK.bot, rows[0][2] * 1.012), ...right);
   const [ty, rx, rz] = rows[rows.length - 1], t0 = uAngle(ty, rx);
   for (let k = 1; k < 10; k++) { const t = t0 + (2 * Math.PI - 2 * t0) * k / 10; pts.push(new THREE.Vector3(Math.sin(t) * rx * 1.012, ty, Math.cos(t) * rz * 1.012)); }
-  return new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts, true), 80, 0.0075, 6, true);
+  return new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts, true), D(80), 0.0075, D(6, 3), true);
 });
 // the top of the pants as one piece, waist to crotch, so nothing joins the hips to the legs: an oval round the waist
 // that, going down, pinches in front and back between the legs until at the crotch it is exactly the two thighs (two
@@ -353,7 +357,7 @@ const ringletLathe = (key, pts, seg, phiStart, phiLen, amp, strength, phase = 0,
   }
   dense.push(pts[pts.length - 1]);
   const outer = dense.length; dense.push(...inner);
-  const g = new THREE.LatheGeometry(dense.map(([r, y]) => new THREE.Vector2(r, y)), seg, phiStart, phiLen), p = g.attributes.position;
+  const g = new THREE.LatheGeometry(dense.map(([r, y]) => new THREE.Vector2(r, y)), D(seg, 12), phiStart, phiLen), p = g.attributes.position;
   const yEnd = dense[outer - 1][1];
   for (let i = 0; i < p.count; i++) {
     if (i % dense.length >= outer) continue;   // the inside stays smooth against the head
@@ -402,7 +406,7 @@ const curlLocks = (key, locks) => geo(`locks3:${key}`, () => {
         .addScaledVector(out, flare * s * s + rc * (1 - Math.cos(a)))
         .addScaledVector(side, lean * s + rc * Math.sin(a)));
     }
-    const curve = new THREE.CatmullRomCurve3(pts), T = 28, RS = 7;
+    const curve = new THREE.CatmullRomCurve3(pts), T = D(28, 8), RS = D(7, 4);
     const tube = new THREE.TubeGeometry(curve, T, r0, RS, false), p = tube.attributes.position, c = new THREE.Vector3(), v = new THREE.Vector3();
     for (let i = 0; i <= T; i++) {   // taper: thick at the root, a fine tip
       const s = i / T, k = s < 0.15 ? 0.75 + s / 0.15 * 0.25 : 1 - 0.7 * ((s - 0.15) / 0.85) ** 1.4;
@@ -434,7 +438,13 @@ const FIB = fib(160);
 // (and brightened by PICK_GAIN, for the café's light, which brings a white surface out at only about 70%)
 const PICK_GAIN = 2.0;
 export const picked = hex => new THREE.Color(hex).convertSRGBToLinear().multiplyScalar(PICK_GAIN);
-export function buildBody(look, seed = '') {
+// detail: 1 for a close look (the back office's preview, the portraits), less for the café, whose people are small on
+// screen and many: fewer segments in everything round, so far fewer triangles to draw and to cast shadows from
+export function buildBody(look, seed = '', { detail = 1 } = {}) {
+  const was = DETAIL; DETAIL = detail;
+  try { return buildBodyAt(look, seed); } finally { DETAIL = was; }
+}
+function buildBodyAt(look, seed) {
   const f = faceOf(look, seed);
   const C = { skin: picked(look.skin), hair: picked(look.hair), shirt: picked(look.shirt), pants: picked(look.pants), shoe: picked(look.shoe || 0x1d1d1d) };
   const shape = HEADS[f.faceShape] ? f.faceShape : 'round', H = HEADS[shape];
@@ -512,7 +522,7 @@ export function buildBody(look, seed = '') {
   // the hem: a rolled edge with some thickness to it, and underneath, the shirt's shadowed inside closing the gap down to
   // the hips, so it reads as cloth with body in it, not a shell
   const hemY = 0.71 - TF.drop, hemR = 0.202 * TF.w + TF.flare, hemZ = (0.15 * TF.d + TF.flare * 0.7) / hemR;
-  const hem = mk(geo(`hemroll:${hemR.toFixed(3)}`, () => new THREE.TorusGeometry(hemR, 0.008, 6, 40)), shirtDark, 0, hemY + 0.004, 0, g, false);
+  const hem = mk(geo(`hemroll:${hemR.toFixed(3)}`, () => new THREE.TorusGeometry(hemR, 0.008, D(6, 3), D(40, 12))), shirtDark, 0, hemY + 0.004, 0, g, false);
   hem.rotation.x = Math.PI / 2; hem.scale.y = hemZ;
   const under = mk(geo(`hemunder:${hemR.toFixed(3)}`, () => new THREE.RingGeometry(0.16, hemR, 40)), shirtUnder, 0, hemY + 0.006, 0, g, false);
   under.rotation.x = Math.PI / 2; under.scale.y = hemZ;
@@ -663,7 +673,7 @@ export function buildBody(look, seed = '') {
     // showing, a rolled hem or cuff; a loose cut stands well clear of the arm
     const long = look.longSleeve, sleeveM = long ? shirt : skin, S = long ? TF.s : 1, loose = topFit === 'oversize';
     const lining = (rt, rb, h, y, par) => mk(cy(rt - 0.002, rb - 0.002, h, 14, true), shirtIn, 0, y, 0, par, false);   // the inside of a sleeve, seen at its opening
-    const roll = (r, y, par) => { const e = mk(geo(`roll:${r.toFixed(3)}`, () => new THREE.TorusGeometry(r, 0.006, 6, 24)), shirtDark, 0, y, 0, par, false); e.rotation.x = Math.PI / 2; };   // a rolled edge round an opening
+    const roll = (r, y, par) => { const e = mk(geo(`roll:${r.toFixed(3)}`, () => new THREE.TorusGeometry(r, 0.006, D(6, 3), D(24, 10))), shirtDark, 0, y, 0, par, false); e.rotation.x = Math.PI / 2; };   // a rolled edge round an opening
     // the upper arm: rounded over its top, fullest just below the shoulder, tapering to the elbow (open there, where
     // the forearm carries on)
     // (its profile runs from the bottom up, so its faces point outward)
@@ -814,7 +824,7 @@ function buildHair(hairParts, shape, head, hairM, mk, at, look) {
         }
       }
       mk(geo(`curtain6:${shape}:${key}`, () => {
-        const lg = new THREE.LatheGeometry(layered.concat(inside).map(([r, y]) => new THREE.Vector2(r, y)), 48, 0.85, Math.PI * 2 - 1.7);
+        const lg = new THREE.LatheGeometry(layered.concat(inside).map(([r, y]) => new THREE.Vector2(r, y)), D(48, 12), 0.85, Math.PI * 2 - 1.7);
         closeEdges(lg, 0.85, Math.PI * 2 - 1.7, inside); lg.computeVertexNormals(); return lg;
       }), hairM, 0, 0, 0, head);
     }
