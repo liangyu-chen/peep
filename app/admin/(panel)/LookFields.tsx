@@ -25,6 +25,7 @@ export default function LookFields({ look, seed }: { look: Look; seed: string })
           <ColorField name="eyeColor" label="瞳色" value={f.eyeColor} presets={COLOR_PRESETS.eyes} />
         </div>
         <label className="check"><input type="checkbox" name="blush" defaultChecked={f.blush} /><span>腮紅</span></label>
+        <Pick name="build" label="身形" value={buildOf(look)} options={BUILDS} />
         <Pick name="faceShape" label="臉型" value={f.faceShape} options={FACE.faceShape} />
         <Pick name="eyes" label="眼睛" value={f.eyes} options={FACE.eyes} />
         <Pick name="brows" label="眉毛" value={f.brows} options={FACE.brows} />
@@ -57,7 +58,6 @@ export default function LookFields({ look, seed }: { look: Look; seed: string })
         <Pick name="hairTie" label="綁髮（中長髮、長髮）" value={hair.tie} options={HAIR.tie} />
         <Pick name="hat" label="帽子" value={hat.hat} options={HAT_STYLES} />
         <Pick name="companion" label="配件" value={companionOf(look)} options={COMPANIONS} />
-        <Pick name="build" label="身形" value={buildOf(look)} options={BUILDS} />
         <Pick name="topFit" label="上衣版型" value={clothes.top} options={CLOTHES.top} />
         <Pick name="sleeve" label="袖長" value={clothes.sleeve} options={CLOTHES.sleeve} />
         <Pick name="bottom" label="下身" value={clothes.bottom} options={CLOTHES.bottom} />
