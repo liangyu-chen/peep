@@ -303,26 +303,30 @@ export function socksOf(look: Look): { style: string; color: number } {
   return { style: SOCKS.some(o => o.value === look.socks) ? (look.socks as string) : 'none', color: typeof look.sock === 'number' ? look.sock : 0xf2efe9 };
 }
 // tattoos: each part of the arms and legs inked in a style of its own, or bare (legs show under shorts or a skirt)
+// American traditional, in black and grey: one big classic piece on each part
 export const TATTOO_STYLES: Option[] = [
-  { value: 'none', label: '無' }, { value: 'wave', label: '日式浪花' }, { value: 'floral', label: '花草' }, { value: 'tribal', label: '部落圖騰' },
-  { value: 'geo', label: '幾何' }, { value: 'flash', label: '小圖案' }, { value: 'script', label: '文字' },
+  { value: 'none', label: '無' }, { value: 'rose', label: '玫瑰' }, { value: 'swallow', label: '燕子' }, { value: 'dagger', label: '匕首穿心' },
+  { value: 'skull', label: '骷髏' }, { value: 'anchor', label: '船錨' }, { value: 'eagle', label: '老鷹' }, { value: 'flash', label: '小圖混搭' }, { value: 'text', label: '文字' },
 ];
+// styles from before, read as the nearest piece now
+const TAT_OLD: Record<string, string> = { wave: 'rose', blackgrey: 'rose', floral: 'rose', tribal: 'eagle', geo: 'skull', script: 'text' };
 export const TATTOO_PARTS: Option[] = [
   { value: 'ru', label: '右大臂' }, { value: 'lu', label: '左大臂' }, { value: 'rf', label: '右小臂' }, { value: 'lf', label: '左小臂' },
   { value: 'rl', label: '右小腿' }, { value: 'll', label: '左小腿' },
 ];
 const tatStyle = (v: unknown) => typeof v === 'string' && v !== 'none' && TATTOO_STYLES.some(o => o.value === v);
+const tatNow = (v: unknown) => (typeof v === 'string' && TAT_OLD[v]) || v;
 // the style on each inked part (parts left out are bare); older looks stored a side (left / right / both) and how far
-// up the arm (forearm / sleeve), all in the one wave style
+// up the arm (forearm / sleeve), all in the one style
 export function tattooOf(look: Look): Record<string, string> {
   const out: Record<string, string> = {};
   if (look.tattoos && typeof look.tattoos === 'object') {
-    for (const [k, v] of Object.entries(look.tattoos as Record<string, unknown>)) if (TATTOO_PARTS.some(p => p.value === k) && tatStyle(v)) out[k] = v as string;
+    for (const [k, v] of Object.entries(look.tattoos as Record<string, unknown>)) if (TATTOO_PARTS.some(p => p.value === k) && tatStyle(tatNow(v))) out[k] = tatNow(v) as string;
     return out;
   }
   const side = look.tattoo, sleeve = look.tattooCover === 'sleeve';
   (['r', 'l'] as const).forEach(s => {
-    if (side === 'both' || side === (s === 'r' ? 'right' : 'left')) { out[s + 'f'] = 'wave'; if (sleeve) out[s + 'u'] = 'wave'; }
+    if (side === 'both' || side === (s === 'r' ? 'right' : 'left')) { out[s + 'f'] = 'rose'; if (sleeve) out[s + 'u'] = 'rose'; }
   });
   return out;
 }
@@ -402,6 +406,8 @@ export function parseLook(get: (k: string) => string | null, prev?: Look): Look 
       return t;
     })(),
   };
+  const tatText = (get('tattooText') ?? (typeof base.tattooText === 'string' ? base.tattooText : '')).trim().slice(0, 12);   // the words a 文字 tattoo spells
+  if (tatText) look.tattooText = tatText; else delete look.tattooText;
   delete look.tattoo; delete look.tattooCover;   // superseded by tattoos
   delete look.mustache; delete look.goatee;   // superseded by facialHair
   delete look.beanie; delete look.cap;          // superseded by hat / hatColor

@@ -42,6 +42,7 @@ export default function LookFields({ look, seed }: { look: Look; seed: string })
               </select>
             </label>
           ))}
+          <label>刺青文字（選「文字」的部位）<input name="tattooText" defaultValue={typeof look.tattooText === 'string' ? look.tattooText : ''} maxLength={12} placeholder="PEEP" /></label>
         </fieldset>
       </section>
 

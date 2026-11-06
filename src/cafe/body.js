@@ -93,143 +93,152 @@ const strands = () => strandTex || (strandTex = (() => {
   t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(5, 1); return t;
 })());
 
-// tattoos: soft grey-blue ink multiplied over the skin, wrapped round a limb (the texture's width is once round it, its
-// height the length of the forearm, upper arm or calf, the top toward the elbow / shoulder / knee), with a clear strip at
-// the bottom (toward the wrist or ankle) where it stops. A style per part:
-//   wave    日式浪花: swells with curling crests, a few flowers over them, stipple shading between, all running together
-//   floral  花草: climbing vines, open flowers and leaves, lightly shaded
-//   tribal  部落圖騰: bold solid bands of flowing thorns
-//   geo     幾何: rings of lines, triangles and dots round the limb, a mandala
-//   flash   小圖案: little separate pieces (stars, hearts, swallows, anchors, roses) with skin between
-//   script  文字: a word or two running down the limb in a looping hand
-// Two variants of each, so a pair of arms aren't alike; each tiles round the limb.
+// tattoos, American traditional in black and grey: one big classic piece per part, bold dark outlines and flat fills in
+// a few greys, multiplied over the skin, so they read as healed ink. The texture wraps once round
+// the limb: its middle column at u = 0 / 1 faces front (a cylinder's or lathe's front is where its u wraps), so each
+// piece is drawn centred on x = 0 and again at x = W; its height runs the length of the forearm, upper arm or calf (top
+// toward the elbow / shoulder / knee), the bottom strip (wrist / ankle) left bare.
+//   rose     玫瑰: a red rose, green leaves either side
+//   swallow  燕子: a swallow in flight, blue back, red breast
+//   dagger   匕首穿心: a red heart run through by a dagger, a banner across
+//   skull    骷髏: a skull over a pair of red roses
+//   anchor   船錨: an anchor wound with rope, a banner across
+//   eagle    老鷹: an eagle, wings spread
+//   flash    小圖混搭: a sheet of little flash (star, heart, swallow, anchor) with skin between
+//   text     文字: the look's own words (tattooText) in bold lettering down the limb
+// Two variants of each (mirrored, other banner words), so a pair of arms aren't alike.
 const TAT = {};
-export const TATTOO_INK = '#6a7484';
-function tattooTex(style, v) {
-  const key = `${style}:${v}`;
+// black and grey: the classic fills (red, yellow, green, blue, brown) as shades of grey, 'pale' left as bare skin
+const TC = { line: '#3f434c', red: '#80858f', yellow: '#c4c8cf', green: '#a2a7b0', blue: '#737985', brown: '#8d929b', pale: '#ffffff', dark: '#5a5f69' };
+// low: for an upper arm, the piece drawn smaller and further down (toward the elbow), out from under the sleeve
+function tattooTex(style, v, low = false, text = '') {
+  const key = `${style}:${v}:${low}:${text}`;
   if (TAT[key]) return TAT[key];
-  let s = 977 + v * 131 + style.length * 7919;
-  const r = () => { s = (s * 16807) % 2147483647; return s / 2147483647; };
   const t = canvasTex(256, 256, (g, W, H) => {
     g.fillStyle = '#fff'; g.fillRect(0, 0, W, H);
-    const top = 0, bot = H * 0.86;   // the bottom 14% (the wrist / ankle end) left bare
-    const ink = TATTOO_INK, soft = 'rgba(106,116,132,0.3)';   // faded grey-blue, healed ink rather than fresh black
-    const wrap = draw => [-W, 0, W].forEach(dx => { g.save(); g.translate(dx, 0); draw(); g.restore(); });   // so it tiles round the limb
-    g.save(); g.beginPath(); g.rect(0, top, W, bot - top); g.clip();
-    g.strokeStyle = ink; g.fillStyle = ink; g.lineCap = 'round'; g.lineJoin = 'round';
-    const stipple = (n, k) => { for (let i = 0; i < n; i++) { const x = r() * W, y = top + r() * (bot - top), band = 0.5 + 0.5 * Math.sin(y / 22 + Math.sin(x / 40) * 2); if (r() < band * k) { g.fillStyle = soft; g.fillRect(x, y, 3, 3); } } g.fillStyle = ink; };
-    const flower = (fx, fy, fr, petals = 7, leaves = 2) => wrap(() => {
-      g.fillStyle = '#fff'; g.beginPath(); g.arc(fx, fy, fr * 1.1, 0, Math.PI * 2); g.fill();   // sits over what's under it
-      g.lineWidth = 4.5; g.strokeStyle = ink;
-      for (let p = 0; p < petals; p++) { const a = p / petals * Math.PI * 2; g.beginPath(); g.ellipse(fx + Math.cos(a) * fr * 0.55, fy + Math.sin(a) * fr * 0.55, fr * 0.5, fr * 0.3, a, 0, Math.PI * 2); g.stroke(); }
-      g.fillStyle = ink; g.beginPath(); g.arc(fx, fy, fr * 0.22, 0, Math.PI * 2); g.fill();
-      for (let l = 0; l < leaves; l++) {
-        const a = r() * Math.PI * 2, lx = fx + Math.cos(a) * fr * 1.5, ly = fy + Math.sin(a) * fr * 1.5;
-        g.beginPath(); g.ellipse(lx, ly, fr * 0.55, fr * 0.2, a, 0, Math.PI * 2); g.fillStyle = soft; g.fill(); g.stroke();
-        g.beginPath(); g.moveTo(lx - Math.cos(a) * fr * 0.5, ly - Math.sin(a) * fr * 0.5); g.lineTo(lx + Math.cos(a) * fr * 0.5, ly + Math.sin(a) * fr * 0.5); g.lineWidth = 2.5; g.stroke(); g.lineWidth = 4.5;
-      }
-      g.fillStyle = ink;
-    });
+    if (low) { g.translate(0, H * 0.34); g.scale(0.8, 0.8); }   // (scaled about x = 0, so still centred on the front; the copies' seam falls round the back)
+    const bot = H * 0.86, CY = bot * 0.5;
+    g.lineCap = 'round'; g.lineJoin = 'round';
+    const ink = (fill, lw = 5) => { if (fill) { g.fillStyle = fill; g.fill(); } g.lineWidth = lw; g.strokeStyle = TC.line; g.stroke(); };
+    const at = (draw, cx = 0) => [cx - W, cx, cx + W].forEach(dx => { g.save(); g.translate(dx, 0); if (v % 2 && style !== 'text') g.scale(-1, 1); draw(); g.restore(); });   // centred on the front, wrapped; variant 1 mirrored (not words)
+    const heart = (x, y, rr) => { g.beginPath(); g.moveTo(x, y + rr); g.bezierCurveTo(x - rr * 1.6, y - rr * 0.2, x - rr * 0.65, y - rr * 1.35, x, y - rr * 0.45); g.bezierCurveTo(x + rr * 0.65, y - rr * 1.35, x + rr * 1.6, y - rr * 0.2, x, y + rr); g.closePath(); };
     const star = (x, y, rr) => { g.beginPath(); for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, q = i % 2 ? rr * 0.45 : rr; g.lineTo(x + Math.cos(a) * q, y + Math.sin(a) * q); } g.closePath(); };
-    const heart = (x, y, rr) => { g.beginPath(); g.moveTo(x, y + rr); g.bezierCurveTo(x - rr * 1.6, y - rr * 0.2, x - rr * 0.6, y - rr * 1.3, x, y - rr * 0.4); g.bezierCurveTo(x + rr * 0.6, y - rr * 1.3, x + rr * 1.6, y - rr * 0.2, x, y + rr); g.closePath(); };
+    const leaf = (x, y, a, len) => {
+      g.save(); g.translate(x, y); g.rotate(a);
+      g.beginPath(); g.moveTo(0, 0); g.quadraticCurveTo(len * 0.5, -len * 0.38, len, 0); g.quadraticCurveTo(len * 0.5, len * 0.38, 0, 0); ink(TC.green, 4);
+      g.beginPath(); g.moveTo(len * 0.1, 0); g.lineTo(len * 0.8, 0); g.lineWidth = 2.5; g.stroke();
+      g.restore();
+    };
+    const rose = (x, y, rr) => {
+      leaf(x - rr * 0.6, y + rr * 0.3, Math.PI * 0.85, rr * 1.25); leaf(x + rr * 0.6, y + rr * 0.3, Math.PI * 0.15, rr * 1.25);
+      g.beginPath(); g.ellipse(x, y, rr, rr * 0.86, 0, 0, Math.PI * 2); ink(TC.red, 5);
+      g.beginPath(); g.ellipse(x, y + rr * 0.32, rr * 0.82, rr * 0.38, 0, 0.1, Math.PI - 0.1); g.lineWidth = 4; g.stroke();   // the outer cupped petals
+      g.beginPath(); g.ellipse(x, y - rr * 0.12, rr * 0.55, rr * 0.36, 0, Math.PI, Math.PI * 2); g.stroke();
+      g.beginPath(); for (let a = 0; a < Math.PI * 3; a += 0.2) { const q = rr * 0.42 - a * rr * 0.04; g.lineTo(x + Math.cos(a) * q, y - rr * 0.05 + Math.sin(a) * q * 0.7); } g.stroke();   // the swirl in its heart
+      g.beginPath(); g.ellipse(x - rr * 0.45, y - rr * 0.35, rr * 0.16, rr * 0.08, -0.6, 0, Math.PI * 2); g.fillStyle = '#fff'; g.fill();   // a highlight
+    };
+    const banner = (x, y, w, word) => {
+      const h = 26;
+      [-1, 1].forEach(s => { g.beginPath(); g.moveTo(x + s * w / 2, y - h / 2 + 8); g.lineTo(x + s * (w / 2 + 22), y - h / 2 + 8); g.lineTo(x + s * (w / 2 + 12), y + 4); g.lineTo(x + s * (w / 2 + 22), y + h / 2 + 8); g.lineTo(x + s * w / 2, y + h / 2 + 8); g.closePath(); ink(TC.yellow, 4); });   // forked tails, behind
+      g.beginPath(); g.moveTo(x - w / 2, y - h / 2); g.quadraticCurveTo(x, y - h / 2 - 8, x + w / 2, y - h / 2); g.lineTo(x + w / 2, y + h / 2); g.quadraticCurveTo(x, y + h / 2 - 8, x - w / 2, y + h / 2); g.closePath(); ink(TC.pale, 4);
+      g.fillStyle = TC.line; g.font = '900 19px "Arial Black", Impact, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(word, x, y - 2);
+    };
+    const swallow = (x, y, k) => {
+      g.save(); g.translate(x, y); g.scale(k, k);
+      [-1, 1].forEach(s => { g.beginPath(); g.moveTo(s * 6, -6); g.quadraticCurveTo(s * 40, -40, s * 92, -30); g.quadraticCurveTo(s * 70, -14, s * 58, -2); g.quadraticCurveTo(s * 44, 6, s * 10, 10); g.closePath(); ink(TC.blue, 5);
+        g.beginPath(); g.moveTo(s * 30, -22); g.quadraticCurveTo(s * 52, -26, s * 74, -24); g.lineWidth = 3; g.stroke(); });   // wings, a feather line on each
+      g.beginPath(); g.moveTo(-10, 20); g.lineTo(-22, 64); g.lineTo(-4, 40); g.lineTo(4, 40); g.lineTo(22, 64); g.lineTo(10, 20); g.closePath(); ink(TC.blue, 5);   // forked tail
+      g.beginPath(); g.ellipse(0, 6, 14, 26, 0, 0, Math.PI * 2); ink(TC.blue, 5);
+      g.beginPath(); g.ellipse(0, 14, 10, 16, 0, 0, Math.PI * 2); ink(TC.red, 3.5);   // red breast
+      g.beginPath(); g.arc(0, -22, 12, 0, Math.PI * 2); ink(TC.blue, 5);
+      g.beginPath(); g.moveTo(-5, -32); g.lineTo(0, -44); g.lineTo(5, -32); ink(TC.yellow, 3);
+      g.beginPath(); g.arc(-4, -24, 2.5, 0, Math.PI * 2); g.fillStyle = TC.line; g.fill();
+      g.restore();
+    };
+    const anchor = (x, y, k) => {
+      g.save(); g.translate(x, y); g.scale(k, k);
+      g.beginPath(); g.arc(0, -62, 11, 0, Math.PI * 2); g.lineWidth = 12; g.strokeStyle = TC.line; g.stroke(); g.lineWidth = 6; g.strokeStyle = TC.dark; g.stroke();
+      g.beginPath(); g.rect(-6, -52, 12, 104); ink(TC.dark, 4);
+      g.beginPath(); g.rect(-36, -40, 72, 11); ink(TC.dark, 4);
+      g.beginPath(); g.arc(0, 8, 46, Math.PI * 0.08, Math.PI * 0.92); g.lineWidth = 14; g.strokeStyle = TC.line; g.stroke(); g.lineWidth = 7; g.strokeStyle = TC.dark; g.stroke();
+      [-1, 1].forEach(s => { g.beginPath(); g.moveTo(s * 48, 18); g.lineTo(s * 56, 0); g.lineTo(s * 34, 14); g.closePath(); ink(TC.dark, 4); });   // the flukes
+      g.beginPath(); for (let a = 0; a <= 1; a += 0.02) { const yy = -40 + a * 84, xx = Math.sin(a * Math.PI * 3) * 20; a ? g.lineTo(xx, yy) : g.moveTo(xx, yy); } g.lineWidth = 9; g.strokeStyle = TC.line; g.stroke(); g.lineWidth = 5; g.strokeStyle = TC.yellow; g.stroke();   // the rope wound round
+      g.restore();
+    };
 
-    if (style === 'floral') {
-      stipple(900, 0.6);
-      for (let k = 0; k < 3; k++) {   // vines climbing the limb, curling leaves off them
-        const x0 = (k + r() * 0.5) / 3 * W, ph = r() * 6;
-        wrap(() => {
-          g.lineWidth = 4; g.beginPath();
-          for (let y = top; y <= bot; y += 4) { const x = x0 + Math.sin(y / 30 + ph) * 18; y === top ? g.moveTo(x, y) : g.lineTo(x, y); } g.stroke();
-          for (let y = top + 14; y < bot; y += 26) {
-            const x = x0 + Math.sin(y / 30 + ph) * 18, side = (y / 26) % 2 < 1 ? 1 : -1;
-            g.beginPath(); g.ellipse(x + side * 11, y - 4, 10, 4.5, side * 0.6, 0, Math.PI * 2); g.lineWidth = 3; g.stroke();
+    const words = { dagger: ['TRUE LOVE', 'MOM'], anchor: ['HOME', 'PEEP'] };
+    if (style === 'swallow') {
+      at(() => swallow(0, CY, 1));
+      at(() => { star(0, CY - 78, 13); ink(TC.yellow, 4); }, W / 2);   // a star round the back
+    } else if (style === 'dagger') {
+      at(() => {
+        g.beginPath(); g.moveTo(-8, CY - 30); g.lineTo(8, CY - 30); g.lineTo(0, CY + 86); g.closePath(); ink('#e9edf2', 5);   // the blade, out through the bottom
+        g.beginPath(); g.moveTo(0, CY - 20); g.lineTo(0, CY + 70); g.lineWidth = 2.5; g.stroke();
+        heart(0, CY + 4, 44); ink(TC.red, 6);
+        g.beginPath(); g.ellipse(-18, CY - 14, 9, 5, -0.6, 0, Math.PI * 2); g.fillStyle = '#fff'; g.fill();
+        g.beginPath(); g.rect(-30, CY - 52, 60, 12); ink(TC.yellow, 4);   // guard, grip and pommel above it
+        g.beginPath(); g.rect(-7, CY - 82, 14, 30); ink(TC.brown, 4);
+        g.beginPath(); g.arc(0, CY - 90, 9, 0, Math.PI * 2); ink(TC.yellow, 4);
+      });
+      at(() => banner(0, CY + 36, 96, words.dagger[v % 2]));
+    } else if (style === 'skull') {
+      at(() => {
+        rose(-38, CY + 52, 26); rose(38, CY + 52, 26);
+        g.beginPath(); g.moveTo(-46, CY - 10); g.bezierCurveTo(-50, CY - 76, 50, CY - 76, 46, CY - 10); g.quadraticCurveTo(44, CY + 14, 28, CY + 18); g.lineTo(26, CY + 40); g.lineTo(-26, CY + 40); g.lineTo(-28, CY + 18); g.quadraticCurveTo(-44, CY + 14, -46, CY - 10); g.closePath(); ink(TC.pale, 6);
+        [-1, 1].forEach(s => { g.beginPath(); g.ellipse(s * 19, CY - 12, 14, 12, s * 0.2, 0, Math.PI * 2); g.fillStyle = TC.line; g.fill(); });   // sockets
+        g.beginPath(); g.moveTo(0, CY + 2); g.lineTo(-7, CY + 14); g.lineTo(7, CY + 14); g.closePath(); g.fillStyle = TC.line; g.fill();   // nose
+        for (let i = -2; i <= 2; i++) { g.beginPath(); g.moveTo(i * 9, CY + 24); g.lineTo(i * 9, CY + 40); g.lineWidth = 3; g.stroke(); }   // teeth
+        g.beginPath(); g.moveTo(-22, CY + 24); g.lineTo(22, CY + 24); g.stroke();
+      });
+    } else if (style === 'anchor') {
+      at(() => anchor(0, CY - 6, 1.05));
+      at(() => banner(0, CY + 10, 92, words.anchor[v % 2]));
+    } else if (style === 'eagle') {
+      at(() => {
+        [-1, 1].forEach(s => {   // the wings, spread up and out, feathers layered
+          for (let f = 0; f < 5; f++) {
+            const bx = s * (18 + f * 18), by = CY - 20 - f * 9;
+            g.beginPath(); g.moveTo(s * 14, CY - 6 + f * 2); g.quadraticCurveTo(bx, by - 30, bx + s * 14, by - 46 + f * 4); g.quadraticCurveTo(bx + s * 6, by + 6, s * 14, CY + 16);
+            ink(f % 2 ? TC.brown : '#b88a5d', 4);
           }
         });
-      }
-      for (let k = 0; k < 4; k++) flower(r() * W, top + 26 + r() * (bot - top - 52), 16 + r() * 10, 5 + Math.floor(r() * 4), 1);
-    } else if (style === 'tribal') {
-      // bands of flowing thorns, solid black-work, a spiral here and there
-      for (let k = 0; k < 3; k++) {
-        const y0 = top + 30 + k * 72 + r() * 10, ph = r() * 6, n = 3;
-        wrap(() => {
-          g.beginPath();
-          for (let x = 0; x <= W; x += 3) { const y = y0 + Math.sin(x / W * Math.PI * 2 * n + ph) * 14; x ? g.lineTo(x, y - 13) : g.moveTo(x, y - 13); }
-          for (let x = W; x >= 0; x -= 3) { const y = y0 + Math.sin(x / W * Math.PI * 2 * n + ph) * 14; g.lineTo(x, y + 13); }
-          g.closePath(); g.fill();
-          for (let i = 0; i < n * 2; i++) {   // thorns sweeping off the band, alternately up and down
-            const x = (i + 0.5) / (n * 2) * W - ph / (Math.PI * 2 * n) * W, y = y0 + Math.sin(x / W * Math.PI * 2 * n + ph) * 14, up = i % 2 ? 1 : -1;
-            g.beginPath(); g.moveTo(x - 18, y); g.quadraticCurveTo(x + 6, y + up * 30, x + 38, y + up * 46); g.quadraticCurveTo(x + 10, y + up * 16, x + 20, y); g.closePath(); g.fill();
-          }
-        });
-      }
-    } else if (style === 'geo') {
-      // rings round the limb: fine lines, a row of triangles, dots; a mandala in the middle
-      const rings = [top + 12, top + 60, top + 150, bot - 16];
-      rings.forEach((y, i) => {
-        g.lineWidth = 3.5; g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.stroke();
-        g.lineWidth = 1.8; g.beginPath(); g.moveTo(0, y + 8); g.lineTo(W, y + 8); g.stroke();
-        if (i === 1) for (let x = 0; x < W; x += 16) { g.beginPath(); g.moveTo(x, y + 12); g.lineTo(x + 8, y + 26); g.lineTo(x + 16, y + 12); g.closePath(); g.fill(); }
-        if (i === 2) for (let x = 6; x < W; x += 12) { g.beginPath(); g.arc(x, y - 10, 2.6, 0, Math.PI * 2); g.fill(); }
+        g.beginPath(); g.moveTo(-12, CY + 44); g.lineTo(-20, CY + 78); g.lineTo(0, CY + 66); g.lineTo(20, CY + 78); g.lineTo(12, CY + 44); g.closePath(); ink(TC.pale, 4);   // tail
+        g.beginPath(); g.ellipse(0, CY + 16, 20, 34, 0, 0, Math.PI * 2); ink(TC.brown, 5);
+        g.beginPath(); g.ellipse(0, CY - 26, 15, 17, 0, 0, Math.PI * 2); ink(TC.pale, 5);   // white head
+        g.beginPath(); g.moveTo(6, CY - 30); g.quadraticCurveTo(24, CY - 28, 18, CY - 14); g.lineTo(8, CY - 20); g.closePath(); ink(TC.yellow, 3.5);   // hooked beak
+        g.beginPath(); g.arc(3, CY - 30, 2.8, 0, Math.PI * 2); g.fillStyle = TC.line; g.fill();
+        [-1, 1].forEach(s => { g.beginPath(); g.moveTo(s * 8, CY + 46); g.lineTo(s * 12, CY + 58); g.lineWidth = 4; g.stroke(); });   // talons
       });
-      const mx = W * (0.25 + r() * 0.5), my = (rings[1] + rings[2]) / 2 + 12;
-      wrap(() => {
-        g.lineWidth = 2.5;
-        [10, 22, 34].forEach(rr => { g.beginPath(); g.arc(mx, my, rr, 0, Math.PI * 2); g.stroke(); });
-        for (let p = 0; p < 12; p++) { const a = p / 12 * Math.PI * 2; g.beginPath(); g.ellipse(mx + Math.cos(a) * 28, my + Math.sin(a) * 28, 7, 3.5, a, 0, Math.PI * 2); g.stroke(); }
-        g.beginPath(); g.arc(mx, my, 4, 0, Math.PI * 2); g.fill();
-      });
-      stipple(600, 0.35);
     } else if (style === 'flash') {
-      // separate little pieces scattered with skin between
-      const kinds = ['star', 'heart', 'swallow', 'anchor', 'rose', 'star', 'heart'];
-      for (let k = 0; k < 6; k++) {
-        const x = (k + 0.5) / 6 * W + (r() - 0.5) * 10, y = top + 40 + ((k * 0.41 + r() * 0.2) % 1) * (bot - top - 80), kind = kinds[(k + v * 3) % kinds.length], rr = 20 + r() * 6;
-        wrap(() => {
-          g.lineWidth = 4.5;
-          if (kind === 'star') { star(x, y, rr); g.stroke(); }
-          else if (kind === 'heart') { heart(x, y, rr * 0.8); g.fillStyle = soft; g.fill(); g.fillStyle = ink; g.stroke(); }
-          else if (kind === 'swallow') {   // a swallow in flight: a forked tail, swept wings
-            g.beginPath(); g.moveTo(x - rr * 1.3, y - rr * 0.4); g.quadraticCurveTo(x - rr * 0.3, y - rr * 0.1, x, y); g.quadraticCurveTo(x + rr * 0.3, y - rr * 0.1, x + rr * 1.3, y - rr * 0.4);
-            g.quadraticCurveTo(x + rr * 0.4, y + rr * 0.3, x + rr * 0.2, y + rr * 0.9); g.lineTo(x, y + rr * 0.5); g.lineTo(x - rr * 0.2, y + rr * 0.9); g.quadraticCurveTo(x - rr * 0.4, y + rr * 0.3, x - rr * 1.3, y - rr * 0.4); g.closePath(); g.fill();
-          } else if (kind === 'anchor') {
-            g.beginPath(); g.moveTo(x, y - rr); g.lineTo(x, y + rr); g.moveTo(x - rr * 0.5, y - rr * 0.55); g.lineTo(x + rr * 0.5, y - rr * 0.55); g.stroke();
-            g.beginPath(); g.arc(x, y + rr * 0.2, rr * 0.8, Math.PI * 0.1, Math.PI * 0.9); g.stroke();
-            g.beginPath(); g.arc(x, y - rr * 1.15, rr * 0.22, 0, Math.PI * 2); g.stroke();
-          } else {   // a little rose: a spiral and two leaves
-            g.beginPath(); for (let a = 0; a < Math.PI * 4; a += 0.25) { const q = 2 + a * 1.1; g.lineTo(x + Math.cos(a) * q, y + Math.sin(a) * q); } g.stroke();
-            [-1, 1].forEach(d => { g.beginPath(); g.ellipse(x + d * rr, y + rr * 0.6, rr * 0.5, rr * 0.22, d * 0.5, 0, Math.PI * 2); g.fillStyle = soft; g.fill(); g.fillStyle = ink; g.stroke(); });
-          }
-        });
-      }
-    } else if (style === 'script') {
-      // a word running down the limb (and another round the far side), in a looping hand
-      const words = [['Stay', 'True'], ['Good', 'Vibes'], ['Peep', 'Coffee'], ['1998', 'Forever']][v % 4];
-      [0.125, 0.375, 0.625, 0.875].map((u, i) => [W * u, words[i % 2]]).forEach(([x, word]) => {   // four times round, so one faces whichever way
-        g.save(); g.translate(x, top + (bot - top) / 2); g.rotate(Math.PI / 2);
-        g.font = 'italic 700 50px "Brush Script MT", "Segoe Script", cursive, serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
-        g.fillText(word, 0, 0); g.lineWidth = 3; g.beginPath(); g.moveTo(-80, 22); g.quadraticCurveTo(0, 34, 80, 20); g.stroke();
-        g.restore();
+      const pieces = [[0, 60, 'star'], [W * 0.22, 140, 'heart'], [-W * 0.22, 140, 'swallow'], [W / 2, 70, 'anchor'], [W / 2 - W * 0.2, 165, 'star']];
+      pieces.forEach(([x, y, kind]) => at(() => {
+        if (kind === 'star') { star(0, y, 24); ink(TC.red, 5); star(0, y, 11); ink(TC.yellow, 3); }
+        else if (kind === 'heart') { heart(0, y, 22); ink(TC.red, 5); }
+        else if (kind === 'swallow') swallow(0, y, 0.42);
+        else anchor(0, y, 0.48);
+      }, x));
+    } else if (style === 'text') {
+      // bold lettering straight down the front of the limb, like a forearm script piece: Chinese stacked upright one
+      // character under the next, anything else turned to run down the limb; sized to fill the length
+      const word = (text || 'PEEP').slice(0, 12), cjk = /[\u3000-\u9fff\uff00-\uffef]/.test(word), n = [...word].length;
+      at(() => {
+        g.fillStyle = TC.line; g.textAlign = 'center'; g.textBaseline = 'middle';
+        if (cjk) {
+          const sz = Math.min(44, (bot - 16) / n);
+          g.font = `900 ${sz}px "Noto Serif TC", "PMingLiU", "MingLiU", serif`;
+          [...word].forEach((ch, i) => g.fillText(ch, 0, 8 + sz * (i + 0.5)));
+        } else {
+          g.save(); g.translate(0, bot / 2); g.rotate(Math.PI / 2);
+          const sz = Math.min(52, (bot - 16) / Math.max(1, n) * 1.6);
+          g.font = `900 ${sz}px "Old English Text MT", "Times New Roman", serif`;
+          g.fillText(word, 0, 0, bot - 16);
+          g.restore();
+        }
       });
-    } else {   // wave
-      stipple(2600, 0.9);
-      for (let k = 0; k < 4; k++) {   // long swells across, each with curling crests
-        const y0 = top + 30 + k * 58 + r() * 14, amp = 9 + r() * 7, ph = r() * 6;
-        wrap(() => {
-          g.lineWidth = 6; g.beginPath();
-          for (let x = 0; x <= W; x += 4) { const y = y0 + Math.sin(x / W * Math.PI * 4 + ph) * amp; x ? g.lineTo(x, y) : g.moveTo(x, y); }
-          g.stroke();
-          g.lineWidth = 4;
-          for (let c = 0; c < 4; c++) {
-            const cx = ((c + 0.25) / 4 - ph / (Math.PI * 4)) * W, cy = y0 - amp;
-            g.beginPath(); for (let a = 0; a < Math.PI * 3.2; a += 0.2) { const rr = 15 - a * 3.8; g.lineTo(cx + Math.cos(a) * Math.max(1, rr), cy + 6 + Math.sin(a) * Math.max(1, rr)); } g.stroke();
-          }
-        });
-      }
-      for (let k = 0; k < 5; k++) flower(r() * W, top + 20 + r() * (bot - top - 40), 20 + r() * 12);
+    } else {   // rose
+      at(() => rose(0, CY, 50));
+      at(() => { leaf(-10, 34, -0.3, 38); leaf(10, 34, Math.PI + 0.3, 38); }, W / 2);   // leaves round the back
     }
-    g.restore();
-    // where a full piece stops, a slightly ragged edge
-    if (style === 'wave' || style === 'floral') { g.fillStyle = soft; for (let x = 0; x < W; x += 3) g.fillRect(x, bot - 2 + r() * 4, 2, 2); }
   });
   t.wrapS = THREE.RepeatWrapping;
   return (TAT[key] = t);
@@ -638,7 +647,7 @@ function buildBodyAt(look, seed) {
   const shirt = mat(C.shirt, { roughness: 0.85 }), shirtDark = mat(shade(C.shirt, 0.72), { roughness: 0.85 });
   const shirtIn = mat(shade(C.shirt, 0.42), { roughness: 0.9, side: THREE.BackSide });   // the shadowed inside of a sleeve
   const shirtUnder = mat(shade(C.shirt, 0.35), { roughness: 1, side: THREE.DoubleSide });   // the inside of the shirt, seen under its hem
-  const inkedSkin = (style, v) => (style ? mat(C.skin, { roughness: 0.6, map: tattooTex(style, v) }) : skin);   // skin tattooed in a style, or bare
+  const inkedSkin = (style, v, low) => (style ? mat(C.skin, { roughness: 0.6, map: tattooTex(style, v, low, typeof look.tattooText === 'string' ? look.tattooText : '') }) : skin);   // skin tattooed in a style, or bare
   const pants = mat(C.pants, { roughness: 0.9 }), pantsDark = mat(shade(C.pants, 0.78), { roughness: 0.9 });
   // hair with a little sheen; curls more (the wet, styled look), straight hair a soft gloss along its layers
   const hairM = mat(C.hair, { roughness: hairOf(look).curl === 'curly' ? 0.45 : 0.68, metalness: 0.05, map: strands(), side: THREE.DoubleSide });
@@ -875,7 +884,7 @@ function buildBodyAt(look, seed) {
     // the arm's skin, the upper arm and forearm each tattooed in its own style or bare (under a long sleeve only the hand
     // would show, so nothing); the arm at -x is the person's right
     const side = s < 0 ? 'r' : 'l';
-    const sleeveM = long ? shirt : inkedSkin(tat[side + 'u'], s < 0 ? 0 : 1), foreM = long ? shirt : inkedSkin(tat[side + 'f'], s < 0 ? 1 : 0);
+    const sleeveM = long ? shirt : inkedSkin(tat[side + 'u'], s < 0 ? 0 : 1, true), foreM = long ? shirt : inkedSkin(tat[side + 'f'], s < 0 ? 1 : 0);
     const lining = (rt, rb, h, y, par) => mk(cy(rt - 0.002, rb - 0.002, h, 14, true), shirtIn, 0, y, 0, par, false);   // the inside of a sleeve, seen at its opening
     const roll = (r, y, par) => { const e = mk(geo(`roll:${r.toFixed(3)}`, () => new THREE.TorusGeometry(r, 0.006, D(6, 3), D(24, 10))), shirtDark, 0, y, 0, par, false); e.rotation.x = Math.PI / 2; };   // a rolled edge round an opening
     // the upper arm: rounded over its top, fullest just below the shoulder, tapering to the elbow (open there, where
