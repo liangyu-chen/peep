@@ -1532,7 +1532,11 @@ function buildHair(hairParts, shape, head, hairM, mk, at, look) {
     const prof = [];
     for (let k = 0; k <= 6; k++) {
       const t = 0.12 + k * (1.55 - 0.12) / 6, ps = at(Math.sin(t), Math.cos(t), 0), pb = at(0, Math.cos(t), -Math.sin(t));
-      prof.push([Math.max(ps.x, -pb.z) + 0.0185 + 0.005 * (k / 6), (ps.y + pb.y) / 2]);   // just clear of the top's fullest, so the two meet without a seam
+      // (as wide as the head is anywhere round the back and sides at that height, the corners of a squarer head
+      // included, not only straight to the side or behind, or the top's hair pokes through it there)
+      let r = Math.max(ps.x, -pb.z);
+      for (let s = 0; s <= 16; s++) { const ph = 0.85 + (Math.PI * 2 - 1.7) * s / 16, q = at(Math.sin(t) * Math.sin(ph), Math.cos(t), Math.sin(t) * Math.cos(ph)); r = Math.max(r, Math.hypot(q.x, q.z)); }
+      prof.push([r + 0.0185 + 0.005 * (k / 6), (ps.y + pb.y) / 2]);   // just clear of the top's fullest, so the two meet without a seam
     }
     const [w, y0] = prof[prof.length - 1];
     prof.push(...tail(w, y0));
