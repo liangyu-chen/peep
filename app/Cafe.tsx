@@ -118,7 +118,7 @@ export default function Cafe({ content }: { content: CafeContent }) {
         <button id="cSmoke" hidden>來根小菸</button>
       </aside>
 
-      <div id="hint">拖曳旋轉 · 滾輪縮放 · 點人物看資料 · 點電視、飛鏢靶、戰鬥盤可以玩</div>
+      <div id="hint">拖曳旋轉 · 滾輪縮放 · 點人物看資料</div>
       {loading && <LoadingHands ready={ready} onDone={done} />}
     </div>
   );
