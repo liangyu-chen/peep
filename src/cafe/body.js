@@ -925,12 +925,14 @@ function buildBodyAt(look, seed) {
     // points on the chest (a little gap between them). Each cross-section: up from the neckline, over, and down
     const N = 48, cross = [];
     // the height of the shirt's surface over a point (x, z): the highest slice that still takes it in
-    const surfY = (x, z) => { for (let i = rows.length - 1; i > 0; i--) { const [y, rx, rz] = rows[i]; if ((x / rx) ** 2 + (z / rz) ** 2 <= 1) { if (i === rows.length - 1) return y; const [y1, rx1, rz1] = rows[i + 1], e = (x / rx) ** 2 + (z / rz) ** 2, e1 = (x / rx1) ** 2 + (z / rz1) ** 2; return y + (y1 - y) * Math.min(1, (1 - e) / Math.max(1e-4, e1 - e)); } } return -1; };
+    // (the shirt's own rows only: those above the neckline are the neck flaring up into the head)
+    const shirtTop = rows.findIndex(r => r[0] >= UNECK.neck - 1e-4);
+    const surfY = (x, z) => { for (let i = shirtTop; i > 0; i--) { const [y, rx, rz] = rows[i]; if ((x / rx) ** 2 + (z / rz) ** 2 <= 1) { if (i === shirtTop) return y; const [y1, rx1, rz1] = rows[i + 1], e = (x / rx) ** 2 + (z / rz) ** 2, e1 = (x / rx1) ** 2 + (z / rz1) ** 2; return y + (y1 - y) * Math.min(1, (1 - e) / Math.max(1e-4, e1 - e)); } } return -1; };
     // the top's U neckline is wide for a shirt: its two fronts fill it, leaving only a V open down to the top button
     for (const sgn of [-1, 1]) {
       const R = 8, C = 6, fp = [], fi = [];
       for (let r = 0; r <= R; r++) {
-        const y = UNECK.bot - 0.012 + (UNECK.neck - 0.006 - UNECK.bot + 0.012) * r / R;   // (up to just under the collar)
+        const y = UNECK.bot - 0.012 + (UNECK.neck - UNECK.bot + 0.012) * r / R;   // (up to the collar)
         const v = 0.004 + 0.03 * Math.max(0, (y - UNECK.bot + 0.008) / (UNECK.neck - UNECK.bot + 0.008)), u = uHalf(Math.min(y, UNECK.neck)) + 0.008;
         for (let c = 0; c <= C; c++) { const x = sgn * (v + (Math.max(u, v + 0.01) - v) * c / C); fp.push(x, y, surfZ(x, y) + 0.0025); }
       }
@@ -942,8 +944,8 @@ function buildBodyAt(look, seed) {
     for (let i = 0; i <= N; i++) {
       const phi = gap + (Math.PI * 2 - 2 * gap) * i / N, sx = Math.sin(phi), sz = Math.cos(phi);
       const front = Math.max(0, sz) ** 3;   // how much this side faces forward: the points grow there
-      // set a little down the neckline, so the neck shows above it (but as wide as the neckline itself, not the shoulders)
-      const yb = UNECK.neck - 0.01, [rx, rz] = slice(UNECK.neck);
+      // on the neckline itself (any lower and the shirt's shoulders cover it); kept low so the neck shows above it
+      const yb = UNECK.neck, [rx, rz] = slice(UNECK.neck);
       const at = (k, dy, ox = 0) => new THREE.Vector3(sx * rx * 1.015 * k + Math.sign(sx) * ox, yb + dy, sz * rz * 1.015 * k);
       // a low stand up from the neckline, a rounded fold over its top, and the fall turned down outside it (hiding the
       // stand, as a real collar's does), its edge a little below the neckline; at the front the fall runs on down and
@@ -951,11 +953,11 @@ function buildBodyAt(look, seed) {
       // (the fall's points kept just off the shirt below them, wherever the shoulders slope away)
       // (only a little: in front the U is cut away and the slices above would lift it right up to the neck)
       // ... and the points in front pressed flat onto the chest
-      const lay = v => { const sy = surfY(v.x, v.z); v.y = Math.min(Math.max(v.y, sy + 0.007), v.y + 0.025 * (1 - front)); if (front > 0) v.z += (surfZ(v.x, v.y) + 0.006 - v.z) * Math.min(1, front * 1.5); return v; };
+      const lay = v => { const sy = surfY(v.x, v.z); v.y = Math.min(Math.max(v.y, sy + 0.008), sz > 0.5 ? v.y + 0.02 : 9); if (front > 0) v.z += (surfZ(v.x, v.y) + 0.006 - v.z) * Math.min(1, front * 1.5); return v; };
       cross.push([
-        at(1, -0.006), at(1.0, 0.014), at(1.04, 0.024), lay(at(1.1, 0.016)),
-        lay(at(1.17 + 0.05 * front, 0.0 - 0.04 * front, 0.008 * front)),
-        lay(at(1.25 + 0.1 * front, -0.025 - 0.065 * front, 0.036 * front)),
+        at(1, -0.008), at(1.0, 0.004), at(1.035, 0.013), lay(at(1.08, 0.006)),
+        lay(at(1.13 + 0.04 * front, -0.008 - 0.03 * front, 0.006 * front)),
+        lay(at(1.19 + 0.07 * front, -0.026 - 0.045 * front, 0.026 * front)),
       ]);
     }
     const pos = [], idx = [], M = cross[0].length;
