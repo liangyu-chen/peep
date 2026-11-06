@@ -59,7 +59,7 @@ export default function Cafe({ content }: { content: CafeContent }) {
           <PixelIcon rows={CUP} />
           <span>MENU</span>
         </button>
-        {/* phones only: the music and the sound effects on one switch, under the menu */}
+        {/* the music and the sound effects on one switch, under the menu */}
         <button id="soundToggle" className="tile tileSound on" aria-label="聲音">
           <PixelIcon rows={SPEAKER} className="icoOn" />
           <PixelIcon rows={SPEAKER_OFF} className="icoOff" />

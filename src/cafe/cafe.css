@@ -58,9 +58,10 @@ body:has(.cafe-root){margin:0;overflow:hidden;background:#141218}
 /* the name panel and, under it, the menu as a square tile */
 .cafe-root #topLeft{position:absolute;top:calc(16px + env(safe-area-inset-top,0px));left:calc(16px + env(safe-area-inset-left,0px));display:grid;gap:12px;justify-items:start;z-index:3}
 .cafe-root #topLeft #brand{position:relative;top:auto;left:auto}
-.cafe-root #topLeft .quick{display:flex;gap:9px}
-/* the phone's sound switch and the panel's fold tab: phones only */
-.cafe-root .tileSound,.cafe-root #ctrlFold{display:none}
+.cafe-root #topLeft .quick{display:flex;flex-direction:column;gap:9px}
+/* the music and the sound effects on one switch, under the menu (their own row in the panel is gone); the panel's
+   fold tab is for phones only */
+.cafe-root #controls .soundRow,.cafe-root #ctrlFold{display:none}
 .cafe-root .tileSound{background:#7ec8ff;color:#1f1c27}
 .cafe-root .tileSound .icoOff,.cafe-root .tileSound.on .icoOn{display:block}
 .cafe-root .tileSound .icoOn,.cafe-root .tileSound.on .icoOff{display:none}
@@ -147,10 +148,7 @@ body:has(.cafe-root){margin:0;overflow:hidden;background:#141218}
   .cafe-root #brand{min-width:0;padding:10px 12px;gap:6px}
   .cafe-root #brand h1{font-size:18px}
   .cafe-root #controls{top:auto;bottom:calc(16px + env(safe-area-inset-bottom,0px));left:calc(16px + env(safe-area-inset-left,0px));right:calc(16px + env(safe-area-inset-right,0px));max-width:none;position:absolute}
-  /* sound: one switch under the menu instead of its own row; the panel can fold away to a tab */
-  .cafe-root #topLeft .quick{flex-direction:column}
-  .cafe-root .tileSound{display:grid}
-  .cafe-root #controls .soundRow{display:none}
+  /* the panel can fold away to a tab */
   .cafe-root #ctrlFold{display:block;position:absolute;top:-14px;right:10px;padding:2px 10px;font-size:12px;z-index:1}
   .cafe-root #controls.folded{left:auto;padding:0;background:none;box-shadow:none}
   .cafe-root #controls.folded .row{display:none}
