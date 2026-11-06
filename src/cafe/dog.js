@@ -190,7 +190,7 @@ function pickSpot(dog, person) {
   const h = person.heading, p = person.g.position, y = floorAt(p.x, p.z);
   for (const [side, fwd] of SPOTS) {
     const x = p.x + Math.cos(h) * side + Math.sin(h) * fwd, z = p.z - Math.sin(h) * side + Math.cos(h) * fwd;
-    if (z > BACK_Z + 0.05 && Math.abs(floorAt(x, z) - y) < 0.01 && !blocked(p.x, p.z, x, z, y) && !occupied(x, z, y)) return new THREE.Vector3(x, floorAt(x, z), z);
+    if (z > BACK_Z + 0.05 && (z < DOOR_Z || leaving(person)) && Math.abs(floorAt(x, z) - y) < 0.01 && !blocked(p.x, p.z, x, z, y) && !occupied(x, z, y)) return new THREE.Vector3(x, floorAt(x, z), z);
   }
   const back = dog.trail[Math.max(0, dog.trail.length - 4)] || p;
   return new THREE.Vector3(back.x, floorAt(back.x, back.z), back.z);
@@ -204,6 +204,25 @@ function waitSpot() {
   for (const [x, z] of WAIT) if (!occupied(x * K, z, 0)) return new THREE.Vector3(x * K, 0, z);
   return new THREE.Vector3(WAIT[0][0] * K, 0, WAIT[0][1]);
 }
+// nor, until they're leaving, out past the raised front by the door (no further than DOOR_Z): while they're out at the
+// arcade seats, by the scooters or on the street, he waits on the step by the door, sat at the first free spot there
+const DOOR_Z = 5.2;
+const DOOR_WAIT = [[-1.15, 4.95], [-2.25, 4.95], [-0.5, 5.0], [-1.75, 4.7]];   // plan coordinates
+function doorSpot() {
+  for (const [x, z] of DOOR_WAIT) if (!occupied(x * K, z, 0)) return new THREE.Vector3(x * K, 0, z);
+  return new THREE.Vector3(DOOR_WAIT[0][0] * K, 0, DOOR_WAIT[0][1]);
+}
+const leaving = person => person.status === '準備離開';
+// someone coming up onto the shop's front from the street, or stepping down off it to go: he barks at them
+function watchDoor(dog, person) {
+  const seen = dog.seen || (dog.seen = new Map());
+  (S.people || []).forEach(o => {
+    if (o === person || o === S.owner) return;
+    const inside = o.g.position.z < KERB, was = seen.get(o);
+    if (was !== undefined && was !== inside) person.bearSay('汪汪！', 1.6);
+    seen.set(o, inside);
+  });
+}
 const _to = new THREE.Vector3();
 // trotting: a little way behind them along the very way they walked (so wherever they could go, so can he); stopped:
 // sat at a free spot beside them, picked once each time they settle
@@ -212,9 +231,11 @@ export function followDog(dog, person, dt) {
   const last = dog.trail[dog.trail.length - 1];
   if (!last || Math.hypot(last.x - p.x, last.z - p.z) > 0.05) { dog.trail.push(new THREE.Vector3(p.x, 0, p.z)); if (dog.trail.length > 40) dog.trail.shift(); }
   // (where along the trail is he heading: if that's past the sliding door too, he stops short and waits)
-  const inBack = p.z < BACK_Z;
-  if (inBack) {
-    if (!dog.waiting) { dog.waiting = waitSpot(); dog.spot = null; }
+  watchDoor(dog, person);
+  const inBack = p.z < BACK_Z, outFront = p.z > DOOR_Z && !leaving(person);
+  if (inBack || outFront) {
+    const kind = inBack ? 'tv' : 'door';
+    if (!dog.waiting || dog.waitKind !== kind) { dog.waiting = inBack ? waitSpot() : doorSpot(); dog.waitKind = kind; dog.spot = null; }
     _to.copy(dog.waiting);
   } else if (walking) {
     dog.waiting = null;
@@ -225,7 +246,7 @@ export function followDog(dog, person, dt) {
       if (d >= need) { at = new THREE.Vector3().lerpVectors(prev, q, need / d); break; }
       need -= d; prev = q; at = q;
     }
-    if (at.z < BACK_Z) _to.copy(dog.g.position);   // (just out of the back: he waits where he is until they've come clear)
+    if (at.z < BACK_Z || (at.z > DOOR_Z && !leaving(person))) _to.copy(dog.g.position);   // (just back from the back or the front: he waits where he is until they've come clear)
     else _to.set(at.x, floorAt(at.x, at.z), at.z);
   } else {
     dog.waiting = null;
@@ -239,7 +260,7 @@ export function followDog(dog, person, dt) {
   const v = g.position.clone().sub(was); v.y = 0;
   const moving = v.length() > dt * 0.12;
   // facing the way he trots, or the way they face when he's sat
-  const want = moving ? Math.atan2(v.x, v.z) : dog.waiting ? Math.atan2(TVX * K - g.position.x, TVZ - g.position.z) : person.heading;   // (waiting: watching the TV)
+  const want = moving ? Math.atan2(v.x, v.z) : dog.waiting ? (dog.waitKind === 'tv' ? Math.atan2(TVX * K - g.position.x, TVZ - g.position.z) : Math.atan2(p.x - g.position.x, p.z - g.position.z)) : person.heading;   // (waiting: watching the TV, or out the door for them)
   let d = want - g.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d));
   g.rotation.y += d * Math.min(1, dt * 6);
   animateDog(dog, dt, moving);
