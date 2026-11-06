@@ -396,11 +396,13 @@ function buildShoe(style, knee, mk, { shoe, skin, light }) {
   const laces = (zs, lift = 0) => zs.forEach(z => mk(bx(0.05, 0.006, 0.01), laceM, 0, Y + shoeTop(z) + 0.002 + lift, z, knee, false));
   if (style === 'slides') {
     // 拖鞋: a bare foot on a thick flat sole, one wide strap over the instep
-    const foot = mk(shoeGeo(false), skin, 0, Y + 0.002, -0.004, knee); foot.scale.set(0.86, 0.72, 0.9);
-    const sole = mk(shoeGeo(true), shoe, 0, Y - 0.004, 0, knee); sole.scale.set(1.02, 1.6, 1);
+    // (the sole a good 3.5 cm thick, its underside on the ground where a sneaker's is, the foot standing on top of it)
+    const SOLE = 2.2, soleTop = Y + 0.028 * SOLE - 0.028 - 0.012 * SOLE;
+    const sole = mk(shoeGeo(true), shoe, 0, Y + 0.028 * SOLE - 0.028, 0, knee); sole.scale.set(1.03, SOLE, 1.01);
+    const foot = mk(shoeGeo(false), skin, 0, soleTop + 0.0115, -0.004, knee); foot.scale.set(0.86, 0.72, 0.9);
     // (half a band round the foot's length, arching up over it from sole to sole, both faces drawn)
     const strapM = shoe.clone(); strapM.side = THREE.DoubleSide;
-    const strap = mk(lathe('slideStrap', [[0.0645, -0.03], [0.068, 0], [0.0645, 0.03]], 20, -Math.PI / 2, Math.PI), strapM, 0, Y - 0.008, 0.05, knee, false);
+    const strap = mk(lathe('slideStrap', [[0.0645, -0.03], [0.068, 0], [0.0645, 0.03]], 20, -Math.PI / 2, Math.PI), strapM, 0, soleTop - 0.003, 0.05, knee, false);
     strap.rotation.x = -Math.PI / 2; strap.scale.set(1, 1, 0.88);   // (arched high enough to sit over the foot, socked or bare)
     return;
   }
