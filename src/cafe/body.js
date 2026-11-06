@@ -389,13 +389,16 @@ const laceM = mat(0xeeeeea, { roughness: 0.7 });
 // a canvas shoe's rubber: the upper's own outline a hair larger, from the ground up the sides to FOX (a band wrapping
 // the foot, not a plate under it); its flat underside on the ground where a sneaker's sole is
 const FOX = 0.006;
+const smooth = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 const foxGeo = () => geo('fox', () => {
-  const g = new THREE.SphereGeometry(1, D(32), D(20)), p = g.attributes.position;
+  const g = new THREE.SphereGeometry(1, D(56), D(36)), p = g.attributes.position;   // (fine, so its top edge runs smooth)
   for (let i = 0; i < p.count; i++) {
     const z0 = p.getZ(i), curl = 0.012 * Math.max(0, z0) ** 3;   // (the upper's toe turns up; the sole stays flat out to the tip, wrapping up over it)
     let [X, Y, Z] = shoeShape(p.getX(i), p.getY(i), z0);
     X *= 1.018; Z = (Z - SHOE.fwd) * 1.015 + SHOE.fwd;
-    Y = p.getY(i) <= 0 ? SHOE.flat - 0.012 : Math.min(Y, FOX + curl);
+    const cap = 0.036 * smooth(0.4, 0.8, z0);   // over the toe it rises into the rounded rubber toe cap, one piece with the sole
+    // (stood just proud of the upper all over, so the two never flicker where they meet)
+    Y = p.getY(i) <= 0 ? SHOE.flat - 0.012 : Math.min(Y * 1.04 + 0.0015, FOX + curl + cap);
     p.setXYZ(i, X, Y, Z);
   }
   g.computeVertexNormals(); return g;
@@ -403,16 +406,17 @@ const foxGeo = () => geo('fox', () => {
 // half, toward the heel, the surface is pulled out onto a ring of radius HI.r round the leg and up to HI.top; its very
 // top folds in under the collar (hidden in the leg). The front, under the laces, slopes on up from the toe.
 const HI = { r: 0.07, top: 0.104 };
-const smooth = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
-const hiTopGeo = () => geo('shoeHi', () => {
+// a low-top's: only round the heel and sides, up to just under the ankle; the front over the laces as the sneaker's
+const LO = { r: 0.068, top: 0.066, z0: 0.075, z1: 0.0 };
+const hiTopGeo = (S = HI) => geo(`shoeRaised:${S.top}`, () => {
   const g = new THREE.SphereGeometry(1, D(32), D(22)), p = g.attributes.position, uv = g.attributes.uv;
   for (let i = 0; i < p.count; i++) {
     const x = p.getX(i), y = p.getY(i), z = p.getZ(i);
     let [X, Y, Z] = shoeShape(x, y, z);
     if (y > 0) {
-      const w = smooth(0.14, 0.05, Z) * smooth(0.15, 0.7, y);   // how much it's drawn up: the back half, the upper part
+      const w = smooth(S.z0 ?? 0.14, S.z1 ?? 0.05, Z) * smooth(0.15, 0.7, y);   // how much it's drawn up: the back half, the upper part
       const phi = uv.getX(i) * Math.PI * 2, a = Math.atan2(-Math.cos(phi), Math.sin(phi));   // its angle round the leg (from the sphere's own u, so even the pole's points have one)
-      const rr = HI.r * (y > 0.9 ? 1 - smooth(0.9, 1, y) * 0.4 : 1), hy = 0.012 + (HI.top - 0.012) * smooth(0.15, 0.9, y);
+      const rr = S.r * (y > 0.9 ? 1 - smooth(0.9, 1, y) * 0.4 : 1), hy = 0.012 + (S.top - 0.012) * smooth(0.15, 0.9, y);
       X += (Math.sin(a) * rr - X) * w; Z += (Math.cos(a) * rr - Z) * w; Y += (hy - Y) * w;
     }
     p.setXYZ(i, X, Y, Z);
@@ -459,11 +463,9 @@ function buildShoe(style, knee, mk, { shoe, skin, light, ankle = true }) {   // 
     // 帆布鞋: canvas in a band of white rubber wrapping the foot flush with it, a big rounded rubber toe cap, laced
     // criss-cross. 高筒: the upper itself rises up round the ankle in one piece (no tube stuck on top),
     // the laces running up its sloping front to a white-edged collar; 低筒: cut low under the ankle, laced over the foot
-    const high = style === 'hightop', upper = high ? hiTopGeo() : shoeGeo(false);
+    const high = style === 'hightop', upper = hiTopGeo(high ? HI : LO);
     mk(upper, shoe, 0, Y, 0, knee);
     mk(foxGeo(), light, 0, Y, 0, knee, false);
-    // (the toe cap stays within the sole's outline, sitting on the rubber band, so the sole runs right out under it)
-    const toe = mk(sp(1, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2), light, 0, Y + FOX - 0.004, 0.113, knee, false); toe.scale.set(0.071, 0.043, 0.056);
     if (high) {
       mk(cy(HI.r + 0.002, HI.r + 0.002, 0.008, 18, true), light, 0, Y + HI.top - 0.004, 0, knee, false);   // the collar's white edge
       collarTop(HI.r + 0.002, Y + HI.top, 0);
@@ -475,6 +477,7 @@ function buildShoe(style, knee, mk, { shoe, skin, light, ankle = true }) {   // 
         });
       });
     } else {
+      mk(cy(LO.r + 0.002, LO.r + 0.002, 0.006, 18, true, Math.PI * 0.45, Math.PI * 1.1), light, 0, Y + LO.top - 0.003, 0, knee, false);   // the low collar's white edge, round the back (the front dips to the laces)
       // over the top of the foot: an X seen from above at each step
       [0.098, 0.08, 0.062].forEach(z => {   // (ahead of the leg)
         const y = Y + shoeTop(z) + 0.003;
