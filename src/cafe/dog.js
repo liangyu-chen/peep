@@ -163,7 +163,7 @@ function corgiBody() {
     // sphere's seam stays closed
     const fur = 1 + 0.35 * Math.sin(x * 23 + y * 17) * Math.cos(z * 19 - y * 11);
     const seat = smooth(-0.45, -0.95, z) * smooth(0.55, -0.15, y), ruff = smooth(0.45, 0.95, z) * smooth(-0.55, 0.1, y) * smooth(0.95, 0.5, y);
-    const swell = (0.03 * seat + 0.026 * ruff) * fur;
+    const swell = (0.012 * seat + 0.01 * ruff) * fur;   // (a gentle swell, easing the body out toward the fluff on it)
     X += x * swell * 0.9; Y += y * swell * 0.7 - 0.004 * seat; Z += z * swell;
     if (y < 0) C_LEG_AT.forEach(([lx, lz]) => {   // (drawn down over each leg's top, so the legs grow out of him)
       const w = Math.exp(-((X - lx) ** 2 + (Z - lz) ** 2) / 0.026 ** 2) * Math.min(1, -y * 1.6);
@@ -190,7 +190,13 @@ export function makeCorgi() {
   const m = corgiMats();
   const g = new THREE.Group(), b = new THREE.Group(); g.add(b); g.scale.setScalar(1.25);
   const body = new THREE.Mesh(corgiBody(), m.body); body.position.set(0, C_HIP + 0.03, 0); body.castShadow = true; b.add(body);
-  // (his fluffy seat and chest ruff are part of the body's own surface: see corgiBody)
+  // the fluffy white seat at the back and the ruff of his chest (fawn, a white bib down it): soft, only lightly tufted,
+  // sunk into the body over its own matching colour, and narrower than he is, so their sides stay inside him (no crease
+  // down his flanks where a ball would cut in) and they show only as fluff swelling from his seat and chest
+  const soft = (r, seed, mm, x, y, z, sx, sy, sz) => { const me = new THREE.Mesh(fuzzGeo(r, seed, 0.08), mm); me.position.set(x, y, z); me.scale.set(sx, sy, sz); me.castShadow = true; b.add(me); return me; };
+  soft(0.05, 11, m.white, 0, C_HIP + 0.022, -0.11, 0.88, 0.82, 0.7);
+  soft(0.052, 13, m.tan, 0, C_HIP + 0.044, 0.112, 0.8, 0.95, 0.62);
+  soft(0.026, 14, m.white, 0, C_HIP + 0.03, 0.136, 0.85, 1.4, 0.55);
 
   // the head: tan, a long white muzzle, a white blaze up the middle, white cheeks; tipped to one side
   const head = new THREE.Group(); head.position.set(0, C_HIP + 0.105, 0.142); b.add(head);
