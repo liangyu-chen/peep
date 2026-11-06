@@ -344,7 +344,7 @@ export const FACE: Record<'faceShape' | 'eyes' | 'brows' | 'nose' | 'mouth' | 'f
   mouth: [{ value: 'smile', label: '微笑' }, { value: 'grin', label: '露齒笑' }, { value: 'smirk', label: '壞笑' }, { value: 'flat', label: '面無表情' }, { value: 'open', label: '張嘴' }, { value: 'jianzhi', label: '健誌嘴巴' }],
   facialHair: [{ value: 'none', label: '無' }, { value: 'stubble', label: '鬍渣' }, { value: 'mustache', label: '八字鬍' }, { value: 'goatee', label: '山羊鬍' }, { value: 'both', label: '八字鬍＋山羊鬍' }, { value: 'full', label: '落腮鬍' }],
   beard: [{ value: 'light', label: '淡' }, { value: 'normal', label: '一般' }, { value: 'thick', label: '濃' }],   // how dense the facial hair is
-  glasses: [{ value: 'none', label: '無' }, { value: 'round', label: '圓框' }, { value: 'square', label: '方框' }, { value: 'sun', label: '墨鏡' }, { value: 'aliang', label: '阿亮眼鏡' }],
+  glasses: [{ value: 'none', label: '無' }, { value: 'round', label: '圓框' }, { value: 'square', label: '方框' }, { value: 'metal', label: '金屬框（金）' }, { value: 'metalSilver', label: '金屬框（銀）' }, { value: 'sun', label: '墨鏡' }, { value: 'aliang', label: '阿亮眼鏡' }],
 };
 export type Face = { faceShape: string; eyes: string; brows: string; nose: string; mouth: string; facialHair: string; beard: string; glasses: string; blush: boolean; eyeColor: number };
 
