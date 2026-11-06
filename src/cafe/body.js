@@ -944,6 +944,7 @@ function buildBodyAt(look, seed) {
     for (let i = 0; i <= N; i++) {
       const phi = gap + (Math.PI * 2 - 2 * gap) * i / N, sx = Math.sin(phi), sz = Math.cos(phi);
       const front = Math.max(0, sz) ** 3;   // how much this side faces forward: the points grow there
+      const back = Math.min(1, Math.max(0, 0.35 - sz) / 1.1) ** 0.8;   // and how much it's round the back
       // on the neckline itself (any lower and the shirt's shoulders cover it); kept low so the neck shows above it
       const yb = UNECK.neck, [rx, rz] = slice(UNECK.neck);
       const at = (k, dy, ox = 0) => new THREE.Vector3(sx * rx * 1.015 * k + Math.sign(sx) * ox, yb + dy, sz * rz * 1.015 * k);
@@ -955,7 +956,8 @@ function buildBodyAt(look, seed) {
       // ... and the points in front pressed flat onto the chest
       const lay = v => { const sy = surfY(v.x, v.z); v.y = Math.min(Math.max(v.y, sy + 0.014), sz > 0.5 ? v.y + 0.02 : 9); if (front > 0) v.z += (surfZ(v.x, v.y) + 0.011 - v.z) * Math.min(1, front * 1.5); return v; };
       cross.push([
-        at(1, -0.008), at(1.0, 0.004), at(1.035, 0.013), lay(at(1.08, 0.006)),
+        // (round the back of the neck the collar stands up higher, as a shirt's does, easing down toward the front)
+        at(1, -0.008), at(1.0, 0.004 + 0.034 * back), at(1.035, 0.013 + 0.036 * back), lay(at(1.08 - 0.025 * back, 0.006 + 0.026 * back)),
         lay(at(1.13 + 0.04 * front, -0.008 - 0.03 * front, 0.006 * front)),
         lay(at(1.19 + 0.07 * front, -0.026 - 0.045 * front, 0.026 * front)),
       ]);
