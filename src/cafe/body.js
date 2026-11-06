@@ -830,11 +830,13 @@ function buildBodyAt(look, seed) {
     const sm = mat(C.pants, { roughness: 0.85, side: THREE.DoubleSide });
     // (its width: a straight narrow skirt, the usual A-line, or full and flared; the waist the same in all)
     const F = { slim: 0.35, regular: 1, wide: 1.7 }[fit] || 1, flareTo = ([r, y]) => [0.185 + (r - 0.185) * F, y];
-    mk(lathe(`skirt3:${F}`, [[0.185, -0.05], [0.19, -0.08], [0.215, -0.11], [0.24, -0.16], [0.266, -0.24], [0.288, -0.32], [0.284, -0.33]].map(flareTo), 28), sm, 0, 0, 0, skirt).scale.z = 0.78;
+    // (under a fitted top, its waistband taken in to stay inside the narrower shirt)
+    const tuck = clothesOf(look).top === 'slim' ? 0.92 : 1;
+    mk(lathe(`skirt3:${F}`, [[0.185, -0.05], [0.19, -0.08], [0.215, -0.11], [0.24, -0.16], [0.266, -0.24], [0.288, -0.32], [0.284, -0.33]].map(flareTo), 28), sm, 0, 0, 0, skirt).scale.set(tuck, 1, 0.78 * tuck);
   }
   // the belt at the waist, just under the shirt's hem, its buckle on its front
   // (the waist is the same size whatever the cut, roomy through the seat or not, so the belt is too: snug on it)
-  const BELT = 1;
+  const BELT = clothesOf(look).top === 'slim' ? 0.95 : 1;   // (under a fitted top, a notch tighter, so it stays inside it)
   const belt = mk(cy(0.196, 0.196, 0.026, 22), beltM, 0, 0.708, 0, g, false); belt.scale.set(BELT, 1, 0.59 * BELT);
   const buckle = mk(bx(0.045, 0.024, 0.012), buckleM, 0, 0.707, 0.196 * 0.59 * BELT + 0.004, g, false);
 
@@ -869,10 +871,12 @@ function buildBodyAt(look, seed) {
     const colM = shirt.clone(); colM.side = THREE.DoubleSide;
     // the collar: a band standing up round the neck (the neckline's own edge, raised and thickened), and its two points
     // folded down over the top of the chest either side of the top button, splaying out
-    const band = mk(neckRibGeo(topFit), colM, 0, 0.016, 0, g, false); band.scale.set(1.07, 1, 1.09);
+    const band = mk(neckRibGeo(topFit), colM, 0, 0.018, 0, g, false); band.scale.set(1.08, 1.6, 1.1);
     [-1, 1].forEach(s => {
-      const p = on(s * 0.04, 1.205, 0.012), flap = mk(bx(0.058, 0.05, 0.007), colM, p.x, p.y, p.z, g, false);
-      flap.rotation.set(-0.45, s * 0.25, s * 0.55);
+      // (big enough to read at a glance: two clear points, standing a little off the chest, a shade darker underneath)
+      const p = on(s * 0.045, 1.2, 0.016), flap = mk(bx(0.072, 0.062, 0.008), colM, p.x, p.y, p.z, g, false);
+      flap.rotation.set(-0.5, s * 0.25, s * 0.6);
+      const under = mk(bx(0.07, 0.06, 0.004), shirtDark, p.x, p.y - 0.004, p.z - 0.006, g, false); under.rotation.copy(flap.rotation);
     });
     const hemTop = 0.71 - TF.drop + 0.02, buttonM = mat(0xf4f1ea, { roughness: 0.4 });
     for (let y = 1.2; y > hemTop; y -= 0.04) {   // the placket, in short lengths following the curve of the front
@@ -954,7 +958,24 @@ function buildBodyAt(look, seed) {
     // under a hat they sit just below its front edge (which is at height elev straight in front), or they'd show through it
     const hs = HATS[hatOf(look).hat];
     const BY = hs ? Math.min(0.074, at(0, Math.sin(hs.elev), Math.cos(hs.elev)).y - h / 2 - Math.abs(Math.sin(tilt)) * w / 2 - 0.004) : 0.074;
-    [-1, 1].forEach(s => { fm(bx(w, h, 0.014), hairM, s * EX, BY, surf(s * EX, BY) + 0.004).rotation.z = s * tilt; });
+    const brows = [-1, 1].map(s => { const b = fm(bx(w, h, 0.014), hairM, s * EX, BY, surf(s * EX, BY) + 0.004); b.rotation.z = s * tilt; return b; });
+    // a fringe over the forehead hides them: where any of a brow (its middle or either end) is behind hair, seen from in
+    // front, it isn't drawn, rather than showing through the curls
+    const hairMeshes = []; head.traverse(o => { if (o.isMesh && o.material === hairM && !brows.includes(o)) hairMeshes.push(o); });
+    if (hairMeshes.length) {
+      head.updateMatrixWorld(true);
+      const ray = new THREE.Raycaster(), p = new THREE.Vector3(), back = new THREE.Vector3(0, 0, -1);
+      // (a fringe ending at the brows: they drop just below its edge, as far as a little under 2 cm; any further, hidden)
+      const coveredAt = (b, drop) => [-w / 2, 0, w / 2].some(dx => [h / 2, 0].some(dy => {
+        p.set(dx, dy - drop, 0.007).applyMatrix4(b.matrixWorld); ray.set(new THREE.Vector3(p.x, p.y, p.z + 0.3), back); ray.far = 0.3;
+        return ray.intersectObjects(hairMeshes, false).length > 0;
+      }));
+      brows.forEach(b => {
+        const drop = [0, 0.006, 0.012, 0.018].find(dd => !coveredAt(b, dd));
+        if (drop === undefined) b.visible = false;
+        else if (drop) { b.position.y -= drop; b.position.z = surf(b.position.x, b.position.y) + 0.004; }
+      });
+    }
   }
   // nose: soft rounded shapes, a shade darker than the face
   const NY = -0.024, nz = surf(0, NY);
