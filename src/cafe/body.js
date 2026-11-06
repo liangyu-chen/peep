@@ -809,8 +809,8 @@ function buildBodyAt(look, seed) {
     mk(lathe(`skirt3:${F}`, [[0.185, -0.05], [0.19, -0.08], [0.215, -0.11], [0.24, -0.16], [0.266, -0.24], [0.288, -0.32], [0.284, -0.33]].map(flareTo), 28), sm, 0, 0, 0, skirt).scale.z = 0.78;
   }
   // the belt at the waist, just under the shirt's hem, its buckle on its front
-  // (round shorts' roomier seat, the belt's let out to match, so it sits on it rather than poking through)
-  const BELT = fit === 'wide' && !shorts ? 1.12 : shorts ? Math.max(1, TW * 0.97) : 1;
+  // (the waist is the same size whatever the cut, roomy through the seat or not, so the belt is too: snug on it)
+  const BELT = 1;
   const belt = mk(cy(0.196, 0.196, 0.026, 22), beltM, 0, 0.708, 0, g, false); belt.scale.set(BELT, 1, 0.59 * BELT);
   const buckle = mk(bx(0.045, 0.024, 0.012), buckleM, 0, 0.707, 0.196 * 0.59 * BELT + 0.004, g, false);
 
