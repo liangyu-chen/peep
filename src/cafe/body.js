@@ -1212,6 +1212,17 @@ function buildHair(hairParts, shape, head, hairM, mk, at, look) {
       mk(cy(0.038, 0.038, 0.03, 12), mat(picked(tieColorOf(look)), { roughness: 0.6 }), p.x, p.y, p.z - 0.012, head).rotation.x = Math.PI / 2;   // the hair tie, in its colour
       const tail = mk(lathe(`tail:${L}:${R}`, [[0.001, 0.02], [0.04 * R, 0], [0.05 * R, -0.08 * L], [0.035 * R, -0.2 * L], [0.012 * R, -0.28 * L], [0, -0.29 * L]], 14), hairM, p.x, p.y - 0.01, p.z - 0.04, head);
       tail.rotation.x = 0.35;
+    } else if (tie === 'twintails' && long) {
+      // 雙馬尾: one each side, tied high behind the ears, hanging down and splaying a little out from the head, each in a
+      // hair tie (under a hat, tied lower, below its edge)
+      const e = H ? Math.min(0.22, hatBack - 0.25) : 0.22, az = 0.95, L = length === 'long' ? 0.9 : 0.65, R = curly ? 1.2 : 0.9;
+      const tieM = mat(picked(tieColorOf(look)), { roughness: 0.6 });
+      [-1, 1].forEach(s => {
+        const p = at(s * Math.sin(az) * Math.cos(e), Math.sin(e), -Math.cos(az) * Math.cos(e));
+        const grp = new THREE.Group(); grp.position.set(p.x + s * 0.012, p.y, p.z - 0.008); grp.rotation.set(0.25, 0, s * 0.32); head.add(grp);
+        mk(cy(0.03, 0.03, 0.024, 12), tieM, 0, 0, 0, grp);
+        mk(lathe(`twin:${L}:${R}`, [[0.001, 0.02], [0.034 * R, 0], [0.042 * R, -0.07 * L], [0.03 * R, -0.18 * L], [0.01 * R, -0.25 * L], [0, -0.26 * L]], 14), hairM, 0, -0.008, 0, grp);
+      });
     } else if (hangs) {
       curtain(`${length}${curly ? ':curly' : ''}`, (curly ? CURLY_LENGTHS : LENGTHS)[length], curly ? (length === 'bob' ? 0.016 : 0.018) : 0);
       if (curly) {

@@ -53,7 +53,7 @@ function randomHair(female) {
   const hairLength = female ? pick(['long', 'long', 'medium', 'medium', 'bob', 'bob', 'short']) : pick(['short', 'short', 'short', 'buzz', 'bald', 'bob', 'medium']);
   const hairCurl = Math.random() < 0.25 ? 'curly' : hairLength === 'short' && !female && Math.random() < 0.2 ? 'spiky' : 'straight';
   const hairFront = pick(female ? ['bangs', 'bangs', 'center', 'side', 'none'] : ['none', 'none', 'side', 'center', 'bangs']);
-  const hairTie = female && (hairLength === 'medium' || hairLength === 'long') && Math.random() < 0.35 ? pick(['ponytail', 'bun']) : 'none';
+  const hairTie = female && (hairLength === 'medium' || hairLength === 'long') && Math.random() < 0.35 ? pick(['ponytail', 'bun', 'twintails']) : 'none';
   return { hairLength, hairCurl, hairFront, hairTie };
 }
 

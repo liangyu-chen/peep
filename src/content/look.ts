@@ -87,7 +87,7 @@ export const HAIR: Record<'length' | 'curl' | 'front' | 'tie', Option[]> = {
   length: [{ value: 'bald', label: '光頭' }, { value: 'buzz', label: '平頭' }, { value: 'short', label: '短髮' }, { value: 'bob', label: '短長髮' }, { value: 'medium', label: '中長髮' }, { value: 'long', label: '長髮' }],
   curl: [{ value: 'straight', label: '直髮' }, { value: 'curly', label: '捲髮' }, { value: 'spiky', label: '刺蝟頭' }],
   front: [{ value: 'none', label: '無瀏海' }, { value: 'bangs', label: '瀏海' }, { value: 'center', label: '中分' }, { value: 'side', label: '旁分' }],
-  tie: [{ value: 'none', label: '不綁' }, { value: 'ponytail', label: '馬尾' }, { value: 'bun', label: '包頭' }],
+  tie: [{ value: 'none', label: '不綁' }, { value: 'ponytail', label: '馬尾' }, { value: 'twintails', label: '雙馬尾' }, { value: 'bun', label: '包頭' }],
 };
 export type Hair = { length: string; curl: string; front: string; tie: string };
 // what each of the older single hairstyles was, part by part
@@ -114,7 +114,7 @@ export function hairOf(look: Look): Hair {
     front: pickIn(HAIR.front, look.hairFront, old.front), tie: pickIn(HAIR.tie, look.hairTie, old.tie),
   };
 }
-// the colour of the band a ponytail's tied with (neon pink unless chosen)
+// the colour of the band a ponytail's (or each of twin tails') tied with (neon pink unless chosen)
 export const tieColorOf = (look: Look) => (typeof look.tieColor === 'number' ? look.tieColor : 0xff4f7b);
 // a short description, like 長髮・捲髮・瀏海・馬尾
 export function hairLabel(h: Hair): string {
