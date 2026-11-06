@@ -988,9 +988,9 @@ function buildBodyAt(look, seed) {
         at(1, -0.008), at(1.0, s), at(1.018, s + 0.009), at(1.05, s + 0.012),
         // (in front, the drop from the roll down to the point an even curve)
         // (small points: not much longer or wider than the fall round the sides)
-        lay(at(1.085 + 0.012 * front, s + 0.003 - 0.008 * front, 0.002 * front)),
-        lay(at(1.115 + 0.04 * front, s - 0.016 - 0.012 * front, 0.009 * front)),
-        lay(at(1.145 + 0.07 * front, s - 0.034 - 0.014 * front, 0.022 * front)),
+        lay(at(1.08 + 0.01 * front, s + 0.003 - 0.006 * front, 0.002 * front)),
+        lay(at(1.105 + 0.03 * front, s - 0.013 - 0.006 * front, 0.007 * front)),
+        lay(at(1.13 + 0.05 * front, s - 0.027 - 0.006 * front, 0.016 * front)),
       ]);
     }
     const pos = [], idx = [], M = cross[0].length;
