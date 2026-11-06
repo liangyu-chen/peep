@@ -48,23 +48,32 @@ function fuzzGeo(r, seed) {
 // the body: one smooth egg, fuller at the chest, rounding off small at the rump (no separate rump ball), its short fur
 // going from cream-pink at the chest to the barest pink at the back
 let bodyGeo = null;
+// where the legs' tops are, in the body's own frame (it sits HIP_Y + 0.034 up and 0.005 forward)
+const LEG_AT = [[0.03, 0.068], [-0.03, 0.068], [0.032, -0.062], [-0.032, -0.062]];
+const LEG_TOPS = LEG_AT.map(([x, z]) => [x, z - 0.005]);
 function eggGeo() {
   if (bodyGeo) return bodyGeo;
   const g = new THREE.SphereGeometry(1, 24, 18), p = g.attributes.position, col = [];
   const front = new THREE.Color(picked(0xe9d5cc)), rear = new THREE.Color(picked(0xdab8b4)), c = new THREE.Color();
   for (let i = 0; i < p.count; i++) {
     const x = p.getX(i), y = p.getY(i), z = p.getZ(i), f = 1 + 0.1 * z;   // fuller forward, smaller behind
-    p.setXYZ(i, x * 0.056 * f, y * 0.052 * f + 0.006 * z, z * 0.098);
+    let X = x * 0.056 * f, Y = y * 0.052 * f + 0.006 * z, Z = z * 0.098;
+    // over each leg, the underside drawn down into a soft tapering cone that the leg comes out of
+    if (y < 0) LEG_TOPS.forEach(([lx, lz]) => {
+      const w = Math.exp(-((X - lx) ** 2 + (Z - lz) ** 2) / 0.022 ** 2) * Math.min(1, -y * 1.6);
+      Y -= 0.03 * w; X += (lx - X) * 0.45 * w; Z += (lz - Z) * 0.45 * w;
+    });
+    p.setXYZ(i, X, Y, Z);
     c.copy(front).lerp(rear, smooth(0.25, -0.45, z)); col.push(c.r, c.g, c.b);   // (front colour over the front legs' tops, rear over the back's)
   }
   g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
   g.computeVertexNormals(); return (bodyGeo = g);
 }
-// a leg: narrow at the paw, thickening up the leg and flaring wide at the top, so it runs into the body's underside at a
-// shallow angle, a smooth fillet rather than a post stuck under it
+// a leg: slim, a touch thicker up top; its top is sheathed by the body drawn down over it (eggGeo), so it grows out of
+// the body rather than being stuck on
 const LEG = 0.06;   // short little legs
 let legGeo = null;
-const legShape = () => legGeo || (legGeo = new THREE.LatheGeometry([[0.0001, -LEG], [0.012, -LEG + 0.004], [0.013, -LEG * 0.6], [0.017, -LEG * 0.3], [0.024, -0.008], [0.033, 0.006], [0.03, 0.02], [0.0001, 0.032]].map(([r, y]) => new THREE.Vector2(r, y)), 12));
+const legShape = () => legGeo || (legGeo = new THREE.LatheGeometry([[0.0001, -LEG], [0.012, -LEG + 0.004], [0.0135, -LEG * 0.55], [0.016, -LEG * 0.15], [0.0165, 0.012], [0.0001, 0.03]].map(([r, y]) => new THREE.Vector2(r, y)), 12));
 
 // a tube along a curve narrowing from r0 at its start to r1 at its end (a tail to a point)
 function taperedTube(curve, r0, r1, segs = 18, sides = 7) {
@@ -103,7 +112,7 @@ export function makeDog() {
   tongue.position.set(0, -0.037, 0.068); tongue.scale.set(0.9, 1.5, 0.35); tongue.rotation.x = 0.35; head.add(tongue);
 
   // four short legs, each hinged at the top, with a little paw
-  const legs = [[0.03, 0.068], [-0.03, 0.068], [0.032, -0.062], [-0.032, -0.062]].map(([x, z], i) => {
+  const legs = LEG_AT.map(([x, z], i) => {
     const front = i < 2, hip = new THREE.Group(); hip.position.set(x, HIP_Y, z); b.add(hip);
     const legM = front ? m.legF : m.legR;
     const leg = new THREE.Mesh(legShape(), legM); leg.castShadow = true; hip.add(leg);
