@@ -119,8 +119,11 @@ const FIGHT = {
     function attack(f, kind) {
       if (!live() || busy(f)) return;
       const o = f === P ? C : P;
-      f.act = kind; f.actT = kind === 'punch' ? 0.22 : 0.34;
-      const reach = kind === 'punch' ? 0.14 : 0.18, dmg = kind === 'punch' ? 7 : 11;
+      // a punch reaches nearly as far as a kick (the arm goes out about as far as the leg in the sprite) and comes back
+      // quicker, so it's the faster, lighter blow and the kick the slower, heavier one; both reach a foe standing off
+      // where the computer stops to fight (0.15)
+      f.act = kind; f.actT = kind === 'punch' ? 0.2 : 0.34;
+      const reach = kind === 'punch' ? 0.175 : 0.19, dmg = kind === 'punch' ? 7 : 11;
       if (Math.abs(o.x - f.x) > reach || o.act === 'ko') { sfx('whiff'); return; }
       if (o === C && !busy(C) && Math.random() < 0.3) o.act = 'block';   // the computer sees some of them coming
       if (o.act === 'block') { o.hp = Math.max(0, o.hp - 1); spark(f, o, '#ffffff'); sfx('block'); }
