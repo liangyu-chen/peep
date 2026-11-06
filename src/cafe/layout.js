@@ -27,6 +27,9 @@ export const MACHINE = [1.62, 1.5];      // where he stands to work the espresso
 
 export const TOILET = [[1.25, -7.7], [0.0, -7.7], [-1.85, -7.7], [-1.85, -5.0], [-1.85, -4.0], [HUBX, -3.6]];   // through the open (right) half of the sliding door
 export const DOOR = [[-1.75, 11], [-1.75, 4.75], [-1.6, 4.5], [HUBX, 3.6]];
+// the way past the TV players: through the gap between the bar's inner end (z -2.08) and the nearer player (z -2.7),
+// so nobody walks between the two of them or behind their shoulders
+export const GAME_GAP = [[0.9, -2.3], [-0.45, -2.3], [HUBX, -2.3]];
 export const zoneSpot = s => [[s.x, s.z], [HUBX, s.z]];
 export const route = (from, to) => from.slice(1).concat(to.slice().reverse());
 
@@ -43,8 +46,9 @@ export function createSeats() {
     seat('table', LW, z, Math.PI / 2, -0.1, [LW, onStump ? 0.43 : 0.61, cz], [[LW, z], [HUBX, z]], { where: '紫色牆邊' });
   });
   // by the work counter: two at the back end, an L in the door-end corner
-  seat('table', 2.75, -2.55, -Math.PI / 2, -0.1, [2.72, 0.61, -2.98], [[2.75, -2.55], [2.0, -2.55], [1.2, -3.2], [HUBX, -3.2]], { where: '工作台旁' });
-  seat('table', 2.75, -3.65, -Math.PI / 2, -0.1, [2.78, 0.61, -3.22], [[2.75, -3.65], [2.0, -3.65], [1.2, -3.2], [HUBX, -3.2]], { where: '工作台旁' });
+  // (out round the bar's inner end, in front of the TV players rather than between them: GAME_GAP)
+  seat('table', 2.75, -2.55, -Math.PI / 2, -0.1, [2.72, 0.61, -2.98], [[2.75, -2.55], [2.0, -2.55], ...GAME_GAP], { where: '工作台旁' });
+  seat('table', 2.75, -3.65, -Math.PI / 2, -0.1, [2.78, 0.61, -3.22], [[2.75, -3.65], [2.0, -3.65], [1.6, -2.45], ...GAME_GAP], { where: '工作台旁' });
   seat('table', 2.75, 2.95, -Math.PI / 2, -0.1, [2.7, 0.61, 3.55], [[2.75, 2.95], [2.1, 3.0], [HUBX, 3.0]], { where: '轉角' });
   seat('table', 2.05, 3.7, Math.PI, -0.1, [2.62, 0.61, 3.72], [[2.05, 3.7], [1.7, 3.3], [HUBX, 3.3]], { where: '轉角' });
   // arcade: the two chair rows face the middle strip, cups on the nearest crate
@@ -67,7 +71,8 @@ export function createSeats() {
 
   // the two round stools in front of the TV, and two spots to stand and watch
   const gameSeats = [[-0.45, -3.6], [-0.45, -2.7]].map(([x, z]) => seat('game', x, z, Math.atan2(K * (TVX - x), TVZ - z), 0.12, null, [[x, z], [HUBX, z]]));
-  const specSpots = [[0.35, -3.25], [-1.3, -4.2]].map(([x, z]) => ({ type: 'spec', x, z, face: Math.atan2(K * (TVX - x), TVZ - z), occ: null, path: [[x, z], [HUBX, z]] }));
+  // (the one standing behind the players walks off round them too)
+  const specSpots = [[0.35, -3.25], [-1.3, -4.2]].map(([x, z]) => ({ type: 'spec', x, z, face: Math.atan2(K * (TVX - x), TVZ - z), occ: null, path: x > 0 ? [[x, z], [x, -2.3], ...GAME_GAP] : [[x, z], [HUBX, z]] }));
 
   // where customers queue to order across the bar
   const counterSpots = [-1.0, -0.05, 0.85].map(z => ({ z, x: -0.6, occ: null }));
