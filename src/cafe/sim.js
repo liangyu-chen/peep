@@ -261,7 +261,7 @@ async function leave(c, zone) {
   await sleep(0.3);
   log(`${p.name} 離開了`);
   S.customers.splice(S.customers.indexOf(c), 1);
-  if (c === S.selected) closeCard();
+  if (c === S.selected || S.selected?.owner === c) closeCard();   // (their companion's card goes with them too)
   c.remove();
 }
 

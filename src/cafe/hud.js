@@ -8,7 +8,9 @@ import { fmtTime } from './feed.js';
 import { matchClock } from './tv.js';
 import { DAYS, smokeState, sendOutToSmoke } from './sim.js';
 import { canInviteTops, inviteTops } from './tops.js';
-import { portraitOf } from './portrait.js';
+import { portraitOf, petPortraitOf } from './portrait.js';
+import { makeDog, makeCorgi } from './dog.js';
+import { makeBear } from './bear.js';
 import { setStoreLight, setToiletLight } from './world/lights.js';
 import { setQuality, DEFAULT_QUALITY } from './quality.js';
 import { tvGames, GAME_LABEL } from './profiles.js';
@@ -37,8 +39,26 @@ export function updateHUD() {
 // ---------------------------------------------------------------- the person card
 export function openCard(p) { S.selected = p; $('card').hidden = false; fillCard(); sfx('boop'); }
 export function closeCard() { S.selected = null; const card = $('card'); if (card) card.hidden = true; }
+// a companion's card (配件: 路易斯, 夜叉丸, 蘿蔔糕): what it is, whose it is, a line about it, what it says, what it's up to
+const PET_INFO = {
+  bear: { kind: '小熊', note: '總是飛在主人的肩膀旁', make: makeBear },
+  dog: { kind: '博美狗', note: '有脫毛症，只剩頭跟背上一小塊還是蓬蓬的毛', make: makeDog },
+  corgi: { kind: '柯基', note: '短腿長身，金黃色的毛，長長的尾巴', make: makeCorgi },
+};
+export function openPetCard(owner) { S.selected = { pet: owner.bear, owner }; $('card').hidden = false; fillCard(); sfx('boop'); }
+function fillPetCard(s) {
+  const pet = s.pet, info = PET_INFO[pet.kind] || PET_INFO.dog;
+  $('cName').textContent = pet.name;
+  const av = $('cAvatar'), pic = petPortraitOf(pet.kind, info.make); if (av.getAttribute('src') !== pic) av.setAttribute('src', pic);
+  const kind = $('cKind'); kind.className = 'kind pet'; kind.textContent = '配件 · ' + info.kind;
+  const dl = $('cInfo'); dl.innerHTML = '';
+  [['種類', info.kind], ['主人', s.owner.p.name], ['特徵', info.note], ['口頭禪', pet.line]].forEach(([k, v]) => { const dt = document.createElement('dt'); dt.textContent = k; const dd = document.createElement('dd'); dd.textContent = v; dl.append(dt, dd); });
+  $('cStatus').textContent = '現在：' + (pet.kind === 'bear' ? '在主人肩膀旁飛來飛去' : pet.wander ? '在店裡到處閒晃' : '跟在主人身邊');
+  $('cInvite').hidden = true; $('cSmoke').hidden = true;
+}
 export function fillCard() {
   const s = S.selected; if (!s) return;
+  if (s.pet) return fillPetCard(s);
   const p = s.p;
   $('cName').textContent = p.name;
   const av = $('cAvatar'), pic = portraitOf(s); if (av.getAttribute('src') !== pic) av.setAttribute('src', pic);
@@ -236,7 +256,7 @@ export function bindHUD(root, stage) {
     else if (h === 'neon') toggleNeon();
     else if (h === 'storeLight') { setStoreLight(!S.storeLight.on); sfx('flick'); }
     else if (h === 'toiletLight') { setToiletLight(!S.toiletLight.on); sfx('flick'); }
-    else if (h && h.bearOf) h.bearOf.bearSay(h.bearOf.bear.line);   // a companion just says its piece (路易斯 愛老公, 夜叉丸 汪！), no card
+    else if (h && h.bearOf) { h.bearOf.bearSay(h.bearOf.bear.line); openPetCard(h.bearOf); }   // a companion says its piece (路易斯 愛老公, 夜叉丸 汪！) and its card opens
     else if (typeof h === 'string') playAt(h, root); else if (h) openCard(h); else closeCard();
   });
   on(canvas, 'pointermove', e => {

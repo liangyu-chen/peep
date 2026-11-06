@@ -281,7 +281,7 @@ export class Person {
     // the dog trotting at their feet; click it and it says its piece
     const pet = profile.look?.companion;
     if (pet === 'bear' || pet === 'dog' || pet === 'corgi') {
-      this.bear = pet === 'dog' ? Object.assign(makeDog(), { follow: followDog }) : pet === 'corgi' ? Object.assign(makeCorgi(), { follow: followDog }) : Object.assign(makeBear(), { follow: followBear, line: '愛老公', bubbleY: 0.24 }); mergeParts(this.bear.g); this.bear.g.traverse(o => { if (o.isMesh) o.userData.bearOf = this; }); ctx.scene.add(this.bear.g); moverShadows(this.bear.g);
+      this.bear = pet === 'dog' ? Object.assign(makeDog(), { follow: followDog, kind: 'dog' }) : pet === 'corgi' ? Object.assign(makeCorgi(), { follow: followDog, kind: 'corgi' }) : Object.assign(makeBear(), { follow: followBear, kind: 'bear', name: '路易斯', line: '愛老公', bubbleY: 0.24 }); mergeParts(this.bear.g); this.bear.g.traverse(o => { if (o.isMesh) o.userData.bearOf = this; }); ctx.scene.add(this.bear.g); moverShadows(this.bear.g);
       this.bear.bubble = document.createElement('div'); this.bear.bubble.className = 'bubble'; this.bear.bubble.style.opacity = 0; this.bear.bubbleT = 0;
       S.labelsEl.append(this.bear.bubble);
     }

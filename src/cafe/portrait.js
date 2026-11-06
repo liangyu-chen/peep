@@ -35,6 +35,25 @@ export function portraitOf(person) {
   return url;
 }
 
+// a picture of a companion for its card (路易斯, 夜叉丸, 蘿蔔糕): its model built afresh in the same little stage, the
+// camera framed on it whatever its size, a little from the front and side; one picture per kind, kept
+const petPictures = new Map();
+export function petPortraitOf(kind, make) {
+  if (petPictures.has(kind)) return petPictures.get(kind);
+  stage = stage || makeStage();
+  const pet = make();
+  pet.g.updateMatrixWorld(true);
+  const box = new THREE.Box3().setFromObject(pet.g), c = box.getCenter(new THREE.Vector3()), r = box.getSize(new THREE.Vector3()).length() / 2;
+  const cam = new THREE.PerspectiveCamera(30, 1, 0.01, 20);
+  cam.position.set(c.x + r * 0.9, c.y + r * 0.5, c.z + r * 2.1); cam.lookAt(c);
+  stage.scene.add(pet.g);
+  stage.renderer.render(stage.scene, cam);
+  const url = stage.renderer.domElement.toDataURL('image/png');
+  stage.scene.remove(pet.g);
+  petPictures.set(kind, url);
+  return url;
+}
+
 export function disposePortraits() {
   if (!stage) return;
   stage.renderer.dispose(); stage.renderer.forceContextLoss();
