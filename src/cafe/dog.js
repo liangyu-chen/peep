@@ -199,7 +199,7 @@ const corgiLeg = () => corgiLegGeo || (corgiLegGeo = new THREE.LatheGeometry([[0
 
 export function makeCorgi() {
   const m = corgiMats();
-  const g = new THREE.Group(), b = new THREE.Group(); g.add(b); g.scale.setScalar(1.25);
+  const g = new THREE.Group(), b = new THREE.Group(); g.add(b); g.scale.setScalar(1.45);
   const body = new THREE.Mesh(corgiBody(), m.body); body.position.set(0, C_HIP + 0.03, 0); body.castShadow = true; b.add(body);
   // the fluffy white seat at the back and the ruff of his chest (fawn, a white bib down it): soft, only lightly tufted,
   // and sunk well into the body, each over the body's own matching colour; the seat kept in close to his rump

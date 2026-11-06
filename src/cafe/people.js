@@ -228,7 +228,8 @@ export function mergeParts(root, keep = new Set()) {
       if (!o.isMesh || keep.has(o) || o.children.length || Array.isArray(o.material) || o.material.transparent || o.geometry.morphAttributes.position) return;
       o.updateMatrix(); if (o.matrix.determinant() <= 0) return;
       const mm = plainMat(o.material) ? tintedFor(o.material) : o.material;
-      const g = o.geometry, key = [mm.uuid, o.castShadow, o.receiveShadow, o.visible, o.renderOrder, g.index ? 1 : 0, Object.keys(g.attributes).filter(a => a !== 'color').sort().join(',')].join('/');
+      // (a material coloured by its vertices keeps its pieces' own colours, so only pieces that have them go together)
+      const g = o.geometry, key = [mm.uuid, o.castShadow, o.receiveShadow, o.visible, o.renderOrder, g.index ? 1 : 0, Object.keys(g.attributes).filter(a => a !== 'color' || mm.vertexColors).sort().join(',')].join('/');
       if (!groups.has(key)) groups.set(key, []);
       groups.get(key).push(o);
     });
@@ -241,7 +242,7 @@ export function mergeParts(root, keep = new Set()) {
           const n = g.attributes.position.count, c = new Float32Array(n * 3), col = o.material.color;
           for (let i = 0; i < n; i++) { c[i * 3] = col.r; c[i * 3 + 1] = col.g; c[i * 3 + 2] = col.b; }
           g.setAttribute('color', new THREE.BufferAttribute(c, 3));
-        } else if (g.attributes.color) g.deleteAttribute('color');
+        } else if (g.attributes.color && !o.material.vertexColors) g.deleteAttribute('color');   // (kept where they're what colours it: without them it all went black)
         return g;
       });
       const merged = BufferGeometryUtils.mergeBufferGeometries(geos);
