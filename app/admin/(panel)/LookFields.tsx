@@ -59,6 +59,7 @@ export default function LookFields({ look, seed }: { look: Look; seed: string })
         </fieldset>
         <Pick name="companion" label="配件" value={companionOf(look)} options={COMPANIONS} />
         <Pick name="topStyle" label="上衣" value={clothes.style} options={CLOTHES.style} />
+        <Pick name="topPattern" label="上衣圖樣" value={clothes.pattern} options={CLOTHES.pattern} />
         <Pick name="topFit" label="上衣版型" value={clothes.top} options={CLOTHES.top} />
         <Pick name="sleeve" label="袖長" value={clothes.sleeve} options={CLOTHES.sleeve} />
         <Pick name="bottom" label="下身" value={clothes.bottom} options={CLOTHES.bottom} />

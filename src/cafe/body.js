@@ -112,6 +112,56 @@ const strands = () => strandTex || (strandTex = (() => {
 //   flash    小圖混搭: a sheet of little flash (star, heart, swallow, anchor) with skin between
 //   text     文字: the look's own words (tattooText) in bold lettering down the limb
 // Two variants of each (mirrored, other banner words), so a pair of arms aren't alike.
+// a top's printed pattern (上衣圖樣), drawn in the shader so it runs over the torso, sleeves and collar alike (none of
+// them need UVs): each mesh's own position in metres (its scale taken in), round its upright axis measured as arc
+// length, mirrored front to back so the only joins fall down the side seams, as a real shirt's do. The pattern's
+// colours come from the shirt's own: on a light shirt, darker shades of it; on a darker one, a pale tint
+//   stripe 橫條紋 · plaid 格紋 · dots 圓點 · camo 迷彩 · floral 花襯衫 (hibiscus-ish flowers and leaves)
+const PATTERN_GLSL = `
+varying vec3 vPat;
+uniform vec3 uPatB; uniform vec3 uPatC;
+float patH(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+float patN(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+  return mix(mix(patH(i), patH(i + vec2(1, 0)), f.x), mix(patH(i + vec2(0, 1)), patH(i + vec2(1, 1)), f.x), f.y); }
+`;
+const PATTERN_BODY = {
+  stripe: `float m = step(0.5, fract(q.y / 0.05)); col = mix(col, uPatB, m);`,
+  plaid: `float A = step(0.56, fract(q.y / 0.085)), Bb = step(0.56, fract(q.x / 0.085));
+    col = mix(col, uPatB, 0.5 * (A + Bb));
+    float ln = max(step(0.94, fract(q.y / 0.085 + 0.22)), step(0.94, fract(q.x / 0.085 + 0.22)));
+    col = mix(col, uPatC, ln * 0.8);`,
+  dots: `vec2 g = q / 0.045; g.x += 0.5 * mod(floor(g.y), 2.0); float d = length(fract(g) - 0.5) * 0.045;
+    col = mix(col, uPatB, 1.0 - smoothstep(0.0095, 0.011, d));`,
+  camo: `vec2 c = q * vec2(1.0, 0.8); float n = patN(c * 11.0) * 0.65 + patN(c * 27.0 + 7.3) * 0.35, k = patN(c * 15.0 + 31.7);
+    col = n < 0.43 ? uPatC : n > 0.6 ? uPatB : col; if (k > 0.74) col = col * 0.0 + vec3(0.11, 0.1, 0.09);`,
+  floral: `vec2 g = q / 0.11, id = floor(g); vec2 f = (fract(g) - 0.5 - (vec2(patH(id), patH(id + 3.1)) - 0.5) * 0.35) * 0.11;
+    float r = length(f), a = atan(f.y, f.x) + patH(id + 7.7) * 6.2832;
+    vec2 g2 = g + 0.5, id2 = floor(g2); vec2 f2 = (fract(g2) - 0.5) * 0.11; float a2 = patH(id2) * 3.1416;
+    f2 = mat2(cos(a2), -sin(a2), sin(a2), cos(a2)) * f2;
+    if (length(f2 * vec2(1.0, 2.6)) < 0.02) col = vec3(0.16, 0.36, 0.2);
+    if (r < 0.03 * (0.55 + 0.45 * abs(cos(2.5 * a)))) col = uPatB;
+    if (r < 0.0065) col = vec3(0.96, 0.78, 0.25);`,
+};
+const PATTERNS = Object.keys(PATTERN_BODY);
+function patterned(m, kind, base) {
+  if (!PATTERN_BODY[kind]) return m;
+  const c = new THREE.Color(base), hsl = c.getHSL({}), light = hsl.l > 0.62;
+  const B = kind === 'floral' ? new THREE.Color().setHSL((hsl.h + 0.5) % 1, 0.65, light ? 0.45 : 0.82)
+    : kind === 'camo' ? c.clone().lerp(new THREE.Color(0xc8b98a), 0.5)   // khaki-ish, not white
+    : light ? c.clone().multiplyScalar(kind === 'camo' ? 0.78 : 0.5) : c.clone().lerp(new THREE.Color(0xffffff), 0.72);
+  const C = kind === 'camo' ? c.clone().multiplyScalar(0.55) : light ? c.clone().multiplyScalar(0.35) : c.clone().multiplyScalar(0.45);
+  m.onBeforeCompile = sh => {
+    sh.uniforms.uPatB = { value: B }; sh.uniforms.uPatC = { value: C };
+    sh.vertexShader = 'varying vec3 vPat;\n' + sh.vertexShader.replace('#include <begin_vertex>',
+      '#include <begin_vertex>\n vPat = position * vec3(length(modelMatrix[0].xyz), length(modelMatrix[1].xyz), length(modelMatrix[2].xyz));');
+    sh.fragmentShader = PATTERN_GLSL + sh.fragmentShader.replace('#include <color_fragment>', `#include <color_fragment>
+      { vec2 q = vec2(atan(vPat.x, abs(vPat.z)) * length(vPat.xz), vPat.y); vec3 col = diffuseColor.rgb;
+        ${PATTERN_BODY[kind]}
+        diffuseColor.rgb = col; }`);
+  };
+  m.customProgramCacheKey = () => `pat:${kind}`;
+  return m;
+}
 const TAT = {};
 // black and grey: the classic fills (red, yellow, green, blue, brown) as shades of grey, 'pale' left as bare skin
 const TC = { line: '#3f434c', red: '#80858f', yellow: '#c4c8cf', green: '#a2a7b0', blue: '#737985', brown: '#8d929b', pale: '#ffffff', dark: '#5a5f69' };
@@ -744,7 +794,8 @@ function buildBodyAt(look, seed) {
   const g = new THREE.Group();
   const shade = (c, k) => new THREE.Color(c).multiplyScalar(k);
   const skin = mat(C.skin, { roughness: 0.62 }), skinShade = mat(shade(C.skin, 0.86), { roughness: 0.62 });
-  const shirt = mat(C.shirt, { roughness: 0.85 }), shirtDark = mat(shade(C.shirt, 0.72), { roughness: 0.85 });
+  const pattern = clothesOf(look).pattern;
+  const shirt = patterned(mat(C.shirt, { roughness: 0.85 }), pattern, C.shirt), shirtDark = mat(shade(C.shirt, 0.72), { roughness: 0.85 });
   const shirtIn = mat(shade(C.shirt, 0.42), { roughness: 0.9, side: THREE.BackSide });   // the shadowed inside of a sleeve
   const shirtUnder = mat(shade(C.shirt, 0.35), { roughness: 1, side: THREE.DoubleSide });   // the inside of the shirt, seen under its hem
   const inkedSkin = (style, v, low) => (style ? mat(C.skin, { roughness: 0.6, map: tattooTex(style, v, low, typeof look.tattooText === 'string' ? look.tattooText : '') }) : skin);   // skin tattooed in a style, or bare
@@ -868,7 +919,7 @@ function buildBodyAt(look, seed) {
     const slice = y => { for (let i = 1; i < rows.length; i++) if (rows[i][0] >= y) { const [y0, x0, z0] = rows[i - 1], [y1, x1, z1] = rows[i], t = (y - y0) / (y1 - y0 || 1); return [x0 + (x1 - x0) * t, z0 + (z1 - z0) * t]; } return rows[rows.length - 1].slice(1); };
     const surfZ = (x, y) => { const [rx, rz] = slice(y); return rz * Math.sqrt(Math.max(0, 1 - (x / rx) ** 2)); };
     const on = (x, y, off) => new THREE.Vector3(x, y, surfZ(x, y) + off);
-    const colM = shirt.clone(); colM.side = THREE.DoubleSide;
+    const colM = patterned(shirt.clone(), pattern, C.shirt); colM.side = THREE.DoubleSide;
     // the collar: one piece all the way round the neck, as a shirt's is: a stand rising from the neckline, folding over
     // and down outward onto the shoulders and back, and at the front coming down either side of the top button into two
     // points on the chest (a little gap between them). Each cross-section: up from the neckline, over, and down
