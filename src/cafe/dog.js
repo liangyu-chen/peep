@@ -146,7 +146,7 @@ const corgiMats = () => CM || (CM = {
   tongue: mat(picked(0xe0647e), { roughness: 0.5 }),
 });
 const C_LEG = 0.05, C_HIP = C_LEG + 0.011;
-const C_LEG_AT = [[0.036, 0.082], [-0.036, 0.082], [0.038, -0.08], [-0.038, -0.08]];
+const C_LEG_AT = [[0.036, 0.088], [-0.036, 0.088], [0.038, -0.086], [-0.038, -0.086]];
 let corgiBodyGeo = null;
 function corgiBody() {
   if (corgiBodyGeo) return corgiBodyGeo;
@@ -157,7 +157,7 @@ function corgiBody() {
     const x = p.getX(i), y = p.getY(i), z = p.getZ(i);
     // a loaf: long, flat-ish on top, the ends rounded off (fuller at the chest, a round seat behind)
     const f = 1 + 0.06 * z;
-    let X = x * 0.068 * f, Y = y * 0.062 * f, Z = z * 0.128;
+    let X = x * 0.068 * f, Y = y * 0.062 * f, Z = z * 0.136;
     if (y < 0) C_LEG_AT.forEach(([lx, lz]) => {   // (drawn down over each leg's top, so the legs grow out of him)
       const w = Math.exp(-((X - lx) ** 2 + (Z - lz) ** 2) / 0.026 ** 2) * Math.min(1, -y * 1.6);
       Y -= 0.022 * w; X += (lx - X) * 0.4 * w; Z += (lz - Z) * 0.4 * w;
@@ -166,7 +166,9 @@ function corgiBody() {
     // white underneath and up the chest, tan over the back and sides
     // (the chest the coat's colour too, but for a narrow white bib down its middle)
     const under = smooth(-0.05, -0.45, y), chest = smooth(0.6, 0.9, z) * smooth(0.25, -0.2, y) * smooth(0.45, 0.15, Math.abs(x));
-    c.copy(tan).lerp(saddle, smooth(0.35, 0.9, y) * 0.8).lerp(white, Math.min(1, under + chest)); col.push(c.r, c.g, c.b);
+    // (and the white "pants" round the back of his seat, coloured on, not a ball stuck on)
+    const pants = smooth(-0.55, -0.9, z) * smooth(0.35, -0.1, y);
+    c.copy(tan).lerp(saddle, smooth(0.35, 0.9, y) * 0.8).lerp(white, Math.min(1, under + chest + pants)); col.push(c.r, c.g, c.b);
   }
   g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
   g.computeVertexNormals(); return (corgiBodyGeo = g);
@@ -181,13 +183,10 @@ export function makeCorgi() {
   const m = corgiMats();
   const g = new THREE.Group(), b = new THREE.Group(); g.add(b); g.scale.setScalar(1.25);
   const body = new THREE.Mesh(corgiBody(), m.body); body.position.set(0, C_HIP + 0.03, 0); body.castShadow = true; b.add(body);
-  // the fluffy white seat at the back, and the white ruff of his chest
-  fuzz(0.045, 11, m.white, 0, C_HIP + 0.016, -0.104, b, 1.25, 0.9, 0.75);
-  fuzz(0.05, 13, m.tan, 0, C_HIP + 0.04, 0.104, b, 1.05, 1.1, 0.7);   // the chest ruff, in the coat's colour
-  fuzz(0.022, 14, m.white, 0, C_HIP + 0.026, 0.142, b, 0.9, 1.6, 0.6);   // and its white bib
+  // (his seat and chest, white pants and bib, are all the body's own smooth surface: no fluff balls stuck on to show a join)
 
   // the head: tan, a long white muzzle, a white blaze up the middle, white cheeks; tipped to one side
-  const head = new THREE.Group(); head.position.set(0, C_HIP + 0.105, 0.134); b.add(head);
+  const head = new THREE.Group(); head.position.set(0, C_HIP + 0.105, 0.142); b.add(head);
   const skull = new THREE.Group(); skull.rotation.z = 0.28; head.add(skull);
   ball(0.052, m.tan, 0, 0, 0, skull, 1.05, 0.95, 1);
   ball(0.03, m.white, 0, -0.02, 0.045, skull, 0.95, 0.7, 1.15);                   // muzzle
@@ -216,7 +215,7 @@ export function makeCorgi() {
   });
   // his tail: long and bushy, carried up off his seat and curling forward over his back, thick at the root (sunk into
   // him) and tapering, its fur tufted along it, paler toward the tip
-  const tail = new THREE.Group(); tail.position.set(0, C_HIP + 0.05, -0.112); b.add(tail);
+  const tail = new THREE.Group(); tail.position.set(0, C_HIP + 0.05, -0.118); b.add(tail);
   const curve = new THREE.CatmullRomCurve3([[0, -0.01, 0.012], [0, 0.02, -0.022], [0, 0.065, -0.036], [0, 0.105, -0.022], [0, 0.124, 0.008], [0, 0.118, 0.04]].map(a => new THREE.Vector3(...a)));
   // (one bushy piece: the tube's surface tufted, each point pushed out or in a little at random, and fullest in its
   // middle, rounding off at the tip; not a string of fluff balls)
@@ -237,7 +236,7 @@ export function makeCorgi() {
   tg.setAttribute('color', new THREE.Float32BufferAttribute(tc, 3)); tg.computeVertexNormals();
   const tm = new THREE.Mesh(tg, m.tail); tm.castShadow = true; tail.add(tm);
 
-  return { g, b, head, legs, tail, paw: new THREE.Vector3(0, 0.011, 0.087), t: Math.random() * 10, placed: false, sit: 0, name: '柯基', line: '汪！', bubbleY: 0.4, trail: [], spot: null };
+  return { g, b, head, legs, tail, paw: new THREE.Vector3(0, 0.011, 0.093), t: Math.random() * 10, placed: false, sit: 0, name: '柯基', line: '汪！', bubbleY: 0.4, trail: [], spot: null };
 }
 
 // trot (legs swinging, a little bounce) or sit; the tail wags all the while. Sitting, he rocks back about where his front
