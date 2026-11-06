@@ -933,14 +933,15 @@ function buildBodyAt(look, seed) {
     // how far the neckline dips below the neck at x across the front: most under the throat, none by the sides
     const neckDip = x => 0.028 * Math.max(0, 1 - (x / 0.078) ** 2);
     for (const sgn of [-1, 1]) {
-      const R = 8, C = 6, fp = [], fi = [], edge = [];
+      const R = 14, C = 6, fp = [], fi = [], edge = [];
       for (let r = 0; r <= R; r++) {
         const y = UNECK.bot - 0.012 + (UNECK.neck - UNECK.bot + 0.012) * r / R;   // (up to the collar)
         const v = 0.004 + 0.044 * Math.max(0, (y - UNECK.bot + 0.008) / (UNECK.neck - UNECK.bot + 0.008)) ** 0.9, u = uHalf(Math.min(y, UNECK.neck)) + 0.008;
         // (each point no higher than the neckline's curve over it: above that is the throat)
         for (let c = 0; c <= C; c++) { const x = sgn * (v + (Math.max(u, v + 0.01) - v) * c / C), yy = Math.min(y, UNECK.neck - neckDip(x)); fp.push(x, yy, surfZ(x, yy) + 0.0025); }
-        const ye = Math.min(y, UNECK.neck - neckDip(v));
-        edge.push(new THREE.Vector3(sgn * v, ye, surfZ(sgn * v, ye) + 0.003));
+        // (the edge line stops a little short of the collar, so its end never pokes through the collar as a dark dot)
+        // (and starts just above the placket, rather than ending in two little ticks over its top)
+        if (y > UNECK.bot - 0.002 && y < UNECK.neck - neckDip(v) - 0.012) edge.push(new THREE.Vector3(sgn * v, y, surfZ(sgn * v, y) + 0.003));
       }
       vEdges.push(edge);
       for (let r = 0; r < R; r++) for (let c = 0; c < C; c++) { const a = r * (C + 1) + c, b = a + C + 1; fi.push(a, a + 1, b, a + 1, b + 1, b); }
@@ -984,14 +985,17 @@ function buildBodyAt(look, seed) {
       // top a rounded roll, and the fall hanging down from it, smooth and a little clear of the shirt rather than
       // pressed flat over the shoulders, ending not far below the neckline; in front it runs on down to the points
       const s = 0.007 + 0.016 * (1 - front) + 0.012 * back;
-      cross.push([
+      // (and the fall always working outward from the roll, each point further out than the one before: drawn in
+      // toward the chest, one could end up inside the fold, turning the collar inside out there in a dark slit)
+      const outward = pts => { for (let j = 4; j < pts.length; j++) { const r0 = Math.hypot(pts[j - 1].x, pts[j - 1].z), r = Math.hypot(pts[j].x, pts[j].z); if (r < r0 + 0.003) { const k = (r0 + 0.003) / Math.max(r, 1e-4); pts[j].x *= k; pts[j].z *= k; } } return pts; };
+      cross.push(outward([
         at(1, -0.008), at(1.0, s), at(1.018, s + 0.009), at(1.05, s + 0.012),
         // (in front, the drop from the roll down to the point an even curve)
         // (small points: not much longer or wider than the fall round the sides)
         lay(at(1.08 + 0.01 * front, s + 0.003 - 0.006 * front, 0.002 * front)),
         lay(at(1.105 + 0.03 * front, s - 0.013 - 0.006 * front, 0.007 * front)),
         lay(at(1.13 + 0.05 * front, s - 0.027 - 0.006 * front, 0.016 * front)),
-      ]);
+      ]));
     }
     const pos = [], idx = [], M = cross[0].length;
     cross.forEach(c => c.forEach(v => pos.push(v.x, v.y, v.z)));
@@ -1002,14 +1006,14 @@ function buildBodyAt(look, seed) {
     // (the strip is wound so its outside is the back face)
     const colOut = patterned(shirt.clone(), pattern, C.shirt); colOut.side = THREE.BackSide;
     mk(cg, colOut, 0, 0, 0, g, false);
-    mk(cg, mat(shade(C.shirt, 0.6), { roughness: 0.9, side: THREE.FrontSide }), 0, 0, 0, g, false);
+    mk(cg, mat(shade(C.shirt, 0.8), { roughness: 0.9, side: THREE.FrontSide }), 0, 0, 0, g, false);
     // its edges drawn in a thin darker seam (round the fall, and down each front to its point), so the turned-down collar
     // reads against the shirt beneath it
     const seam = (key, ptsList, r = 0.0022) => mk(geo(key, () => new THREE.TubeGeometry(new THREE.CatmullRomCurve3(ptsList), ptsList.length * 3, r, 5, false)), shirtDark, 0, 0, 0, g, false);
     const tag = `${topFit}:${TF.drop}`;
     seam(`colEdge:${tag}`, cross.map(c => c[M - 1]));
     seam(`colFrontL:${tag}`, cross[0].slice(1)); seam(`colFrontR:${tag}`, cross[N].slice(1));
-    vEdges.forEach((e, n) => seam(`shirtV${n}:${tag}`, e));   // (the fronts' edges, down either side of the open neck)
+    vEdges.forEach((e, n) => { if (e.length >= 2) seam(`shirtV${n}:${tag}`, e); });   // (the fronts' edges, down either side of the open neck)
     const hemTop = 0.71 - TF.drop + 0.02, buttonM = mat(0xf4f1ea, { roughness: 0.4 });
     // the placket: the shirt's own cloth (a touch deeper, being doubled), in short lengths following the curve of the
     // front, a line of stitching down each edge, as a real one is, rather than a dark band
