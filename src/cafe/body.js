@@ -996,16 +996,32 @@ function buildBodyAt(look, seed) {
     mk(cg, mat(shade(C.shirt, 0.6), { roughness: 0.9, side: THREE.FrontSide }), 0, 0, 0, g, false);
     // its edges drawn in a thin darker seam (round the fall, and down each front to its point), so the turned-down collar
     // reads against the shirt beneath it
-    const seam = (key, ptsList) => mk(geo(key, () => new THREE.TubeGeometry(new THREE.CatmullRomCurve3(ptsList), ptsList.length * 3, 0.0022, 5, false)), shirtDark, 0, 0, 0, g, false);
+    const seam = (key, ptsList, r = 0.0022) => mk(geo(key, () => new THREE.TubeGeometry(new THREE.CatmullRomCurve3(ptsList), ptsList.length * 3, r, 5, false)), shirtDark, 0, 0, 0, g, false);
     const tag = `${topFit}:${TF.drop}`;
     seam(`colEdge:${tag}`, cross.map(c => c[M - 1]));
     seam(`colFrontL:${tag}`, cross[0].slice(1)); seam(`colFrontR:${tag}`, cross[N].slice(1));
     vEdges.forEach((e, n) => seam(`shirtV${n}:${tag}`, e));   // (the fronts' edges, down either side of the open neck)
     const hemTop = 0.71 - TF.drop + 0.02, buttonM = mat(0xf4f1ea, { roughness: 0.4 });
-    for (let y = 1.2; y > hemTop; y -= 0.04) {   // the placket, in short lengths following the curve of the front
+    // the placket: the shirt's own cloth (a touch deeper, being doubled), in short lengths following the curve of the
+    // front, a line of stitching down each edge, as a real one is, rather than a dark band
+    const placketM = patterned(mat(shade(C.shirt, 0.93), { roughness: 0.85 }), pattern, shade(C.shirt, 0.93));
+    for (let y = 1.2; y > hemTop; y -= 0.04) {
       const a = on(0, y, 0.003), b = on(0, Math.max(hemTop, y - 0.04), 0.003), mid = a.clone().add(b).multiplyScalar(0.5);
-      const strip = mk(bx(0.024, a.distanceTo(b) + 0.002, 0.003), shirtDark, mid.x, mid.y, mid.z, g, false);
+      const strip = mk(bx(0.026, a.distanceTo(b) + 0.002, 0.003), placketM, mid.x, mid.y, mid.z, g, false);
       strip.rotation.x = Math.atan2(a.z - b.z, a.y - b.y);
+    }
+    for (const sgn of [-1, 1]) {
+      const st = []; for (let y = 1.2; y > hemTop - 1e-4; y -= 0.03) st.push(on(sgn * 0.0115, Math.max(hemTop, y), 0.0049));
+      seam(`placketSt${sgn}:${tag}`, st, 0.001);
+    }
+    // round the back: the yoke's seam across the shoulder blades (dipping a little to the middle), and under it a short
+    // box pleat down the centre
+    const yokeAt = (t, y) => { const [ex, ez] = slice(y); return new THREE.Vector3(Math.sin(t) * ex * 1.006, y, Math.cos(t) * ez * 1.006); };
+    const yoke = []; for (let s = 0; s <= 24; s++) { const t = Math.PI * (0.62 + 0.76 * s / 24); yoke.push(yokeAt(t, 1.17 + 0.008 * Math.cos(t))); }
+    seam(`yoke:${tag}`, yoke, 0.0013);
+    for (const dx of [-0.014, 0.014]) {
+      const pl = []; for (let y = 1.162; y > 1.07; y -= 0.015) { const [ex, ez] = slice(y); pl.push(new THREE.Vector3(dx, y, -ez * Math.sqrt(Math.max(0, 1 - (dx / ex) ** 2)) * 1.006)); }
+      seam(`pleat${dx}:${tag}`, pl, 0.0011);
     }
     for (let y = 1.16; y > hemTop + 0.03; y -= 0.085) { const p = on(0, y, 0.006); mk(sp(0.0065, 8, 6), buttonM, p.x, p.y, p.z, g, false).scale.z = 0.4; }
   }
