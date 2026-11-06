@@ -966,11 +966,13 @@ function buildBodyAt(look, seed) {
       // stand; in front the fall runs on down the chest into the two points, a narrow V between them.
       // Where the fall lies: over the shoulders and back, just clear of the shirt beneath; in front, along the chest's
       // own surface (lifting it there would stand the points out like flaps)
-      const wF = Math.min(1, front * 1.6);
+      // (eased in, not a sudden switch, so there's no crease where one gives way to the other; and in front only
+      // drawn toward the chest, sitting a little off it, not pressed flat)
+      const f1 = Math.min(1, front * 1.4), wF = f1 * f1 * (3 - 2 * f1) * 0.8;
       const lay = v => {
         const lifted = Math.max(v.y, surfY(v.x, v.z) + 0.01);
         v.y += (lifted - v.y) * (1 - wF);
-        v.z += (surfZ(v.x, v.y) + 0.008 - v.z) * wF;
+        v.z += (surfZ(v.x, v.y) + 0.014 - v.z) * wF;
         // and wherever it ends up, never inside the shirt: out from its slice by at least the cloth's thickness
         if (v.y < UNECK.neck) {
           const [ex, ez] = slice(v.y), e = Math.sqrt((v.x / ex) ** 2 + (v.z / ez) ** 2), need = 1 + 0.009 / Math.min(ex, ez);
@@ -984,9 +986,10 @@ function buildBodyAt(look, seed) {
       const s = 0.007 + 0.016 * (1 - front) + 0.012 * back;
       cross.push([
         at(1, -0.008), at(1.0, s), at(1.018, s + 0.009), at(1.05, s + 0.012),
-        lay(at(1.085, s + 0.003 - 0.03 * front)),
-        lay(at(1.115 + 0.065 * front, s - 0.016 - 0.03 * front, 0.012 * front)),
-        lay(at(1.145 + 0.125 * front, s - 0.034 - 0.033 * front, 0.038 * front)),
+        // (in front, the drop from the roll down to the point an even curve)
+        lay(at(1.085 + 0.02 * front, s + 0.003 - 0.014 * front, 0.003 * front)),
+        lay(at(1.115 + 0.07 * front, s - 0.016 - 0.028 * front, 0.014 * front)),
+        lay(at(1.145 + 0.125 * front, s - 0.034 - 0.035 * front, 0.036 * front)),
       ]);
     }
     const pos = [], idx = [], M = cross[0].length;
