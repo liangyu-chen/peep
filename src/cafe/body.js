@@ -143,6 +143,86 @@ const PATTERN_BODY = {
     if (r < 0.0065) col = vec3(0.96, 0.78, 0.25);`,
 };
 const PATTERNS = Object.keys(PATTERN_BODY);
+
+// a printed graphic on the chest (印花), as graphic tees have: one picture, the rest of the top plain. Drawn on a
+// transparent canvas, in an ink that reads on the shirt (dark on a light one, cream on a dark one) plus a few fixed
+// colours of its own:
+//   p_coffee 咖啡杯 · p_cat 貓咪 · p_sunset 夕陽 · p_mountain 山景 · p_smile 笑臉 · p_wave 浪花 · p_logo 字樣
+const PRINT_TEX = {};
+function printTex(kind, light) {
+  const key = `${kind}:${light}`;
+  if (PRINT_TEX[key]) return PRINT_TEX[key];
+  const ink = light ? '#2a2623' : '#f3eee4';
+  const t = canvasTex(256, 256, (g, W, H) => {
+    g.clearRect(0, 0, W, H); g.lineCap = 'round'; g.lineJoin = 'round';
+    const cx = W / 2;
+    const text = (s, y, size, color = ink, font = 'bold') => { g.fillStyle = color; g.font = `${font} ${size}px "Arial Black", Arial, sans-serif`; g.textAlign = 'center'; g.fillText(s, cx, y); };
+    if (kind === 'p_coffee') {
+      g.strokeStyle = ink; g.lineWidth = 9;
+      for (const dx of [-26, 0, 26]) { g.beginPath(); g.moveTo(cx + dx, 92); g.bezierCurveTo(cx + dx - 14, 74, cx + dx + 14, 62, cx + dx, 40); g.stroke(); }   // steam
+      g.fillStyle = '#c8703c'; g.beginPath(); g.moveTo(cx - 62, 104); g.lineTo(cx + 62, 104); g.lineTo(cx + 48, 190); g.quadraticCurveTo(cx, 202, cx - 48, 190); g.closePath(); g.fill();
+      g.lineWidth = 8; g.stroke();
+      g.beginPath(); g.ellipse(cx + 70, 140, 20, 26, 0, -Math.PI / 2, Math.PI / 2); g.stroke();   // handle
+      g.fillStyle = '#f3eee4'; g.beginPath(); g.ellipse(cx, 104, 62, 10, 0, 0, Math.PI * 2); g.fill(); g.stroke();
+      text('PEEP', 240, 40);
+    } else if (kind === 'p_cat') {
+      g.fillStyle = ink; g.beginPath();
+      g.moveTo(cx - 80, 200); g.quadraticCurveTo(cx - 92, 120, cx - 70, 92); g.lineTo(cx - 78, 30); g.lineTo(cx - 30, 70);
+      g.quadraticCurveTo(cx, 62, cx + 30, 70); g.lineTo(cx + 78, 30); g.lineTo(cx + 70, 92); g.quadraticCurveTo(cx + 92, 120, cx + 80, 200);
+      g.quadraticCurveTo(cx, 226, cx - 80, 200); g.fill();
+      const bg = light ? '#f3eee4' : '#2a2623';
+      g.fillStyle = '#e8b93c'; for (const dx of [-34, 34]) { g.beginPath(); g.ellipse(cx + dx, 132, 16, 20, 0, 0, Math.PI * 2); g.fill(); }
+      g.fillStyle = '#1a1a1a'; for (const dx of [-34, 34]) { g.beginPath(); g.ellipse(cx + dx, 132, 5, 16, 0, 0, Math.PI * 2); g.fill(); }
+      g.fillStyle = '#e88a9a'; g.beginPath(); g.moveTo(cx - 9, 160); g.lineTo(cx + 9, 160); g.lineTo(cx, 170); g.closePath(); g.fill();
+      g.strokeStyle = bg; g.lineWidth = 3;
+      for (const s of [-1, 1]) for (const dy of [-6, 6]) { g.beginPath(); g.moveTo(cx + s * 22, 172 + dy * 0.3); g.lineTo(cx + s * 78, 166 + dy); g.stroke(); }
+    } else if (kind === 'p_sunset') {
+      const grad = g.createLinearGradient(0, 40, 0, 200); grad.addColorStop(0, '#f6c445'); grad.addColorStop(0.55, '#f07a3a'); grad.addColorStop(1, '#d9406a');
+      g.save(); g.beginPath(); g.arc(cx, 128, 92, 0, Math.PI * 2); g.clip();
+      g.fillStyle = grad; g.fillRect(0, 0, W, H);
+      g.globalCompositeOperation = 'destination-out';
+      for (let i = 0; i < 6; i++) { const y = 140 + i * 15, h = 3 + i * 1.6; g.fillRect(0, y, W, h); }   // the retro stripes cut through its lower half
+      g.restore();
+      g.strokeStyle = ink; g.lineWidth = 6;
+      for (let i = 0; i < 3; i++) { g.beginPath(); for (let x = 30; x <= 226; x += 4) { const y = 214 + i * 13 + Math.sin(x / 14 + i) * 4; x === 30 ? g.moveTo(x, y) : g.lineTo(x, y); } g.stroke(); }
+    } else if (kind === 'p_mountain') {
+      g.strokeStyle = ink; g.lineWidth = 8; g.beginPath(); g.arc(cx, 128, 104, 0, Math.PI * 2); g.stroke();
+      g.save(); g.beginPath(); g.arc(cx, 128, 98, 0, Math.PI * 2); g.clip();
+      g.fillStyle = '#f3e7b8'; g.beginPath(); g.arc(cx + 46, 76, 18, 0, Math.PI * 2); g.fill();   // moon
+      g.fillStyle = '#4f7a6a'; g.beginPath(); g.moveTo(10, 210); g.lineTo(80, 110); g.lineTo(120, 160); g.lineTo(160, 96); g.lineTo(250, 210); g.closePath(); g.fill();
+      g.fillStyle = '#f3eee4'; g.beginPath(); g.moveTo(160, 96); g.lineTo(144, 120); g.lineTo(156, 116); g.lineTo(166, 124); g.lineTo(176, 118); g.closePath(); g.fill();
+      g.beginPath(); g.moveTo(80, 110); g.lineTo(68, 128); g.lineTo(80, 124); g.lineTo(92, 128); g.closePath(); g.fill();
+      g.fillStyle = '#2f5246'; g.fillRect(0, 200, W, 60);
+      g.restore();
+    } else if (kind === 'p_smile') {
+      g.fillStyle = '#f5c826'; g.beginPath(); g.arc(cx, 128, 96, 0, Math.PI * 2); g.fill();
+      g.strokeStyle = '#2a2623'; g.lineWidth = 8; g.stroke();
+      g.fillStyle = '#2a2623'; for (const dx of [-32, 32]) { g.beginPath(); g.ellipse(cx + dx, 104, 10, 18, 0, 0, Math.PI * 2); g.fill(); }
+      g.lineWidth = 10; g.beginPath(); g.arc(cx, 128, 56, 0.2 * Math.PI, 0.8 * Math.PI); g.stroke();
+    } else if (kind === 'p_wave') {
+      const blue = '#2d5d8f', foam = '#f3eee4';
+      for (let row = 0; row < 3; row++) {
+        const y0 = 90 + row * 46;
+        for (let k = -1; k < 4; k++) {
+          const x0 = 20 + k * 72 + (row % 2) * 36;
+          g.fillStyle = row === 2 ? blue : row === 1 ? '#3f78ad' : '#5b93c4';
+          g.beginPath(); g.moveTo(x0, y0 + 40); g.bezierCurveTo(x0, y0 - 10, x0 + 70, y0 - 20, x0 + 72, y0 + 12); g.bezierCurveTo(x0 + 50, y0, x0 + 40, y0 + 20, x0 + 60, y0 + 40); g.closePath(); g.fill();
+          g.strokeStyle = foam; g.lineWidth = 4; g.beginPath(); g.moveTo(x0 + 12, y0 + 30); g.bezierCurveTo(x0 + 14, y0 + 4, x0 + 54, y0 - 6, x0 + 66, y0 + 10); g.stroke();
+        }
+      }
+      g.globalCompositeOperation = 'destination-in'; g.beginPath(); g.arc(cx, 128, 100, 0, Math.PI * 2); g.fill(); g.globalCompositeOperation = 'source-over';
+      g.strokeStyle = ink; g.lineWidth = 7; g.beginPath(); g.arc(cx, 128, 100, 0, Math.PI * 2); g.stroke();
+    } else if (kind === 'p_logo') {
+      g.strokeStyle = ink; g.lineWidth = 7; g.beginPath(); g.arc(cx, 128, 104, 0, Math.PI * 2); g.stroke();
+      g.lineWidth = 3; g.beginPath(); g.arc(cx, 128, 92, 0, Math.PI * 2); g.stroke();
+      text('PEEP', 128, 54); text('COFFEE', 172, 34);
+      g.fillStyle = '#c8703c'; for (const dx of [-60, 60]) { g.beginPath(); g.arc(cx + dx, 160, 6, 0, Math.PI * 2); g.fill(); }
+      text('★  ★  ★', 205, 16, ink, '');
+    }
+  });
+  return (PRINT_TEX[key] = t);
+}
+const PRINTS = ['p_coffee', 'p_cat', 'p_sunset', 'p_mountain', 'p_smile', 'p_wave', 'p_logo'];
 function patterned(m, kind, base) {
   if (!PATTERN_BODY[kind]) return m;
   const c = new THREE.Color(base), hsl = c.getHSL({}), light = hsl.l > 0.62;
@@ -1038,6 +1118,22 @@ function buildBodyAt(look, seed) {
     }
     for (let y = 1.16; y > hemTop + 0.03; y -= 0.085) { const p = on(0, y, 0.006); mk(sp(0.0065, 8, 6), buttonM, p.x, p.y, p.z, g, false).scale.z = 0.4; }
   }
+  // a printed graphic (印花): big in the middle of a tee's chest; on a shirt a small emblem on the left breast, clear of
+  // the placket. Laid on the cloth's own curve (each point on the cut's slice at its height), not a flat card
+  const bigPrint = PRINTS.includes(pattern) && clothesOf(look).style !== 'shirt';
+  if (PRINTS.includes(pattern)) {
+    const rows = torsoRows(topFit), sliceAt = y => { for (let i = 1; i < rows.length; i++) if (rows[i][0] >= y) { const [y0, x0, z0] = rows[i - 1], [y1, x1, z1] = rows[i], t = (y - y0) / (y1 - y0 || 1); return [x0 + (x1 - x0) * t, z0 + (z1 - z0) * t]; } return rows[rows.length - 1].slice(1); };
+    const size = bigPrint ? 0.21 : 0.06, cx = bigPrint ? 0 : 0.065, cy = bigPrint ? 1.02 - TF.drop * 0.15 : 1.1;
+    const S = 12, pp = [], uv = [], ix = [];
+    for (let r = 0; r <= S; r++) for (let c = 0; c <= S; c++) {
+      const x = cx + (c / S - 0.5) * size, y = cy + (r / S - 0.5) * size, [ex, ez] = sliceAt(y);
+      pp.push(x, y, ez * Math.sqrt(Math.max(0, 1 - (x / ex) ** 2)) + 0.003); uv.push(c / S, r / S);
+    }
+    for (let r = 0; r < S; r++) for (let c = 0; c < S; c++) { const a = r * (S + 1) + c, b = a + S + 1; ix.push(a, a + 1, b, a + 1, b + 1, b); }
+    const pg = new THREE.BufferGeometry(); pg.setAttribute('position', new THREE.Float32BufferAttribute(pp, 3)); pg.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); pg.setIndex(ix); pg.computeVertexNormals();
+    const light = new THREE.Color(look.shirt).getHSL({}).l > 0.6;
+    mk(pg, new THREE.MeshStandardMaterial({ map: printTex(pattern, light), transparent: true, roughness: 0.9, polygonOffset: true, polygonOffsetFactor: -2 }), 0, 0, 0, g, false);
+  }
   if (look.number) {
     // printed in white, or in near-black on a light shirt; and sat on the cloth however roomy the cut (an oversize top
     // stands further out, and the number buried in it showed through as a couple of odd pale patches)
@@ -1047,6 +1143,7 @@ function buildBodyAt(look, seed) {
     const nz = 0.147 * TF.d + 0.004, ny = 0.98 - TF.drop * 0.3;
     const front = new THREE.Mesh(new THREE.PlaneGeometry(0.19, 0.19), numM); front.position.set(0, ny, nz); g.add(front);
     const back = front.clone(); back.position.z = -nz; back.rotation.y = Math.PI; back.scale.setScalar(1.3); g.add(back);
+    if (bigPrint) front.visible = false;   // (a tee with a picture on its chest keeps the number on its back only)
   }
   if (look.apron) mk(bx(0.38, 0.6, 0.02), mat(picked(look.apron)), 0, 0.8, 0.15);
 

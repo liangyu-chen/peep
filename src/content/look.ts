@@ -196,6 +196,10 @@ export const CLOTHES: Record<'style' | 'pattern' | 'bottom' | 'fit' | 'top' | 's
   pattern: [
     { value: 'none', label: '素色' }, { value: 'stripe', label: '橫條紋' }, { value: 'plaid', label: '格紋' },
     { value: 'dots', label: '圓點' }, { value: 'camo', label: '迷彩' }, { value: 'floral', label: '花襯衫' },
+    // one printed picture on the chest, the rest plain (a small emblem on a shirt)
+    { value: 'p_coffee', label: '印花・咖啡杯' }, { value: 'p_cat', label: '印花・貓咪' }, { value: 'p_sunset', label: '印花・夕陽' },
+    { value: 'p_mountain', label: '印花・山景' }, { value: 'p_smile', label: '印花・笑臉' }, { value: 'p_wave', label: '印花・浪花' },
+    { value: 'p_logo', label: '印花・字樣' },
   ],
   bottom: [{ value: 'pants', label: '長褲' }, { value: 'shorts', label: '短褲' }, { value: 'skirt', label: '裙子' }],
   fit: [{ value: 'slim', label: '窄' }, { value: 'regular', label: '一般' }, { value: 'wide', label: '寬' }],
