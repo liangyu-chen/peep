@@ -171,14 +171,17 @@ function blocked(x0, z0, x1, z1, y) {
   ray.set(_o, _d.normalize()); ray.far = len + 0.1;   // (room for himself past the spot)
   const people = new Set();
   (S.people || []).forEach(p => p.g.traverse(o => people.add(o)));
-  return ray.intersectObjects(solids(), false).some(h => !people.has(h.object));
+  // (anything right where they are is what they're sitting on, not in his way)
+  return ray.intersectObjects(solids(), false).some(h => !people.has(h.object) && h.distance > 0.12);
 }
 // whether anything stands in the spot itself (a low block, a chair's seat or legs, a step), from just over his head down
 const _down = new THREE.Vector3(0, -1, 0);
 function occupied(x, z, y) {
   for (const [ox, oz] of [[0, 0], [0.05, 0], [-0.05, 0], [0, 0.07], [0, -0.07]]) {
-    ray.set(_o.set(x + ox, y + 0.24, z + oz), _down); ray.far = 0.22;
-    if (ray.intersectObjects(solids(), false).length) return true;
+    // (looked down on from well above him: anything there up to half a metre high, an overhang included, like the
+    // beanbag's rolled arms, is in his way; a table top higher up isn't, he can sit under a table)
+    ray.set(_o.set(x + ox, y + 0.6, z + oz), _down); ray.far = 0.58;
+    if (ray.intersectObjects(solids(), false).some(h => h.point.y - y < 0.5)) return true;
   }
   return false;
 }
@@ -188,9 +191,15 @@ function occupied(x, z, y) {
 const SPOTS = [[0.3, -0.08], [-0.3, -0.08], [0, -0.32], [0.24, 0.24], [-0.24, 0.24], [0.42, -0.25], [-0.42, -0.25], [0, -0.5]];
 function pickSpot(dog, person) {
   const h = person.heading, p = person.g.position, y = floorAt(p.x, p.z);
+  const ok = (x, z) => z > BACK_Z + 0.05 && (z < DOOR_Z || leaving(person)) && Math.abs(floorAt(x, z) - y) < 0.01 && !blocked(p.x, p.z, x, z, y) && !occupied(x, z, y);
   for (const [side, fwd] of SPOTS) {
     const x = p.x + Math.cos(h) * side + Math.sin(h) * fwd, z = p.z - Math.sin(h) * side + Math.cos(h) * fwd;
-    if (z > BACK_Z + 0.05 && (z < DOOR_Z || leaving(person)) && Math.abs(floorAt(x, z) - y) < 0.01 && !blocked(p.x, p.z, x, z, y) && !occupied(x, z, y)) return new THREE.Vector3(x, floorAt(x, z), z);
+    if (ok(x, z)) return new THREE.Vector3(x, floorAt(x, z), z);
+  }
+  // none of those: rings further out round them, the nearest free spot (wedged in by a beanbag's arms, say)
+  for (const r of [0.35, 0.5, 0.7, 0.9]) for (let i = 0; i < 12; i++) {
+    const a = h + i / 12 * Math.PI * 2, x = p.x + Math.cos(a) * r, z = p.z - Math.sin(a) * r;
+    if (ok(x, z)) return new THREE.Vector3(x, floorAt(x, z), z);
   }
   const back = dog.trail[Math.max(0, dog.trail.length - 4)] || p;
   return new THREE.Vector3(back.x, floorAt(back.x, back.z), back.z);
