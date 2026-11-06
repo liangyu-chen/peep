@@ -978,10 +978,15 @@ function buildBodyAt(look, seed) {
         }
         return v;
       };
+      // the stand: standing up round the sides and back of the neck (lowest in front, where the neck shows); over its
+      // top a rounded roll, and the fall hanging down from it, smooth and a little clear of the shirt rather than
+      // pressed flat over the shoulders, ending not far below the neckline; in front it runs on down to the points
+      const s = 0.007 + 0.016 * (1 - front) + 0.012 * back;
       cross.push([
-        at(1, -0.008), at(1.0, 0.007 + 0.016 * back), at(1.035, 0.015 + 0.017 * back), lay(at(1.08 - 0.02 * back, 0.006 + 0.012 * back - 0.025 * front)),
-        lay(at(1.13 + 0.05 * front, -0.004 - 0.035 * front, 0.012 * front)),
-        lay(at(1.19 + 0.08 * front, -0.022 - 0.045 * front, 0.038 * front)),
+        at(1, -0.008), at(1.0, s), at(1.018, s + 0.009), at(1.05, s + 0.012),
+        lay(at(1.085, s + 0.003 - 0.03 * front)),
+        lay(at(1.115 + 0.065 * front, s - 0.016 - 0.03 * front, 0.012 * front)),
+        lay(at(1.145 + 0.125 * front, s - 0.034 - 0.033 * front, 0.038 * front)),
       ]);
     }
     const pos = [], idx = [], M = cross[0].length;
