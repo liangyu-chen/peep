@@ -1687,13 +1687,39 @@ function buildHair(hairParts, shape, head, hairM, mk, at, look) {
       // snug round the head, a stalk in the middle of the top
       // (shaped as one piece from the band up: bellying out past the head, then rounding over to a full soft top a little
       // above the crown of the head, which it covers; slouched forward and to one side)
-      const crownTop = deform(HEADS[shape], v.copy(hatN)).addScaledVector(hatN, T).sub(c).dot(hatN), h = crownTop - 0.004;   // (sat down close over the crown, soft and flattened)
-      const slouch = new THREE.Group(); slouch.rotation.set(0.05, 0, 0.24); slouch.position.x = 0.01; hat.add(slouch);   // (worn well over to one side)
-      // (soft: only a little fuller than the head, and the top nearly flat, so it drapes rather than domes)
-      const body = new THREE.LatheGeometry([[rb * 0.98, -0.034], [rb * 1.01, -0.012],   // (reaching down past the band all round, however it tilts)
-        [rb * 1.1, h * 0.3], [rb * 1.16, h * 0.5], [rb * 1.13, h * 0.68], [rb * 0.98, h * 0.84], [rb * 0.7, h * 0.95], [0.001, h]].map(([r, y]) => new THREE.Vector2(r, y)), 40);
-      mk(body, hm, 0, 0, 0, slouch);
-      mk(new THREE.CylinderGeometry(0.003, 0.006, 0.016, 6), hm, 0, h + 0.006, 0, slouch, false);   // the stalk
+      const crownTop = deform(HEADS[shape], v.copy(hatN)).addScaledVector(hatN, T).sub(c).dot(hatN), h = crownTop - 0.012;   // (sat down close over the crown, soft and flattened; kept clear of the hair below)
+      // (a flat soft disc more than a dome: snug at the band, flaring out wide, a rounded rim, the top nearly flat)
+      const body = new THREE.LatheGeometry([[rb * 0.99, -0.03], [rb * 1.0, -0.008], [rb * 1.08, h * 0.22],
+        [rb * 1.14, h * 0.48], [rb * 1.17, h * 0.62], [rb * 1.12, h * 0.76], [rb * 0.92, h * 0.9], [rb * 0.55, h * 0.98], [0.001, h]].map(([r, y]) => new THREE.Vector2(r, y)), 48);
+      // the band stays snug round the head all the way round (nothing lifts off it to show the hair under it); only the
+      // soft body above it slouches over to one side, the more the higher it is: tighter on the side it slouches away
+      // from, fuller on the other, where it hangs down over the edge
+      const bp = body.attributes.position, SL = 0.38;
+      for (let i = 0; i < bp.count; i++) {
+        let x = bp.getX(i), y = bp.getY(i), z = bp.getZ(i);
+        // (by how far out it is toward -x or +x, not its direction: near the middle of the top that's all but nothing,
+        // where a direction would jump about and drop bits of the top down into the hair)
+        const w = Math.min(1, Math.max(0, (y - h * 0.1) / (h * 0.9))) ** 1.2, rr = rb;
+        const k = 1 + 0.14 * w * Math.max(0, -x / rr) - 0.08 * w * Math.max(0, x / rr);   // (fuller toward -x, the side it drops to)
+        x *= k; z *= k;
+        const a = SL * w, ca = Math.cos(a), sa = Math.sin(a), py = h * 0.1;
+        const nx = x * ca - (y - py) * sa, ny = x * sa + (y - py) * ca + py;
+        bp.setXYZ(i, nx + 0.012 * w, ny - 0.02 * w * Math.max(0, -x / rr), z + 0.006 * w);   // (the full side hanging down)
+      }
+      // and wherever that leaves it, never down inside the hair: any of it that would be is set back out just over it
+      const qi = q.clone().invert(), P = new THREE.Vector3(), dir = new THREE.Vector3();
+      for (let i = 0; i < bp.count; i++) {
+        P.set(bp.getX(i), bp.getY(i), bp.getZ(i)).applyQuaternion(q).add(c);
+        if (P.y < c.y - 0.01) continue;   // (the band, round the head, is where it should be)
+        dir.copy(P).normalize();
+        const need = deform(HEADS[shape], v.copy(dir)).length() + T + 0.006;
+        if (P.length() < need) { P.copy(dir).multiplyScalar(need).sub(c).applyQuaternion(qi); bp.setXYZ(i, P.x, P.y, P.z); }
+      }
+      body.computeVertexNormals();
+      mk(body, hm, 0, 0, 0, hat);
+      // the stalk, on the slouched top
+      const st = mk(new THREE.CylinderGeometry(0.003, 0.006, 0.016, 6), hm, 0, 0, 0, hat, false);
+      st.position.set(-Math.sin(SL) * (h - h * 0.1) + 0.012, h * 0.1 + Math.cos(SL) * (h - h * 0.1) + 0.004, 0.006); st.rotation.z = SL;
     }  } else {
     // a beanie: knitted, long, with no pompom: the crown standing up off the head and slouching back a little, in a
     // broad round dome (not a point), the cuff rolled up thick at the bottom
