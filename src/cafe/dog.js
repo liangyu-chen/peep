@@ -68,7 +68,7 @@ export function makeDog() {
   // four thin short-haired legs, each hinged at the top, with a little paw
   const legs = [[0.032, 0.075], [-0.032, 0.075], [0.034, -0.075], [-0.034, -0.075]].map(([x, z], i) => {
     const hip = new THREE.Group(); hip.position.set(x, 0.14, z); b.add(hip);
-    const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.013, 0.105, 8), m.bare); leg.position.y = -0.0525;   // (short: a Pomeranian's) leg.castShadow = true; hip.add(leg);
+    const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.013, 0.105, 8), m.bare); leg.position.y = -0.0525; leg.castShadow = true; hip.add(leg);   // (short: a Pomeranian's)
     ball(0.016, i < 2 ? m.fluff : m.bare, 0, -0.105, 0.006, hip, 1, 0.7, 1.25);
     hip.userData.front = i < 2;
     return hip;
@@ -82,21 +82,27 @@ export function makeDog() {
   return { g, b, head, legs, tail, t: Math.random() * 10, placed: false, sit: 0, line: '汪！', bubbleY: 0.42 };
 }
 
-// trot (legs swinging, a little bounce) or sit (rear down, back legs folded); the tail wags all the while
+// trot (legs swinging, a little bounce) or sit; the tail wags all the while. Sitting, he rocks back about where his front
+// paws stand (so they stay planted, his front legs kept upright), down onto his haunches, his back legs folded forward
+// flat along the floor, his head tipped down again to look ahead
+const PAW = new THREE.Vector3(0, 0.035, 0.081), PAW_AT = new THREE.Vector3(0, 0.01, 0.081), _p = new THREE.Vector3();
+const SIT = 0.6;
 export function animateDog(dog, dt, moving) {
   dog.t += dt;
   dog.sit += ((moving ? 0 : 1) - dog.sit) * Math.min(1, dt * 5);
-  const s = dog.sit, stride = Math.sin(dog.t * 16) * 0.6 * (1 - s);
+  const s = dog.sit, stride = Math.sin(dog.t * 16) * 0.6 * (1 - s), tip = -SIT * s;
   dog.legs.forEach((h, i) => {
     const sw = (i === 0 || i === 3 ? 1 : -1) * stride;
-    h.rotation.x = h.userData.front ? sw : sw - s * 1.25;   // back legs fold under when he sits
+    // (angles against the floor: the front legs stay upright, the back ones swing round to lie flat forward)
+    h.rotation.x = sw - tip + (h.userData.front ? 0 : -Math.PI / 2 * s);
   });
-  dog.b.rotation.x = -s * 0.38;                       // tipped back onto his haunches
-  dog.b.position.set(0, -0.025 - s * 0.04 + Math.abs(Math.sin(dog.t * 16)) * 0.008 * (1 - s), s * 0.03);
-  dog.head.rotation.x = s * 0.3;                      // still looking ahead, not at the ceiling
+  dog.b.rotation.x = tip;
+  _p.copy(PAW).applyAxisAngle(new THREE.Vector3(1, 0, 0), tip);
+  dog.b.position.copy(PAW_AT).sub(_p);
+  dog.b.position.y += Math.abs(Math.sin(dog.t * 16)) * 0.008 * (1 - s);
+  dog.head.rotation.x = -tip * 0.85;
   dog.tail.rotation.z = Math.sin(dog.t * (moving ? 18 : 11)) * 0.45;
 }
-
 const _to = new THREE.Vector3();
 // keeps at the person's feet, their left and a touch behind, trotting after them as they go
 export function followDog(dog, person, dt) {
