@@ -8,9 +8,14 @@ import LoadingHands from './LoadingHands';
 // little pixel-art icons for the tiles: '#' is a lit pixel, drawn in the tile's text colour with hard edges
 const CUP = ['...#..#.....', '..#..#......', '...#..#.....', '............', '.#########..', '.#.......###', '.#.......#.#',
   '.#.......#.#', '.#.......###', '..#.....#...', '...#####....', '############'];
-function PixelIcon({ rows }: { rows: string[] }) {
+// a speaker, sounding or crossed out (the phone's one switch for the music and sound effects)
+const SPEAKER = ['....#.......', '...##...#...', '..###....#..', '####.#.#..#.', '####.#..#.#.', '####.#..#.#.', '####.#.#..#.',
+  '..###....#..', '...##...#...', '....#.......', '............', '............'];
+const SPEAKER_OFF = ['....#.......', '...##.......', '..###.......', '####.#.#...#', '####.#..#.#.', '####.#...#..', '####.#..#.#.',
+  '..###..#...#', '...##.......', '....#.......', '............', '............'];
+function PixelIcon({ rows, className }: { rows: string[]; className?: string }) {
   return (
-    <svg viewBox={`0 0 ${rows[0].length} ${rows.length}`} shapeRendering="crispEdges" aria-hidden="true">
+    <svg className={className} viewBox={`0 0 ${rows[0].length} ${rows.length}`} shapeRendering="crispEdges" aria-hidden="true">
       {rows.flatMap((r, y) => [...r].map((c, x) => (c === '#' ? <rect key={`${x},${y}`} x={x} y={y} width={1} height={1} fill="currentColor" /> : null)))}
     </svg>
   );
@@ -54,10 +59,18 @@ export default function Cafe({ content }: { content: CafeContent }) {
           <PixelIcon rows={CUP} />
           <span>MENU</span>
         </button>
+        {/* phones only: the music and the sound effects on one switch, under the menu */}
+        <button id="soundToggle" className="tile tileSound on" aria-label="聲音">
+          <PixelIcon rows={SPEAKER} className="icoOn" />
+          <PixelIcon rows={SPEAKER_OFF} className="icoOff" />
+          <span>SOUND</span>
+        </button>
       </nav>
       </div>
 
       <section id="controls" className="win" aria-label="控制">
+        {/* phones only: fold the panel away to a small tab, and back */}
+        <button id="ctrlFold" type="button" aria-label="收起控制" aria-expanded="true">▾</button>
         <div className="row"><span>視角</span>
           <button data-cam="overview" className="on">全景</button>
           <button data-cam="counter">吧台</button>
@@ -72,11 +85,12 @@ export default function Cafe({ content }: { content: CafeContent }) {
           <button data-speed="4">4x</button>
           <button id="tagToggle" className="on">名牌</button>
         </div>
-        <div className="row"><span>畫質</span>
-          <button data-quality="normal">一般</button>
-          <button data-quality="high">高效能</button>
+        <div className="row"><span>效能</span>
+          <button data-quality="high">開啟陰影</button>
+          <button data-quality="normal">簡化陰影</button>
+          <a href="/admin" className="adminLink">後台登入</a>
         </div>
-        <div className="row"><span>聲音</span><button id="sfxToggle" className="on">音效</button><button id="musicToggle" className="on">音樂</button><a href="/admin" className="adminLink">後台登入</a></div>
+        <div className="row soundRow"><span>聲音</span><button id="sfxToggle" className="on">音效</button><button id="musicToggle" className="on">音樂</button></div>
       </section>
 
       <section id="log" className="win" aria-label="店內動態">

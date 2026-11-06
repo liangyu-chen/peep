@@ -176,14 +176,29 @@ export function bindHUD(root, stage) {
   // a soft pop for the HUD's buttons (camera moves swoosh instead; the games make their own sounds), and the sound switch
   on(root, 'click', e => {
     const b = e.target.closest('button, a.tile');
-    if (!b || b.closest('.gamePad, .dartsHud') || b.matches('[data-cam], #sfxToggle, .gameSound')) return;
+    if (!b || b.closest('.gamePad, .dartsHud') || b.matches('[data-cam], #sfxToggle, #soundToggle, .gameSound')) return;
     sfx(b.classList.contains('on') || b.id === 'closeCard' || b.classList.contains('gameClose') ? 'popDown' : 'pop');
   });
   const sfxBtn = $('sfxToggle'), showSfx = () => sfxBtn?.classList.toggle('on', !sfxMuted());
-  showSfx(); on(sfxBtn, 'click', () => { toggleSfx(); showSfx(); sfx('pop'); });
+  showSfx(); on(sfxBtn, 'click', () => { toggleSfx(); showSfx(); showSound?.(); sfx('pop'); });
   // the background music: starts with the first touch anywhere (browsers won't play before one), and its own switch
   const musicBtn = $('musicToggle'), showMusic = () => musicBtn?.classList.toggle('on', musicOn());
-  showMusic(); on(musicBtn, 'click', () => { toggleMusic(); showMusic(); });
+  showMusic(); on(musicBtn, 'click', () => { toggleMusic(); showMusic(); showSound(); });
+  // on a phone the two are one switch, under the menu: on if either is, and a press turns both off, or both back on
+  const soundBtn = $('soundToggle'), showSound = () => soundBtn?.classList.toggle('on', !sfxMuted() || musicOn());
+  showSound();
+  on(soundBtn, 'click', () => {
+    const turnOn = sfxMuted() && !musicOn();
+    if (sfxMuted() === turnOn) toggleSfx();
+    if (musicOn() !== turnOn) toggleMusic();
+    showSfx(); showMusic(); showSound(); if (turnOn) sfx('pop');
+  });
+  // phones: the control panel folds away to a small tab
+  const fold = $('ctrlFold');
+  on(fold, 'click', () => {
+    const c = $('controls'), folded = c.classList.toggle('folded');
+    fold.textContent = folded ? '控制 ▴' : '▾'; fold.setAttribute('aria-expanded', String(!folded)); fold.setAttribute('aria-label', folded ? '展開控制' : '收起控制');
+  });
   on(root, 'pointerdown', () => startMusic());
   off.push(stopMusic);
   on($('tvCard'), 'click', () => setCam('tv'));
