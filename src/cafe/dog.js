@@ -8,7 +8,7 @@ import { mat, ctx } from './engine.js';
 import { picked } from './body.js';
 import { S } from './state.js';
 import { K } from './util.js';
-import { KERB, RISE, BACK_DROP, inBackHall } from './layout.js';
+import { KERB, RISE, BACK_DROP, inBackHall, TVX, TVZ } from './layout.js';
 
 const SIZE = 0.85;   // the whole dog, as built below, scaled down to a toy Pomeranian's size
 
@@ -190,12 +190,20 @@ function pickSpot(dog, person) {
   const h = person.heading, p = person.g.position, y = floorAt(p.x, p.z);
   for (const [side, fwd] of SPOTS) {
     const x = p.x + Math.cos(h) * side + Math.sin(h) * fwd, z = p.z - Math.sin(h) * side + Math.cos(h) * fwd;
-    if (Math.abs(floorAt(x, z) - y) < 0.01 && !blocked(p.x, p.z, x, z, y) && !occupied(x, z, y)) return new THREE.Vector3(x, floorAt(x, z), z);
+    if (z > BACK_Z + 0.05 && Math.abs(floorAt(x, z) - y) < 0.01 && !blocked(p.x, p.z, x, z, y) && !occupied(x, z, y)) return new THREE.Vector3(x, floorAt(x, z), z);
   }
   const back = dog.trail[Math.max(0, dog.trail.length - 4)] || p;
   return new THREE.Vector3(back.x, floorAt(back.x, back.z), back.z);
 }
 
+// he doesn't go into the back (past the sliding door: the corridor, the toilet, the storeroom). While they're back there he
+// waits by the TV, sat at the first free one of a few spots round it, facing it, until they come out again
+const BACK_Z = -4.45;   // the sliding door's line, in the room as it stands
+const WAIT = [[-2.15, -2.45], [-2.2, -3.85], [-1.95, -2.35], [-2.35, -2.3], [-1.9, -3.9]];   // plan coordinates
+function waitSpot() {
+  for (const [x, z] of WAIT) if (!occupied(x * K, z, 0)) return new THREE.Vector3(x * K, 0, z);
+  return new THREE.Vector3(WAIT[0][0] * K, 0, WAIT[0][1]);
+}
 const _to = new THREE.Vector3();
 // trotting: a little way behind them along the very way they walked (so wherever they could go, so can he); stopped:
 // sat at a free spot beside them, picked once each time they settle
@@ -203,7 +211,13 @@ export function followDog(dog, person, dt) {
   const p = person.g.position, walking = person.path && person.path.length > 0;
   const last = dog.trail[dog.trail.length - 1];
   if (!last || Math.hypot(last.x - p.x, last.z - p.z) > 0.05) { dog.trail.push(new THREE.Vector3(p.x, 0, p.z)); if (dog.trail.length > 40) dog.trail.shift(); }
-  if (walking) {
+  // (where along the trail is he heading: if that's past the sliding door too, he stops short and waits)
+  const inBack = p.z < BACK_Z;
+  if (inBack) {
+    if (!dog.waiting) { dog.waiting = waitSpot(); dog.spot = null; }
+    _to.copy(dog.waiting);
+  } else if (walking) {
+    dog.waiting = null;
     dog.spot = null;
     let need = 0.42, at = dog.trail[0] || p;   // 0.42 m back along the trail
     for (let i = dog.trail.length - 1, prev = p; i >= 0; i--) {
@@ -211,8 +225,10 @@ export function followDog(dog, person, dt) {
       if (d >= need) { at = new THREE.Vector3().lerpVectors(prev, q, need / d); break; }
       need -= d; prev = q; at = q;
     }
-    _to.set(at.x, floorAt(at.x, at.z), at.z);
+    if (at.z < BACK_Z) _to.copy(dog.g.position);   // (just out of the back: he waits where he is until they've come clear)
+    else _to.set(at.x, floorAt(at.x, at.z), at.z);
   } else {
+    dog.waiting = null;
     if (!dog.spot || Math.hypot(dog.spotFor.x - p.x, dog.spotFor.z - p.z) > 0.1) { dog.spot = pickSpot(dog, person); dog.spotFor = p.clone(); }
     _to.copy(dog.spot);
   }
@@ -223,7 +239,7 @@ export function followDog(dog, person, dt) {
   const v = g.position.clone().sub(was); v.y = 0;
   const moving = v.length() > dt * 0.12;
   // facing the way he trots, or the way they face when he's sat
-  const want = moving ? Math.atan2(v.x, v.z) : person.heading;
+  const want = moving ? Math.atan2(v.x, v.z) : dog.waiting ? Math.atan2(TVX * K - g.position.x, TVZ - g.position.z) : person.heading;   // (waiting: watching the TV)
   let d = want - g.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d));
   g.rotation.y += d * Math.min(1, dt * 6);
   animateDog(dog, dt, moving);
