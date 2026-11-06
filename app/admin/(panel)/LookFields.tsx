@@ -1,4 +1,4 @@
-import { CLOTHES, COLOR_PRESETS, COMPANIONS, EARRINGS, earringsOf, FACE, HAIR, HAT_STYLES, SHOE_STYLES, SOCKS, TATTOO_PARTS, TATTOO_STYLES,clothesOf, companionOf, faceOf, hairOf, hatOf, shoeOf, socksOf, tattooOf, type Look } from '@/src/content/catalog';
+import { BUILDS, buildOf, CLOTHES, COLOR_PRESETS, COMPANIONS, EARRINGS, earringsOf, FACE, HAIR, HAT_STYLES, SHOE_STYLES, SOCKS, TATTOO_PARTS, TATTOO_STYLES,clothesOf, companionOf, faceOf, hairOf, hatOf, shoeOf, socksOf, tattooOf, type Look } from '@/src/content/catalog';
 import ColorField from './ColorField';
 
 function Pick({ name, label, value, options }: { name: string; label: string; value: string; options: { value: string; label: string }[] }) {
@@ -57,10 +57,11 @@ export default function LookFields({ look, seed }: { look: Look; seed: string })
         <Pick name="hairTie" label="綁髮（中長髮、長髮）" value={hair.tie} options={HAIR.tie} />
         <Pick name="hat" label="帽子" value={hat.hat} options={HAT_STYLES} />
         <Pick name="companion" label="配件" value={companionOf(look)} options={COMPANIONS} />
+        <Pick name="build" label="身形" value={buildOf(look)} options={BUILDS} />
         <Pick name="topFit" label="上衣版型" value={clothes.top} options={CLOTHES.top} />
         <Pick name="sleeve" label="袖長" value={clothes.sleeve} options={CLOTHES.sleeve} />
         <Pick name="bottom" label="下身" value={clothes.bottom} options={CLOTHES.bottom} />
-        <Pick name="pantsFit" label="褲子寬度" value={clothes.fit} options={CLOTHES.fit} />
+        <Pick name="pantsFit" label="下身寬度（長褲、短褲、裙子）" value={clothes.fit} options={CLOTHES.fit} />
         <Pick name="shoeStyle" label="鞋子" value={shoe.style} options={SHOE_STYLES} />
         <Pick name="socks" label="襪子（短褲、裙子、拖鞋看得到）" value={socks.style} options={SOCKS} />
         <div className="colors">

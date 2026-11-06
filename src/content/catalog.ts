@@ -262,7 +262,7 @@ export function hairLabel(h: Hair): string {
 // what's worn below the waist: pants or a skirt, and for pants how wide they are
 export const CLOTHES: Record<'bottom' | 'fit' | 'top' | 'sleeve', Option[]> = {
   bottom: [{ value: 'pants', label: '長褲' }, { value: 'shorts', label: '短褲' }, { value: 'skirt', label: '裙子' }],
-  fit: [{ value: 'slim', label: '窄管' }, { value: 'regular', label: '一般' }, { value: 'wide', label: '寬褲' }],   // (for shorts: how roomy their legs are)
+  fit: [{ value: 'slim', label: '窄' }, { value: 'regular', label: '一般' }, { value: 'wide', label: '寬' }],   // how wide what's worn below is: pants' legs, shorts', a skirt's flare
   top: [{ value: 'slim', label: '合身' }, { value: 'regular', label: '一般' }, { value: 'oversize', label: '寬鬆' }],   // how the top is cut
   sleeve: [{ value: 'short', label: '短袖' }, { value: 'long', label: '長袖' }],
 };
@@ -305,6 +305,9 @@ export function earringsOf(look: Look): { left: string; right: string } {
   const ok = (v: unknown) => (EARRINGS.some(o => o.value === v) ? (v as string) : 'none');
   return { left: ok(look.earL), right: ok(look.earR) };
 }
+// 身形: five builds, thin to heavy
+export const BUILDS: Option[] = [{ value: 'thin', label: '瘦' }, { value: 'slim', label: '偏瘦' }, { value: 'regular', label: '標準' }, { value: 'stocky', label: '壯' }, { value: 'heavy', label: '胖' }];
+export const buildOf = (look: Look) => (BUILDS.some(o => o.value === look.build) ? (look.build as string) : 'regular');
 // socks (seen on bare legs, under shorts or a skirt, and in slides)
 export const SOCKS: Option[] = [{ value: 'none', label: '無' }, { value: 'short', label: '短襪' }, { value: 'long', label: '長襪' }];
 export function socksOf(look: Look): { style: string; color: number } {
@@ -408,6 +411,7 @@ export function parseLook(get: (k: string) => string | null, prev?: Look): Look 
     nose: opt('nose', face.nose), mouth: opt('mouth', face.mouth), facialHair: opt('facialHair', face.facialHair), beard: opt('beard', face.beard),
     glasses: opt('glasses', face.glasses), glassesShape: opt('glassesShape', face.glassesShape), eyeColor: hex('eyeColor', face.eyeColor), blush: get('blush') === 'on',
     companion: COMPANIONS.some(c => c.value === get('companion')) ? (get('companion') as string) : companionOf(base),
+    build: BUILDS.some(o => o.value === get('build')) ? (get('build') as string) : buildOf(base),
     shoe: hex('shoe', shoeOf(base).color),
     earL: EARRINGS.some(o => o.value === get('earL')) ? (get('earL') as string) : earringsOf(base).left,
     earR: EARRINGS.some(o => o.value === get('earR')) ? (get('earR') as string) : earringsOf(base).right,

@@ -4,7 +4,9 @@ import * as THREE from 'three';
 import { BufferGeometryUtils } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { mat, canvasTex } from './engine.js';
 import { PIX } from './util.js';
-import { faceOf, hairOf, hatOf, clothesOf, shoeOf, socksOf, tattooOf, earringsOf } from '../content/catalog';
+import { faceOf, hairOf, hatOf, clothesOf, shoeOf, socksOf, tattooOf, earringsOf, buildOf } from '../content/catalog';
+// 身形: how much wider (w) and deeper (d) the body is than the standard
+const BUILDS = { thin: { w: 0.8, d: 0.82 }, slim: { w: 0.9, d: 0.91 }, regular: { w: 1, d: 1 }, stocky: { w: 1.13, d: 1.1 }, heavy: { w: 1.28, d: 1.42 } };
 
 // how much longer the legs are than first drawn: the hips sit this much higher (people.js lowers sitting and squatting to match)
 export const LEG_EXTRA = 0.08;
@@ -751,7 +753,7 @@ function buildBodyAt(look, seed) {
   const { bottom, fit } = clothesOf(look), skirted = bottom === 'skirt', shorts = bottom === 'shorts', bareLegs = skirted || shorts;
   const legM = bareLegs ? skin : pants;                   // bare legs under a skirt or shorts
   // wide legs: baggy all the way, flaring out to the hem (bare legs are just legs: the fit is the shorts' width)
-  const W = shorts ? 1 : { slim: 0.85, regular: 1, wide: 1.45 }[fit] || 1, flare = fit === 'wide' && !shorts ? 0.125 : 0.062 * W;
+  const W = bareLegs ? 1 : { slim: 0.85, regular: 1, wide: 1.45 }[fit] || 1, flare = fit === 'wide' && !shorts ? 0.125 : 0.062 * W;
   const SW = { slim: 1.14, regular: 1.26, wide: 1.42 }[fit] || 1.26;   // how far the shorts stand off the thigh (cut roomy)
   const bare = [];   // what shows skin when the pants come down (thighs, knees, hips)
   const bunch = [];  // the pants bunched round the shins, only seen then
@@ -802,7 +804,9 @@ function buildBodyAt(look, seed) {
   if (skirted) {
     skirt = new THREE.Group(); skirt.position.set(0, 0.72 + LEG_EXTRA, 0); g.add(skirt);
     const sm = mat(C.pants, { roughness: 0.85, side: THREE.DoubleSide });
-    mk(lathe('skirt3', [[0.185, -0.05], [0.19, -0.08], [0.215, -0.11], [0.24, -0.16], [0.266, -0.24], [0.288, -0.32], [0.284, -0.33]], 28), sm, 0, 0, 0, skirt).scale.z = 0.78;
+    // (its width: a straight narrow skirt, the usual A-line, or full and flared; the waist the same in all)
+    const F = { slim: 0.35, regular: 1, wide: 1.7 }[fit] || 1, flareTo = ([r, y]) => [0.185 + (r - 0.185) * F, y];
+    mk(lathe(`skirt3:${F}`, [[0.185, -0.05], [0.19, -0.08], [0.215, -0.11], [0.24, -0.16], [0.266, -0.24], [0.288, -0.32], [0.284, -0.33]].map(flareTo), 28), sm, 0, 0, 0, skirt).scale.z = 0.78;
   }
   // the belt at the waist, just under the shirt's hem, its buckle on its front
   const belt = mk(cy(0.196, 0.196, 0.026, 22), beltM, 0, 0.708, 0, g, false); belt.scale.z = 0.59;
@@ -1034,7 +1038,19 @@ function buildBodyAt(look, seed) {
   });
   const hand = new THREE.Object3D(); hand.position.set(0, -0.3, 0.05); elbows[1].add(hand);
   const handL = new THREE.Object3D(); handL.position.set(0.01, -0.3, 0.04); elbows[0].add(handL);   // holds a cigarette
-  // the controller: a PS5 DualSense, white with a black middle, the white touchpad up top ringed by its blue light,
+  // ---------------------------------------------------------------- build (身形): the body wider and deeper (a fuller
+  // middle for the heavier builds), the arms and legs set out to match and a little thicker; head and height as they are
+  const BLD = BUILDS[buildOf(look)];
+  if (BLD.w !== 1 || BLD.d !== 1) {
+    const limb = Math.sqrt(BLD.w);
+    g.children.forEach(c => {
+      if (c === head) return;
+      c.position.x *= BLD.w; c.position.z *= BLD.d;
+      if (arms.includes(c) || legs.some(l => l.hip === c)) { c.scale.x *= limb; c.scale.z *= limb; }
+      else { c.scale.x *= BLD.w; c.scale.z *= BLD.d; }
+    });
+    [hand, handL].forEach(h => { h.scale.set(1 / limb, 1, 1 / limb); });   // (what's held stays its own size)
+  }  // the controller: a PS5 DualSense, white with a black middle, the white touchpad up top ringed by its blue light,
   // two black sticks, the face buttons and the d-pad, and the long white grips curving down
   const pad = new THREE.Group();
   const padW = mat(0xf2f2ee, { roughness: 0.5 }), padB = mat(0x151517, { roughness: 0.45 });
