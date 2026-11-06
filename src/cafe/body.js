@@ -1689,8 +1689,10 @@ function buildHair(hairParts, shape, head, hairM, mk, at, look) {
       // above the crown of the head, which it covers; slouched forward and to one side)
       const crownTop = deform(HEADS[shape], v.copy(hatN)).addScaledVector(hatN, T).sub(c).dot(hatN), h = crownTop - 0.012;   // (sat down close over the crown, soft and flattened; kept clear of the hair below)
       // (a flat soft disc more than a dome: snug at the band, flaring out wide, a rounded rim, the top nearly flat)
-      const body = new THREE.LatheGeometry([[rb * 0.99, -0.03], [rb * 1.0, -0.008], [rb * 1.08, h * 0.22],
-        [rb * 1.14, h * 0.48], [rb * 1.17, h * 0.62], [rb * 1.12, h * 0.76], [rb * 0.92, h * 0.9], [rb * 0.55, h * 0.98], [0.001, h]].map(([r, y]) => new THREE.Vector2(r, y)), 48);
+      // (its edge a full round roll, not a thin lip: swelling out over a good depth and rounding back in smoothly)
+      const body = new THREE.LatheGeometry([[rb * 0.99, -0.03], [rb * 1.0, -0.008], [rb * 1.05, h * 0.12], [rb * 1.11, h * 0.26],
+        [rb * 1.16, h * 0.4], [rb * 1.185, h * 0.53], [rb * 1.19, h * 0.64], [rb * 1.165, h * 0.75], [rb * 1.1, h * 0.84],
+        [rb * 0.98, h * 0.91], [rb * 0.78, h * 0.965], [rb * 0.45, h * 0.993], [0.001, h]].map(([r, y]) => new THREE.Vector2(r, y)), 56);
       // the band stays snug round the head all the way round (nothing lifts off it to show the hair under it); only the
       // soft body above it slouches over to one side, the more the higher it is: tighter on the side it slouches away
       // from, fuller on the other, where it hangs down over the edge
@@ -1704,7 +1706,7 @@ function buildHair(hairParts, shape, head, hairM, mk, at, look) {
         x *= k; z *= k;
         const a = SL * w, ca = Math.cos(a), sa = Math.sin(a), py = h * 0.1;
         const nx = x * ca - (y - py) * sa, ny = x * sa + (y - py) * ca + py;
-        bp.setXYZ(i, nx + 0.012 * w, ny - 0.02 * w * Math.max(0, -x / rr), z + 0.006 * w);   // (the full side hanging down)
+        bp.setXYZ(i, nx + 0.012 * w, ny - 0.012 * w * Math.max(0, -x / rr), z + 0.006 * w);   // (the full side hanging down)
       }
       // and wherever that leaves it, never down inside the hair: any of it that would be is set back out just over it
       const qi = q.clone().invert(), P = new THREE.Vector3(), dir = new THREE.Vector3();
