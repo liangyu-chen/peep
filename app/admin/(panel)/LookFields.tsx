@@ -1,4 +1,4 @@
-import { BUILDS, buildOf, tieColorOf, CLOTHES, COLOR_PRESETS, COMPANIONS, EARRINGS, earringsOf, FACE, HAIR, HAT_STYLES, SHOE_STYLES, SOCKS, TATTOO_PARTS, TATTOO_STYLES,clothesOf, companionOf, faceOf, hairOf, hatOf, shoeOf, socksOf, tattooOf, type Look } from '@/src/content/catalog';
+import { BUILDS, buildOf, HEIGHTS, heightOf,tieColorOf, CLOTHES, COLOR_PRESETS, COMPANIONS, EARRINGS, earringsOf, FACE, HAIR, HAT_STYLES, SHOE_STYLES, SOCKS, TATTOO_PARTS, TATTOO_STYLES,clothesOf, companionOf, faceOf, hairOf, hatOf, shoeOf, socksOf, tattooOf, type Look } from '@/src/content/catalog';
 import ColorField from './ColorField';
 
 function Pick({ name, label, value, options }: { name: string; label: string; value: string; options: { value: string; label: string }[] }) {
@@ -25,6 +25,7 @@ export default function LookFields({ look, seed }: { look: Look; seed: string })
           <ColorField name="eyeColor" label="瞳色" value={f.eyeColor} presets={COLOR_PRESETS.eyes} />
         </div>
         <label className="check"><input type="checkbox" name="blush" defaultChecked={f.blush} /><span>腮紅</span></label>
+        <Pick name="height" label="身高" value={heightOf(look)} options={HEIGHTS} />
         <Pick name="build" label="身形" value={buildOf(look)} options={BUILDS} />
         <Pick name="faceShape" label="臉型" value={f.faceShape} options={FACE.faceShape} />
         <Pick name="eyes" label="眼睛" value={f.eyes} options={FACE.eyes} />

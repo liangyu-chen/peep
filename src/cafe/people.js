@@ -380,10 +380,13 @@ export class Person {
     // (positive armLz brings the left arm in, negative takes it out; the right arm the other way)
     const rest = restPose(this.walkPhase);
     let { hipL, hipR, kL, kR, armLx, armLy, armRx, armRy, armLz, armRz, elL, elR } = rest, y = 0, bob = 0;
+    // (someone taller or shorter (heightK) has their hips higher or lower: the body set down or up by that much, so the
+    // hips still land on the seat or over the pan)
+    const hipLift = (this.heightK - 1) * (0.55 + LEG_EXTRA);
     if (moving) { hipL = s * 0.55; hipR = -s * 0.55; kL = Math.max(0, -s) * 0.6; kR = Math.max(0, s) * 0.6; armLx = -s * 0.45; armRx = s * 0.45; elL = -0.3 + Math.min(0, s) * 0.2; elR = -0.3 - Math.max(0, s) * 0.2; bob = Math.abs(Math.cos(this.walkPhase)) * 0.04; }
-    else if (squat) { y = -0.425;   // the longer legs fold up higher, so the body goes down further to keep the hips over the pan
+    else if (squat) { y = -0.425 - hipLift;   // the longer legs fold up higher, so the body goes down further to keep the hips over the pan
       hipL = hipR = -1.9; kL = kR = 1.95; armLx = armRx = -0.55; elL = elR = -0.95; armLz = 0.12; armRz = -0.12; }   // squatting over the pan, forearms on the knees
-    else if (sitting) { y = (this.seat ? this.seat.sitY : -0.1) - LEG_EXTRA + 0.02;   // hips on the seat, though they sit higher on the longer legs
+    else if (sitting) { y = (this.seat ? this.seat.sitY : -0.1) - LEG_EXTRA + 0.02 - hipLift;   // hips on the seat, though they sit higher on the longer legs
       hipL = hipR = -Math.PI / 2; kL = kR = this.seat && this.seat.floor ? 0.25 : Math.PI / 2; armLx = armRx = -0.25; elL = elR = -0.7; }   // hands resting on the lap
     if (sitting && this.seat && this.seat.lounge && !moving) { armLz = -0.45; armRz = 0.45; armLx = armRx = -0.3; elL = elR = -0.6; }   // arms out along a beanbag's rolled arms
     if (this.cup && this.cup.parent === this.hand && !this.act) { const P = DRINK_POSE[this.role === 'owner' ? 'high' : moving ? 'walk' : 'carry']; armRx = P.x; armRz = P.z; elR = P.el; }   // cup carried in front
@@ -419,7 +422,7 @@ export class Person {
     const ground = this.g.position.z > KERB ? -RISE : inBackHall(this.g.position.x / K, this.g.position.z) ? -BACK_DROP : 0;   // down off the kerb, down into the back corridor
     this.groundY = (this.groundY || 0) + (ground - (this.groundY || 0)) * Math.min(1, dt * 14);
     this.g.position.y = this.groundY + y + bob;
-    this.blob.position.y = 0.012 - y - bob;   // kept on the floor, whatever the pose
+    this.blob.position.y = (0.012 - y - bob) / this.heightK;   // kept on the floor, whatever the pose (in their own scaled frame)
     if (this.skirt) {   // sitting, a skirt rides up and lies forward over the lap (set a little lower, so where it widens
       // is still below the shirt's hem and none of it shows through the back of the shirt)
       const lap = sitting || squat;

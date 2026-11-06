@@ -4,7 +4,9 @@ import * as THREE from 'three';
 import { BufferGeometryUtils } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { mat, canvasTex } from './engine.js';
 import { PIX } from './util.js';
-import { faceOf, hairOf, hatOf, clothesOf, shoeOf, socksOf, tattooOf, earringsOf, buildOf, tieColorOf } from '../content/catalog';
+import { faceOf, hairOf, hatOf, clothesOf, shoeOf, socksOf, tattooOf, earringsOf, buildOf, heightOf, tieColorOf } from '../content/catalog';
+// how much taller or shorter than standard each height is (身高)
+const HEIGHT_K = { xshort: 0.88, short: 0.94, regular: 1, tall: 1.06, xtall: 1.12 };
 // 身形: how much wider (w) and deeper (d) the body is than the standard
 const BUILDS = { thin: { w: 0.8, d: 0.82 }, slim: { w: 0.9, d: 0.91 }, regular: { w: 1, d: 1 }, stocky: { w: 1.13, d: 1.1 }, heavy: { w: 1.28, d: 1.42 } };
 
@@ -1432,7 +1434,12 @@ function buildBodyAt(look, seed) {
   [[0.05, 0.008], [0.05, -0.008], [0.042, 0], [0.058, 0]].forEach(([x, z]) => mk(sp(0.004, 6, 4), mat(0xb8b8bc), x, 0.017, z, pad, false));   // face buttons
   mk(bx(0.018, 0.004, 0.006), padB, -0.05, 0.017, 0, pad, false); mk(bx(0.006, 0.004, 0.018), padB, -0.05, 0.017, 0, pad, false);          // d-pad
   pad.position.set(0, 0.95, 0.43); pad.visible = false; g.add(pad);
-  return { g, legs, arms, elbows, head, hand, handL, pad, eyes, mouth, skirt, skinM: skin, strip: { bare, bunch, cover, pants, skin } };
+  // ---------------------------------------------------------------- height (身高): the whole of them taller or shorter,
+  // all but the head, which stays its own size (a tall person has longer legs and body, not a bigger head). Whatever
+  // places them by height (the hips on a seat, a squat, their shadow) takes heightK into account (people.js)
+  const heightK = HEIGHT_K[heightOf(look)] || 1;
+  if (heightK !== 1) { g.scale.setScalar(heightK); head.scale.setScalar(1 / heightK); }
+  return { g, legs, arms, elbows, head, hand, handL, pad, eyes, mouth, skirt, heightK, skinM: skin, strip: { bare, bunch, cover, pants, skin } };
 }
 
 // hats, each a shell round its own tipped crown down to a front edge `elev` above the eyes; own is the hat's own thickness

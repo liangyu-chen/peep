@@ -10,6 +10,7 @@
 export type Look = {
   skin: number; hair: number; hairStyle: string; shirt: number; pants: number;
   build?: string;                                                              // 身形
+  height?: string;                                                             // 身高
   faceShape?: string; eyes?: string; eyeColor?: number; brows?: string; nose?: string; mouth?: string;
   facialHair?: string; beard?: string; blush?: boolean;
   hairLength?: string; hairCurl?: string; hairFront?: string; hairTie?: string;   // the hair part by part (older looks: hairStyle alone)
@@ -35,6 +36,9 @@ const pickIn = (opts: Option[], v: unknown, fallback: string) => (isIn(opts, v) 
 // 身形: five builds, thin to heavy
 export const BUILDS: Option[] = [{ value: 'thin', label: '瘦' }, { value: 'slim', label: '偏瘦' }, { value: 'regular', label: '標準' }, { value: 'stocky', label: '壯' }, { value: 'heavy', label: '胖' }];
 export const buildOf = (look: Look) => pickIn(BUILDS, look.build, 'regular');
+// how tall: the body (legs and all) longer or shorter, the head its own size
+export const HEIGHTS: Option[] = [{ value: 'xshort', label: '很矮' }, { value: 'short', label: '矮' }, { value: 'regular', label: '標準' }, { value: 'tall', label: '高' }, { value: 'xtall', label: '很高' }];
+export const heightOf = (look: Look) => pickIn(HEIGHTS, look.height, 'regular');
 
 export const FACE: Record<'faceShape' | 'eyes' | 'brows' | 'nose' | 'mouth' | 'facialHair' | 'beard' | 'glasses' | 'glassesShape', Option[]> = {
   faceShape: [{ value: 'round', label: '圓臉' }, { value: 'oval', label: '鵝蛋臉' }, { value: 'square', label: '方臉' }, { value: 'long', label: '長臉' }],
@@ -268,7 +272,7 @@ export function parseLook(get: (k: string) => string | null, prev?: Look): Look 
     ...base,
     // 身形與臉
     skin: hex('skin', base.skin), eyeColor: hex('eyeColor', face.eyeColor), blush: get('blush') === 'on',
-    build: one('build', BUILDS, buildOf(base)),
+    build: one('build', BUILDS, buildOf(base)), height: one('height', HEIGHTS, heightOf(base)),
     faceShape: one('faceShape', FACE.faceShape, face.faceShape), eyes: one('eyes', FACE.eyes, face.eyes), brows: one('brows', FACE.brows, face.brows),
     nose: one('nose', FACE.nose, face.nose), mouth: one('mouth', FACE.mouth, face.mouth),
     facialHair: one('facialHair', FACE.facialHair, face.facialHair), beard: one('beard', FACE.beard, face.beard),

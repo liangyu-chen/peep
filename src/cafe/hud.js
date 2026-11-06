@@ -261,7 +261,7 @@ const v3 = new THREE.Vector3();
 export function updateLabels(dt, W, H) {
   const toScreen = (x, y, z) => { v3.set(x, y, z).project(ctx.camera); return [v3.z < 1 && Math.abs(v3.x) < 1.2 && Math.abs(v3.y) < 1.2, (v3.x + 1) / 2 * W, (1 - v3.y) / 2 * H]; };
   S.people.forEach(p => {
-    const [vis, x, y] = toScreen(p.g.position.x, p.g.position.y + 1.82, p.g.position.z);
+    const [vis, x, y] = toScreen(p.g.position.x, p.g.position.y + 1.82 + ((p.heightK || 1) - 1) * 1.44, p.g.position.z);   // (over the head, however tall they are)
     p.tag.style.display = vis && S.showTags ? '' : 'none';
     p.tag.style.left = x + 'px'; p.tag.style.top = y + 'px';
     p.bubble.style.display = vis ? '' : 'none';
