@@ -953,7 +953,7 @@ function buildBodyAt(look, seed) {
       // (the fall's points kept just off the shirt below them, wherever the shoulders slope away)
       // (only a little: in front the U is cut away and the slices above would lift it right up to the neck)
       // ... and the points in front pressed flat onto the chest
-      const lay = v => { const sy = surfY(v.x, v.z); v.y = Math.min(Math.max(v.y, sy + 0.008), sz > 0.5 ? v.y + 0.02 : 9); if (front > 0) v.z += (surfZ(v.x, v.y) + 0.006 - v.z) * Math.min(1, front * 1.5); return v; };
+      const lay = v => { const sy = surfY(v.x, v.z); v.y = Math.min(Math.max(v.y, sy + 0.014), sz > 0.5 ? v.y + 0.02 : 9); if (front > 0) v.z += (surfZ(v.x, v.y) + 0.011 - v.z) * Math.min(1, front * 1.5); return v; };
       cross.push([
         at(1, -0.008), at(1.0, 0.004), at(1.035, 0.013), lay(at(1.08, 0.006)),
         lay(at(1.13 + 0.04 * front, -0.008 - 0.03 * front, 0.006 * front)),
