@@ -292,7 +292,7 @@ export function hatOf(look: Look): { hat: string; color: number } {
 
 // shoes: a style, in the shoe colour
 export const SHOE_STYLES: Option[] = [
-  { value: 'sneaker', label: '球鞋' }, { value: 'hightop', label: '高筒帆布鞋' }, { value: 'boots', label: '靴子' }, { value: 'slides', label: '拖鞋' },
+  { value: 'sneaker', label: '球鞋' }, { value: 'hightop', label: '高筒帆布鞋' }, { value: 'lowtop', label: '低筒帆布鞋' }, { value: 'boots', label: '靴子' }, { value: 'slides', label: '拖鞋' },
 ];
 export function shoeOf(look: Look): { style: string; color: number } {
   return { style: SHOE_STYLES.some(o => o.value === look.shoeStyle) ? (look.shoeStyle as string) : 'sneaker', color: typeof look.shoe === 'number' ? look.shoe : 0x1d1d1d };
