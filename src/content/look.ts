@@ -13,6 +13,7 @@ export type Look = {
   faceShape?: string; eyes?: string; eyeColor?: number; brows?: string; nose?: string; mouth?: string;
   facialHair?: string; beard?: string; blush?: boolean;
   hairLength?: string; hairCurl?: string; hairFront?: string; hairTie?: string;   // the hair part by part (older looks: hairStyle alone)
+  tieColor?: number;                                                           // the ponytail's hair tie
   hat?: string; hatColor?: number;                                             // (older looks: hairStyle 'cap'/'bucket' + cap, or beanie)
   glasses?: boolean | string; glassesShape?: string;                           // (older looks: true, 'round' or 'square' black frames)
   earL?: string; earR?: string;
@@ -113,6 +114,8 @@ export function hairOf(look: Look): Hair {
     front: pickIn(HAIR.front, look.hairFront, old.front), tie: pickIn(HAIR.tie, look.hairTie, old.tie),
   };
 }
+// the colour of the band a ponytail's tied with (neon pink unless chosen)
+export const tieColorOf = (look: Look) => (typeof look.tieColor === 'number' ? look.tieColor : 0xff4f7b);
 // a short description, like 長髮・捲髮・瀏海・馬尾
 export function hairLabel(h: Hair): string {
   const l = (key: keyof typeof HAIR, v: string) => HAIR[key].find(o => o.value === v)?.label ?? v;
@@ -177,8 +180,8 @@ export function tattooOf(look: Look): Record<string, string> {
   return out;
 }
 
-// a little companion that goes about with them (路易斯 the bear flies at their shoulder)
-export const COMPANIONS: Option[] = [{ value: 'none', label: '無' }, { value: 'bear', label: '路易斯' }];
+// a little companion that goes about with them (路易斯 the bear flies at their shoulder, 夜叉丸 the Pomeranian trots at their feet)
+export const COMPANIONS: Option[] = [{ value: 'none', label: '無' }, { value: 'bear', label: '路易斯' }, { value: 'dog', label: '夜叉丸' }];
 export const companionOf = (look: Look) => pickIn(COMPANIONS, look.companion, 'none');
 
 
@@ -258,7 +261,7 @@ export function parseLook(get: (k: string) => string | null, prev?: Look): Look 
     nose: one('nose', FACE.nose, face.nose), mouth: one('mouth', FACE.mouth, face.mouth),
     facialHair: one('facialHair', FACE.facialHair, face.facialHair), beard: one('beard', FACE.beard, face.beard),
     // 髮型
-    hair: hex('hair', base.hair),
+    hair: hex('hair', base.hair), tieColor: hex('tieColor', tieColorOf(base)),
     hairLength: one('hairLength', HAIR.length, hair.length), hairCurl: one('hairCurl', HAIR.curl, hair.curl),
     hairFront: one('hairFront', HAIR.front, hair.front), hairTie: one('hairTie', HAIR.tie, hair.tie),
     // 配戴

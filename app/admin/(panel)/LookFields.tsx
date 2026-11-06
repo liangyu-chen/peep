@@ -1,4 +1,4 @@
-import { BUILDS, buildOf, CLOTHES, COLOR_PRESETS, COMPANIONS, EARRINGS, earringsOf, FACE, HAIR, HAT_STYLES, SHOE_STYLES, SOCKS, TATTOO_PARTS, TATTOO_STYLES,clothesOf, companionOf, faceOf, hairOf, hatOf, shoeOf, socksOf, tattooOf, type Look } from '@/src/content/catalog';
+import { BUILDS, buildOf, tieColorOf, CLOTHES, COLOR_PRESETS, COMPANIONS, EARRINGS, earringsOf, FACE, HAIR, HAT_STYLES, SHOE_STYLES, SOCKS, TATTOO_PARTS, TATTOO_STYLES,clothesOf, companionOf, faceOf, hairOf, hatOf, shoeOf, socksOf, tattooOf, type Look } from '@/src/content/catalog';
 import ColorField from './ColorField';
 
 function Pick({ name, label, value, options }: { name: string; label: string; value: string; options: { value: string; label: string }[] }) {
@@ -66,6 +66,7 @@ export default function LookFields({ look, seed }: { look: Look; seed: string })
         <Pick name="socks" label="襪子（短褲、裙子、拖鞋看得到）" value={socks.style} options={SOCKS} />
         <div className="colors">
           <ColorField name="hair" label="髮色" value={look.hair} presets={COLOR_PRESETS.hair} />
+          <ColorField name="tieColor" label="馬尾髮帶" value={tieColorOf(look)} presets={COLOR_PRESETS.clothes} />
           <ColorField name="shirt" label="上衣" value={look.shirt} presets={COLOR_PRESETS.clothes} />
           <ColorField name="pants" label="褲子／裙子" value={look.pants} presets={COLOR_PRESETS.clothes} />
           <ColorField name="hatColor" label="帽子顏色" value={hat.color} presets={COLOR_PRESETS.clothes} />

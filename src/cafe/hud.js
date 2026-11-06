@@ -236,7 +236,7 @@ export function bindHUD(root, stage) {
     else if (h === 'neon') toggleNeon();
     else if (h === 'storeLight') { setStoreLight(!S.storeLight.on); sfx('flick'); }
     else if (h === 'toiletLight') { setToiletLight(!S.toiletLight.on); sfx('flick'); }
-    else if (h && h.bearOf) h.bearOf.bearSay('愛老公');   // 月亮小熊 just says its piece, no card
+    else if (h && h.bearOf) h.bearOf.bearSay(h.bearOf.bear.line);   // a companion just says its piece (路易斯 愛老公, 夜叉丸 汪！), no card
     else if (typeof h === 'string') playAt(h, root); else if (h) openCard(h); else closeCard();
   });
   on(canvas, 'pointermove', e => {
@@ -267,7 +267,7 @@ export function updateLabels(dt, W, H) {
     p.bubble.style.display = vis ? '' : 'none';
     p.bubble.style.left = x + 'px'; p.bubble.style.top = (y - (S.showTags ? 24 : 4)) + 'px';
     if (p.bear) {
-      const bp = p.bear.g.position, [bv, bx, by] = toScreen(bp.x, bp.y + 0.24, bp.z);   // (just above its crown)
+      const bp = p.bear.g.position, [bv, bx, by] = toScreen(bp.x, bp.y + (p.bear.bubbleY ?? 0.24), bp.z);   // (just above its head)
       p.bear.bubble.style.display = bv ? '' : 'none'; p.bear.bubble.style.left = bx + 'px'; p.bear.bubble.style.top = by + 'px';
     }
   });
