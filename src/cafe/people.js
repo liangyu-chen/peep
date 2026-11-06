@@ -7,7 +7,7 @@ import { S } from './state.js';
 import { K } from './util.js';
 import { KERB, RISE, BACK_DROP, inBackHall } from './layout.js';
 import { makeBear, followBear } from './bear.js';
-import { makeDog, followDog } from './dog.js';
+import { makeDog, makeCorgi, followDog } from './dog.js';
 import { moverShadows, highQuality } from './quality.js';
 
 const teaCupM = mat(0xf2f0ea, { roughness: 0.3 });
@@ -280,8 +280,8 @@ export class Person {
     // a companion going about with them (this.bear, whichever it is): 路易斯 the bear flying at their shoulder, or 夜叉丸
     // the dog trotting at their feet; click it and it says its piece
     const pet = profile.look?.companion;
-    if (pet === 'bear' || pet === 'dog') {
-      this.bear = pet === 'dog' ? Object.assign(makeDog(), { follow: followDog }) : Object.assign(makeBear(), { follow: followBear, line: '愛老公', bubbleY: 0.24 }); mergeParts(this.bear.g); this.bear.g.traverse(o => { if (o.isMesh) o.userData.bearOf = this; }); ctx.scene.add(this.bear.g); moverShadows(this.bear.g);
+    if (pet === 'bear' || pet === 'dog' || pet === 'corgi') {
+      this.bear = pet === 'dog' ? Object.assign(makeDog(), { follow: followDog }) : pet === 'corgi' ? Object.assign(makeCorgi(), { follow: followDog }) : Object.assign(makeBear(), { follow: followBear, line: '愛老公', bubbleY: 0.24 }); mergeParts(this.bear.g); this.bear.g.traverse(o => { if (o.isMesh) o.userData.bearOf = this; }); ctx.scene.add(this.bear.g); moverShadows(this.bear.g);
       this.bear.bubble = document.createElement('div'); this.bear.bubble.className = 'bubble'; this.bear.bubble.style.opacity = 0; this.bear.bubbleT = 0;
       S.labelsEl.append(this.bear.bubble);
     }

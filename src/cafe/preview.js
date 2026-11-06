@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { buildBody, tickFace, restPose, poseBody } from './body.js';
 import { makeBear, flapBear } from './bear.js';
-import { makeDog, animateDog } from './dog.js';
+import { makeDog, makeCorgi, animateDog } from './dog.js';
 
 const VIEWS = {
   face: { pos: [0.28, 1.5, 1.35], target: [0, 1.42, 0] },
@@ -55,6 +55,7 @@ export function mountPreview(host) {
     scene.add(body.g);
     if (look.companion === 'bear') { bear = makeBear(); scene.add(bear.g); }   // 路易斯 at the shoulder
     if (look.companion === 'dog') { bear = makeDog(); bear.dog = true; bear.g.position.set(0.34, 0, 0.12); bear.g.rotation.y = 0.35; scene.add(bear.g); }   // 夜叉丸 sat at their feet
+    if (look.companion === 'corgi') { bear = makeCorgi(); bear.dog = true; bear.g.position.set(0.4, 0, 0.12); bear.g.rotation.y = 0.45; scene.add(bear.g); }   // the corgi, likewise
   }
 
   const resize = () => {

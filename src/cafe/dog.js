@@ -127,7 +127,90 @@ export function makeDog() {
   const curve = new THREE.CatmullRomCurve3([[0, -0.006, 0.01], [0, 0.01, -0.02], [0, 0.036, -0.032], [0, 0.056, -0.016], [0, 0.06, 0.008], [0.006, 0.05, 0.022]].map(a => new THREE.Vector3(...a)));   // (short)
   const t = new THREE.Mesh(taperedTube(curve, 0.012, 0.0015), m.legR); t.castShadow = true; tail.add(t);
 
-  return { g, b, head, legs, tail, t: Math.random() * 10, placed: false, sit: 0, line: '汪！', bubbleY: 0.32, trail: [], spot: null };
+  return { g, b, head, legs, tail, t: Math.random() * 10, placed: false, sit: 0, name: '夜叉丸', line: '汪！', bubbleY: 0.32, trail: [], spot: null };
+}
+
+// 柯基: a Pembroke corgi. A long low loaf of a body on very short legs, red-tan over the back and sides with white
+// underneath (chest, belly, the fluffy seat of his "pants"), white paws; a fox face, tan with a white blaze up the middle
+// and a white muzzle, big upright ears pink inside, his tongue out and his head tipped to one side; a little stub of a
+// tail. Goes about just as 夜叉丸 does (the same trot, sit and following).
+let CM = null;
+const corgiMats = () => CM || (CM = {
+  body: mat(0xffffff, { roughness: 0.95, vertexColors: true }),
+  tan: mat(picked(0xd2873f), { roughness: 0.95 }),
+  white: mat(picked(0xf6f0e6), { roughness: 0.95 }),
+  earIn: mat(picked(0xe9a9a6), { roughness: 0.9 }),
+  dark: mat(0x141214, { roughness: 0.35 }),
+  shine: mat(0xffffff, { roughness: 0.2, emissive: 0xffffff, emissiveIntensity: 0.4 }),
+  tongue: mat(picked(0xe0647e), { roughness: 0.5 }),
+});
+const C_LEG = 0.05, C_HIP = C_LEG + 0.011;
+const C_LEG_AT = [[0.036, 0.082], [-0.036, 0.082], [0.038, -0.08], [-0.038, -0.08]];
+let corgiBodyGeo = null;
+function corgiBody() {
+  if (corgiBodyGeo) return corgiBodyGeo;
+  const g = new THREE.SphereGeometry(1, 28, 20), p = g.attributes.position, col = [];
+  const tan = new THREE.Color(picked(0xd2873f)), white = new THREE.Color(picked(0xf6f0e6)), c = new THREE.Color();
+  for (let i = 0; i < p.count; i++) {
+    const x = p.getX(i), y = p.getY(i), z = p.getZ(i);
+    // a loaf: long, flat-ish on top, the ends rounded off (fuller at the chest, a round seat behind)
+    const f = 1 + 0.06 * z;
+    let X = x * 0.068 * f, Y = y * 0.062 * f, Z = z * 0.128;
+    if (y < 0) C_LEG_AT.forEach(([lx, lz]) => {   // (drawn down over each leg's top, so the legs grow out of him)
+      const w = Math.exp(-((X - lx) ** 2 + (Z - lz) ** 2) / 0.026 ** 2) * Math.min(1, -y * 1.6);
+      Y -= 0.022 * w; X += (lx - X) * 0.4 * w; Z += (lz - Z) * 0.4 * w;
+    });
+    p.setXYZ(i, X, Y, Z);
+    // white underneath and up the chest, tan over the back and sides
+    const under = smooth(-0.05, -0.45, y), chest = smooth(0.55, 0.85, z) * smooth(0.45, -0.1, y);
+    c.copy(tan).lerp(white, Math.min(1, under + chest)); col.push(c.r, c.g, c.b);
+  }
+  g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  g.computeVertexNormals(); return (corgiBodyGeo = g);
+}
+let corgiLegGeo = null;
+const corgiLeg = () => corgiLegGeo || (corgiLegGeo = new THREE.LatheGeometry([[0.0001, -C_LEG], [0.014, -C_LEG + 0.004], [0.016, -C_LEG * 0.5], [0.019, -C_LEG * 0.1], [0.02, 0.012], [0.0001, 0.03]].map(([r, y]) => new THREE.Vector2(r, y)), 12));
+
+export function makeCorgi() {
+  const m = corgiMats();
+  const g = new THREE.Group(), b = new THREE.Group(); g.add(b); g.scale.setScalar(1.25);
+  const body = new THREE.Mesh(corgiBody(), m.body); body.position.set(0, C_HIP + 0.03, 0); body.castShadow = true; b.add(body);
+  // the fluffy white seat at the back, and the white ruff of his chest
+  fuzz(0.045, 11, m.white, 0, C_HIP + 0.016, -0.104, b, 1.25, 0.9, 0.75);
+  fuzz(0.05, 13, m.white, 0, C_HIP + 0.04, 0.104, b, 1.05, 1.1, 0.7);
+
+  // the head: tan, a long white muzzle, a white blaze up the middle, white cheeks; tipped to one side
+  const head = new THREE.Group(); head.position.set(0, C_HIP + 0.105, 0.134); b.add(head);
+  const skull = new THREE.Group(); skull.rotation.z = 0.28; head.add(skull);
+  ball(0.052, m.tan, 0, 0, 0, skull, 1.05, 0.95, 1);
+  ball(0.03, m.white, 0, -0.02, 0.045, skull, 0.95, 0.7, 1.15);                   // muzzle
+  [-1, 1].forEach(s => ball(0.026, m.white, s * 0.022, -0.022, 0.025, skull, 1, 0.85, 1));   // cheeks
+  ball(0.012, m.white, 0, 0.02, 0.044, skull, 0.6, 1.9, 0.5);                      // the blaze
+  ball(0.009, m.dark, 0, -0.012, 0.079, skull, 1.25, 0.95, 0.8);                   // nose
+  [-1, 1].forEach(s => {
+    ball(0.0085, m.dark, s * 0.024, 0.01, 0.046, skull);                           // eyes
+    ball(0.0025, m.shine, s * 0.024 + 0.003, 0.014, 0.053, skull);
+    // big upright ears, set wide and leaning out, tan outside and pink in
+    const ear = new THREE.Group(); ear.position.set(s * 0.032, 0.04, -0.004); ear.rotation.set(-0.15, 0, -s * 0.38); skull.add(ear);
+    const outer = new THREE.Mesh(new THREE.ConeGeometry(0.031, 0.066, 12), m.tan); outer.position.y = 0.03; outer.scale.z = 0.45; outer.castShadow = true; ear.add(outer);
+    const inner = new THREE.Mesh(new THREE.ConeGeometry(0.022, 0.05, 12), m.earIn); inner.position.set(0, 0.025, 0.006); inner.scale.z = 0.32; ear.add(inner);
+  });
+  const tongue = new THREE.Mesh(new THREE.SphereGeometry(0.011, 8, 6), m.tongue);
+  tongue.position.set(0.004, -0.04, 0.062); tongue.scale.set(0.95, 1.6, 0.35); tongue.rotation.x = 0.35; skull.add(tongue);
+
+  // four very short legs, white paws
+  const legs = C_LEG_AT.map(([x, z], i) => {
+    const front = i < 2, hip = new THREE.Group(); hip.position.set(x, C_HIP, z); b.add(hip);
+    const leg = new THREE.Mesh(corgiLeg(), front ? m.white : m.tan); leg.castShadow = true; hip.add(leg);
+    ball(0.017, m.white, 0, -C_LEG, 0.005, hip, 1, 0.7, 1.25);
+    hip.userData.front = front;
+    return hip;
+  });
+  // a short stub of a tail on the round of his seat
+  const tail = new THREE.Group(); tail.position.set(0, C_HIP + 0.06, -0.124); b.add(tail);
+  fuzz(0.018, 17, m.tan, 0, 0, 0, tail, 1, 0.9, 1.1);
+
+  return { g, b, head, legs, tail, paw: new THREE.Vector3(0, 0.011, 0.087), t: Math.random() * 10, placed: false, sit: 0, name: '柯基', line: '汪！', bubbleY: 0.4, trail: [], spot: null };
 }
 
 // trot (legs swinging, a little bounce) or sit; the tail wags all the while. Sitting, he rocks back about where his front
@@ -145,7 +228,8 @@ export function animateDog(dog, dt, moving) {
     h.rotation.x = sw - tip + (h.userData.front ? 0 : -Math.PI / 2 * s);
   });
   dog.b.rotation.x = tip;
-  dog.b.position.copy(PAW).sub(_p.copy(PAW).applyAxisAngle(X, tip));
+  const paw = dog.paw || PAW;   // (where his front paws stand: further forward on a long dog)
+  dog.b.position.copy(paw).sub(_p.copy(paw).applyAxisAngle(X, tip));
   dog.b.position.y += Math.abs(Math.sin(dog.t * 17)) * 0.007 * (1 - s);
   dog.head.rotation.x = -tip * 0.85;
   dog.tail.rotation.z = Math.sin(dog.t * (moving ? 18 : 11)) * 0.45;

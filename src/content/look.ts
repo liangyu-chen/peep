@@ -182,7 +182,7 @@ export function tattooOf(look: Look): Record<string, string> {
 }
 
 // a little companion that goes about with them (路易斯 the bear flies at their shoulder, 夜叉丸 the Pomeranian trots at their feet)
-export const COMPANIONS: Option[] = [{ value: 'none', label: '無' }, { value: 'bear', label: '路易斯' }, { value: 'dog', label: '夜叉丸' }];
+export const COMPANIONS: Option[] = [{ value: 'none', label: '無' }, { value: 'bear', label: '路易斯' }, { value: 'dog', label: '夜叉丸' }, { value: 'corgi', label: '柯基' }];
 export const companionOf = (look: Look) => pickIn(COMPANIONS, look.companion, 'none');
 
 
