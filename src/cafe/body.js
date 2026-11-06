@@ -791,7 +791,7 @@ function buildBodyAt(look, seed) {
       mk(cy(rAt(top) + 0.002, rAt(top - 0.02) + 0.002, 0.02, 16, true), sockRib, 0, -0.25 + top - 0.01, 0, knee, false);
     }
     buildShoe(SH.style, knee, mk, { shoe, skin: sockM || skin, light: SH_LIGHT, ankle: bareLegs });
-    return { hip, knee };
+    return { hip, knee, thigh };
   });
   // hips: one piece from the waist splitting into the two legs, no join between them (separate hips and thighs leave a
   // line round the tops of the legs, like briefs)
@@ -1079,7 +1079,20 @@ function buildBodyAt(look, seed) {
     g.children.forEach(c => {
       if (c === head) return;
       if (arms.includes(c)) { c.position.x *= BLD.w; c.position.z *= BLD.d; c.scale.x *= limb; c.scale.z *= limb; return; }
-      if (legs.some(l => l.hip === c)) { c.position.x *= 1 + (BLD.w - 1) * LOW; c.position.z *= 1 + (BLD.d - 1) * LOW; c.scale.x *= limb; c.scale.z *= limb; return; }
+      const leg = legs.find(l => l.hip === c);
+      if (leg) {
+        // the leg: set out with the seat, its thigh exactly as much fuller as the seat it grows out of (deeper at the top,
+        // easing to the knee), the knee down to the shoe as much wider; scaled piece by piece, never the hip itself, so a
+        // bent knee doesn't stretch the shin
+        const fx = 1 + (BLD.w - 1) * LOW, fz = 1 + (BLD.d - 1) * LOW;
+        c.position.x *= fx; c.position.z *= fz;
+        const gm = leg.thigh.geometry.clone(), pos = gm.attributes.position;
+        for (let i = 0; i < pos.count; i++) { const y = pos.getY(i), up = Math.min(1, Math.max(0, (y + THIGH) / THIGH)); pos.setX(i, pos.getX(i) * fx); pos.setZ(i, pos.getZ(i) * (fx + (fz - fx) * up)); }
+        gm.computeVertexNormals(); leg.thigh.geometry = gm;
+        c.children.forEach(o => { if (o !== leg.thigh && o !== leg.knee) { o.scale.x *= fx; o.scale.z *= fx; } });   // (shorts' hems)
+        leg.knee.scale.set(fx, 1, fx);
+        return;
+      }
       if (!c.isMesh) { const f = c === skirt ? LOW : 1; c.position.x *= 1 + (BLD.w - 1) * f; c.position.z *= 1 + (BLD.d - 1) * f; c.scale.x *= 1 + (BLD.w - 1) * f; c.scale.z *= 1 + (BLD.d - 1) * f; return; }
       const lo = lower.has(c) ? LOW : 1;
       c.updateMatrix(); const inv = c.matrix.clone().invert(), gm = c.geometry.clone(), pos = gm.attributes.position, v = new THREE.Vector3();
