@@ -1043,11 +1043,20 @@ function buildBodyAt(look, seed) {
   const BLD = BUILDS[buildOf(look)];
   if (BLD.w !== 1 || BLD.d !== 1) {
     const limb = Math.sqrt(BLD.w);
+    // (the body's own surfaces widened vertex by vertex, fully up to the shoulders, easing back to as-built up the neck,
+    // so the neck still meets the head where it did and nothing pushes out through the jaw)
+    const k = y => 1 - Math.min(1, Math.max(0, (y - 1.17) / 0.16));
     g.children.forEach(c => {
       if (c === head) return;
-      c.position.x *= BLD.w; c.position.z *= BLD.d;
-      if (arms.includes(c) || legs.some(l => l.hip === c)) { c.scale.x *= limb; c.scale.z *= limb; }
-      else { c.scale.x *= BLD.w; c.scale.z *= BLD.d; }
+      if (arms.includes(c) || legs.some(l => l.hip === c)) { c.position.x *= BLD.w; c.position.z *= BLD.d; c.scale.x *= limb; c.scale.z *= limb; return; }
+      if (!c.isMesh) { c.position.x *= BLD.w; c.position.z *= BLD.d; c.scale.x *= BLD.w; c.scale.z *= BLD.d; return; }
+      c.updateMatrix(); const inv = c.matrix.clone().invert(), gm = c.geometry.clone(), pos = gm.attributes.position, v = new THREE.Vector3();
+      for (let i = 0; i < pos.count; i++) {
+        v.fromBufferAttribute(pos, i).applyMatrix4(c.matrix);   // where it is on the body
+        const kv = k(v.y); v.x *= 1 + (BLD.w - 1) * kv; v.z *= 1 + (BLD.d - 1) * kv;
+        v.applyMatrix4(inv); pos.setXYZ(i, v.x, v.y, v.z);
+      }
+      c.geometry = gm;   // (its normals kept: near enough for a gentle widening)
     });
     [hand, handL].forEach(h => { h.scale.set(1 / limb, 1, 1 / limb); });   // (what's held stays its own size)
   }  // the controller: a PS5 DualSense, white with a black middle, the white touchpad up top ringed by its blue light,
