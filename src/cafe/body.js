@@ -389,6 +389,8 @@ const bootSoleM = mat(0x1c1917, { roughness: 0.85 });
 // one foot's shoe, in its style, hung from the knee (the foot's centre 0.287 below it)
 function buildShoe(style, knee, mk, { shoe, skin, light }) {
   const Y = -0.287;
+  // the top of a boot's or high-top's shaft: a lip closing the gap down to the leg, so no ankle shows inside it
+  const collarTop = (r, y, z) => { const m = shoe.clone(); m.color.multiplyScalar(0.55); m.side = THREE.DoubleSide; const ring = mk(geo(`collar:${r}`, () => new THREE.RingGeometry(0.03, r, D(20, 10))), m, 0, y, z, knee, false); ring.rotation.x = -Math.PI / 2; };
   const laces = (zs, lift = 0) => zs.forEach(z => mk(bx(0.05, 0.006, 0.01), laceM, 0, Y + shoeTop(z) + 0.002 + lift, z, knee, false));
   if (style === 'slides') {
     // 拖鞋: a bare foot on a thick flat sole, one wide strap over the instep
@@ -405,8 +407,9 @@ function buildShoe(style, knee, mk, { shoe, skin, light }) {
     mk(shoeGeo(false), shoe, 0, Y, 0, knee);
     const sole = mk(shoeGeo(true), light, 0, Y + 0.002, 0, knee, false); sole.scale.set(1.01, 1.9, 1.01);
     const toe = mk(sp(1, 16, 10, 0, Math.PI * 2, 0, Math.PI / 2), light, 0, Y - 0.012, 0.118, knee, false); toe.scale.set(0.066, 0.034, 0.05);
-    mk(cy(0.068, 0.07, 0.085, 16, true), shoe, 0, Y + 0.06, -0.008, knee);   // (wide enough to go over a long sock)
-    mk(cy(0.07, 0.07, 0.008, 16, true), light, 0, Y + 0.1, -0.008, knee, false);   // the collar's edge
+    mk(cy(0.07, 0.072, 0.085, 18, true), shoe, 0, Y + 0.06, 0, knee);   // (wide enough to go over a long sock)
+    mk(cy(0.072, 0.072, 0.008, 18, true), light, 0, Y + 0.1, 0, knee, false);
+    collarTop(0.072, Y + 0.104, 0);   // the collar's edge
     laces([0.02, 0.045, 0.07]);
     [0.07, 0.085].forEach(y => mk(bx(0.05, 0.006, 0.01), laceM, 0, Y + y, 0.05, knee, false));
     return;
@@ -416,8 +419,9 @@ function buildShoe(style, knee, mk, { shoe, skin, light }) {
     const up = mk(shoeGeo(false), shoe, 0, Y + 0.003, 0, knee); up.scale.set(1.06, 1.08, 1.04);
     const sole = mk(shoeGeo(true), bootSoleM, 0, Y - 0.003, 0, knee, false); sole.scale.set(1.06, 2.2, 1.05);
     mk(bx(0.07, 0.022, 0.05), bootSoleM, 0, Y - 0.026, -0.065, knee, false);   // the heel
-    mk(cy(0.066, 0.07, 0.11, 16, true), shoe, 0, Y + 0.07, -0.012, knee);
-    mk(bx(0.016, 0.03, 0.006), shoe, 0, Y + 0.13, -0.08, knee, false);         // the pull tab
+    mk(cy(0.073, 0.075, 0.11, 18, true), shoe, 0, Y + 0.07, 0, knee);   // (round the leg's own centre, clear of it all round)
+    collarTop(0.073, Y + 0.125, 0);
+    mk(bx(0.016, 0.03, 0.006), shoe, 0, Y + 0.13, -0.075, knee, false);         // the pull tab
     return;
   }
   // 球鞋: one rounded piece on a sole that follows its outline, with laces across the top
@@ -691,7 +695,7 @@ function buildBodyAt(look, seed) {
     // socks: only where they'd show, on a bare shin (a short one round the ankle, a long one up to under the knee, a
     // ribbed band at the top), and over the foot in slides
     // (in boots or high-tops only what rises above the shoe is drawn, so a short one is hidden in it altogether)
-    const sockFrom = { boots: 0.09, hightop: 0.066 }[SH.style] || 0, sockTop = SK.style === 'long' ? 0.2 : 0.06;
+    const sockFrom = { boots: 0.07, hightop: 0.05 }[SH.style] || 0, sockTop = SK.style === 'long' ? 0.2 : 0.06;
     if (sockM && bareLegs && sockTop > sockFrom + 0.02) {
       const top = sockTop, h0 = sockFrom, rAt = h => 0.052 + (RK - 0.052) * (h / 0.25) + 0.004;   // h: up from the shin's foot
       mk(cy(rAt(top), rAt(h0), top - h0, 16, true), sockM, 0, -0.25 + (top + h0) / 2, 0, knee, false);
