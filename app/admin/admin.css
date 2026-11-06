@@ -139,6 +139,16 @@ body:has(.admin){margin:0;background:#141218}
 .admin .pick label:hover span{background:#373245}
 .admin .pick input:checked + span{background:var(--gold);color:#1f1c27;box-shadow:inset -2px -2px 0 0 #b08d10,inset 2px 2px 0 0 #fff2a8}
 .admin .pick input:focus-visible + span{outline:3px solid var(--gold);outline-offset:2px}
+/* 常點: the input with a ▾ that always opens the whole menu below it, big enough rows to tap */
+.admin .drink-pick{position:relative;display:grid;gap:4px}
+.admin .drink-row{display:flex}
+.admin .drink-row input{flex:1;min-width:0}
+.admin .drink-open{flex:none;width:44px;padding:0;font-size:16px;border-left:0}
+.admin .drink-options{position:absolute;z-index:30;top:calc(100% + 2px);left:0;right:0;margin:0;padding:4px;list-style:none;max-height:260px;overflow-y:auto;
+  background:#15131c;border:2px solid var(--gold);box-shadow:4px 4px 0 #000;-webkit-overflow-scrolling:touch}
+.admin .drink-options button{display:block;width:100%;text-align:left;padding:10px 10px;font-size:14px;background:none;box-shadow:none;color:var(--ink);border:0}
+.admin .drink-options button:hover,.admin .drink-options button:focus-visible{background:#2c2838}
+.admin .drink-options button.on{color:var(--gold)}
 /* the tattoos: a little grid of the parts, a style picked for each, right side then left as worn */
 .admin .pick.tattoos{display:grid;grid-template-columns:repeat(2,minmax(0,170px));gap:8px 12px;align-items:end}
 .admin .pick.tattoos legend{float:none;width:auto;grid-column:1/-1;margin-bottom:2px}

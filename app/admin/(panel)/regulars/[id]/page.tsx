@@ -8,6 +8,7 @@ import { addRegular, updateRegular, deleteRegular } from '../../../actions';
 import LookPreview from '../../LookPreview';
 import LookFields from '../../LookFields';
 import SaveBar from '../../SaveBar';
+import DrinkField from './DrinkField';
 
 const NEW_LOOK: Look = { skin: 0xe0ac80, hair: 0x1b1410, hairStyle: 'short', shirt: 0x7fae8b, pants: 0x2b2b2b, faceShape: 'round', eyes: 'round', brows: 'thin', nose: 'small', mouth: 'smile', facialHair: 'none', glasses: 'none' };
 
@@ -41,9 +42,7 @@ export default async function RegularEditor({ params, searchParams }: { params: 
               <label>職業<input name="job" defaultValue={row?.job} maxLength={30} /></label>
               {/* pick from the menu, or type anything: the owner makes regulars their usual even when it isn't on the menu */}
               <label>常點
-                <input name="drink" list="menu-drinks" defaultValue={row?.drink ?? drinks[0]} maxLength={30} placeholder="從菜單選，或直接輸入" autoComplete="off" />
-                <datalist id="menu-drinks">{drinks.map(d => <option key={d} value={d} />)}</datalist>
-                {row?.drink && !drinks.includes(row.drink) && <small className="muted">不在菜單上，老闆會照做</small>}
+                <DrinkField drinks={drinks} initial={row?.drink ?? drinks[0] ?? ''} />
               </label>
               <label>來店次數<input name="visits" type="number" min={1} defaultValue={row?.visits ?? 1} /></label>
               <label>排序<input name="sort" type="number" defaultValue={row?.sort ?? 0} /></label>
