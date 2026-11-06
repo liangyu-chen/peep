@@ -33,6 +33,15 @@ export default function LookFields({ look, seed }: { look: Look; seed: string })
         <Pick name="mouth" label="嘴巴" value={f.mouth} options={FACE.mouth} />
         <Pick name="facialHair" label="鬍子" value={f.facialHair} options={FACE.facialHair} />
         <Pick name="beard" label="鬍子濃淡" value={f.beard} options={FACE.beard} />
+      </section>
+
+      <section className="panel-block">
+        <h2>髮型與穿著</h2>
+        <Pick name="hairLength" label="長度" value={hair.length} options={HAIR.length} />
+        <Pick name="hairCurl" label="髮質" value={hair.curl} options={HAIR.curl} />
+        <Pick name="hairFront" label="前額" value={hair.front} options={HAIR.front} />
+        <Pick name="hairTie" label="綁髮（中長髮、長髮）" value={hair.tie} options={HAIR.tie} />
+        <Pick name="hat" label="帽子" value={hat.hat} options={HAT_STYLES} />
         <Pick name="glasses" label="眼鏡" value={f.glasses} options={FACE.glasses} />
         <Pick name="glassesShape" label="鏡框形狀" value={f.glassesShape} options={FACE.glassesShape} />
         <Pick name="earR" label="右耳耳環" value={ears.right} options={EARRINGS} />
@@ -48,15 +57,6 @@ export default function LookFields({ look, seed }: { look: Look; seed: string })
           ))}
           <label>刺青文字（選「文字」的部位）<input name="tattooText" defaultValue={typeof look.tattooText === 'string' ? look.tattooText : ''} maxLength={12} placeholder="PEEP" /></label>
         </fieldset>
-      </section>
-
-      <section className="panel-block">
-        <h2>髮型與穿著</h2>
-        <Pick name="hairLength" label="長度" value={hair.length} options={HAIR.length} />
-        <Pick name="hairCurl" label="髮質" value={hair.curl} options={HAIR.curl} />
-        <Pick name="hairFront" label="前額" value={hair.front} options={HAIR.front} />
-        <Pick name="hairTie" label="綁髮（中長髮、長髮）" value={hair.tie} options={HAIR.tie} />
-        <Pick name="hat" label="帽子" value={hat.hat} options={HAT_STYLES} />
         <Pick name="companion" label="配件" value={companionOf(look)} options={COMPANIONS} />
         <Pick name="topFit" label="上衣版型" value={clothes.top} options={CLOTHES.top} />
         <Pick name="sleeve" label="袖長" value={clothes.sleeve} options={CLOTHES.sleeve} />
