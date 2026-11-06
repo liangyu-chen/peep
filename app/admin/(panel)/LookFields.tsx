@@ -33,6 +33,7 @@ export default function LookFields({ look, seed }: { look: Look; seed: string })
         <Pick name="facialHair" label="鬍子" value={f.facialHair} options={FACE.facialHair} />
         <Pick name="beard" label="鬍子濃淡" value={f.beard} options={FACE.beard} />
         <Pick name="glasses" label="眼鏡" value={f.glasses} options={FACE.glasses} />
+        <Pick name="glassesShape" label="鏡框形狀" value={f.glassesShape} options={FACE.glassesShape} />
         <Pick name="earR" label="右耳耳環" value={ears.right} options={EARRINGS} />
         <Pick name="earL" label="左耳耳環" value={ears.left} options={EARRINGS} />
         <fieldset className="pick tattoos">

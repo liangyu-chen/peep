@@ -261,7 +261,7 @@ export function hairLabel(h: Hair): string {
 }
 // what's worn below the waist: pants or a skirt, and for pants how wide they are
 export const CLOTHES: Record<'bottom' | 'fit' | 'top' | 'sleeve', Option[]> = {
-  bottom: [{ value: 'pants', label: '褲子' }, { value: 'shorts', label: '短褲' }, { value: 'skirt', label: '裙子' }],
+  bottom: [{ value: 'pants', label: '長褲' }, { value: 'shorts', label: '短褲' }, { value: 'skirt', label: '裙子' }],
   fit: [{ value: 'slim', label: '窄管' }, { value: 'regular', label: '一般' }, { value: 'wide', label: '寬褲' }],   // (for shorts: how roomy their legs are)
   top: [{ value: 'slim', label: '合身' }, { value: 'regular', label: '一般' }, { value: 'oversize', label: '寬鬆' }],   // how the top is cut
   sleeve: [{ value: 'short', label: '短袖' }, { value: 'long', label: '長袖' }],
@@ -344,7 +344,7 @@ export const COMPANIONS: Option[] = [{ value: 'none', label: '無' }, { value: '
 export const companionOf = (look: Look) => (COMPANIONS.some(c => c.value === look.companion) ? (look.companion as string) : 'none');
 
 // ---------------------------------------------------------------- faces (捏臉)
-export const FACE: Record<'faceShape' | 'eyes' | 'brows' | 'nose' | 'mouth' | 'facialHair' | 'beard' | 'glasses', Option[]> = {
+export const FACE: Record<'faceShape' | 'eyes' | 'brows' | 'nose' | 'mouth' | 'facialHair' | 'beard' | 'glasses' | 'glassesShape', Option[]> = {
   faceShape: [{ value: 'round', label: '圓臉' }, { value: 'oval', label: '鵝蛋臉' }, { value: 'square', label: '方臉' }, { value: 'long', label: '長臉' }],
   eyes: [{ value: 'round', label: '圓眼' }, { value: 'big', label: '大眼' }, { value: 'dot', label: '豆豆眼' }, { value: 'sleepy', label: '睏睏眼' }, { value: 'smile', label: '笑眼' }, { value: 'narrow', label: '瞇瞇眼' }],
   brows: [{ value: 'thin', label: '細眉' }, { value: 'thick', label: '粗眉' }, { value: 'angry', label: '劍眉' }, { value: 'worried', label: '八字眉' }, { value: 'none', label: '無' }],
@@ -352,9 +352,11 @@ export const FACE: Record<'faceShape' | 'eyes' | 'brows' | 'nose' | 'mouth' | 'f
   mouth: [{ value: 'smile', label: '微笑' }, { value: 'grin', label: '露齒笑' }, { value: 'smirk', label: '壞笑' }, { value: 'flat', label: '面無表情' }, { value: 'open', label: '張嘴' }, { value: 'jianzhi', label: '健誌嘴巴' }],
   facialHair: [{ value: 'none', label: '無' }, { value: 'stubble', label: '鬍渣' }, { value: 'mustache', label: '八字鬍' }, { value: 'goatee', label: '山羊鬍' }, { value: 'both', label: '八字鬍＋山羊鬍' }, { value: 'full', label: '落腮鬍' }],
   beard: [{ value: 'light', label: '淡' }, { value: 'normal', label: '一般' }, { value: 'thick', label: '濃' }],   // how dense the facial hair is
-  glasses: [{ value: 'none', label: '無' }, { value: 'round', label: '圓框' }, { value: 'square', label: '方框' }, { value: 'metal', label: '金屬框（金）' }, { value: 'metalSilver', label: '金屬框（銀）' }, { value: 'sun', label: '墨鏡' }, { value: 'aliang', label: '阿亮眼鏡' }],
+  // the frame, and its shape on its own (阿亮眼鏡 always its own round)
+  glasses: [{ value: 'none', label: '無' }, { value: 'frame', label: '黑框' }, { value: 'metal', label: '金屬框（金）' }, { value: 'metalSilver', label: '金屬框（銀）' }, { value: 'sun', label: '墨鏡' }, { value: 'aliang', label: '阿亮眼鏡' }],
+  glassesShape: [{ value: 'round', label: '圓' }, { value: 'square', label: '方' }],
 };
-export type Face = { faceShape: string; eyes: string; brows: string; nose: string; mouth: string; facialHair: string; beard: string; glasses: string; blush: boolean; eyeColor: number };
+export type Face = { faceShape: string; eyes: string; brows: string; nose: string; mouth: string; facialHair: string; beard: string; glasses: string; glassesShape: string; blush: boolean; eyeColor: number };
 
 // a stable pick per person, so someone whose face was never edited still looks the same every visit
 function seeded<T>(seed: string, salt: number, list: T[]) {
@@ -376,7 +378,9 @@ export function faceOf(look: Look, seed = ''): Face {
     mouth: pickOr('mouth', 5, ['smile', 'smile', 'grin', 'smirk', 'flat']),
     facialHair: valid('facialHair', look.facialHair) ? (look.facialHair as string) : oldHair,
     beard: valid('beard', look.beard) ? (look.beard as string) : 'normal',
-    glasses: valid('glasses', look.glasses) ? (look.glasses as string) : look.glasses === true ? 'square' : 'none',
+    // (older looks stored the shape in the frame: 'round' / 'square' black frames, true for square; sunglasses were square)
+    glasses: valid('glasses', look.glasses) ? (look.glasses as string) : look.glasses === 'round' || look.glasses === 'square' || look.glasses === true ? 'frame' : 'none',
+    glassesShape: valid('glassesShape', look.glassesShape) ? (look.glassesShape as string) : look.glasses === 'round' || look.glasses === 'metal' || look.glasses === 'metalSilver' ? 'round' : 'square',
     blush: !!look.blush,
     eyeColor: typeof look.eyeColor === 'number' ? look.eyeColor : 0x2a1a10,
   };
@@ -402,7 +406,7 @@ export function parseLook(get: (k: string) => string | null, prev?: Look): Look 
     hat: HAT_STYLES.some(h => h.value === hat) ? hat : 'none', hatColor: hex('hatColor', hatNow.color),
     faceShape: opt('faceShape', face.faceShape), eyes: opt('eyes', face.eyes), brows: opt('brows', face.brows),
     nose: opt('nose', face.nose), mouth: opt('mouth', face.mouth), facialHair: opt('facialHair', face.facialHair), beard: opt('beard', face.beard),
-    glasses: opt('glasses', face.glasses), eyeColor: hex('eyeColor', face.eyeColor), blush: get('blush') === 'on',
+    glasses: opt('glasses', face.glasses), glassesShape: opt('glassesShape', face.glassesShape), eyeColor: hex('eyeColor', face.eyeColor), blush: get('blush') === 'on',
     companion: COMPANIONS.some(c => c.value === get('companion')) ? (get('companion') as string) : companionOf(base),
     shoe: hex('shoe', shoeOf(base).color),
     earL: EARRINGS.some(o => o.value === get('earL')) ? (get('earL') as string) : earringsOf(base).left,

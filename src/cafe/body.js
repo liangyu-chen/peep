@@ -507,7 +507,7 @@ function buildShoe(style, knee, mk, { shoe, skin, light, ankle = true }) {   // 
   mk(ankle ? hiTopGeo(SNK) : shoeGeo(false), shoe, 0, Y, 0, knee);
   mk(shoeGeo(true), soleM, 0, Y, 0, knee, false);
   // laced criss-cross up the tongue: two laces crossing at each step, tipped back with the slope there
-  if (ankle) [0.028, 0.045, 0.062].forEach(h => {
+  if (ankle) [0.045, 0.062].forEach(h => {
     const z = hiFront(h, SNK), tilt = Math.atan2(hiFront(h + 0.008, SNK) - hiFront(h - 0.008, SNK), 0.016);
     [-1, 1].forEach(k => { const l = mk(bx(0.042, 0.005, 0.005), laceM, 0, Y + h, z + 0.004, knee, false); l.rotation.set(tilt, 0, k * 0.42); });
   });
@@ -945,30 +945,30 @@ function buildBodyAt(look, seed) {
     const AR = 0.0345, AT = 0.0085;   // 阿亮眼鏡: the round frames, a touch narrower, in thick acetate
     const gy = EY + 0.002, gz = Math.max(surf(EX, EY), surf(0, NY) - 0.01) + 0.03;
     const earX = at(1, 0.02, 0).x - 0.004;
+    // the frame: black, thin gold or silver wire (金屬框), or sunglasses; round or square, its own choice; 阿亮眼鏡 its own
+    const wire = WIRE[f.glasses], rimM = wire || frameM, sun = f.glasses === 'sun', square = f.glassesShape === 'square';
     [-1, 1].forEach(s => {
       const cx = s * EX;
-      if (WIRE[f.glasses]) {   // 金屬框: thin round wire rims, a pair of nose pads
-        const ring = new THREE.Mesh(geo('wireRim', () => new THREE.TorusGeometry(0.038, 0.0022, 6, 28)), WIRE[f.glasses]); ring.position.set(cx, gy, gz); face.add(ring);
-        fm(disc(0.036), lensM, cx, gy, gz).rotation.x = Math.PI / 2;
-        fm(sp(0.004, 6, 4), WIRE[f.glasses], s * (EX - 0.03), gy - 0.012, gz - 0.006);
-      } else if (f.glasses === 'round') {
-        const ring = new THREE.Mesh(geo('torus', () => new THREE.TorusGeometry(0.037, 0.006, 8, 20)), frameM); ring.position.set(cx, gy, gz); face.add(ring);
-        fm(disc(0.034), lensM, cx, gy, gz).rotation.x = Math.PI / 2;
-      } else if (f.glasses === 'aliang') {
+      if (f.glasses === 'aliang') {
         // the round frames, in thick glossy black, the rims cut in a few flat facets rather than perfectly round, with a
         // little wing sticking out at each outer top corner where the arm hinges on
         const ring = new THREE.Mesh(geo(`aliangRim:${AR},${AT}`, () => new THREE.TorusGeometry(AR, AT, 8, 16)), glossM); ring.position.set(cx, gy, gz); ring.scale.z = 0.8; face.add(ring);
         fm(disc(AR - AT * 0.6), lensM, cx, gy, gz).rotation.x = Math.PI / 2;
         fm(bx(0.018, 0.011, 0.012), glossM, s * (EX + AR + AT + 0.004), gy + 0.012, gz);
+      } else if (square) {
+        const w = 0.078, h = sun ? 0.05 : 0.054, t = wire ? 0.0035 : 0.008;
+        fm(bx(w, t, t), rimM, cx, gy + h / 2, gz); fm(bx(w, t, t), rimM, cx, gy - h / 2, gz);
+        fm(bx(t, h, t), rimM, cx - w / 2, gy, gz); fm(bx(t, h, t), rimM, cx + w / 2, gy, gz);
+        fm(bx(w, h, 0.003), sun ? sunLensM : lensM, cx, gy, gz);
       } else {
-        const w = 0.078, h = f.glasses === 'sun' ? 0.05 : 0.054, t = 0.008;
-        fm(bx(w, t, t), frameM, cx, gy + h / 2, gz); fm(bx(w, t, t), frameM, cx, gy - h / 2, gz);
-        fm(bx(t, h, t), frameM, cx - w / 2, gy, gz); fm(bx(t, h, t), frameM, cx + w / 2, gy, gz);
-        fm(bx(w, h, 0.003), f.glasses === 'sun' ? sunLensM : lensM, cx, gy, gz);
+        const R = wire ? 0.038 : 0.037, T = wire ? 0.0022 : 0.006;
+        const ring = new THREE.Mesh(geo(`rim:${R},${T}`, () => new THREE.TorusGeometry(R, T, wire ? 6 : 8, wire ? 28 : 20)), rimM); ring.position.set(cx, gy, gz); face.add(ring);
+        fm(disc(R - T * 0.4), sun ? sunLensM : lensM, cx, gy, gz).rotation.x = Math.PI / 2;
       }
-      const outer = EX + ({ round: 0.037, metal: 0.038, metalSilver: 0.038, aliang: AR + AT + 0.012 }[f.glasses] || 0.039);
+      if (wire) fm(sp(0.004, 6, 4), wire, s * (EX - 0.03), gy - 0.012, gz - 0.006);   // nose pads
+      const outer = EX + (f.glasses === 'aliang' ? AR + AT + 0.012 : square ? 0.039 : wire ? 0.038 : 0.037);
       // the arms: out to the side of the head and back to the ear (阿亮眼鏡's as thick as its rims, in their black, from the wings)
-      const [armM, aw, ay] = f.glasses === 'aliang' ? [glossM, AT * 1.6, gy + 0.012] : WIRE[f.glasses] ? [WIRE[f.glasses], 0.0035, gy + 0.004] : [frameM, 0.007, gy + 0.004];
+      const [armM, aw, ay] = f.glasses === 'aliang' ? [glossM, AT * 1.6, gy + 0.012] : wire ? [wire, 0.0035, gy + 0.004] : [frameM, 0.007, gy + 0.004];
       fm(bx(earX - outer + 0.006, aw, aw), armM, s * (outer + earX) / 2, ay, gz);
       fm(bx(aw * 0.85, aw * 0.85, gz), armM, s * earX, ay, gz / 2);
     });
@@ -981,8 +981,8 @@ function buildBodyAt(look, seed) {
       line([rim(-EX, 205, 1), rim(-EX, 200, 0), rim(-EX, 196, -1)]);
       line([rim(-EX, 40, -1), rim(-EX, 32, 0), new THREE.Vector3(-0.012, gy + 0.019, zF), new THREE.Vector3(0.012, gy + 0.021, zF), rim(EX, 148, 0), rim(EX, 128, 0.6), rim(EX, 112, 1)]);
       line([rim(EX, 32, 1), rim(EX, 18, 0.1), rim(EX, -10, 0), rim(EX, -32, -0.6), rim(EX, -40, -1)]);
-    } else if (WIRE[f.glasses]) {   // a thin arched bridge
-      const br = new THREE.Mesh(geo(`wireBridge:${EX.toFixed(4)}`, () => new THREE.TorusGeometry(EX - 0.038, 0.0019, 5, 12, Math.PI)), WIRE[f.glasses]); br.position.set(0, gy + 0.004, gz); face.add(br);
+    } else if (wire) {   // a thin arched bridge
+      const br = new THREE.Mesh(geo(`wireBridge:${EX.toFixed(4)}`, () => new THREE.TorusGeometry(EX - 0.038, 0.0019, 5, 12, Math.PI)), wire); br.position.set(0, gy + 0.004, gz); face.add(br);
     } else fm(bx(0.03, 0.007, 0.007), frameM, 0, gy + 0.012, gz);                                   // bridge
   }
 
