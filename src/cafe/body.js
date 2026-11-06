@@ -930,7 +930,7 @@ function buildBodyAt(look, seed) {
     for (const sgn of [-1, 1]) {
       const R = 8, C = 6, fp = [], fi = [];
       for (let r = 0; r <= R; r++) {
-        const y = UNECK.bot - 0.012 + (UNECK.neck + 0.004 - UNECK.bot + 0.012) * r / R;
+        const y = UNECK.bot - 0.012 + (UNECK.neck - 0.006 - UNECK.bot + 0.012) * r / R;   // (up to just under the collar)
         const v = 0.004 + 0.03 * Math.max(0, (y - UNECK.bot + 0.008) / (UNECK.neck - UNECK.bot + 0.008)), u = uHalf(Math.min(y, UNECK.neck)) + 0.008;
         for (let c = 0; c <= C; c++) { const x = sgn * (v + (Math.max(u, v + 0.01) - v) * c / C); fp.push(x, y, surfZ(x, y) + 0.0025); }
       }
@@ -942,7 +942,8 @@ function buildBodyAt(look, seed) {
     for (let i = 0; i <= N; i++) {
       const phi = gap + (Math.PI * 2 - 2 * gap) * i / N, sx = Math.sin(phi), sz = Math.cos(phi);
       const front = Math.max(0, sz) ** 3;   // how much this side faces forward: the points grow there
-      const yb = UNECK.neck + 0.002, [rx, rz] = slice(yb);
+      // set a little down the neckline, so the neck shows above it (but as wide as the neckline itself, not the shoulders)
+      const yb = UNECK.neck - 0.01, [rx, rz] = slice(UNECK.neck);
       const at = (k, dy, ox = 0) => new THREE.Vector3(sx * rx * 1.015 * k + Math.sign(sx) * ox, yb + dy, sz * rz * 1.015 * k);
       // a low stand up from the neckline, a rounded fold over its top, and the fall turned down outside it (hiding the
       // stand, as a real collar's does), its edge a little below the neckline; at the front the fall runs on down and
@@ -952,7 +953,7 @@ function buildBodyAt(look, seed) {
       // ... and the points in front pressed flat onto the chest
       const lay = v => { const sy = surfY(v.x, v.z); v.y = Math.min(Math.max(v.y, sy + 0.007), v.y + 0.025 * (1 - front)); if (front > 0) v.z += (surfZ(v.x, v.y) + 0.006 - v.z) * Math.min(1, front * 1.5); return v; };
       cross.push([
-        at(1, -0.006), at(1.0, 0.024), at(1.04, 0.036), lay(at(1.1, 0.026)),
+        at(1, -0.006), at(1.0, 0.014), at(1.04, 0.024), lay(at(1.1, 0.016)),
         lay(at(1.17 + 0.05 * front, 0.0 - 0.04 * front, 0.008 * front)),
         lay(at(1.25 + 0.1 * front, -0.025 - 0.065 * front, 0.036 * front)),
       ]);
