@@ -255,7 +255,13 @@ export function followDog(dog, person, dt) {
   }
   const g = dog.g, was = g.position.clone();
   if (!dog.placed) { g.position.copy(_to); g.rotation.y = person.heading; dog.placed = true; }
-  else g.position.lerp(_to, 1 - Math.exp(-dt * 4));
+  else {
+    // trots there: easing in when close, but never faster than a little dog runs (so coming away from the TV or the door
+    // to catch them up, he runs over rather than jumping)
+    const dx = _to.x - g.position.x, dz = _to.z - g.position.z, dist = Math.hypot(dx, dz);
+    const step = Math.min(dist, Math.min(1.8, dist * 4) * dt);
+    if (dist > 1e-4) { g.position.x += dx / dist * step; g.position.z += dz / dist * step; }
+  }
   g.position.y = floorAt(g.position.x, g.position.z);
   const v = g.position.clone().sub(was); v.y = 0;
   const moving = v.length() > dt * 0.12;
