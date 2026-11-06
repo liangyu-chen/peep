@@ -35,13 +35,14 @@ function ledgeAndTv() {
   const L0 = -1.46, L1 = 3.02;
   box(L1 - L0, 0.05, 0.34, woodM, (L0 + L1) / 2, 1.0, -5.3);
   [L0 + 0.25, (L0 + L1) / 2, L1 - 0.25].forEach(x => box(0.04, 0.2, 0.25, blackM, x, 0.88, -5.36));
-  // the manga, spines out, packed close: each about 4 cm thick (as seen, after the squeeze; 0.06 in plan), a little
-  // thicker or thinner volume to volume, standing on the ledge
+  // the manga, spines out, packed close, sized like a tankōbon: about 18 cm tall, a deep 16 cm front to back (the cover's
+  // width), and only 2 cm or so thick (0.03 in plan, as the set is squeezed left to right), thicker or thinner volume to
+  // volume, backs against the wall
   let bx = L0 + 0.05;
   while (bx < L1 - 0.1) {
-    const w = rand(0.05, 0.068), h = rand(0.17, 0.2);
-    box(w, h, 0.13, mat(pick([0xd8d0c0, 0xf2f2f2, 0xc94a3a, 0x3a5fa8, 0xe6c34a, 0x2a2a2a])), bx + w / 2, 1.025 + h / 2, -5.42);
-    bx += w + 0.006;
+    const w = rand(0.026, 0.036), h = rand(0.175, 0.19);
+    box(w, h, 0.16, mat(pick([0xd8d0c0, 0xf2f2f2, 0xc94a3a, 0x3a5fa8, 0xe6c34a, 0x2a2a2a])), bx + w / 2, 1.025 + h / 2, -5.39);
+    bx += w + 0.003;
   }
   [0.4, 1.6].forEach(x => highStool(x, -4.95));
   // the TV stands on a rolling TV cart near the purple wall, with a PS5 on the shelf underneath
