@@ -130,8 +130,9 @@ async function ownerLoop(owner) {
     // he takes the cup as he steps back into his lane, and serves from there, reaching it up and over onto the bar,
     // so it is never carried low into the bar's side
     await walk(owner, [[LANE, MACHINE[1]]]);
-    // ordered as the shop's closing: they'll be off with it, so it goes in a takeaway cup
-    const cup = S.closing ? makeTakeaway() : makeCup(drink, variant); owner.hold(cup);
+    // ordered as the shop's closing, or with nowhere left to sit: they'll be off with it, so it goes in a takeaway cup
+    const togo = S.closing || !S.seats.tableSeats.some(t => !t.occ);
+    const cup = togo ? makeTakeaway() : makeCup(drink, variant); owner.hold(cup);
     await ownerTo(owner, LANE, c.spot.z);
     owner.face(-Math.PI / 2); await sleep(0.3);
     if (c.gone) { owner.dropCup(); continue; }
@@ -181,8 +182,8 @@ const OUT = [[-1.75, WALK_Z]].concat(DOOR.slice(1));   // out of the door to the
 async function leave(c, zone) {
   const p = c.p;
   c.status = '準備離開';
-  // still holding their drink: it goes with them, in a takeaway cup
-  if (c.cup && !c.cup.userData.togo) { c.dropCup(); c.hold(makeTakeaway()); }
+  // still holding a glass or a tea cup (watching the TV, say): the last of it, then it's left behind, not taken out
+  if (c.cup && !c.cup.userData.togo) { c.gesture('sip', 1.4); await sleep(1.4); c.dropCup(); }
   await walk(c, route(zone, OUT));
   c.outside = true;
   sayLine(c, p.regular ? 'customer.leaveRegular' : 'customer.leaveNew');
@@ -312,8 +313,12 @@ async function doTable(c, zone, s) {
     if (Math.random() < (vsCpu() ? 0.12 : c.p.regular && !S.tv.match ? 0.05 : 0) && canJoinTv(c)) { sayLine(c, 'customer.wantsTv'); c.invited = true; break; }
     if (c.invited && canJoinTv(c)) break;
   }
-  c.pickCup(); c.putOut(); c.pose = 'stand'; s.occ = null; c.seat = null;   // stubbed out in the ashtray before getting up
+  c.putOut(); c.pose = 'stand'; s.occ = null; c.seat = null;   // stubbed out in the ashtray before getting up
   if (c.invited || c.tops || c.smokeNow) c.nextGoal = true;
+  // off somewhere else in the shop: the drink goes with them. Leaving: they've finished it, and the empty is left on the
+  // table, cleared away a little later
+  if (c.nextGoal || (c.cup && c.cup.userData.togo)) c.pickCup();
+  else if (c.cup) { const empty = c.cup; c.cup = null; S.timers.push({ t: rand(25, 45), r: () => empty.parent?.remove(empty) }); }
   return s.path;
 }
 
