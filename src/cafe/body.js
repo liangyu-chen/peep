@@ -93,7 +93,7 @@ const strands = () => strandTex || (strandTex = (() => {
   t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(5, 1); return t;
 })());
 
-// tattoos: blue-black line work multiplied over the skin, wrapped round an arm (the texture's width is once round it, its
+// tattoos: soft grey-blue line work multiplied over the skin, wrapped round an arm (the texture's width is once round it, its
 // height the length of the forearm or upper arm). Traditional-ish and busy, like a full sleeve: waves and swirls, a
 // few flowers and leaves, a band of stipple shading between them, all running together, with a clear strip at the
 // bottom (toward the wrist) where it stops. Two variants, so the two arms aren't alike; it tiles round the arm.
@@ -104,7 +104,7 @@ const tattooTex = v => TAT[v] || (TAT[v] = (() => {
   const t = canvasTex(256, 256, (g, W, H) => {
     g.fillStyle = '#fff'; g.fillRect(0, 0, W, H);
     const top = 0, bot = H * 0.86;   // the bottom 14% (the wrist end) left bare
-    const ink = '#2c3340', soft = 'rgba(44,51,64,0.42)';
+    const ink = '#6a7484', soft = 'rgba(106,116,132,0.3)';   // faded grey-blue, healed ink rather than fresh black
     const wrap = draw => [-W, 0, W].forEach(dx => { g.save(); g.translate(dx, 0); draw(); g.restore(); });   // so it tiles round the arm
     g.save(); g.beginPath(); g.rect(0, top, W, bot - top); g.clip();
     // soft shading: stipple drifting in bands
