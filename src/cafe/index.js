@@ -15,7 +15,8 @@ import { renderResults } from './feed.js';
 import { createStadium, updateTops } from './tops.js';
 import { SMOKE_POSE, DRINK_POSE } from './people.js';
 import { buildBody } from './body.js';
-import { makeDog, animateDog } from './dog.js';
+import { makeDog, animateDog, followDog } from './dog.js';
+import * as THREE from 'three';
 import { updateSurroundings } from './world/surroundings.js';
 import { mergeStatic } from './optimize.js';
 import { setQuality, DEFAULT_QUALITY, highQuality, qualityPR, frameMs } from './quality.js';
@@ -147,7 +148,7 @@ async function build(root, content) {
   raf = requestAnimationFrame(frame);
   // development only: step the simulation from the console without rendering, e.g. await __cafe.step(60)
   if (process.env.NODE_ENV !== 'production') window.__cafe = {
-    S, ctx, SMOKE_POSE, DRINK_POSE, buildBody, makeDog, animateDog, step: async (secs, dt = 0.05) => {
+    S, ctx, SMOKE_POSE, DRINK_POSE, buildBody, makeDog, animateDog, followDog, THREE, step: async (secs, dt = 0.05) => {
       for (let t = 0; t < secs && !S.stopped; t += dt) { simulate(dt, dt); for (let k = 0; k < 12; k++) await null; }
       drawTV(); updateHUD();
     },
