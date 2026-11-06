@@ -1009,21 +1009,16 @@ function buildBodyAt(look, seed) {
     const shirtTop = rows.findIndex(r => r[0] >= UNECK.neck - 1e-4);
     const surfY = (x, z) => { for (let i = shirtTop; i > 0; i--) { const [y, rx, rz] = rows[i]; if ((x / rx) ** 2 + (z / rz) ** 2 <= 1) { if (i === shirtTop) return y; const [y1, rx1, rz1] = rows[i + 1], e = (x / rx) ** 2 + (z / rz) ** 2, e1 = (x / rx1) ** 2 + (z / rz1) ** 2; return y + (y1 - y) * Math.min(1, (1 - e) / Math.max(1e-4, e1 - e)); } } return -1; };
     // the top's U neckline is wide for a shirt: its two fronts fill it, leaving only a V open down to the top button
-    const vEdges = [];   // (each front's edge down the V, drawn in once the seams are)
     // how far the neckline dips below the neck at x across the front: most under the throat, none by the sides
     const neckDip = x => 0.028 * Math.max(0, 1 - (x / 0.078) ** 2);
     for (const sgn of [-1, 1]) {
-      const R = 14, C = 6, fp = [], fi = [], edge = [];
+      const R = 14, C = 6, fp = [], fi = [];
       for (let r = 0; r <= R; r++) {
         const y = UNECK.bot - 0.012 + (UNECK.neck - UNECK.bot + 0.012) * r / R;   // (up to the collar)
         const v = 0.004 + 0.044 * Math.max(0, (y - UNECK.bot + 0.008) / (UNECK.neck - UNECK.bot + 0.008)) ** 0.9, u = uHalf(Math.min(y, UNECK.neck)) + 0.008;
         // (each point no higher than the neckline's curve over it: above that is the throat)
         for (let c = 0; c <= C; c++) { const x = sgn * (v + (Math.max(u, v + 0.01) - v) * c / C), yy = Math.min(y, UNECK.neck - neckDip(x)); fp.push(x, yy, surfZ(x, yy) + 0.0025); }
-        // (the edge line stops a little short of the collar, so its end never pokes through the collar as a dark dot)
-        // (and starts just above the placket, rather than ending in two little ticks over its top)
-        if (y > UNECK.bot - 0.002 && y < UNECK.neck - neckDip(v) - 0.012) edge.push(new THREE.Vector3(sgn * v, y, surfZ(sgn * v, y) + 0.003));
       }
-      vEdges.push(edge);
       for (let r = 0; r < R; r++) for (let c = 0; c < C; c++) { const a = r * (C + 1) + c, b = a + C + 1; fi.push(a, a + 1, b, a + 1, b + 1, b); }
       const fg = new THREE.BufferGeometry(); fg.setAttribute('position', new THREE.Float32BufferAttribute(fp, 3)); fg.setIndex(fi); fg.computeVertexNormals();
       mk(fg, colM, 0, 0, 0, g, false);
@@ -1091,9 +1086,18 @@ function buildBodyAt(look, seed) {
     // reads against the shirt beneath it
     const seam = (key, ptsList, r = 0.0022) => mk(geo(key, () => new THREE.TubeGeometry(new THREE.CatmullRomCurve3(ptsList), ptsList.length * 3, r, 5, false)), shirtDark, 0, 0, 0, g, false);
     const tag = `${topFit}:${TF.drop}`;
-    seam(`colEdge:${tag}`, cross.map(c => c[M - 1]));
-    seam(`colFrontL:${tag}`, cross[0].slice(1)); seam(`colFrontR:${tag}`, cross[N].slice(1));
-    vEdges.forEach((e, n) => { if (e.length >= 2) seam(`shirtV${n}:${tag}`, e); });   // (the fronts' edges, down either side of the open neck)
+    // (one unbroken line: up one front from the roll to its point, round the whole outer edge, and back up the other
+    // front, so the points' corners join and it's the same weight all the way; centripetal, so it doesn't loop at them)
+    const edgePath = [...cross[0].slice(3), ...cross.slice(1, N).map(c => c[M - 1]), ...cross[N].slice(3).reverse()];
+    mk(geo(`colEdge2:${tag}`, () => new THREE.TubeGeometry(new THREE.CatmullRomCurve3(edgePath, false, 'centripetal'), edgePath.length * 4, 0.0018, 5, false)), shirtDark, 0, 0, 0, g, false);
+    // and each front end of the collar closed, as it's sewn: otherwise one looks into the fold, through to the neck
+    const capM = patterned(shirt.clone(), pattern, C.shirt); capM.side = THREE.DoubleSide;
+    for (const e of [cross[0], cross[N]]) {
+      const cp = [], ci = []; e.forEach(v => cp.push(v.x, v.y, v.z));
+      for (let j = 1; j < 4; j++) ci.push(0, j, j + 1);   // (just the hollow under the roll: the point below it hangs free)
+      const capG = new THREE.BufferGeometry(); capG.setAttribute('position', new THREE.Float32BufferAttribute(cp, 3)); capG.setIndex(ci); capG.computeVertexNormals();
+      mk(capG, capM, 0, 0, 0, g, false);
+    }
     const hemTop = 0.71 - TF.drop + 0.02, buttonM = mat(0xf4f1ea, { roughness: 0.4 });
     // the placket: the shirt's own cloth (a touch deeper, being doubled), in short lengths following the curve of the
     // front, a line of stitching down each edge, as a real one is, rather than a dark band
