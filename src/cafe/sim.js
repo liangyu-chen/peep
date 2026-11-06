@@ -249,6 +249,7 @@ const OUT = [[-1.75, WALK_Z]].concat(DOOR.slice(1));   // out of the door to the
 async function leave(c, zone) {
   const p = c.p;
   c.status = '準備離開';
+  if (c.bear && c.bear.line === '汪！') c.say('夜叉丸，走囉！');   // calling the dog, who comes trotting after them
   // still holding a glass or a tea cup (watching the TV, say): the last of it, then it's left behind, not taken out
   if (c.cup && !c.cup.userData.togo) { c.gesture('sip', 1.4); await sleep(1.4); setLevel(c.cup, 0); c.dropCup(); }
   await walk(c, route(zone, OUT));

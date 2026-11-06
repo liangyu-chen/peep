@@ -19,7 +19,7 @@ export type Look = {
   earL?: string; earR?: string;
   tattoos?: Record<string, string>; tattooText?: string;                       // a style per part (older looks: tattoo + tattooCover)
   companion?: string;
-  topFit?: string; longSleeve?: boolean; number?: string;
+  topStyle?: string; topFit?: string; longSleeve?: boolean; number?: string;   // T恤 or 襯衫, its cut, its sleeves
   bottom?: string; pantsFit?: string;                                          // pants, shorts or a skirt (in the pants colour), and how wide
   shoeStyle?: string; shoe?: number; socks?: string; sock?: number;
   [k: string]: unknown;
@@ -129,8 +129,9 @@ export function hairLabel(h: Hair): string {
 // a hat is its own choice, put on over the hair
 export const HAT_STYLES: Option[] = [
   { value: 'none', label: '不戴' }, { value: 'cap', label: '棒球帽' }, { value: 'bucket', label: '漁夫帽' }, { value: 'beanie', label: '毛帽' },
+  { value: 'fedora', label: '紳士帽' }, { value: 'beret', label: '貝雷帽' },
 ];
-const HAT_COLOR: Record<string, number> = { cap: 0xf08a24, bucket: 0x2f2f2f, beanie: 0xd08a1e };
+const HAT_COLOR: Record<string, number> = { cap: 0xf08a24, bucket: 0x2f2f2f, beanie: 0xd08a1e, fedora: 0x3a332c, beret: 0x8b1e2d };
 // the hat of a look, reading the older ways hats were stored: as a hairstyle (with its colour in `cap`, short hair
 // under it) or as a beanie colour
 export function hatOf(look: Look): { hat: string; color: number } {
@@ -189,14 +190,16 @@ export const companionOf = (look: Look) => pickIn(COMPANIONS, look.companion, 'n
 
 // the top's cut and sleeves; below the waist, pants, shorts or a skirt, and how wide (pants' and shorts' legs, a
 // skirt's flare)
-export const CLOTHES: Record<'bottom' | 'fit' | 'top' | 'sleeve', Option[]> = {
+export const CLOTHES: Record<'style' | 'bottom' | 'fit' | 'top' | 'sleeve', Option[]> = {
+  style: [{ value: 'tee', label: 'T恤' }, { value: 'shirt', label: '襯衫' }],   // what the top is
   bottom: [{ value: 'pants', label: '長褲' }, { value: 'shorts', label: '短褲' }, { value: 'skirt', label: '裙子' }],
   fit: [{ value: 'slim', label: '窄' }, { value: 'regular', label: '一般' }, { value: 'wide', label: '寬' }],
   top: [{ value: 'slim', label: '合身' }, { value: 'regular', label: '一般' }, { value: 'oversize', label: '寬鬆' }],
   sleeve: [{ value: 'short', label: '短袖' }, { value: 'long', label: '長袖' }],
 };
-export function clothesOf(look: Look): { bottom: string; fit: string; top: string; sleeve: string } {
+export function clothesOf(look: Look): { style: string; bottom: string; fit: string; top: string; sleeve: string } {
   return {
+    style: pickIn(CLOTHES.style, look.topStyle, 'tee'),
     bottom: pickIn(CLOTHES.bottom, look.bottom, 'pants'), fit: pickIn(CLOTHES.fit, look.pantsFit, 'regular'),
     top: pickIn(CLOTHES.top, look.topFit, 'regular'), sleeve: look.longSleeve ? 'long' : 'short',
   };
@@ -271,7 +274,7 @@ export function parseLook(get: (k: string) => string | null, prev?: Look): Look 
     tattoos: Object.fromEntries(TATTOO_PARTS.map(p => [p.value, get('tat_' + p.value) ?? inked[p.value]] as const).filter((e): e is [string, string] => tatStyle(e[1]))),
     companion: one('companion', COMPANIONS, companionOf(base)),
     // 穿著
-    shirt: hex('shirt', base.shirt), topFit: one('topFit', CLOTHES.top, clothes.top), longSleeve: one('sleeve', CLOTHES.sleeve, clothes.sleeve) === 'long',
+    shirt: hex('shirt', base.shirt), topStyle: one('topStyle', CLOTHES.style, clothes.style), topFit: one('topFit', CLOTHES.top, clothes.top), longSleeve: one('sleeve', CLOTHES.sleeve, clothes.sleeve) === 'long',
     pants: hex('pants', base.pants), bottom: one('bottom', CLOTHES.bottom, clothes.bottom), pantsFit: one('pantsFit', CLOTHES.fit, clothes.fit),
     shoeStyle: one('shoeStyle', SHOE_STYLES, shoe.style), shoe: hex('shoe', shoe.color),
     socks: one('socks', SOCKS, socks.style), sock: hex('sock', socks.color),

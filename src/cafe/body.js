@@ -752,7 +752,9 @@ function buildBodyAt(look, seed) {
   const legM = bareLegs ? skin : pants;                   // bare legs under a skirt or shorts
   // wide legs: baggy all the way, flaring out to the hem (bare legs are just legs: the fit is the shorts' width)
   const W = bareLegs ? 1 : { slim: 0.85, regular: 1, wide: 1.45 }[fit] || 1, flare = fit === 'wide' && !shorts ? 0.125 : 0.062 * W;
-  const SW = { slim: 1.14, regular: 1.26, wide: 1.42 }[fit] || 1.26;   // how far the shorts stand off the thigh (cut roomy)
+  // shorts are the pants' own thighs (one surface with the seat, so no seam round the hips), roomy, in the pants colour,
+  // ending at the knee in a turned-up hem, the knee and shin bare below
+  const SW = { slim: 1.0, regular: 1.12, wide: 1.3 }[fit] || 1.12, TW = shorts ? SW : W;
   const bare = [];   // what shows skin when the pants come down (thighs, knees, hips)
   const bunch = [];  // the pants bunched round the shins, only seen then
   const cover = [];  // shorts' legs, gone when they come down
@@ -762,22 +764,22 @@ function buildBodyAt(look, seed) {
     const hip = new THREE.Group(); hip.position.set(x, HIP_Y, 0); g.add(hip);
     // thigh and shin are open tubes meeting exactly at the knee at the same width, so a straight leg has no seam; a
     // slightly smaller ball fills the joint only when the knee bends
-    const RK = 0.074 * W;
+    const RK = 0.074 * W, TK = 0.074 * TW;   // (the thigh's width at the knee: the shorts' there)
     // the thigh: rounded over its top, which sits up inside the hips, fullest just below them, tapering to the knee, so
     // the hips flow on down into the leg instead of a tube coming out from under them (profile from the knee up, faces out)
-    const thigh = mk(lathe(`thigh2:${W}`, [[RK, -THIGH], [0.078 * W, -0.24], [0.086 * W, -0.12], [0.09 * W, -0.04], [0.088 * W, -0.005], [0.074 * W, 0.022], [0.044 * W, 0.042], [0.001, 0.05]], 20), legM, 0, 0, 0, hip);
-    if (!bareLegs) bare.push(thigh);
-    if (shorts) {   // the shorts' leg: a loose open tube well clear of the thigh, widening a touch to its hem just above the knee, the hem turned up
-      const r0 = 0.09 * SW, r1 = 0.094 * SW, L = 0.27;
-      const leg = mk(cy(r0, r1, L, 18, true), pants, 0, 0.02 - L / 2, 0, hip); cover.push(leg);
-      const hem = mk(cy(r1 + 0.004, r1 + 0.004, 0.022, 18, true), pantsDark, 0, 0.02 - L + 0.01, 0, hip, false); cover.push(hem);
-      cover.push(mk(cy(r1 - 0.002, r1 - 0.002, 0.03, 18, true), mat(shade(C.pants, 0.4), { roughness: 1, side: THREE.BackSide }), 0, 0.02 - L + 0.015, 0, hip, false));   // its shadowed inside
+    const thigh = mk(lathe(`thigh2:${TW}`, [[TK, -THIGH], [0.078 * TW, -0.24], [0.086 * TW, -0.12], [0.09 * TW, -0.04], [0.088 * TW, -0.005], [0.074 * TW, 0.022], [0.044 * TW, 0.042], [0.001, 0.05]], 20), shorts ? pants : legM, 0, 0, 0, hip);
+    if (!skirted) bare.push(thigh);
+    if (shorts) {   // the shorts' hem, turned up, and their shadowed inside showing round the knee
+      cover.push(mk(cy(TK + 0.004, TK + 0.005, 0.022, 18, true), pantsDark, 0, -THIGH + 0.012, 0, hip, false));
+      cover.push(mk(cy(TK - 0.002, TK - 0.002, 0.03, 18, true), mat(shade(C.pants, 0.4), { roughness: 1, side: THREE.BackSide }), 0, -THIGH + 0.016, 0, hip, false));
     }
     const knee = new THREE.Group(); knee.position.set(0, -THIGH, 0); hip.add(knee);
     const kn = mk(sp(RK * 0.96, 16, 12), legM, 0, 0, 0, knee); if (!bareLegs) bare.push(kn);
     const b = mk(cy(0.088 * W, 0.082 * W, 0.09, 14), skirted ? mat(0xf2efe9, { roughness: 0.9 }) : pants, 0, -0.03, 0, knee, false); b.visible = false; bunch.push(b);
     // shin, down into the shoe (a bare one perhaps tattooed; the leg at -x is the person's right)
-    mk(cy(RK, bareLegs ? 0.052 : flare, 0.25, 16, true), bareLegs ? inkedSkin(tat[x < 0 ? 'rl' : 'll'], x < 0 ? 0 : 1) : legM, 0, -0.125, 0, knee);
+    // (bare, a real calf: knee-wide at the top, rounding over the calf and in to the ankle, no kink where it meets the knee)
+    if (bareLegs) mk(lathe(`calf:${RK}`, [[0.052, -0.125], [0.0595, -0.06], [0.065, 0], [0.071, 0.07], [RK, 0.125]], 16), inkedSkin(tat[x < 0 ? 'rl' : 'll'], x < 0 ? 0 : 1), 0, -0.125, 0, knee);
+    else mk(cy(RK, flare, 0.25, 16, true), legM, 0, -0.125, 0, knee);
     if (!bareLegs) mk(cy(flare + 0.006, flare + 0.006, 0.025, 14), pantsDark, 0, -0.225, 0, knee, false);   // turned-up hem
     // socks: only where they'd show, on a bare shin (a short one round the ankle, a long one up to under the knee, a
     // ribbed band at the top), and over the foot in slides
@@ -793,7 +795,7 @@ function buildBodyAt(look, seed) {
   });
   // hips: one piece from the waist splitting into the two legs, no join between them (separate hips and thighs leave a
   // line round the tops of the legs, like briefs)
-  const seat = mk(pantsTopGeo(W, fit === 'wide' || shorts ? 1.12 : 1), pants, 0, 0, 0);   // (baggy pants and shorts are roomy through the seat too)
+  const seat = mk(pantsTopGeo(TW, fit === 'wide' && !shorts ? 1.12 : 1), pants, 0, 0, 0);   // (baggy pants and shorts are roomy through the seat too)
   bare.push(seat);
   // a skirt: knee length, A-line, hanging from the waist; a pivot at the waist so it can drape over the lap when sitting.
   // Its waistband sits tucked up inside the shirt (narrower than the shirt all round, front and back too) and it only
@@ -807,8 +809,10 @@ function buildBodyAt(look, seed) {
     mk(lathe(`skirt3:${F}`, [[0.185, -0.05], [0.19, -0.08], [0.215, -0.11], [0.24, -0.16], [0.266, -0.24], [0.288, -0.32], [0.284, -0.33]].map(flareTo), 28), sm, 0, 0, 0, skirt).scale.z = 0.78;
   }
   // the belt at the waist, just under the shirt's hem, its buckle on its front
-  const belt = mk(cy(0.196, 0.196, 0.026, 22), beltM, 0, 0.708, 0, g, false); belt.scale.z = 0.59;
-  mk(bx(0.045, 0.024, 0.012), buckleM, 0, 0.707, 0.196 * 0.59 + 0.004, g, false);
+  // (round shorts' roomier seat, the belt's let out to match, so it sits on it rather than poking through)
+  const BELT = fit === 'wide' && !shorts ? 1.12 : shorts ? Math.max(1, TW * 0.97) : 1;
+  const belt = mk(cy(0.196, 0.196, 0.026, 22), beltM, 0, 0.708, 0, g, false); belt.scale.set(BELT, 1, 0.59 * BELT);
+  const buckle = mk(bx(0.045, 0.024, 0.012), buckleM, 0, 0.707, 0.196 * 0.59 * BELT + 0.004, g, false);
 
   // ---------------------------------------------------------------- torso: waist, chest and sloping shoulders
   // waist, chest and shoulders close to the same width, so it isn't an inverted triangle; it starts higher, over the longer legs
@@ -831,6 +835,29 @@ function buildBodyAt(look, seed) {
   const under = mk(geo(`hemunder:${hemR.toFixed(3)}`, () => new THREE.RingGeometry(0.16, hemR, 40)), shirtUnder, 0, hemY + 0.006, 0, g, false);
   under.rotation.x = Math.PI / 2; under.scale.y = hemZ;
   mk(neckRibGeo(topFit), shirtDark, 0, 0, 0, g, false);   // a U neck, edged with a rolled rib
+  if (clothesOf(look).style === 'shirt') {
+    // 襯衫: a button-up shirt: a collar folding down either side of the neck to two points on the chest, a placket down
+    // the middle and its buttons, all laid on the shirt's own front (its surface found from the cut's slices)
+    const rows = torsoRows(topFit);
+    const slice = y => { for (let i = 1; i < rows.length; i++) if (rows[i][0] >= y) { const [y0, x0, z0] = rows[i - 1], [y1, x1, z1] = rows[i], t = (y - y0) / (y1 - y0 || 1); return [x0 + (x1 - x0) * t, z0 + (z1 - z0) * t]; } return rows[rows.length - 1].slice(1); };
+    const surfZ = (x, y) => { const [rx, rz] = slice(y); return rz * Math.sqrt(Math.max(0, 1 - (x / rx) ** 2)); };
+    const on = (x, y, off) => new THREE.Vector3(x, y, surfZ(x, y) + off);
+    const colM = shirt.clone(); colM.side = THREE.DoubleSide;
+    // the collar: a band standing up round the neck (the neckline's own edge, raised and thickened), and its two points
+    // folded down over the top of the chest either side of the top button, splaying out
+    const band = mk(neckRibGeo(topFit), colM, 0, 0.016, 0, g, false); band.scale.set(1.07, 1, 1.09);
+    [-1, 1].forEach(s => {
+      const p = on(s * 0.04, 1.205, 0.012), flap = mk(bx(0.058, 0.05, 0.007), colM, p.x, p.y, p.z, g, false);
+      flap.rotation.set(-0.45, s * 0.25, s * 0.55);
+    });
+    const hemTop = 0.71 - TF.drop + 0.02, buttonM = mat(0xf4f1ea, { roughness: 0.4 });
+    for (let y = 1.2; y > hemTop; y -= 0.04) {   // the placket, in short lengths following the curve of the front
+      const a = on(0, y, 0.003), b = on(0, Math.max(hemTop, y - 0.04), 0.003), mid = a.clone().add(b).multiplyScalar(0.5);
+      const strip = mk(bx(0.024, a.distanceTo(b) + 0.002, 0.003), shirtDark, mid.x, mid.y, mid.z, g, false);
+      strip.rotation.x = Math.atan2(a.z - b.z, a.y - b.y);
+    }
+    for (let y = 1.16; y > hemTop + 0.03; y -= 0.085) { const p = on(0, y, 0.006); mk(sp(0.0065, 8, 6), buttonM, p.x, p.y, p.z, g, false).scale.z = 0.4; }
+  }
   if (look.number) {
     // printed in white, or in near-black on a light shirt; and sat on the cloth however roomy the cut (an oversize top
     // stands further out, and the number buried in it showed through as a couple of odd pale patches)
@@ -1046,14 +1073,19 @@ function buildBodyAt(look, seed) {
     // (the body's own surfaces widened vertex by vertex, fully up to the shoulders, easing back to as-built up the neck,
     // so the neck still meets the head where it did and nothing pushes out through the jaw)
     const k = y => 1 - Math.min(1, Math.max(0, (y - 1.17) / 0.16));
+    // (what's worn below the waist, the seat of the pants, the belt, the hips the legs hang from, only 70% as much, so the
+    // shirt's hem always hangs out over the top of the pants)
+    const LOW = 0.7, lower = new Set([seat, belt, buckle]);
     g.children.forEach(c => {
       if (c === head) return;
-      if (arms.includes(c) || legs.some(l => l.hip === c)) { c.position.x *= BLD.w; c.position.z *= BLD.d; c.scale.x *= limb; c.scale.z *= limb; return; }
-      if (!c.isMesh) { c.position.x *= BLD.w; c.position.z *= BLD.d; c.scale.x *= BLD.w; c.scale.z *= BLD.d; return; }
+      if (arms.includes(c)) { c.position.x *= BLD.w; c.position.z *= BLD.d; c.scale.x *= limb; c.scale.z *= limb; return; }
+      if (legs.some(l => l.hip === c)) { c.position.x *= 1 + (BLD.w - 1) * LOW; c.position.z *= 1 + (BLD.d - 1) * LOW; c.scale.x *= limb; c.scale.z *= limb; return; }
+      if (!c.isMesh) { const f = c === skirt ? LOW : 1; c.position.x *= 1 + (BLD.w - 1) * f; c.position.z *= 1 + (BLD.d - 1) * f; c.scale.x *= 1 + (BLD.w - 1) * f; c.scale.z *= 1 + (BLD.d - 1) * f; return; }
+      const lo = lower.has(c) ? LOW : 1;
       c.updateMatrix(); const inv = c.matrix.clone().invert(), gm = c.geometry.clone(), pos = gm.attributes.position, v = new THREE.Vector3();
       for (let i = 0; i < pos.count; i++) {
         v.fromBufferAttribute(pos, i).applyMatrix4(c.matrix);   // where it is on the body
-        const kv = k(v.y); v.x *= 1 + (BLD.w - 1) * kv; v.z *= 1 + (BLD.d - 1) * kv;
+        const kv = k(v.y) * lo; v.x *= 1 + (BLD.w - 1) * kv; v.z *= 1 + (BLD.d - 1) * kv;
         v.applyMatrix4(inv); pos.setXYZ(i, v.x, v.y, v.z);
       }
       c.geometry = gm;   // (its normals kept: near enough for a gentle widening)
@@ -1078,7 +1110,8 @@ function buildBodyAt(look, seed) {
 // hats, each a shell round its own tipped crown down to a front edge `elev` above the eyes; own is the hat's own thickness
 // (elev: how high the hat's front edge comes on the forehead, in radians up from the eyes' level: clear of the brows,
 // which are tucked down under it)
-const HATS = { cap: { tilt: 0.25, elev: 0.52, own: 0.012 }, bucket: { tilt: 0.1, elev: 0.52, own: 0.014 }, beanie: { tilt: 0.42, elev: 0.5, own: 0.016 } };   // (the beanie pulled down a little lower, its crown slouching back)
+const HATS = { cap: { tilt: 0.25, elev: 0.52, own: 0.012 }, bucket: { tilt: 0.1, elev: 0.52, own: 0.014 }, beanie: { tilt: 0.42, elev: 0.5, own: 0.016 },
+  fedora: { tilt: 0.12, elev: 0.5, own: 0.012 }, beret: { tilt: 0.25, elev: 0.58, own: 0.008 } };   // (the beanie pulled down a little lower, its crown slouching back)
 // the top of the head for each way the front can go: the hairline (radians above the eyes' horizon) all the way round,
 // and how full it stands, both by φ, the angle from straight ahead; lift is how far it stands off the head at most
 const line = phi => -0.16 + 0.66 * Math.cos(phi);                          // just above the brows, past the temples, down the nape
@@ -1282,7 +1315,50 @@ function buildHair(hairParts, shape, head, hairM, mk, at, look) {
       [A, T - 0.008, 0.056, 0.038], [A, T - 0.008, 0.03, 0.02], [A, T - 0.008, 0.006, 0.006],
       tuck,
     ]), capM, 0, 0, 0, head);
-  } else {
+  } else if (hatStyle === 'fedora' || hatStyle === 'beret') {
+    // these two are built on their own rather than shaped over the head: set on the ring where the hat's edge meets the
+    // hair (found by sampling it all round), square to the hat's crown direction
+    const q = new THREE.Quaternion().setFromUnitVectors(UP, hatN), d = new THREE.Vector3(), v = new THREE.Vector3(), c = new THREE.Vector3(), ring = [];
+    for (let i = 0; i < 24; i++) {
+      const psi = i / 24 * Math.PI * 2;
+      d.set(Math.sin(A) * Math.sin(psi), Math.cos(A), Math.sin(A) * Math.cos(psi)).applyQuaternion(q);
+      ring.push(deform(HEADS[shape], v.copy(d)).addScaledVector(d, T).clone());
+    }
+    ring.forEach(p => c.add(p)); c.multiplyScalar(1 / ring.length);
+    const rb = ring.reduce((s, p) => s + p.distanceTo(c), 0) / ring.length + 0.004;   // the hat's opening, round the head
+    const hat = new THREE.Group(); hat.position.copy(c); hat.quaternion.copy(q); head.add(hat);
+    const hm = mat(picked(hatColor), { roughness: hatStyle === 'beret' ? 0.95 : 0.75, side: THREE.DoubleSide });
+    if (hatStyle === 'fedora') {
+      // 紳士帽: a felt fedora, as worn now: a tall crown narrowing a little upward, a long crease down the middle of the top
+      // and the front pinched in either side (a teardrop seen from above), a dark band round its base, and a wide flat
+      // brim, its edge bound in a lighter tape
+      const H0 = 0.17, crown = new THREE.LatheGeometry([[rb, -0.004], [rb * 0.99, 0.05], [rb * 0.95, 0.11], [rb * 0.9, H0 - 0.012], [rb * 0.75, H0], [rb * 0.4, H0 + 0.004], [0.001, H0]].map(([r, y]) => new THREE.Vector2(r, y)), 40);
+      const cp = crown.attributes.position;
+      for (let i = 0; i < cp.count; i++) {
+        let x = cp.getX(i), y = cp.getY(i), z = cp.getZ(i);
+        const up = Math.min(1, Math.max(0, (y - 0.05) / (H0 - 0.05)));
+        x *= 1 - 0.2 * up * Math.max(0, z / rb) ** 1.5;                                        // the front pinched in
+        if (y > H0 - 0.03) y -= 0.03 * Math.exp(-((x / (rb * 0.28)) ** 2)) * Math.min(1, (y - (H0 - 0.03)) / 0.02) * (0.6 + 0.4 * Math.max(0, z / rb));   // the crease, deepest at the front
+        cp.setXYZ(i, x, y, z);
+      }
+      crown.computeVertexNormals();
+      mk(crown, hm, 0, 0, 0, hat);
+      mk(new THREE.CylinderGeometry(rb * 0.99 + 0.002, rb + 0.002, 0.026, 40, 1, true), mat(picked(0x16120f), { roughness: 0.5, side: THREE.DoubleSide }), 0, 0.015, 0, hat, false);   // the band
+      const W = 0.1;
+      mk(new THREE.LatheGeometry([[rb - 0.004, 0.0], [rb + W * 0.5, -0.003], [rb + W, -0.001], [rb + W, -0.007], [rb + W * 0.5, -0.008], [rb - 0.004, -0.006]].map(([r, y]) => new THREE.Vector2(r, y)), 48), hm, 0, 0, 0, hat);   // the brim
+      const tape = mk(new THREE.TorusGeometry(rb + W, 0.0045, 6, 64), mat(picked(hatColor).clone().lerp(new THREE.Color(1, 1, 1), 0.25), { roughness: 0.6 }), 0, -0.004, 0, hat, false); tape.rotation.x = Math.PI / 2;   // the bound edge
+    } else {
+      // 貝雷帽: a soft round beret, full and puffy, wider than the head and slouched forward and over to one side, its band
+      // snug round the head, a stalk in the middle of the top
+      // (shaped as one piece from the band up: bellying out past the head, then rounding over to a full soft top a little
+      // above the crown of the head, which it covers; slouched forward and to one side)
+      const crownTop = deform(HEADS[shape], v.copy(hatN)).addScaledVector(hatN, T).sub(c).dot(hatN), h = crownTop + 0.03;
+      const slouch = new THREE.Group(); slouch.rotation.set(0.1, 0, 0.14); hat.add(slouch);
+      const body = new THREE.LatheGeometry([[rb, -0.004], [rb * 1.06, h * 0.22], [rb * 1.24, h * 0.5], [rb * 1.27, h * 0.64], [rb * 1.14, h * 0.84], [rb * 0.72, h * 0.98], [0.001, h]].map(([r, y]) => new THREE.Vector2(r, y)), 40);
+      mk(body, hm, 0, 0, 0, slouch);
+      mk(new THREE.CylinderGeometry(rb + 0.002, rb + 0.004, 0.022, 32, 1, true), hm, 0, 0.008, 0, hat, false);   // the band
+      mk(new THREE.CylinderGeometry(0.003, 0.006, 0.016, 6), hm, 0, h + 0.006, 0, slouch, false);   // the stalk
+    }  } else {
     // a beanie: knitted, long, with no pompom: the crown standing up off the head and slouching back a little, in a
     // broad round dome (not a point), the cuff rolled up thick at the bottom
     const bm = new THREE.MeshStandardMaterial({ color: picked(hatColor), map: ribs(), roughness: 1, side: THREE.DoubleSide });
