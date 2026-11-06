@@ -397,7 +397,7 @@ function buildShoe(style, knee, mk, { shoe, skin, light }) {
     // (half a band round the foot's length, arching up over it from sole to sole, both faces drawn)
     const strapM = shoe.clone(); strapM.side = THREE.DoubleSide;
     const strap = mk(lathe('slideStrap', [[0.0645, -0.03], [0.068, 0], [0.0645, 0.03]], 20, -Math.PI / 2, Math.PI), strapM, 0, Y - 0.008, 0.05, knee, false);
-    strap.rotation.x = -Math.PI / 2; strap.scale.set(1, 1, 0.62);
+    strap.rotation.x = -Math.PI / 2; strap.scale.set(1, 1, 0.88);   // (arched high enough to sit over the foot, socked or bare)
     return;
   }
   if (style === 'hightop') {
@@ -690,9 +690,11 @@ function buildBodyAt(look, seed) {
     if (!bareLegs) mk(cy(flare + 0.006, flare + 0.006, 0.025, 14), pantsDark, 0, -0.225, 0, knee, false);   // turned-up hem
     // socks: only where they'd show, on a bare shin (a short one round the ankle, a long one up to under the knee, a
     // ribbed band at the top), and over the foot in slides
-    if (sockM && bareLegs) {
-      const top = SK.style === 'long' ? 0.2 : 0.06, rAt = h => 0.052 + (RK - 0.052) * (h / 0.25) + 0.004;   // h: up from the shin's foot
-      mk(cy(rAt(top), rAt(0), top, 16, true), sockM, 0, -0.25 + top / 2, 0, knee, false);
+    // (in boots or high-tops only what rises above the shoe is drawn, so a short one is hidden in it altogether)
+    const sockFrom = { boots: 0.09, hightop: 0.066 }[SH.style] || 0, sockTop = SK.style === 'long' ? 0.2 : 0.06;
+    if (sockM && bareLegs && sockTop > sockFrom + 0.02) {
+      const top = sockTop, h0 = sockFrom, rAt = h => 0.052 + (RK - 0.052) * (h / 0.25) + 0.004;   // h: up from the shin's foot
+      mk(cy(rAt(top), rAt(h0), top - h0, 16, true), sockM, 0, -0.25 + (top + h0) / 2, 0, knee, false);
       mk(cy(rAt(top) + 0.002, rAt(top - 0.02) + 0.002, 0.02, 16, true), sockRib, 0, -0.25 + top - 0.01, 0, knee, false);
     }
     buildShoe(SH.style, knee, mk, { shoe, skin: sockM || skin, light: SH_LIGHT });
