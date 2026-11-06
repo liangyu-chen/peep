@@ -7,6 +7,7 @@ import { FIGHTER_NAMES } from '../content/catalog';
 import { hoopsPlayer, crowd } from './hoops.js';
 import { sfx, sfxMuted, toggleSfx } from './sfx.js';
 import { mirrorTV, tvPoint } from './tv.js';
+import { cornerControls } from './pixIcons.js';
 
 const W = 640, H = 360;
 let open = null;   // the game showing now
@@ -19,7 +20,7 @@ export function openGame(kind, root, onClose) {
   let G = GAMES[kind]; if (!G) return;
   const sheet = document.createElement('div'); sheet.className = 'gameSheet';
   sheet.innerHTML = `<section class="win gameWin" role="dialog">
-    <div class="gameHead"><h2></h2><button class="gameSound" aria-label="音效"></button><button class="gameClose" aria-label="關閉">✕</button></div>
+    <div class="gameHead"><h2></h2>${cornerControls('gameBtns', 'gameSound', 'gameClose')}</div>
     <canvas width="${W}" height="${H}"></canvas><p class="gameHelp"></p><div class="gamePad"></div></section>`;
   root.appendChild(sheet);
   const canvas = sheet.querySelector('canvas'), g = canvas.getContext('2d'), pad = sheet.querySelector('.gamePad');
@@ -28,8 +29,8 @@ export function openGame(kind, root, onClose) {
   // an on-screen button; with onUp it is held (pressed while the finger or mouse is down)
   const button = (label, onDown, onUp, cls = '') => {
     const b = document.createElement('button'); b.textContent = label; if (cls) b.className = cls;
-    listen(b, 'pointerdown', e => { e.preventDefault(); onDown(); });
-    if (onUp) ['pointerup', 'pointercancel', 'pointerleave'].forEach(ev => listen(b, ev, onUp));
+    listen(b, 'pointerdown', e => { e.preventDefault(); b.classList.add('down'); onDown(); });   // (.down: pressed in, as :active won't show on every phone)
+    ['pointerup', 'pointercancel', 'pointerleave'].forEach(ev => listen(b, ev, () => { b.classList.remove('down'); onUp?.(); }));
     pad.appendChild(b); return b;
   };
   const ctl = { keys, button, pointer: null, restart: null, play: null, close: () => close(), clear: () => { pad.textContent = ''; } };
@@ -52,7 +53,7 @@ export function openGame(kind, root, onClose) {
     const p = tvPoint(e.clientX, e.clientY); if (p) { e.preventDefault(); ctl.pointer = p; game.tap?.(p); }
   });
   listen(sheet.querySelector('.gameClose'), 'click', () => close());
-  const soundBtn = sheet.querySelector('.gameSound'), showSound = () => { soundBtn.textContent = sfxMuted() ? '🔇' : '🔊'; };
+  const soundBtn = sheet.querySelector('.gameSound'), showSound = () => { soundBtn.classList.toggle('on', !sfxMuted()); };
   showSound(); listen(soundBtn, 'click', () => { toggleSfx(); showSound(); });
   let game = null, raf = 0, last = performance.now();
   // start a game in this window (the TV's list switches to the one picked)

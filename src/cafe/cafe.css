@@ -86,7 +86,6 @@ body:has(.cafe-root){margin:0;overflow:hidden;background:#141218}
 .cafe-root .gameWin{position:relative;width:min(760px,100%);padding:12px 14px;display:grid;gap:10px;max-height:100%;overflow:auto}
 .cafe-root .gameHead{display:flex;justify-content:space-between;align-items:center;gap:8px}
 .cafe-root .gameHead h2{margin:0;font-family:var(--f-dot);font-size:18px;color:var(--gold);letter-spacing:0}
-.cafe-root .gameClose{padding:2px 8px}
 .cafe-root .gameWin canvas{width:100%;aspect-ratio:16/9;display:block;image-rendering:pixelated;background:#000;box-shadow:0 0 0 3px #000;touch-action:none;cursor:crosshair}
 .cafe-root .gameHelp{margin:0;font-size:13px;color:var(--muted);line-height:1.5}
 /* a TV game on a wide screen: the game is on the TV, so the window is just the controls, docked at the bottom */
@@ -112,30 +111,42 @@ body:has(.cafe-root){margin:0;overflow:hidden;background:#141218}
 .cafe-root .dHelp{position:absolute;bottom:calc(14px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);margin:0;width:max-content;max-width:calc(100% - 32px);text-align:center;
   font-size:13px;color:var(--ink);background:var(--panel);padding:6px 12px;box-shadow:0 0 0 3px #000;pointer-events:none}
 /* the corner controls: one pixel panel, the speaker and a 離開 split by a black seam, lit gold / neon under the finger */
-.cafe-root .dBtns{position:absolute;top:calc(14px + env(safe-area-inset-top,0px));right:calc(14px + env(safe-area-inset-right,0px));display:flex;
-  background:var(--panel);box-shadow:0 0 0 3px #000,5px 5px 0 #000;cursor:default}
-.cafe-root .dBtns button{cursor:pointer;display:flex;align-items:center;gap:7px;height:38px;padding:0 12px;margin:0;border:0;border-radius:0;
+.cafe-root .dBtns{position:absolute;top:calc(14px + env(safe-area-inset-top,0px));right:calc(14px + env(safe-area-inset-right,0px))}
+.cafe-root .pxCtl{display:flex;flex:none;background:var(--panel);box-shadow:0 0 0 3px #000,5px 5px 0 #000;cursor:default}
+.cafe-root .pxCtl button{cursor:pointer;display:flex;align-items:center;gap:7px;height:38px;padding:0 12px;margin:0;border:0;border-radius:0;
   background:none;box-shadow:none;color:var(--ink);font-size:14px;letter-spacing:.12em;line-height:1}
-.cafe-root .dBtns button+button{border-left:3px solid #000}
-.cafe-root .dBtns svg{width:16px;height:16px;fill:currentColor;flex:none}
-.cafe-root .dBtns .dSound{width:44px;justify-content:center;padding:0}
-.cafe-root .dBtns .dSound svg{width:19px;height:16px}
-.cafe-root .dBtns .dSound:not(.on){color:var(--muted)}
-.cafe-root .dSound .icoOff,.cafe-root .dSound.on .icoOn{display:block}
-.cafe-root .dSound .icoOn,.cafe-root .dSound.on .icoOff{display:none}
-.cafe-root .dBtns .dSound:hover{background:#2c2838;color:var(--gold)}
-.cafe-root .dBtns .dClose svg{width:11px;height:11px;color:var(--neon)}
-.cafe-root .dBtns .dClose:hover{background:var(--neon);color:#000}
-.cafe-root .dBtns .dClose:hover svg{color:#000}
-.cafe-root .dBtns button:active{transform:translate(2px,2px)}
-.cafe-root .dBtns button:focus-visible{outline:3px solid var(--gold);outline-offset:-3px}
+.cafe-root .pxCtl button+button{border-left:3px solid #000}
+.cafe-root .pxCtl svg{width:16px;height:16px;fill:currentColor;flex:none}
+.cafe-root .pxCtl .pxSound{width:44px;justify-content:center;padding:0}
+.cafe-root .pxCtl .pxSound svg{width:19px;height:16px}
+.cafe-root .pxCtl .pxSound:not(.on){color:var(--muted)}
+.cafe-root .pxSound .icoOff,.cafe-root .pxSound.on .icoOn{display:block}
+.cafe-root .pxSound .icoOn,.cafe-root .pxSound.on .icoOff{display:none}
+.cafe-root .pxCtl .pxSound:hover{background:#2c2838;color:var(--gold)}
+.cafe-root .pxCtl .pxClose svg{width:11px;height:11px;color:var(--neon)}
+.cafe-root .pxCtl .pxClose:hover{background:var(--neon);color:#000}
+.cafe-root .pxCtl .pxClose:hover svg{color:#000}
+.cafe-root .pxCtl button:active{transform:translate(2px,2px)}
+.cafe-root .pxCtl button:focus-visible{outline:3px solid var(--gold);outline-offset:-3px}
 /* phones: no room for both across the top, so the corner panel keeps the top right and the score row drops beneath it */
 @media (max-width:640px){
   .cafe-root .dTop{top:calc(70px + env(safe-area-inset-top,0px));gap:14px;font-size:11px}
   .cafe-root .dPop{top:calc(122px + env(safe-area-inset-top,0px))}
 }
-.cafe-root .gameSound{margin-left:auto;padding:2px 8px}
-.cafe-root .gamePad button{min-width:64px;min-height:48px;font-size:18px;touch-action:none;user-select:none;-webkit-user-select:none}
+/* the game's keys: chunky arcade buttons, black-outlined, standing on a black base that they sink into when pressed;
+   moves and the like in slate, the action buttons lit neon */
+.cafe-root .gamePad{padding:4px 0 8px}
+.cafe-root .gamePad button{min-width:64px;min-height:48px;padding:0 14px;font-size:18px;letter-spacing:.08em;touch-action:none;user-select:none;-webkit-user-select:none;
+  color:var(--ink);background:#3b3550;transform:translateY(0);transition:transform 50ms,box-shadow 50ms;
+  box-shadow:inset -4px -4px 0 0 #262134,inset 4px 4px 0 0 #5b5376,0 0 0 3px #000,0 6px 0 3px #000}
+.cafe-root .gamePad button:hover{background:#463f5e}
+.cafe-root .gamePad button.hot{color:#2a0a14;background:var(--neon);text-shadow:1px 1px 0 #ffb3c6;
+  box-shadow:inset -4px -4px 0 0 #a8264b,inset 4px 4px 0 0 #ff9ab3,0 0 0 3px #000,0 6px 0 3px #000}
+.cafe-root .gamePad button.hot:hover{background:#ff6a90}
+.cafe-root .gamePad button:active,.cafe-root .gamePad button.down{transform:translateY(5px);
+  box-shadow:inset -4px -4px 0 0 #262134,inset 4px 4px 0 0 #5b5376,0 0 0 3px #000,0 1px 0 3px #000}
+.cafe-root .gamePad button.hot:active,.cafe-root .gamePad button.hot.down{
+  box-shadow:inset 4px 4px 0 0 #a8264b,inset -4px -4px 0 0 #ff9ab3,0 0 0 3px #000,0 1px 0 3px #000}
 .cafe-root .adminLink{margin-left:auto;font-size:12px;color:var(--muted);padding:4px 2px;text-decoration:underline;text-underline-offset:3px}
 .cafe-root .adminLink:hover{color:var(--gold)}
 .cafe-root .adminLink:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
