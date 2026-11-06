@@ -164,10 +164,13 @@ function corgiBody() {
     p.setXYZ(i, X, Y, Z);
     // white underneath and up the chest, tan over the back and sides
     // (the chest the coat's colour too, but for a narrow white bib down its middle)
-    const under = smooth(-0.05, -0.45, y), chest = smooth(0.6, 0.9, z) * smooth(0.25, -0.2, y) * smooth(0.45, 0.15, Math.abs(x));
+    // (the white underneath isn't a level line: it rises toward the chest and up round the haunches, lower along the
+    // belly between, its edge softly wavering)
+    const edge = -0.32 + 0.24 * smooth(0.25, 0.85, z) + 0.18 * smooth(-0.35, -0.85, z) + 0.09 * Math.sin(z * 8 + 1.3) + 0.04 * Math.sin(z * 21 + x * 3);
+    const under = smooth(edge + 0.16, edge - 0.18, y), chest =smooth(0.6, 0.9, z) * smooth(0.25, -0.2, y) * smooth(0.45, 0.15, Math.abs(x));
     // (and the white "pants" round the back of his seat, coloured on, not a ball stuck on)
     const pants = smooth(-0.55, -0.9, z) * smooth(0.35, -0.1, y);
-    c.copy(tan).lerp(saddle, smooth(0.35, 0.9, y) * 0.8).lerp(white, Math.min(1, under + chest + pants)); col.push(c.r, c.g, c.b);
+    c.copy(tan).lerp(saddle, smooth(0.35 + 0.12 * Math.sin(z * 6 + 0.4), 0.9, y) * 0.8).lerp(white, Math.min(1, under + chest + pants)); col.push(c.r, c.g, c.b);
   }
   g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
   g.computeVertexNormals(); return (corgiBodyGeo = g);
