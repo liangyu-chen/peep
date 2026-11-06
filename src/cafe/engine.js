@@ -10,15 +10,14 @@ export const LOW_POWER = typeof window !== 'undefined' && (window.matchMedia('(p
 
 export function createEngine(stage) {
   const dpr = window.devicePixelRatio || 1;
-  // smoothed edges on a computer always; on a tablet's sharp screen the extra smoothing isn't worth the battery
-  const renderer = new THREE.WebGLRenderer({ antialias: !LOW_POWER || dpr < 1.5, powerPreference: LOW_POWER ? 'low-power' : 'default' });
-  // at most about 2 million pixels drawn a frame on a tablet (a big one at 1.5x would be over 3 million); a computer
-  // draws at its screen's full sharpness (up to 2x)
+  // the same on every device to start with (畫質 高效能): smoothed edges, the screen's full sharpness (up to 2x). 一般
+  // draws fewer pixels (quality.js)
+  const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'default' });
   const w = stage.clientWidth || window.innerWidth, h = stage.clientHeight || window.innerHeight;
-  renderer.setPixelRatio(Math.min(dpr, LOW_POWER ? Math.max(1, Math.min(1.5, Math.sqrt(2e6 / (w * h)))) : 2));
+  renderer.setPixelRatio(Math.min(dpr, 2));
   renderer.setSize(w, h);
   renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = LOW_POWER ? THREE.PCFShadowMap : THREE.PCFSoftShadowMap;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.outputEncoding = THREE.sRGBEncoding;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.1;

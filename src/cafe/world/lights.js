@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { ctx, cyl, box, mat, LOW_POWER } from '../engine.js';
+import { ctx, cyl, box, mat } from '../engine.js';
 import { S } from '../state.js';
 
 // sky and the sun, created first so the world builders can skip them when shifting and squeezing the set
@@ -8,7 +8,7 @@ export function buildSky() {
   S.hemi = new THREE.HemisphereLight(0xffe9cf, 0x4a423a, 0.45); scene.add(S.hemi);
   const sun = new THREE.DirectionalLight(0xfff0dc, 0.7);
   sun.position.set(9, 16, 10); sun.castShadow = true;
-  sun.shadow.mapSize.setScalar(LOW_POWER ? 1024 : 2048);
+  sun.shadow.mapSize.setScalar(2048);
   Object.assign(sun.shadow.camera, { left: -14, right: 14, top: 14, bottom: -14, near: 1, far: 50 });
   sun.shadow.bias = -0.0005;
   scene.add(sun);
@@ -39,7 +39,7 @@ function switchedBulb(x, z, y, sz, power) {
   const bm = new THREE.MeshStandardMaterial({ color: 0xd8d2c4, emissive: 0xffb44a, emissiveIntensity: 0 });
   const b = new THREE.Mesh(new THREE.SphereGeometry(0.06, 10, 8), bm); b.position.set(x, y, z); scene.add(b);
   const pl = new THREE.PointLight(0xffb15c, 0, 4, 2); pl.position.set(x, y - 0.1, z);
-  if (!LOW_POWER) scene.add(pl);
+  scene.add(pl);
   // the switch: a little white plate, its toggle up when on
   box(0.012, 0.11, 0.075, mat(0xf2f0ea, { roughness: 0.5 }), -0.89, 1.3, sz);
   const lever = box(0.014, 0.03, 0.016, mat(0xdedad0, { roughness: 0.4 }), -0.9, 1.29, sz);
