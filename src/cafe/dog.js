@@ -60,11 +60,21 @@ function eggGeo() {
   g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
   g.computeVertexNormals(); return (bodyGeo = g);
 }
-// a leg: thick where it meets the body, narrowing to the paw, the top rounded into the shoulder or haunch
+// a leg: narrow at the paw, thickening up the leg and flaring wide at the top, so it runs into the body's underside at a
+// shallow angle, a smooth fillet rather than a post stuck under it
 const LEG = 0.06;   // short little legs
 let legGeo = null;
-const legShape = () => legGeo || (legGeo = new THREE.LatheGeometry([[0.0001, -LEG], [0.012, -LEG + 0.004], [0.013, -LEG * 0.6], [0.018, -LEG * 0.25], [0.023, 0.0], [0.021, 0.018], [0.0001, 0.03]].map(([r, y]) => new THREE.Vector2(r, y)), 12));
+const legShape = () => legGeo || (legGeo = new THREE.LatheGeometry([[0.0001, -LEG], [0.012, -LEG + 0.004], [0.013, -LEG * 0.6], [0.017, -LEG * 0.3], [0.024, -0.008], [0.033, 0.006], [0.03, 0.02], [0.0001, 0.032]].map(([r, y]) => new THREE.Vector2(r, y)), 12));
 
+// a tube along a curve narrowing from r0 at its start to r1 at its end (a tail to a point)
+function taperedTube(curve, r0, r1, segs = 18, sides = 7) {
+  const g = new THREE.TubeGeometry(curve, segs, 1, sides, false), p = g.attributes.position, c = new THREE.Vector3(), v = new THREE.Vector3();
+  for (let i = 0; i <= segs; i++) {
+    const u = i / segs, r = r0 + (r1 - r0) * Math.pow(u, 0.8); curve.getPointAt(u, c);
+    for (let j = 0; j <= sides; j++) { const k = i * (sides + 1) + j; v.fromBufferAttribute(p, k).sub(c).multiplyScalar(r).add(c); p.setXYZ(k, v.x, v.y, v.z); }
+  }
+  g.computeVertexNormals(); return g;
+}
 const ball = (r, m, x, y, z, parent, sx = 1, sy = 1, sz = 1) => { const me = new THREE.Mesh(new THREE.SphereGeometry(r, 12, 10), m); me.position.set(x, y, z); me.scale.set(sx, sy, sz); me.castShadow = true; parent.add(me); return me; };
 const fuzz = (r, seed, m, x, y, z, parent, sx = 1, sy = 1, sz = 1) => { const me = new THREE.Mesh(fuzzGeo(r, seed), m); me.position.set(x, y, z); me.scale.set(sx, sy, sz); me.castShadow = true; parent.add(me); return me; };
 
@@ -92,22 +102,21 @@ export function makeDog() {
   const tongue = new THREE.Mesh(new THREE.SphereGeometry(0.011, 8, 6), m.tongue);
   tongue.position.set(0, -0.037, 0.068); tongue.scale.set(0.9, 1.5, 0.35); tongue.rotation.x = 0.35; head.add(tongue);
 
-  // four short legs, each hinged at the top, with a little paw; a soft shoulder or haunch over each top, blending it into
-  // the body rather than a post stuck under it
+  // four short legs, each hinged at the top, with a little paw
   const legs = [[0.03, 0.068], [-0.03, 0.068], [0.032, -0.062], [-0.032, -0.062]].map(([x, z], i) => {
     const front = i < 2, hip = new THREE.Group(); hip.position.set(x, HIP_Y, z); b.add(hip);
     const legM = front ? m.legF : m.legR;
     const leg = new THREE.Mesh(legShape(), legM); leg.castShadow = true; hip.add(leg);
     ball(0.015, front ? m.fluff : legM, 0, -LEG, 0.005, hip, 1, 0.72, 1.25);
-    ball(front ? 0.03 : 0.036, legM, x * 0.35, HIP_Y + 0.02, z * 0.92, b, 0.75, 1.05, front ? 1.05 : 1.3);   // shoulder / haunch, sunk well into the body
     hip.userData.front = front;
     return hip;
   });
 
-  // the tail: a thin sparse curl up over the rump
-  const tail = new THREE.Group(); tail.position.set(0, HIP_Y + 0.058, -0.088); b.add(tail);
-  const curve = new THREE.CatmullRomCurve3([[0, 0, 0], [0, 0.026, -0.013], [0, 0.047, 0], [0, 0.052, 0.022], [0.006, 0.043, 0.034]].map(a => new THREE.Vector3(...a)));   // (short)
-  const t = new THREE.Mesh(new THREE.TubeGeometry(curve, 14, 0.008, 6, false), m.legR); t.castShadow = true; tail.add(t);
+  // the tail: a thin sparse curl up over the rump, growing out of it (its root sunk into the body), thick at the root and
+  // tapering to a fine point
+  const tail = new THREE.Group(); tail.position.set(0, HIP_Y + 0.05, -0.068); b.add(tail);
+  const curve = new THREE.CatmullRomCurve3([[0, -0.006, 0.01], [0, 0.01, -0.02], [0, 0.036, -0.032], [0, 0.056, -0.016], [0, 0.06, 0.008], [0.006, 0.05, 0.022]].map(a => new THREE.Vector3(...a)));   // (short)
+  const t = new THREE.Mesh(taperedTube(curve, 0.012, 0.0015), m.legR); t.castShadow = true; tail.add(t);
 
   return { g, b, head, legs, tail, t: Math.random() * 10, placed: false, sit: 0, line: '汪！', bubbleY: 0.32, trail: [], spot: null };
 }
