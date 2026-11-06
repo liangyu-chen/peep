@@ -111,8 +111,29 @@ body:has(.cafe-root){margin:0;overflow:hidden;background:#141218}
 .cafe-root .dEnd b{font-size:30px;font-weight:400;color:var(--gold)}
 .cafe-root .dHelp{position:absolute;bottom:calc(14px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);margin:0;width:max-content;max-width:calc(100% - 32px);text-align:center;
   font-size:13px;color:var(--ink);background:var(--panel);padding:6px 12px;box-shadow:0 0 0 3px #000;pointer-events:none}
-.cafe-root .dBtns{position:absolute;top:calc(14px + env(safe-area-inset-top,0px));right:calc(14px + env(safe-area-inset-right,0px));display:flex;gap:8px}
-.cafe-root .dBtns button{cursor:pointer}
+/* the corner controls: one pixel panel, the speaker and a 離開 split by a black seam, lit gold / neon under the finger */
+.cafe-root .dBtns{position:absolute;top:calc(14px + env(safe-area-inset-top,0px));right:calc(14px + env(safe-area-inset-right,0px));display:flex;
+  background:var(--panel);box-shadow:0 0 0 3px #000,5px 5px 0 #000;cursor:default}
+.cafe-root .dBtns button{cursor:pointer;display:flex;align-items:center;gap:7px;height:38px;padding:0 12px;margin:0;border:0;border-radius:0;
+  background:none;box-shadow:none;color:var(--ink);font-size:14px;letter-spacing:.12em;line-height:1}
+.cafe-root .dBtns button+button{border-left:3px solid #000}
+.cafe-root .dBtns svg{width:16px;height:16px;fill:currentColor;flex:none}
+.cafe-root .dBtns .dSound{width:44px;justify-content:center;padding:0}
+.cafe-root .dBtns .dSound svg{width:19px;height:16px}
+.cafe-root .dBtns .dSound:not(.on){color:var(--muted)}
+.cafe-root .dSound .icoOff,.cafe-root .dSound.on .icoOn{display:block}
+.cafe-root .dSound .icoOn,.cafe-root .dSound.on .icoOff{display:none}
+.cafe-root .dBtns .dSound:hover{background:#2c2838;color:var(--gold)}
+.cafe-root .dBtns .dClose svg{width:11px;height:11px;color:var(--neon)}
+.cafe-root .dBtns .dClose:hover{background:var(--neon);color:#000}
+.cafe-root .dBtns .dClose:hover svg{color:#000}
+.cafe-root .dBtns button:active{transform:translate(2px,2px)}
+.cafe-root .dBtns button:focus-visible{outline:3px solid var(--gold);outline-offset:-3px}
+/* phones: no room for both across the top, so the corner panel keeps the top right and the score row drops beneath it */
+@media (max-width:640px){
+  .cafe-root .dTop{top:calc(70px + env(safe-area-inset-top,0px));gap:14px;font-size:11px}
+  .cafe-root .dPop{top:calc(122px + env(safe-area-inset-top,0px))}
+}
 .cafe-root .gameSound{margin-left:auto;padding:2px 8px}
 .cafe-root .gamePad button{min-width:64px;min-height:48px;font-size:18px;touch-action:none;user-select:none;-webkit-user-select:none}
 .cafe-root .adminLink{margin-left:auto;font-size:12px;color:var(--muted);padding:4px 2px;text-decoration:underline;text-underline-offset:3px}

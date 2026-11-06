@@ -12,6 +12,13 @@ const BOARD = { x: (-2.995 + 0.0225) * K, y: 1.55, z: 3.06, r: 0.25 };   // the 
 const FLIGHTS = [0xc0282d, 0x1c4fd6, 0xffd23f];
 let active = null;
 
+// the corner buttons' pixel icons ('#' a lit pixel, in the button's text colour), like the café HUD's speaker
+const SPK = ['....#.......', '...##...#...', '..###....#..', '####.#.#..#.', '####.#..#.#.', '####.#..#.#.', '####.#.#..#.', '..###....#..', '...##...#...', '....#.......'];
+const SPK_OFF = ['....#.......', '...##.......', '..###.......', '####.#.#...#', '####.#..#.#.', '####.#...#..', '####.#..#.#.', '..###..#...#', '...##.......', '....#.......'];
+const CROSS = ['##......##', '###....###', '.###..###.', '..######..', '...####...', '...####...', '..######..', '.###..###.', '###....###', '##......##'];
+const pix = (rows, cls = '') => `<svg class="${cls}" viewBox="0 0 ${rows[0].length} ${rows.length}" shape-rendering="crispEdges" aria-hidden="true">${
+  rows.flatMap((r, y) => [...r].map((c, x) => (c === '#' ? `<rect x="${x}" y="${y}" width="1" height="1"/>` : ''))).join('')}</svg>`;
+
 export function stopWallDarts() { active?.stop(); }
 
 function dartMesh(color) {   // tip at the origin, pointing -x into the board
@@ -49,7 +56,7 @@ export function playWallDarts(root, onClose) {
     <div class="dPop"></div><div class="dAim"></div>
     <div class="dEnd" hidden><b></b><span></span><button class="dAgain">再玩一次</button></div>
     <p class="dHelp">移動滑鼠或手指瞄準，準星會晃，抓好時機點一下（或空白鍵）射出 · 三輪、每輪三支</p>
-    <div class="dBtns"><button class="dSound" aria-label="音效"></button><button class="dClose" aria-label="離開">✕ 離開</button></div>`;
+    <div class="dBtns"><button class="dSound" aria-label="音效">${pix(SPK, 'icoOn')}${pix(SPK_OFF, 'icoOff')}</button><button class="dClose" aria-label="離開">${pix(CROSS)}<span>離開</span></button></div>`;
   root.appendChild(hud);
   const q = s => hud.querySelector(s), aimEl = q('.dAim'), pop = q('.dPop');
 
@@ -88,7 +95,7 @@ export function playWallDarts(root, onClose) {
   listen(hud, 'pointerdown', e => { if (e.target.closest('button')) return; e.preventDefault(); pointer = at(e); throwDart(); });
   listen(q('.dClose'), 'click', () => stop());
   listen(q('.dAgain'), 'click', again);
-  const showSound = () => { q('.dSound').textContent = sfxMuted() ? '🔇' : '🔊'; };
+  const showSound = () => { q('.dSound').classList.toggle('on', !sfxMuted()); };
   showSound(); listen(q('.dSound'), 'click', () => { toggleSfx(); showSound(); });
   listen(window, 'keydown', e => {
     if (e.key === 'Escape') stop();
