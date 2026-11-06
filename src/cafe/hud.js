@@ -41,7 +41,7 @@ export function openCard(p) { S.selected = p; $('card').hidden = false; fillCard
 export function closeCard() { S.selected = null; const card = $('card'); if (card) card.hidden = true; }
 // a companion's card (配件: 路易斯, 夜叉丸, 蘿蔔糕): what it is, whose it is, a line about it, what it says, what it's up to
 const PET_INFO = {
-  bear: { kind: '小熊', note: '總是飛在主人的肩膀旁', make: makeBear },
+  bear: { kind: '聚酯纖維', note: '總是飛在主人的肩膀旁', make: makeBear },
   dog: { kind: '博美狗', note: '有脫毛症，只剩頭跟背上一小塊還是蓬蓬的毛', make: makeDog },
   corgi: { kind: '柯基', note: '短腿長身，金黃色的毛，長長的尾巴', make: makeCorgi },
 };
