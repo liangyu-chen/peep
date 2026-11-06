@@ -78,14 +78,32 @@ export const SMOKE_POSE = {
   light: { x: -1.377, y: 0.795, z: 0.276, el: -1.802, cx: -0.738, cz: 0.517, rx: -0.523, rz: -1.68, rel: -1.251, pitch: 0.06 },   // and the right hand brings the lighter
 };
 
+// an iced drink's colour in the glass, by what it is
+const iceM = mat(0xeef6fa, { roughness: 0.1, transparent: true, opacity: 0.7 });
+function icedColour(drink = '') {
+  const d = String(drink);
+  if (/林美如|芬達/.test(d)) return 0xe6902c;
+  if (/可樂/.test(d)) return 0x3a1e12;
+  if (/雪碧|七喜|通寧|氣泡|維大力/.test(d)) return 0xdfe8d8;
+  if (/芭樂/.test(d)) return 0xe8a0a0;
+  if (/蘋果/.test(d)) return 0xd8b060;
+  if (/青瓜/.test(d)) return 0xb8d890;
+  if (/芝麻/.test(d)) return 0x8a7a6a;
+  if (/朱古力|摩卡/.test(d)) return 0x5a3422;
+  if (/美式|康保藍|濃縮/.test(d)) return 0x3a2214;
+  return 0x9a6a44;   // the milky coffees, a latte's colour all through
+}
 export function makeCup(drink, variant) {
   const g = new THREE.Group();
   if (variant === 'ice') {
     cyl(0.055, 0.045, 0.22, glassM, 0, 0.11, 0, g, 12);
-    // the drink in it, two layers, in a group standing on the glass's bottom so it can go down as it's drunk
+    // the drink in it: one colour all the way up, no milk foam on an iced drink, and a few ice cubes in the top; in a
+    // group standing on the glass's bottom so it can go down as it's drunk
     const fill = new THREE.Group(); fill.position.y = 0.005; g.add(fill);
-    cyl(0.05, 0.042, 0.12, coffeeM, 0, 0.06, 0, fill, 12);
-    cyl(0.05, 0.05, 0.06, mat(drink === '林美如' ? 0xe6a23c : 0xe8dcc8), 0, 0.145, 0, fill, 12);
+    cyl(0.05, 0.042, 0.175, mat(icedColour(drink), { roughness: 0.25 }), 0, 0.0875, 0, fill, 12);
+    [[0.018, 0.16, 0.012, 0.4], [-0.02, 0.155, -0.008, 1.1], [0.004, 0.165, -0.022, 2.2]].forEach(([x, y, z, r]) => {
+      const cube = new THREE.Mesh(new THREE.BoxGeometry(0.022, 0.022, 0.022), iceM); cube.position.set(x, y, z); cube.rotation.set(r, r * 0.7, 0); fill.add(cube);
+    });
     g.userData.fill = fill;
   } else { // Taiwanese tea cup for hot lattes
     cyl(0.06, 0.04, 0.06, teaCupM, 0, 0.03, 0, g, 14);
