@@ -972,7 +972,7 @@ function buildBodyAt(look, seed) {
         return v;
       };
       cross.push([
-        at(1, -0.008), at(1.0, 0.02 + 0.018 * back), at(1.035, 0.029 + 0.02 * back), lay(at(1.08 - 0.025 * back, 0.018 + 0.014 * back - 0.03 * front)),
+        at(1, -0.008), at(1.0, 0.007 + 0.016 * back), at(1.035, 0.015 + 0.017 * back), lay(at(1.08 - 0.02 * back, 0.006 + 0.012 * back - 0.025 * front)),
         lay(at(1.13 + 0.05 * front, -0.004 - 0.035 * front, 0.012 * front)),
         lay(at(1.19 + 0.08 * front, -0.022 - 0.045 * front, 0.038 * front)),
       ]);
