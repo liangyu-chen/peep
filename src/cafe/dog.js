@@ -30,8 +30,8 @@ const smooth = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a
 
 // a fluffy ball: a sphere with every point pushed in or out a little at random, so its outline is tufted fur
 const FUZZ = new Map();
-function fuzzGeo(r, seed) {
-  const k = `${r}:${seed}`;
+function fuzzGeo(r, seed, amp = 0.22) {
+  const k = `${r}:${seed}:${amp}`;
   if (FUZZ.has(k)) return FUZZ.get(k);
   const g = new THREE.SphereGeometry(r, 18, 14), p = g.attributes.position;
   let s = seed * 9301 + 49297;
@@ -40,7 +40,7 @@ function fuzzGeo(r, seed) {
   for (let i = 0; i < p.count; i++) {
     v.fromBufferAttribute(p, i);
     const key = `${v.x.toFixed(4)},${v.y.toFixed(4)},${v.z.toFixed(4)}`;   // (the seam's twin points pushed alike, so it stays closed)
-    if (!seen.has(key)) seen.set(key, 1 + (rnd() - 0.4) * 0.22);
+    if (!seen.has(key)) seen.set(key, 1 + (rnd() - 0.4) * amp);
     v.multiplyScalar(seen.get(key)); p.setXYZ(i, v.x, v.y, v.z);
   }
   g.computeVertexNormals(); FUZZ.set(k, g); return g;
@@ -183,7 +183,12 @@ export function makeCorgi() {
   const m = corgiMats();
   const g = new THREE.Group(), b = new THREE.Group(); g.add(b); g.scale.setScalar(1.25);
   const body = new THREE.Mesh(corgiBody(), m.body); body.position.set(0, C_HIP + 0.03, 0); body.castShadow = true; b.add(body);
-  // (his seat and chest, white pants and bib, are all the body's own smooth surface: no fluff balls stuck on to show a join)
+  // the fluffy white seat at the back and the ruff of his chest (fawn, a white bib down it): soft, only lightly tufted,
+  // and sunk well into the body, each over the body's own matching colour, so they swell out of him without a join
+  const soft = (r, seed, mm, x, y, z, sx, sy, sz) => { const me = new THREE.Mesh(fuzzGeo(r, seed, 0.08), mm); me.position.set(x, y, z); me.scale.set(sx, sy, sz); me.castShadow = true; b.add(me); return me; };
+  soft(0.05, 11, m.white, 0, C_HIP + 0.02, -0.104, 1.2, 0.85, 0.62);
+  soft(0.052, 13, m.tan, 0, C_HIP + 0.042, 0.104, 1.08, 1.05, 0.62);
+  soft(0.026, 14, m.white, 0, C_HIP + 0.03, 0.132, 0.85, 1.4, 0.55);
 
   // the head: tan, a long white muzzle, a white blaze up the middle, white cheeks; tipped to one side
   const head = new THREE.Group(); head.position.set(0, C_HIP + 0.105, 0.142); b.add(head);
