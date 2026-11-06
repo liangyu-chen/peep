@@ -1,5 +1,6 @@
 import { BUILDS, buildOf, HEIGHTS, heightOf,tieColorOf, CLOTHES, COLOR_PRESETS, COMPANIONS, EARRINGS, earringsOf, FACE, HAIR, HAT_STYLES, SHOE_STYLES, SOCKS, TATTOO_PARTS, TATTOO_STYLES,clothesOf, companionOf, faceOf, hairOf, hatOf, shoeOf, socksOf, tattooOf, type Look } from '@/src/content/catalog';
 import ColorField from './ColorField';
+import HairLengthField from './HairLengthField';
 
 function Pick({ name, label, value, options }: { name: string; label: string; value: string; options: { value: string; label: string }[] }) {
   return (
@@ -38,7 +39,7 @@ export default function LookFields({ look, seed }: { look: Look; seed: string })
 
       <section className="panel-block">
         <h2>髮型與穿著</h2>
-        <Pick name="hairLength" label="長度" value={hair.length} options={HAIR.length} />
+        <HairLengthField length={hair.length} cm={hair.cm} />
         <Pick name="hairCurl" label="髮質" value={hair.curl} options={HAIR.curl} />
         <Pick name="hairFront" label="前額" value={hair.front} options={HAIR.front} />
         <Pick name="hairTie" label="綁髮（中長髮、長髮）" value={hair.tie} options={HAIR.tie} />

@@ -14,6 +14,7 @@ export type Look = {
   faceShape?: string; eyes?: string; eyeColor?: number; brows?: string; nose?: string; mouth?: string;
   facialHair?: string; beard?: string; blush?: boolean;
   hairLength?: string; hairCurl?: string; hairFront?: string; hairTie?: string;   // the hair part by part (older looks: hairStyle alone)
+  hairCm?: number;   // set with the length's − / +: how far it hangs below the head, in cm (0 is 短髮); its band sets hairLength
   tieColor?: number;                                                           // the ponytail's hair tie
   hat?: string; hatColor?: number;                                             // (older looks: hairStyle 'cap'/'bucket' + cap, or beanie)
   glasses?: boolean | string; glassesShape?: string;                           // (older looks: true, 'round' or 'square' black frames)
@@ -93,7 +94,12 @@ export const HAIR: Record<'length' | 'curl' | 'front' | 'tie', Option[]> = {
   front: [{ value: 'none', label: '無瀏海' }, { value: 'bangs', label: '瀏海' }, { value: 'center', label: '中分' }, { value: 'side', label: '旁分' }],
   tie: [{ value: 'none', label: '不綁' }, { value: 'ponytail', label: '馬尾' }, { value: 'twintails', label: '雙馬尾' }, { value: 'bun', label: '包頭' }],
 };
-export type Hair = { length: string; curl: string; front: string; tie: string };
+export type Hair = { length: string; curl: string; front: string; tie: string; cm?: number };
+// the hair's length in cm, set with − / + from 短髮 (0) up; which band of length that is (and so what it can do: tied
+// back from 中長髮 on), and how many cm each of the old fixed lengths was
+export const HAIR_CM = { step: 2, max: 60 };
+export const lengthForCm = (cm: number) => (cm <= 0 ? 'short' : cm <= 10 ? 'bob' : cm <= 30 ? 'medium' : 'long');
+export const CM_OF_LENGTH: Record<string, number> = { short: 0, bob: 8, medium: 29, long: 33 };
 // what each of the older single hairstyles was, part by part
 const HAIR_FROM_STYLE: Record<string, Hair> = {
   bald: { length: 'bald', curl: 'straight', front: 'none', tie: 'none' },
@@ -113,9 +119,13 @@ const HAIR_FROM_STYLE: Record<string, Hair> = {
 // a look's hair, part by part: what's stored, or what its older single hairstyle meant
 export function hairOf(look: Look): Hair {
   const old = HAIR_FROM_STYLE[look.hairStyle] ?? HAIR_FROM_STYLE.short;
+  const length = pickIn(HAIR.length, look.hairLength, old.length);
+  // a length set in cm (not for 光頭 / 平頭): that, and the band it falls in
+  const cm = typeof look.hairCm === 'number' && length !== 'bald' && length !== 'buzz' ? Math.max(0, Math.min(HAIR_CM.max, Math.round(look.hairCm))) : undefined;
   return {
-    length: pickIn(HAIR.length, look.hairLength, old.length), curl: pickIn(HAIR.curl, look.hairCurl, old.curl),
+    length: cm !== undefined ? lengthForCm(cm) : length, curl: pickIn(HAIR.curl, look.hairCurl, old.curl),
     front: pickIn(HAIR.front, look.hairFront, old.front), tie: pickIn(HAIR.tie, look.hairTie, old.tie),
+    ...(cm !== undefined ? { cm } : {}),
   };
 }
 // the colour of the band a ponytail's (or each of twin tails') tied with (neon pink unless chosen)
@@ -292,6 +302,10 @@ export function parseLook(get: (k: string) => string | null, prev?: Look): Look 
     shoeStyle: one('shoeStyle', SHOE_STYLES, shoe.style), shoe: hex('shoe', shoe.color),
     socks: one('socks', SOCKS, socks.style), sock: hex('sock', socks.color),
   };
+  // the hair's length in cm, when it's been set with − / + (empty: left as the fixed length it was)
+  const cmIn = get('hairCm'), cmVal = cmIn != null && cmIn !== '' ? Number(cmIn) : NaN;
+  if (look.hairLength === 'bald' || look.hairLength === 'buzz') delete look.hairCm;
+  else if (Number.isFinite(cmVal)) { look.hairCm = Math.max(0, Math.min(HAIR_CM.max, Math.round(cmVal))); look.hairLength = lengthForCm(look.hairCm); }
   if (tatText) look.tattooText = tatText; else delete look.tattooText;
   if (number) look.number = number; else delete look.number;
   // what older looks stored in other ways, now superseded

@@ -1497,10 +1497,20 @@ const CURLY_LENGTHS = {   // curls take up a little more room, a little fuller t
   long: (w, y0) => [[w + 0.0072, y0 - 0.06], [w + 0.012, y0 - 0.13], [w + 0.018, y0 - 0.2], [w + 0.0228, y0 - 0.27], [w + 0.0252, y0 - 0.33], [w + 0.0168, y0 - 0.37], [w + 0.0036, y0 - 0.38]],
 };
 
+// the same, for a length set in cm with − / + (L metres below the widest part of the head): down at a gentle slope,
+// fuller toward the ends the longer it is, the ends turned under
+const tailFor = (L, curly) => (w, y0) => {
+  const full = Math.min(0.026, 0.008 + 0.05 * L) + (curly ? 0.004 : 0), pts = [];
+  for (const f of [0.22, 0.45, 0.68, 0.86]) pts.push([w + 0.004 + full * Math.sin(f * Math.PI / 2) ** 0.8, y0 - L * f]);
+  pts.push([w + full * 0.4, y0 - L * 0.97], [w - 0.008, y0 - L]);
+  return pts;
+};
+
 // the hair first, built from its parts (length, straight / curly / spiky, the front, tied up or not), then the hat
 // (if any) put on over it, made bigger by however far the hair stands off the head so nothing pokes through it
 function buildHair(hairParts, shape, head, hairM, mk, at, look) {
-  const { length, curl, front, tie } = hairParts;
+  const { length, curl, front, tie, cm } = hairParts;
+  const HL = cm !== undefined ? Math.max(0.03, cm / 100) : null;   // (a length set in cm: how far it hangs, in metres)
   const TILT = 0.66;                                    // the old tipped crown, still used to spread spikes
 
   // the hat this person wears, worked out first so the hair can keep out from under it
@@ -1555,7 +1565,17 @@ function buildHair(hairParts, shape, head, hairM, mk, at, look) {
 
   let lift = 0;
   if (length === 'buzz') {
-    mk(shellGeo(shape, 0.004, crown(0.5), 0, coverFor(0.5, 0.55)), hairM, 0, 0, 0, head); lift = 0.004;
+    // 平頭: a crew cut over the whole head, the back included, down to a natural hairline (round the forehead, over the
+    // ears, down the nape); the top cut flat (fuller where the head rounds off, so it reads level), the sides close.
+    // A fine stubbly texture rather than long strands, a touch of the skin showing through
+    // (all its thickness in the bump, which thins away to nothing over the last rows at the hairline, so there's no
+    // step there; most of it in a ring where the top of the head rounds off, which squares the top off level)
+    const flatTop = u => 0.0035 + 0.016 * Math.exp(-(((u.y - 0.8) / 0.11) ** 2)) - 0.0015 * Math.max(0, 0.4 - u.y) / 0.4;
+    const buzzM = hairM.clone();
+    buzzM.color = hairM.color.clone().lerp(new THREE.Color(picked(look.skin)), 0.05);
+    buzzM.map = hairM.map.clone(); buzzM.map.repeat.set(60, 1); buzzM.map.needsUpdate = true;
+    mk(capGeo(shape, 'buzz3', phi => line(phi) + 0.2 * lobe(phi, 0, 2) - 0.04, () => 0.0012, flatTop), buzzM, 0, 0, 0, head);
+    lift = 0.012;
   } else if (length !== 'bald') {
     // the top of the head: shaped by the front, with curls in its surface if it's curly
     const F = FRONTS[front] || FRONTS.none, curly = curl === 'curly';
@@ -1576,14 +1596,14 @@ function buildHair(hairParts, shape, head, hairM, mk, at, look) {
       const e = H ? Math.min(0.86, hatBack - 0.3) : 0.86, p = backAt(e), out = new THREE.Vector3(0, Math.sin(e), -Math.cos(e));
       mk(sp(curly ? 0.085 : 0.075, 14, 12), hairM, p.x + out.x * 0.05, p.y + out.y * 0.05, p.z + out.z * 0.05, head);
     } else if (tie === 'ponytail' && long) {
-      const p = backAt(H ? Math.min(0.15, hatBack - 0.22) : 0.15), L = length === 'long' ? 1 : 0.7, R = curly ? 1.25 : 1;
+      const p = backAt(H ? Math.min(0.15, hatBack - 0.22) : 0.15), L = HL !== null ? Math.min(1.7, Math.max(0.6, HL / 0.33)) : length === 'long' ? 1 : 0.7, R = curly ? 1.25 : 1;
       mk(cy(0.038, 0.038, 0.03, 12), mat(picked(tieColorOf(look)), { roughness: 0.6 }), p.x, p.y, p.z - 0.012, head).rotation.x = Math.PI / 2;   // the hair tie, in its colour
       const tail = mk(lathe(`tail:${L}:${R}`, [[0.001, 0.02], [0.04 * R, 0], [0.05 * R, -0.08 * L], [0.035 * R, -0.2 * L], [0.012 * R, -0.28 * L], [0, -0.29 * L]], 14), hairM, p.x, p.y - 0.01, p.z - 0.04, head);
       tail.rotation.x = 0.35;
     } else if (tie === 'twintails' && long) {
       // 雙馬尾: one each side, tied high behind the ears, hanging down and splaying a little out from the head, each in a
       // hair tie (under a hat, tied lower, below its edge)
-      const e = H ? Math.min(0.22, hatBack - 0.25) : 0.22, az = 0.95, L = length === 'long' ? 0.9 : 0.65, R = curly ? 1.2 : 0.9;
+      const e = H ? Math.min(0.22, hatBack - 0.25) : 0.22, az = 0.95, L = HL !== null ? Math.min(1.5, Math.max(0.55, HL / 0.37)) : length === 'long' ? 0.9 : 0.65, R = curly ? 1.2 : 0.9;
       const tieM = mat(picked(tieColorOf(look)), { roughness: 0.6 });
       [-1, 1].forEach(s => {
         const p = at(s * Math.sin(az) * Math.cos(e), Math.sin(e), -Math.cos(az) * Math.cos(e));
@@ -1592,13 +1612,13 @@ function buildHair(hairParts, shape, head, hairM, mk, at, look) {
         mk(lathe(`twin:${L}:${R}`, [[0.001, 0.02], [0.034 * R, 0], [0.042 * R, -0.07 * L], [0.03 * R, -0.18 * L], [0.01 * R, -0.25 * L], [0, -0.26 * L]], 14), hairM, 0, -0.008, 0, grp);
       });
     } else if (hangs) {
-      curtain(`${length}${curly ? ':curly' : ''}`, (curly ? CURLY_LENGTHS : LENGTHS)[length], curly ? (length === 'bob' ? 0.016 : 0.018) : 0);
+      curtain(HL !== null ? `cm${cm}${curly ? ':curly' : ''}` : `${length}${curly ? ':curly' : ''}`, HL !== null ? tailFor(HL, curly) : (curly ? CURLY_LENGTHS : LENGTHS)[length], curly ? (length === 'bob' ? 0.016 : 0.018) : 0);
       if (curly) {
         // loose curls over it all, the way a perm falls: two rows of chunky locks round the sides and back, every one a
         // different length, swinging out and flicking up at the tips; and, unless it's combed back, a few falling over the
         // forehead (parted in the middle: away to either side; a fringe: straight down; parted on one side: swept across)
         const rnd = seeded(`${shape}:${length}:${front}:${hatStyle || ''}`), locks = [];
-        const L = { bob: 0.1, medium: 0.2, long: 0.28 }[length];
+        const L = HL !== null ? Math.min(0.42, Math.max(0.08, HL * 0.85)) : { bob: 0.1, medium: 0.2, long: 0.28 }[length];
         const dir = (phi, e) => new THREE.Vector3(Math.sin(phi) * Math.cos(e), Math.sin(e), Math.cos(phi) * Math.cos(e));
         const add = (phi, e, len, flare, turns, r0, lean = 0, push = 0.014) => {
           const u = dir(phi, e); if (underHat(u, 0.08)) return;
