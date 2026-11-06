@@ -1009,9 +1009,11 @@ function buildBodyAt(look, seed) {
     if (!long) {
       // a short sleeve, one piece with the shoulder: rounded over the top where it joins, fullest there, easing a little
       // toward its open end, the arm showing inside it; a loose cut hangs away from the arm a touch, as cloth does
-      const w = TF.s, L = TF.len, rt = 0.065 * w, rb = 0.061 * w;
+      // (a little clear of the arm all the way down, and with the arm's own number of sides, its edges lined up with the
+      // arm's: in the café, drawn with fewer sides, the arm's corners otherwise poked out through the sleeve)
+      const w = TF.s, L = TF.len, rt = 0.067 * w, rb = 0.065 * w;
       const sl = new THREE.Group(); sl.rotation.z = loose ? s * 0.09 : s * 0.03; sh.add(sl);
-      mk(lathe(`sleeve:${w.toFixed(2)}:${L}`, [[rb, -L + 0.01], [rb * 1.01, -L * 0.55], [rt, -0.05], [rt * 0.97, -0.02], [rt * 0.82, 0.008], [rt * 0.5, 0.026], [0.001, 0.034]], 28), shirt, 0, 0, 0, sl);
+      mk(lathe(`sleeve:${w.toFixed(2)}:${L}`, [[rb, -L + 0.01], [rb * 1.01, -L * 0.55], [rt, -0.05], [rt * 0.97, -0.02], [rt * 0.82, 0.008], [rt * 0.5, 0.026], [0.001, 0.034]], 24), shirt, 0, 0, 0, sl);
       lining(rb + 0.001, rb, 0.06, -L + 0.04, sl);
       roll(rb, -L + 0.014, sl);                                                                         // the hem, rolled
     }
