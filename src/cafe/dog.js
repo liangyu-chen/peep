@@ -166,10 +166,10 @@ function corgiBody() {
     // (the chest the coat's colour too, but for a narrow white bib down its middle)
     // (the white underneath isn't a level line: it rises toward the chest and up round the haunches, lower along the
     // belly between, its edge softly wavering)
-    const edge = -0.32 + 0.24 * smooth(0.25, 0.85, z) + 0.18 * smooth(-0.35, -0.85, z) + 0.09 * Math.sin(z * 8 + 1.3) + 0.04 * Math.sin(z * 21 + x * 3);
+    const edge = -0.32 + 0.24 * smooth(0.25, 0.85, z) - 0.1 * smooth(-0.35, -0.85, z) + 0.09 * Math.sin(z * 8 + 1.3) + 0.04 * Math.sin(z * 21 + x * 3);
     const under = smooth(edge + 0.16, edge - 0.18, y), chest =smooth(0.6, 0.9, z) * smooth(0.25, -0.2, y) * smooth(0.45, 0.15, Math.abs(x));
     // (and the white "pants" round the back of his seat, coloured on, not a ball stuck on)
-    const pants = smooth(-0.55, -0.9, z) * smooth(0.35, -0.1, y);
+    const pants = smooth(-0.55, -0.9, z) * smooth(0.35, -0.1, y) * smooth(0.45, 0.15, Math.abs(x));   // (down the middle only: fawn round the sides)
     c.copy(tan).lerp(saddle, smooth(0.35 + 0.12 * Math.sin(z * 6 + 0.4), 0.9, y) * 0.8).lerp(white, Math.min(1, under + chest + pants)); col.push(c.r, c.g, c.b);
   }
   g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
@@ -207,7 +207,7 @@ export function makeCorgi() {
   {   // (the seat: white down its middle, the coat's fawn round its sides, blending)
     const sg = fuzzGeo(0.05, 11, 0.08).clone(), sp = sg.attributes.position, sc = [];
     const fawn = new THREE.Color(picked(0xc99a62)), wh = new THREE.Color(picked(0xf6f0e6)), cc = new THREE.Color();
-    for (let i = 0; i < sp.count; i++) { const ax = Math.abs(sp.getX(i)) / 0.05, ay = sp.getY(i) / 0.05; cc.copy(wh).lerp(fawn, smooth(0.35, 0.75, ax) * smooth(-0.6, 0.1, ay)); sc.push(cc.r, cc.g, cc.b); }
+    for (let i = 0; i < sp.count; i++) { const ax = Math.abs(sp.getX(i)) / 0.05, ay = sp.getY(i) / 0.05; cc.copy(wh).lerp(fawn, smooth(0.18, 0.5, ax) * smooth(-0.95, -0.4, ay)); sc.push(cc.r, cc.g, cc.b); }
     sg.setAttribute('color', new THREE.Float32BufferAttribute(sc, 3));
     const seat = new THREE.Mesh(sg, m.body); seat.position.set(0, C_HIP + 0.02, -0.098); seat.scale.set(1.2, 0.85, 0.58); seat.castShadow = true; b.add(seat);
   }
