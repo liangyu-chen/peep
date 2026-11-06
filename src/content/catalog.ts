@@ -302,16 +302,29 @@ export const SOCKS: Option[] = [{ value: 'none', label: '無' }, { value: 'short
 export function socksOf(look: Look): { style: string; color: number } {
   return { style: SOCKS.some(o => o.value === look.socks) ? (look.socks as string) : 'none', color: typeof look.sock === 'number' ? look.sock : 0xf2efe9 };
 }
-// tattoos: inked line work on the arms, on one or both, the forearm only or the whole arm
-export const TATTOO: Record<'side' | 'cover', Option[]> = {
-  side: [{ value: 'none', label: '無' }, { value: 'left', label: '左手' }, { value: 'right', label: '右手' }, { value: 'both', label: '雙手' }],
-  cover: [{ value: 'forearm', label: '小臂' }, { value: 'sleeve', label: '整隻手臂' }],
-};
-export function tattooOf(look: Look): { side: string; cover: string } {
-  return {
-    side: TATTOO.side.some(o => o.value === look.tattoo) ? (look.tattoo as string) : 'none',
-    cover: TATTOO.cover.some(o => o.value === look.tattooCover) ? (look.tattooCover as string) : 'forearm',
-  };
+// tattoos: each part of the arms and legs inked in a style of its own, or bare (legs show under shorts or a skirt)
+export const TATTOO_STYLES: Option[] = [
+  { value: 'none', label: '無' }, { value: 'wave', label: '日式浪花' }, { value: 'floral', label: '花草' }, { value: 'tribal', label: '部落圖騰' },
+  { value: 'geo', label: '幾何' }, { value: 'flash', label: '小圖案' }, { value: 'script', label: '文字' },
+];
+export const TATTOO_PARTS: Option[] = [
+  { value: 'ru', label: '右大臂' }, { value: 'lu', label: '左大臂' }, { value: 'rf', label: '右小臂' }, { value: 'lf', label: '左小臂' },
+  { value: 'rl', label: '右小腿' }, { value: 'll', label: '左小腿' },
+];
+const tatStyle = (v: unknown) => typeof v === 'string' && v !== 'none' && TATTOO_STYLES.some(o => o.value === v);
+// the style on each inked part (parts left out are bare); older looks stored a side (left / right / both) and how far
+// up the arm (forearm / sleeve), all in the one wave style
+export function tattooOf(look: Look): Record<string, string> {
+  const out: Record<string, string> = {};
+  if (look.tattoos && typeof look.tattoos === 'object') {
+    for (const [k, v] of Object.entries(look.tattoos as Record<string, unknown>)) if (TATTOO_PARTS.some(p => p.value === k) && tatStyle(v)) out[k] = v as string;
+    return out;
+  }
+  const side = look.tattoo, sleeve = look.tattooCover === 'sleeve';
+  (['r', 'l'] as const).forEach(s => {
+    if (side === 'both' || side === (s === 'r' ? 'right' : 'left')) { out[s + 'f'] = 'wave'; if (sleeve) out[s + 'u'] = 'wave'; }
+  });
+  return out;
 }
 
 // a little companion that goes about with them (月亮小熊 flies at their shoulder)
@@ -383,9 +396,13 @@ export function parseLook(get: (k: string) => string | null, prev?: Look): Look 
     socks: SOCKS.some(o => o.value === get('socks')) ? (get('socks') as string) : socksOf(base).style,
     sock: hex('sock', socksOf(base).color),
     shoeStyle: SHOE_STYLES.some(o => o.value === get('shoeStyle')) ? (get('shoeStyle') as string) : shoeOf(base).style,
-    tattoo: TATTOO.side.some(o => o.value === get('tattoo')) ? (get('tattoo') as string) : tattooOf(base).side,
-    tattooCover: TATTOO.cover.some(o => o.value === get('tattooCover')) ? (get('tattooCover') as string) : tattooOf(base).cover,
+    tattoos: (() => {   // one field per part, tat_<part>; a form without them keeps what was there
+      const now = tattooOf(base), t: Record<string, string> = {};
+      TATTOO_PARTS.forEach(p => { const v = get('tat_' + p.value); const s = v == null ? now[p.value] : v; if (tatStyle(s)) t[p.value] = s as string; });
+      return t;
+    })(),
   };
+  delete look.tattoo; delete look.tattooCover;   // superseded by tattoos
   delete look.mustache; delete look.goatee;   // superseded by facialHair
   delete look.beanie; delete look.cap;          // superseded by hat / hatColor
   if (number) look.number = number; else delete look.number;

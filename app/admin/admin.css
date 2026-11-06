@@ -139,6 +139,11 @@ body:has(.admin){margin:0;background:#141218}
 .admin .pick label:hover span{background:#373245}
 .admin .pick input:checked + span{background:var(--gold);color:#1f1c27;box-shadow:inset -2px -2px 0 0 #b08d10,inset 2px 2px 0 0 #fff2a8}
 .admin .pick input:focus-visible + span{outline:3px solid var(--gold);outline-offset:2px}
+/* the tattoos: a little grid of the parts, a style picked for each, right side then left as worn */
+.admin .pick.tattoos{display:grid;grid-template-columns:repeat(2,minmax(0,170px));gap:8px 12px;align-items:end}
+.admin .pick.tattoos legend{float:none;width:auto;grid-column:1/-1;margin-bottom:2px}
+.admin .pick.tattoos label{display:grid;gap:4px;font-size:12px;color:var(--muted);cursor:default}
+.admin .pick.tattoos select{position:static;opacity:1;width:100%;height:auto;font-size:13px;padding:4px 6px}
 
 /* random values: one chip per value */
 .admin .chips{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 10px}

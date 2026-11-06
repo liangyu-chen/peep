@@ -93,61 +93,147 @@ const strands = () => strandTex || (strandTex = (() => {
   t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(5, 1); return t;
 })());
 
-// tattoos: soft grey-blue line work multiplied over the skin, wrapped round an arm (the texture's width is once round it, its
-// height the length of the forearm or upper arm). Traditional-ish and busy, like a full sleeve: waves and swirls, a
-// few flowers and leaves, a band of stipple shading between them, all running together, with a clear strip at the
-// bottom (toward the wrist) where it stops. Two variants, so the two arms aren't alike; it tiles round the arm.
-const TAT = [];
-const tattooTex = v => TAT[v] || (TAT[v] = (() => {
-  let s = 977 + v * 131;
+// tattoos: soft grey-blue ink multiplied over the skin, wrapped round a limb (the texture's width is once round it, its
+// height the length of the forearm, upper arm or calf, the top toward the elbow / shoulder / knee), with a clear strip at
+// the bottom (toward the wrist or ankle) where it stops. A style per part:
+//   wave    日式浪花: swells with curling crests, a few flowers over them, stipple shading between, all running together
+//   floral  花草: climbing vines, open flowers and leaves, lightly shaded
+//   tribal  部落圖騰: bold solid bands of flowing thorns
+//   geo     幾何: rings of lines, triangles and dots round the limb, a mandala
+//   flash   小圖案: little separate pieces (stars, hearts, swallows, anchors, roses) with skin between
+//   script  文字: a word or two running down the limb in a looping hand
+// Two variants of each, so a pair of arms aren't alike; each tiles round the limb.
+const TAT = {};
+export const TATTOO_INK = '#6a7484';
+function tattooTex(style, v) {
+  const key = `${style}:${v}`;
+  if (TAT[key]) return TAT[key];
+  let s = 977 + v * 131 + style.length * 7919;
   const r = () => { s = (s * 16807) % 2147483647; return s / 2147483647; };
   const t = canvasTex(256, 256, (g, W, H) => {
     g.fillStyle = '#fff'; g.fillRect(0, 0, W, H);
-    const top = 0, bot = H * 0.86;   // the bottom 14% (the wrist end) left bare
-    const ink = '#6a7484', soft = 'rgba(106,116,132,0.3)';   // faded grey-blue, healed ink rather than fresh black
-    const wrap = draw => [-W, 0, W].forEach(dx => { g.save(); g.translate(dx, 0); draw(); g.restore(); });   // so it tiles round the arm
+    const top = 0, bot = H * 0.86;   // the bottom 14% (the wrist / ankle end) left bare
+    const ink = TATTOO_INK, soft = 'rgba(106,116,132,0.3)';   // faded grey-blue, healed ink rather than fresh black
+    const wrap = draw => [-W, 0, W].forEach(dx => { g.save(); g.translate(dx, 0); draw(); g.restore(); });   // so it tiles round the limb
     g.save(); g.beginPath(); g.rect(0, top, W, bot - top); g.clip();
-    // soft shading: stipple drifting in bands
-    for (let i = 0; i < 2600; i++) {
-      const x = r() * W, y = top + r() * (bot - top), band = 0.5 + 0.5 * Math.sin(y / 22 + Math.sin(x / 40) * 2);
-      if (r() < band * 0.9) { g.fillStyle = soft; g.fillRect(x, y, 3, 3); }
-    }
-    // waves: long swells across, each with curling crests
-    g.strokeStyle = ink; g.lineCap = 'round';
-    for (let k = 0; k < 4; k++) {
-      const y0 = top + 30 + k * 58 + r() * 14, amp = 9 + r() * 7, ph = r() * 6;
-      wrap(() => {
-        g.lineWidth = 6; g.beginPath();
-        for (let x = 0; x <= W; x += 4) { const y = y0 + Math.sin(x / W * Math.PI * 4 + ph) * amp; x ? g.lineTo(x, y) : g.moveTo(x, y); }
-        g.stroke();
-        g.lineWidth = 4;
-        for (let c = 0; c < 4; c++) {   // a curl at each crest
-          const cx = ((c + 0.25) / 4 - ph / (Math.PI * 4)) * W, cy = y0 - amp;
-          g.beginPath(); for (let a = 0; a < Math.PI * 3.2; a += 0.2) { const rr = 15 - a * 3.8; g.lineTo(cx + Math.cos(a) * Math.max(1, rr), cy + 6 + Math.sin(a) * Math.max(1, rr)); } g.stroke();
-        }
+    g.strokeStyle = ink; g.fillStyle = ink; g.lineCap = 'round'; g.lineJoin = 'round';
+    const stipple = (n, k) => { for (let i = 0; i < n; i++) { const x = r() * W, y = top + r() * (bot - top), band = 0.5 + 0.5 * Math.sin(y / 22 + Math.sin(x / 40) * 2); if (r() < band * k) { g.fillStyle = soft; g.fillRect(x, y, 3, 3); } } g.fillStyle = ink; };
+    const flower = (fx, fy, fr, petals = 7, leaves = 2) => wrap(() => {
+      g.fillStyle = '#fff'; g.beginPath(); g.arc(fx, fy, fr * 1.1, 0, Math.PI * 2); g.fill();   // sits over what's under it
+      g.lineWidth = 4.5; g.strokeStyle = ink;
+      for (let p = 0; p < petals; p++) { const a = p / petals * Math.PI * 2; g.beginPath(); g.ellipse(fx + Math.cos(a) * fr * 0.55, fy + Math.sin(a) * fr * 0.55, fr * 0.5, fr * 0.3, a, 0, Math.PI * 2); g.stroke(); }
+      g.fillStyle = ink; g.beginPath(); g.arc(fx, fy, fr * 0.22, 0, Math.PI * 2); g.fill();
+      for (let l = 0; l < leaves; l++) {
+        const a = r() * Math.PI * 2, lx = fx + Math.cos(a) * fr * 1.5, ly = fy + Math.sin(a) * fr * 1.5;
+        g.beginPath(); g.ellipse(lx, ly, fr * 0.55, fr * 0.2, a, 0, Math.PI * 2); g.fillStyle = soft; g.fill(); g.stroke();
+        g.beginPath(); g.moveTo(lx - Math.cos(a) * fr * 0.5, ly - Math.sin(a) * fr * 0.5); g.lineTo(lx + Math.cos(a) * fr * 0.5, ly + Math.sin(a) * fr * 0.5); g.lineWidth = 2.5; g.stroke(); g.lineWidth = 4.5;
+      }
+      g.fillStyle = ink;
+    });
+    const star = (x, y, rr) => { g.beginPath(); for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, q = i % 2 ? rr * 0.45 : rr; g.lineTo(x + Math.cos(a) * q, y + Math.sin(a) * q); } g.closePath(); };
+    const heart = (x, y, rr) => { g.beginPath(); g.moveTo(x, y + rr); g.bezierCurveTo(x - rr * 1.6, y - rr * 0.2, x - rr * 0.6, y - rr * 1.3, x, y - rr * 0.4); g.bezierCurveTo(x + rr * 0.6, y - rr * 1.3, x + rr * 1.6, y - rr * 0.2, x, y + rr); g.closePath(); };
+
+    if (style === 'floral') {
+      stipple(900, 0.6);
+      for (let k = 0; k < 3; k++) {   // vines climbing the limb, curling leaves off them
+        const x0 = (k + r() * 0.5) / 3 * W, ph = r() * 6;
+        wrap(() => {
+          g.lineWidth = 4; g.beginPath();
+          for (let y = top; y <= bot; y += 4) { const x = x0 + Math.sin(y / 30 + ph) * 18; y === top ? g.moveTo(x, y) : g.lineTo(x, y); } g.stroke();
+          for (let y = top + 14; y < bot; y += 26) {
+            const x = x0 + Math.sin(y / 30 + ph) * 18, side = (y / 26) % 2 < 1 ? 1 : -1;
+            g.beginPath(); g.ellipse(x + side * 11, y - 4, 10, 4.5, side * 0.6, 0, Math.PI * 2); g.lineWidth = 3; g.stroke();
+          }
+        });
+      }
+      for (let k = 0; k < 4; k++) flower(r() * W, top + 26 + r() * (bot - top - 52), 16 + r() * 10, 5 + Math.floor(r() * 4), 1);
+    } else if (style === 'tribal') {
+      // bands of flowing thorns, solid black-work, a spiral here and there
+      for (let k = 0; k < 3; k++) {
+        const y0 = top + 30 + k * 72 + r() * 10, ph = r() * 6, n = 3;
+        wrap(() => {
+          g.beginPath();
+          for (let x = 0; x <= W; x += 3) { const y = y0 + Math.sin(x / W * Math.PI * 2 * n + ph) * 14; x ? g.lineTo(x, y - 13) : g.moveTo(x, y - 13); }
+          for (let x = W; x >= 0; x -= 3) { const y = y0 + Math.sin(x / W * Math.PI * 2 * n + ph) * 14; g.lineTo(x, y + 13); }
+          g.closePath(); g.fill();
+          for (let i = 0; i < n * 2; i++) {   // thorns sweeping off the band, alternately up and down
+            const x = (i + 0.5) / (n * 2) * W - ph / (Math.PI * 2 * n) * W, y = y0 + Math.sin(x / W * Math.PI * 2 * n + ph) * 14, up = i % 2 ? 1 : -1;
+            g.beginPath(); g.moveTo(x - 18, y); g.quadraticCurveTo(x + 6, y + up * 30, x + 38, y + up * 46); g.quadraticCurveTo(x + 10, y + up * 16, x + 20, y); g.closePath(); g.fill();
+          }
+        });
+      }
+    } else if (style === 'geo') {
+      // rings round the limb: fine lines, a row of triangles, dots; a mandala in the middle
+      const rings = [top + 12, top + 60, top + 150, bot - 16];
+      rings.forEach((y, i) => {
+        g.lineWidth = 3.5; g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.stroke();
+        g.lineWidth = 1.8; g.beginPath(); g.moveTo(0, y + 8); g.lineTo(W, y + 8); g.stroke();
+        if (i === 1) for (let x = 0; x < W; x += 16) { g.beginPath(); g.moveTo(x, y + 12); g.lineTo(x + 8, y + 26); g.lineTo(x + 16, y + 12); g.closePath(); g.fill(); }
+        if (i === 2) for (let x = 6; x < W; x += 12) { g.beginPath(); g.arc(x, y - 10, 2.6, 0, Math.PI * 2); g.fill(); }
       });
-    }
-    // flowers: rings of petals with a dark middle, leaves off them
-    for (let k = 0; k < 5; k++) {
-      const fx = r() * W, fy = top + 20 + r() * (bot - top - 40), fr = 20 + r() * 12;
+      const mx = W * (0.25 + r() * 0.5), my = (rings[1] + rings[2]) / 2 + 12;
       wrap(() => {
-        g.fillStyle = '#fff'; g.beginPath(); g.arc(fx, fy, fr * 1.1, 0, Math.PI * 2); g.fill();   // the flower sits over the waves
-        g.lineWidth = 4.5; g.strokeStyle = ink;
-        for (let p = 0; p < 7; p++) { const a = p / 7 * Math.PI * 2; g.beginPath(); g.ellipse(fx + Math.cos(a) * fr * 0.55, fy + Math.sin(a) * fr * 0.55, fr * 0.5, fr * 0.3, a, 0, Math.PI * 2); g.stroke(); }
-        g.fillStyle = ink; g.beginPath(); g.arc(fx, fy, fr * 0.22, 0, Math.PI * 2); g.fill();
-        for (let l = 0; l < 2; l++) {
-          const a = r() * Math.PI * 2, lx = fx + Math.cos(a) * fr * 1.5, ly = fy + Math.sin(a) * fr * 1.5;
-          g.beginPath(); g.ellipse(lx, ly, fr * 0.55, fr * 0.2, a, 0, Math.PI * 2); g.fillStyle = soft; g.fill(); g.stroke();
-          g.beginPath(); g.moveTo(lx - Math.cos(a) * fr * 0.5, ly - Math.sin(a) * fr * 0.5); g.lineTo(lx + Math.cos(a) * fr * 0.5, ly + Math.sin(a) * fr * 0.5); g.lineWidth = 2.5; g.stroke(); g.lineWidth = 4.5;
-        }
+        g.lineWidth = 2.5;
+        [10, 22, 34].forEach(rr => { g.beginPath(); g.arc(mx, my, rr, 0, Math.PI * 2); g.stroke(); });
+        for (let p = 0; p < 12; p++) { const a = p / 12 * Math.PI * 2; g.beginPath(); g.ellipse(mx + Math.cos(a) * 28, my + Math.sin(a) * 28, 7, 3.5, a, 0, Math.PI * 2); g.stroke(); }
+        g.beginPath(); g.arc(mx, my, 4, 0, Math.PI * 2); g.fill();
       });
+      stipple(600, 0.35);
+    } else if (style === 'flash') {
+      // separate little pieces scattered with skin between
+      const kinds = ['star', 'heart', 'swallow', 'anchor', 'rose', 'star', 'heart'];
+      for (let k = 0; k < 6; k++) {
+        const x = (k + 0.5) / 6 * W + (r() - 0.5) * 10, y = top + 40 + ((k * 0.41 + r() * 0.2) % 1) * (bot - top - 80), kind = kinds[(k + v * 3) % kinds.length], rr = 20 + r() * 6;
+        wrap(() => {
+          g.lineWidth = 4.5;
+          if (kind === 'star') { star(x, y, rr); g.stroke(); }
+          else if (kind === 'heart') { heart(x, y, rr * 0.8); g.fillStyle = soft; g.fill(); g.fillStyle = ink; g.stroke(); }
+          else if (kind === 'swallow') {   // a swallow in flight: a forked tail, swept wings
+            g.beginPath(); g.moveTo(x - rr * 1.3, y - rr * 0.4); g.quadraticCurveTo(x - rr * 0.3, y - rr * 0.1, x, y); g.quadraticCurveTo(x + rr * 0.3, y - rr * 0.1, x + rr * 1.3, y - rr * 0.4);
+            g.quadraticCurveTo(x + rr * 0.4, y + rr * 0.3, x + rr * 0.2, y + rr * 0.9); g.lineTo(x, y + rr * 0.5); g.lineTo(x - rr * 0.2, y + rr * 0.9); g.quadraticCurveTo(x - rr * 0.4, y + rr * 0.3, x - rr * 1.3, y - rr * 0.4); g.closePath(); g.fill();
+          } else if (kind === 'anchor') {
+            g.beginPath(); g.moveTo(x, y - rr); g.lineTo(x, y + rr); g.moveTo(x - rr * 0.5, y - rr * 0.55); g.lineTo(x + rr * 0.5, y - rr * 0.55); g.stroke();
+            g.beginPath(); g.arc(x, y + rr * 0.2, rr * 0.8, Math.PI * 0.1, Math.PI * 0.9); g.stroke();
+            g.beginPath(); g.arc(x, y - rr * 1.15, rr * 0.22, 0, Math.PI * 2); g.stroke();
+          } else {   // a little rose: a spiral and two leaves
+            g.beginPath(); for (let a = 0; a < Math.PI * 4; a += 0.25) { const q = 2 + a * 1.1; g.lineTo(x + Math.cos(a) * q, y + Math.sin(a) * q); } g.stroke();
+            [-1, 1].forEach(d => { g.beginPath(); g.ellipse(x + d * rr, y + rr * 0.6, rr * 0.5, rr * 0.22, d * 0.5, 0, Math.PI * 2); g.fillStyle = soft; g.fill(); g.fillStyle = ink; g.stroke(); });
+          }
+        });
+      }
+    } else if (style === 'script') {
+      // a word running down the limb (and another round the far side), in a looping hand
+      const words = [['Stay', 'True'], ['Good', 'Vibes'], ['Peep', 'Coffee'], ['1998', 'Forever']][v % 4];
+      [0.125, 0.375, 0.625, 0.875].map((u, i) => [W * u, words[i % 2]]).forEach(([x, word]) => {   // four times round, so one faces whichever way
+        g.save(); g.translate(x, top + (bot - top) / 2); g.rotate(Math.PI / 2);
+        g.font = 'italic 700 50px "Brush Script MT", "Segoe Script", cursive, serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+        g.fillText(word, 0, 0); g.lineWidth = 3; g.beginPath(); g.moveTo(-80, 22); g.quadraticCurveTo(0, 34, 80, 20); g.stroke();
+        g.restore();
+      });
+    } else {   // wave
+      stipple(2600, 0.9);
+      for (let k = 0; k < 4; k++) {   // long swells across, each with curling crests
+        const y0 = top + 30 + k * 58 + r() * 14, amp = 9 + r() * 7, ph = r() * 6;
+        wrap(() => {
+          g.lineWidth = 6; g.beginPath();
+          for (let x = 0; x <= W; x += 4) { const y = y0 + Math.sin(x / W * Math.PI * 4 + ph) * amp; x ? g.lineTo(x, y) : g.moveTo(x, y); }
+          g.stroke();
+          g.lineWidth = 4;
+          for (let c = 0; c < 4; c++) {
+            const cx = ((c + 0.25) / 4 - ph / (Math.PI * 4)) * W, cy = y0 - amp;
+            g.beginPath(); for (let a = 0; a < Math.PI * 3.2; a += 0.2) { const rr = 15 - a * 3.8; g.lineTo(cx + Math.cos(a) * Math.max(1, rr), cy + 6 + Math.sin(a) * Math.max(1, rr)); } g.stroke();
+          }
+        });
+      }
+      for (let k = 0; k < 5; k++) flower(r() * W, top + 20 + r() * (bot - top - 40), 20 + r() * 12);
     }
     g.restore();
-    // where it stops, a slightly ragged edge
-    g.fillStyle = soft; for (let x = 0; x < W; x += 3) g.fillRect(x, bot - 2 + r() * 4, 2, 2);
+    // where a full piece stops, a slightly ragged edge
+    if (style === 'wave' || style === 'floral') { g.fillStyle = soft; for (let x = 0; x < W; x += 3) g.fillRect(x, bot - 2 + r() * 4, 2, 2); }
   });
-  t.wrapS = THREE.RepeatWrapping; return t;
-})());
+  t.wrapS = THREE.RepeatWrapping;
+  return (TAT[key] = t);
+}
 
 // ---------------------------------------------------------------- the head and what's built on it
 const R = 0.17;
@@ -552,6 +638,7 @@ function buildBodyAt(look, seed) {
   const shirt = mat(C.shirt, { roughness: 0.85 }), shirtDark = mat(shade(C.shirt, 0.72), { roughness: 0.85 });
   const shirtIn = mat(shade(C.shirt, 0.42), { roughness: 0.9, side: THREE.BackSide });   // the shadowed inside of a sleeve
   const shirtUnder = mat(shade(C.shirt, 0.35), { roughness: 1, side: THREE.DoubleSide });   // the inside of the shirt, seen under its hem
+  const inkedSkin = (style, v) => (style ? mat(C.skin, { roughness: 0.6, map: tattooTex(style, v) }) : skin);   // skin tattooed in a style, or bare
   const pants = mat(C.pants, { roughness: 0.9 }), pantsDark = mat(shade(C.pants, 0.78), { roughness: 0.9 });
   // hair with a little sheen; curls more (the wet, styled look), straight hair a soft gloss along its layers
   const hairM = mat(C.hair, { roughness: hairOf(look).curl === 'curly' ? 0.45 : 0.68, metalness: 0.05, map: strands(), side: THREE.DoubleSide });
@@ -589,7 +676,8 @@ function buildBodyAt(look, seed) {
     const knee = new THREE.Group(); knee.position.set(0, -THIGH, 0); hip.add(knee);
     const kn = mk(sp(RK * 0.96, 16, 12), legM, 0, 0, 0, knee); if (!bareLegs) bare.push(kn);
     const b = mk(cy(0.088 * W, 0.082 * W, 0.09, 14), skirted ? mat(0xf2efe9, { roughness: 0.9 }) : pants, 0, -0.03, 0, knee, false); b.visible = false; bunch.push(b);
-    mk(cy(RK, bareLegs ? 0.052 : flare, 0.25, 16, true), legM, 0, -0.125, 0, knee);   // shin, down into the shoe
+    // shin, down into the shoe (a bare one perhaps tattooed; the leg at -x is the person's right)
+    mk(cy(RK, bareLegs ? 0.052 : flare, 0.25, 16, true), bareLegs ? inkedSkin(tat[x < 0 ? 'rl' : 'll'], x < 0 ? 0 : 1) : legM, 0, -0.125, 0, knee);
     if (!bareLegs) mk(cy(flare + 0.006, flare + 0.006, 0.025, 14), pantsDark, 0, -0.225, 0, knee, false);   // turned-up hem
     // socks: only where they'd show, on a bare shin (a short one round the ankle, a long one up to under the knee, a
     // ribbed band at the top), and over the foot in slides
@@ -784,10 +872,10 @@ function buildBodyAt(look, seed) {
     // sleeves are cloth over the arm, not the arm in another colour: open at the end with their shadowed inside
     // showing, a rolled hem or cuff; a loose cut stands well clear of the arm
     const long = look.longSleeve, S = long ? TF.s : 1, loose = topFit === 'oversize';
-    // a tattooed arm's skin: the forearm, or the whole arm (under a long sleeve only the hand would show, so nothing)
-    const inked = tat.side === 'both' || tat.side === (s < 0 ? 'right' : 'left');   // (the arm at -x is the person's right)
-    const tatM = inked ? mat(C.skin, { roughness: 0.6, map: tattooTex(s < 0 ? 0 : 1) }) : skin;
-    const sleeveM = long ? shirt : tat.cover === 'sleeve' ? tatM : skin, foreM = long ? shirt : tatM;
+    // the arm's skin, the upper arm and forearm each tattooed in its own style or bare (under a long sleeve only the hand
+    // would show, so nothing); the arm at -x is the person's right
+    const side = s < 0 ? 'r' : 'l';
+    const sleeveM = long ? shirt : inkedSkin(tat[side + 'u'], s < 0 ? 0 : 1), foreM = long ? shirt : inkedSkin(tat[side + 'f'], s < 0 ? 1 : 0);
     const lining = (rt, rb, h, y, par) => mk(cy(rt - 0.002, rb - 0.002, h, 14, true), shirtIn, 0, y, 0, par, false);   // the inside of a sleeve, seen at its opening
     const roll = (r, y, par) => { const e = mk(geo(`roll:${r.toFixed(3)}`, () => new THREE.TorusGeometry(r, 0.006, D(6, 3), D(24, 10))), shirtDark, 0, y, 0, par, false); e.rotation.x = Math.PI / 2; };   // a rolled edge round an opening
     // the upper arm: rounded over its top, fullest just below the shoulder, tapering to the elbow (open there, where
@@ -811,7 +899,7 @@ function buildBodyAt(look, seed) {
     const cap = loose ? mk(sp(1, 24, 16), shirt, s * 0.232, 1.14, 0) : mk(sp(1, 24, 16), shirt, s * 0.222, 1.138, 0);
     if (loose) cap.scale.set(0.082, 0.05, 0.074); else cap.scale.set(0.066 * Math.min(TF.s, 1.12), 0.046, 0.062);
     const elbow = new THREE.Group(); elbow.position.set(0, -0.27, 0); sh.add(elbow); elbows.push(elbow);
-    mk(sp(0.05 * S, 14, 10), sleeveM, 0, 0, 0, elbow);                                             // fills the elbow only when it bends
+    mk(sp(0.05 * S, 14, 10), long ? shirt : skin, 0, 0, 0, elbow);                                 // fills the elbow only when it bends
     const wrist = long ? (loose ? 0.05 : 0.046) * S : 0.044;
     mk(cy(0.052 * S, wrist, 0.24, 14, true), foreM, 0, -0.12, 0, elbow);                            // forearm, the same width where they meet
     if (long) {   // the cuff: a band at the wrist, the sleeve's inside showing round the hand; a loose sleeve bunches above it

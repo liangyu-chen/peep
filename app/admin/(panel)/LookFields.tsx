@@ -1,4 +1,4 @@
-import { CLOTHES, COLOR_PRESETS, COMPANIONS, FACE, HAIR, HAT_STYLES, SHOE_STYLES, SOCKS, TATTOO, clothesOf, companionOf, faceOf, hairOf, hatOf, shoeOf, socksOf, tattooOf, type Look } from '@/src/content/catalog';
+import { CLOTHES, COLOR_PRESETS, COMPANIONS, FACE, HAIR, HAT_STYLES, SHOE_STYLES, SOCKS, TATTOO_PARTS, TATTOO_STYLES,clothesOf, companionOf, faceOf, hairOf, hatOf, shoeOf, socksOf, tattooOf, type Look } from '@/src/content/catalog';
 import ColorField from './ColorField';
 
 function Pick({ name, label, value, options }: { name: string; label: string; value: string; options: { value: string; label: string }[] }) {
@@ -33,8 +33,16 @@ export default function LookFields({ look, seed }: { look: Look; seed: string })
         <Pick name="facialHair" label="鬍子" value={f.facialHair} options={FACE.facialHair} />
         <Pick name="beard" label="鬍子濃淡" value={f.beard} options={FACE.beard} />
         <Pick name="glasses" label="眼鏡" value={f.glasses} options={FACE.glasses} />
-        <Pick name="tattoo" label="刺青" value={tattoo.side} options={TATTOO.side} />
-        <Pick name="tattooCover" label="刺青範圍" value={tattoo.cover} options={TATTOO.cover} />
+        <fieldset className="pick tattoos">
+          <legend>刺青（每個部位各選風格；小腿穿短褲、裙子才看得到）</legend>
+          {TATTOO_PARTS.map(p => (
+            <label key={p.value}>{p.label}
+              <select name={'tat_' + p.value} defaultValue={tattoo[p.value] ?? 'none'}>
+                {TATTOO_STYLES.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+            </label>
+          ))}
+        </fieldset>
       </section>
 
       <section className="panel-block">
