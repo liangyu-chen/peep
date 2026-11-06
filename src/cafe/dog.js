@@ -172,6 +172,22 @@ function corgiBody() {
   g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
   g.computeVertexNormals(); return (corgiBodyGeo = g);
 }
+// his head: fawn, with the white blaze painted on it (narrow between the eyes, widening down to the muzzle), so it lies
+// perfectly flat rather than being a piece stuck on
+let corgiHeadGeo = null;
+function corgiHead() {
+  if (corgiHeadGeo) return corgiHeadGeo;
+  const g = new THREE.SphereGeometry(0.052, 24, 18), p = g.attributes.position, col = [];
+  const tan = new THREE.Color(picked(0xc99a62)), white = new THREE.Color(picked(0xf6f0e6)), c = new THREE.Color();
+  for (let i = 0; i < p.count; i++) {
+    const x = p.getX(i) / 0.052, y = p.getY(i) / 0.052, z = p.getZ(i) / 0.052;
+    const half = 0.07 + 0.16 * smooth(0.75, -0.3, y);   // the stripe's half-width: narrow up top, wider low on the face
+    const w = smooth(half + 0.05, half, Math.abs(x)) * smooth(0.35, 0.6, z) * smooth(0.95, 0.8, y);
+    c.copy(tan).lerp(white, w); col.push(c.r, c.g, c.b);
+  }
+  g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  return (corgiHeadGeo = g);
+}
 // an ear: broad at the base (which sits down inside the head), narrowing to a rounded tip
 let earG = null;
 const earGeo = () => earG || (earG = new THREE.LatheGeometry([[0.0001, -0.02], [0.03, -0.012], [0.032, 0.008], [0.026, 0.032], [0.017, 0.052], [0.009, 0.063], [0.0001, 0.067]].map(([r, y]) => new THREE.Vector2(r, y)), 16));
@@ -185,17 +201,16 @@ export function makeCorgi() {
   // the fluffy white seat at the back and the ruff of his chest (fawn, a white bib down it): soft, only lightly tufted,
   // and sunk well into the body, each over the body's own matching colour; the seat kept in close to his rump
   const soft = (r, seed, mm, x, y, z, sx, sy, sz) => { const me = new THREE.Mesh(fuzzGeo(r, seed, 0.08), mm); me.position.set(x, y, z); me.scale.set(sx, sy, sz); me.castShadow = true; b.add(me); return me; };
-  soft(0.05, 11, m.white, 0, C_HIP + 0.02, -0.094, 1.2, 0.85, 0.54);
+  soft(0.05, 11, m.white, 0, C_HIP + 0.02, -0.098, 1.2, 0.85, 0.58);
   soft(0.052, 13, m.tan, 0, C_HIP + 0.042, 0.104, 1.08, 1.05, 0.62);
   soft(0.026, 14, m.white, 0, C_HIP + 0.03, 0.132, 0.85, 1.4, 0.55);
 
   // the head: tan, a long white muzzle, a white blaze up the middle, white cheeks; tipped to one side
   const head = new THREE.Group(); head.position.set(0, C_HIP + 0.105, 0.142); b.add(head);
   const skull = new THREE.Group(); skull.rotation.z = 0.28; head.add(skull);
-  ball(0.052, m.tan, 0, 0, 0, skull, 1.05, 0.95, 1);
+  { const hm = new THREE.Mesh(corgiHead(), m.body); hm.scale.set(1.05, 0.95, 1); hm.castShadow = true; skull.add(hm); }   // (the blaze painted on)
   ball(0.03, m.white, 0, -0.02, 0.045, skull, 0.95, 0.7, 1.15);                   // muzzle
   [-1, 1].forEach(s => ball(0.026, m.white, s * 0.022, -0.022, 0.025, skull, 1, 0.85, 1));   // cheeks
-  ball(0.012, m.white, 0, 0.02, 0.0445, skull, 0.6, 1.9, 0.3);                      // the blaze (just on the surface, not standing out)
   ball(0.009, m.dark, 0, -0.012, 0.079, skull, 1.25, 0.95, 0.8);                   // nose
   [-1, 1].forEach(s => {
     ball(0.0085, m.dark, s * 0.024, 0.01, 0.042, skull, 1, 1, 0.6);                // eyes, set into the face
