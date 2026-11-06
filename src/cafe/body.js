@@ -411,7 +411,7 @@ const foxGeo = () => geo('fox', () => {
 // top folds in under the collar (hidden in the leg). The front, under the laces, slopes on up from the toe.
 const HI = { r: 0.07, top: 0.104 };
 // a low-top's: only round the heel and sides, up to just under the ankle; the front over the laces as the sneaker's
-const LO = { r: 0.068, top: 0.066, z0: 0.075, z1: 0.0 };
+const LO = { r: 0.068, top: 0.066, z0: 0.12, z1: 0.05 };   // (its front drawn up a little too, as the tongue)
 // a sneaker's padded collar: up the back and sides a little way round the ankle
 const SNK = { r: 0.066, top: 0.076, z0: 0.13, z1: 0.045 };   // (the front drawn up too, as the tongue, so no ankle shows over the laces)
 const hiTopGeo = (S = HI) => geo(`shoeRaised:${S.top}`, () => {
@@ -485,11 +485,9 @@ function buildShoe(style, knee, mk, { shoe, skin, light, ankle = true }) {   // 
     } else {
       mk(cy(LO.r + 0.002, LO.r + 0.002, 0.006, 18, true, Math.PI * 0.45, Math.PI * 1.1), light, 0, Y + LO.top - 0.003, 0, knee, false);   // the low collar's white edge, round the back (the front dips to the laces)
       // over the top of the foot: an X seen from above at each step
-      [0.098, 0.08, 0.062].forEach(z => {   // (ahead of the leg)
-        const y = Y + shoeTop(z) + 0.003;
-        [-1, 1].forEach(k => {
-          const l = mk(bx(0.04, 0.005, 0.005), laceM, 0, y, z, knee, false); l.rotation.y = k * 0.42;
-        });
+      [0.03, 0.044, 0.058].forEach(h => {   // up the tongue, tipped back with its slope
+        const z = hiFront(h, LO), tilt = Math.atan2(hiFront(h + 0.008, LO) - hiFront(h - 0.008, LO), 0.016);
+        [-1, 1].forEach(k => { const l = mk(bx(0.04, 0.005, 0.005), laceM, 0, Y + h, z + 0.004, knee, false); l.rotation.set(tilt, 0, k * 0.42); });
       });
     }
     return;
