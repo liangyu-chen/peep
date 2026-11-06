@@ -107,6 +107,8 @@ async function clearEmpties(owner) {
 
 async function ownerLoop(owner) {
   while (!S.stopped) {
+    // more than five empties out on the tables: they're cleared first, before the next order
+    if ((S.empties || []).length > 5) { await clearEmpties(owner); continue; }
     if (!S.orderQueue.length) {
       if (Math.random() < 0.08 && !S.closing) {
         owner.status = '去倉庫拿豆子';
