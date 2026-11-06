@@ -661,7 +661,7 @@ function buildBodyAt(look, seed) {
   const legM = bareLegs ? skin : pants;                   // bare legs under a skirt or shorts
   // wide legs: baggy all the way, flaring out to the hem (bare legs are just legs: the fit is the shorts' width)
   const W = shorts ? 1 : { slim: 0.85, regular: 1, wide: 1.45 }[fit] || 1, flare = fit === 'wide' && !shorts ? 0.125 : 0.062 * W;
-  const SW = { slim: 1.06, regular: 1.14, wide: 1.32 }[fit] || 1.14;   // how far the shorts stand off the thigh
+  const SW = { slim: 1.14, regular: 1.26, wide: 1.42 }[fit] || 1.26;   // how far the shorts stand off the thigh (cut roomy)
   const bare = [];   // what shows skin when the pants come down (thighs, knees, hips)
   const bunch = [];  // the pants bunched round the shins, only seen then
   const cover = [];  // shorts' legs, gone when they come down
@@ -676,11 +676,11 @@ function buildBodyAt(look, seed) {
     // the hips flow on down into the leg instead of a tube coming out from under them (profile from the knee up, faces out)
     const thigh = mk(lathe(`thigh2:${W}`, [[RK, -THIGH], [0.078 * W, -0.24], [0.086 * W, -0.12], [0.09 * W, -0.04], [0.088 * W, -0.005], [0.074 * W, 0.022], [0.044 * W, 0.042], [0.001, 0.05]], 20), legM, 0, 0, 0, hip);
     if (!bareLegs) bare.push(thigh);
-    if (shorts) {   // the shorts' leg: an open tube a little clear of the thigh, ending a hand above the knee, its hem turned up
-      const r0 = 0.091 * SW, r1 = 0.084 * SW;
-      const leg = mk(cy(r0, r1, 0.2, 18, true), pants, 0, -0.08, 0, hip); cover.push(leg);
-      const hem = mk(cy(r1 + 0.004, r1 + 0.004, 0.022, 18, true), pantsDark, 0, -0.17, 0, hip, false); cover.push(hem);
-      cover.push(mk(cy(r1 - 0.002, r1 - 0.002, 0.03, 18, true), mat(shade(C.pants, 0.4), { roughness: 1, side: THREE.BackSide }), 0, -0.165, 0, hip, false));   // its shadowed inside
+    if (shorts) {   // the shorts' leg: a loose open tube well clear of the thigh, widening a touch to its hem just above the knee, the hem turned up
+      const r0 = 0.09 * SW, r1 = 0.094 * SW, L = 0.27;
+      const leg = mk(cy(r0, r1, L, 18, true), pants, 0, 0.02 - L / 2, 0, hip); cover.push(leg);
+      const hem = mk(cy(r1 + 0.004, r1 + 0.004, 0.022, 18, true), pantsDark, 0, 0.02 - L + 0.01, 0, hip, false); cover.push(hem);
+      cover.push(mk(cy(r1 - 0.002, r1 - 0.002, 0.03, 18, true), mat(shade(C.pants, 0.4), { roughness: 1, side: THREE.BackSide }), 0, 0.02 - L + 0.015, 0, hip, false));   // its shadowed inside
     }
     const knee = new THREE.Group(); knee.position.set(0, -THIGH, 0); hip.add(knee);
     const kn = mk(sp(RK * 0.96, 16, 12), legM, 0, 0, 0, knee); if (!bareLegs) bare.push(kn);
@@ -700,7 +700,7 @@ function buildBodyAt(look, seed) {
   });
   // hips: one piece from the waist splitting into the two legs, no join between them (separate hips and thighs leave a
   // line round the tops of the legs, like briefs)
-  const seat = mk(pantsTopGeo(W, fit === 'wide' ? 1.12 : 1), pants, 0, 0, 0);   // (baggy pants are roomy through the seat too)
+  const seat = mk(pantsTopGeo(W, fit === 'wide' || shorts ? 1.12 : 1), pants, 0, 0, 0);   // (baggy pants and shorts are roomy through the seat too)
   bare.push(seat);
   // a skirt: knee length, A-line, hanging from the waist; a pivot at the waist so it can drape over the lap when sitting.
   // Its waistband sits tucked up inside the shirt (narrower than the shirt all round, front and back too) and it only
