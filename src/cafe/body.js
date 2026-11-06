@@ -972,7 +972,7 @@ function buildBodyAt(look, seed) {
       const lay = v => {
         const lifted = Math.max(v.y, surfY(v.x, v.z) + 0.01);
         v.y += (lifted - v.y) * (1 - wF);
-        v.z += (surfZ(v.x, v.y) + 0.014 - v.z) * wF;
+        v.z += (surfZ(v.x, v.y) + 0.024 - v.z) * wF;
         // and wherever it ends up, never inside the shirt: out from its slice by at least the cloth's thickness
         if (v.y < UNECK.neck) {
           const [ex, ez] = slice(v.y), e = Math.sqrt((v.x / ex) ** 2 + (v.z / ez) ** 2), need = 1 + 0.009 / Math.min(ex, ez);
