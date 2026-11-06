@@ -390,6 +390,15 @@ const shoeGeo = sole => geo(`shoe:${sole}`, () => {
 // the height of the top of the shoe above its centre, a distance z forward (for laying the laces on it)
 const shoeTop = z => SHOE.h * Math.sqrt(Math.max(0, 1 - ((z - SHOE.fwd) / SHOE.l) ** 2)) * (1 - 0.35 * Math.max(0, (z - SHOE.fwd) / SHOE.l) ** 2);
 const laceM = mat(0xeeeeea, { roughness: 0.7 });
+// a leg's cloth (or skin) lit as if it ran straight up and down: its normals made level, so a thigh narrowing to the knee and
+// a trouser leg widening from it are lit alike and meet without a change of shade (the cached geometry's own copy)
+const FLAT_LIT = new WeakMap();
+const levelNormals = c => { const n = c.attributes.normal, v = new THREE.Vector3(); for (let i = 0; i < n.count; i++) { v.fromBufferAttribute(n, i); if (Math.abs(v.y) < 0.95) { v.y = 0; v.normalize(); n.setXYZ(i, v.x, v.y, v.z); } } return c; };
+const flatLit = g => {
+  if (FLAT_LIT.has(g)) return FLAT_LIT.get(g);
+  const c = levelNormals(g.clone()); c.userData.flatLit = true;
+  FLAT_LIT.set(g, c); return c;
+};
 // a canvas shoe's rubber: the upper's own outline a hair larger, from the ground up the sides to FOX (a band wrapping
 // the foot, not a plate under it); its flat underside on the ground where a sneaker's sole is
 const FOX = 0.006;
@@ -769,7 +778,7 @@ function buildBodyAt(look, seed) {
     // the thigh: rounded over its top, which sits up inside the hips, fullest just below them, tapering to the knee, so
     // the hips flow on down into the leg instead of a tube coming out from under them (profile from the knee up, faces out)
     const thighAt = w => [[0.074 * w, -THIGH], [0.078 * w, -0.24], [0.086 * w, -0.12], [0.09 * w, -0.04], [0.088 * w, -0.005], [0.074 * w, 0.022], [0.044 * w, 0.042], [0.001, 0.05]];
-    const thigh = mk(lathe(`thigh2:${W}`, thighAt(W), 20), legM, 0, 0, 0, hip);
+    const thigh = mk(flatLit(lathe(`thigh2:${W}`, thighAt(W), 20)), legM, 0, 0, 0, hip);
     if (!bareLegs) bare.push(thigh);
     let shortsLeg = null;
     if (shorts) {
@@ -784,7 +793,7 @@ function buildBodyAt(look, seed) {
       const base = thighAt(TW), rAt = y => { for (let k = 1; k < base.length; k++) if (base[k][1] >= y) { const [r0, y0] = base[k - 1], [r1, y1] = base[k]; return r0 + (r1 - r0) * (y - y0) / (y1 - y0); } return 0.001; };
       const S0 = -0.262, prof = [-THIGH, -0.262, -0.25, -0.235, -0.22, -0.2, -0.15, -0.11, -0.08, -0.06, -0.04, -0.02, -0.005, 0.022, 0.042, 0.05].map(y => shape([rAt(y), y])), i = prof.findIndex(([, y]) => y > S0), [r0, y0] = prof[i - 1], [r1, y1] = prof[i];
       const cut = [r0 + (r1 - r0) * (S0 - y0) / (y1 - y0), S0], rh = cut[0];
-      const pantsIn = pants.clone(); pantsIn.side = THREE.DoubleSide;
+      const pantsIn = pants.clone(); pantsIn.side = THREE.DoubleSide; pantsIn.shadowSide = THREE.BackSide;   // (its back faces in the shadow map: no speckled self-shadowing on it)
       shortsLeg = mk(lathe(`shorts9:${TW}:${FL}`, [cut, ...prof.slice(i)], 20), pantsIn, 0, 0, 0, hip); cover.push(shortsLeg);   // (both faces: its inside shows at the hem, in its own colour)
       cover.push(mk(cy(rh + 0.003, rh + 0.004, 0.018, 18, true), pantsDark, 0, S0 + 0.009, 0, hip, false));   // the turned-up hem
     }
@@ -794,7 +803,7 @@ function buildBodyAt(look, seed) {
     // shin, down into the shoe (a bare one perhaps tattooed; the leg at -x is the person's right)
     // (bare, a real calf: knee-wide at the top, rounding over the calf and in to the ankle, no kink where it meets the knee)
     if (bareLegs) mk(lathe(`calf:${RK}`, [[0.052, -0.125], [0.0595, -0.06], [0.065, 0], [0.071, 0.07], [RK, 0.125]], 16), inkedSkin(tat[x < 0 ? 'rl' : 'll'], x < 0 ? 0 : 1), 0, -0.125, 0, knee);
-    else mk(cy(RK, flare, 0.25, 16, true), legM, 0, -0.125, 0, knee);
+    else mk(flatLit(cy(RK, flare, 0.25, 16, true)), legM, 0, -0.125, 0, knee);
     if (!bareLegs) mk(cy(flare + 0.006, flare + 0.006, 0.025, 14), pantsDark, 0, -0.225, 0, knee, false);   // turned-up hem
     // socks: only where they'd show, on a bare shin (a short one round the ankle, a long one up to under the knee, a
     // ribbed band at the top), and over the foot in slides
@@ -1105,11 +1114,24 @@ function buildBodyAt(look, seed) {
           if (!m) return;
           const gm = m.geometry.clone(), pos = gm.attributes.position;
           for (let i = 0; i < pos.count; i++) { const y = pos.getY(i), up = Math.min(1, Math.max(0, (y + THIGH) / THIGH)); pos.setX(i, pos.getX(i) * fx); pos.setZ(i, pos.getZ(i) * (fx + (fz - fx) * up)); }
-          gm.computeVertexNormals(); m.geometry = gm;
+          gm.computeVertexNormals(); if (m.geometry.userData.flatLit) { levelNormals(gm); gm.userData.flatLit = true; } m.geometry = gm;
         });
         const hemK = (fx + (fz - fx) * ((THIGH - 0.262) / THIGH)) / fx;   // (the shorts' hems: as deep as the leg is there)
         c.children.forEach(o => { if (o !== leg.thigh && o !== leg.knee && o !== leg.shortsLeg) { o.scale.x *= fx; o.scale.z *= fx * hemK; } });
-        leg.knee.scale.set(fx, 1, fx);
+        // (the knee down: as wide as the thigh at the knee, easing back to as built at the ankle, so the trousers don't
+        // flare out into bell-bottoms and the shoes stay their size)
+        leg.knee.updateMatrixWorld(true);
+        leg.knee.traverse(m => {
+          if (!m.isMesh) return;
+          const toKnee = new THREE.Matrix4().copy(leg.knee.matrixWorld).invert().multiply(m.matrixWorld), back = toKnee.clone().invert();
+          const gm = m.geometry.clone(), pos = gm.attributes.position, v = new THREE.Vector3();
+          for (let i = 0; i < pos.count; i++) {
+            v.fromBufferAttribute(pos, i).applyMatrix4(toKnee);
+            const f = 1 + (fx - 1) * Math.min(1, Math.max(0, (v.y + 0.25) / 0.25));
+            v.x *= f; v.z *= f; v.applyMatrix4(back); pos.setXYZ(i, v.x, v.y, v.z);
+          }
+          gm.computeVertexNormals(); if (m.geometry.userData.flatLit) { levelNormals(gm); gm.userData.flatLit = true; } m.geometry = gm;
+        });
         return;
       }
       if (!c.isMesh) { const f = c === skirt ? LOW : 1; c.position.x *= 1 + (BLD.w - 1) * f; c.position.z *= 1 + (BLD.d - 1) * f; c.scale.x *= 1 + (BLD.w - 1) * f; c.scale.z *= 1 + (BLD.d - 1) * f; return; }
@@ -1384,7 +1406,7 @@ function buildHair(hairParts, shape, head, hairM, mk, at, look) {
       // snug round the head, a stalk in the middle of the top
       // (shaped as one piece from the band up: bellying out past the head, then rounding over to a full soft top a little
       // above the crown of the head, which it covers; slouched forward and to one side)
-      const crownTop = deform(HEADS[shape], v.copy(hatN)).addScaledVector(hatN, T).sub(c).dot(hatN), h = crownTop + 0.03;
+      const crownTop = deform(HEADS[shape], v.copy(hatN)).addScaledVector(hatN, T).sub(c).dot(hatN), h = crownTop + 0.008;   // (sat down close over the crown)
       const slouch = new THREE.Group(); slouch.rotation.set(0.1, 0, 0.14); hat.add(slouch);
       const body = new THREE.LatheGeometry([[rb, -0.004], [rb * 1.06, h * 0.22], [rb * 1.24, h * 0.5], [rb * 1.27, h * 0.64], [rb * 1.14, h * 0.84], [rb * 0.72, h * 0.98], [0.001, h]].map(([r, y]) => new THREE.Vector2(r, y)), 40);
       mk(body, hm, 0, 0, 0, slouch);
