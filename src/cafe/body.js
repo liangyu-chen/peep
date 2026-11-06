@@ -754,7 +754,8 @@ function buildBodyAt(look, seed) {
   const W = bareLegs ? 1 : { slim: 0.85, regular: 1, wide: 1.45 }[fit] || 1, flare = fit === 'wide' && !shorts ? 0.125 : 0.062 * W;
   // shorts are the pants' own thighs (one surface with the seat, so no seam round the hips), roomy, in the pants colour,
   // ending at the knee in a turned-up hem, the knee and shin bare below
-  const SW = { slim: 1.0, regular: 1.06, wide: 1.14 }[fit] || 1.06, TW = shorts ? SW : W;
+  // (the seat as roomy as the legs below it, so from behind the shorts are one width all the way down, no waist pinched in)
+  const SW = { slim: 1.08, regular: 1.24, wide: 1.4 }[fit] || 1.24, TW = shorts ? SW : W;
   const bare = [];   // what shows skin when the pants come down (thighs, knees, hips)
   const bunch = [];  // the pants bunched round the shins, only seen then
   const cover = [];  // shorts' legs, gone when they come down
@@ -774,12 +775,17 @@ function buildBodyAt(look, seed) {
     if (shorts) {
       // the shorts' leg: the pants' own thigh, roomier (so one surface with the seat, no seam round the hips), stopping a
       // little above the knee, open there over the bare thigh, its hem turned up and its shadowed inside showing
-      // (one with the seat at the top, then standing off the thigh more and more going down: roomy legs, no seam)
-      const FL = { slim: 0.1, regular: 0.24, wide: 0.42 }[fit] ?? 0.24, out = y => { const a = Math.min(1, Math.max(0, -(y + 0.055) / 0.1)), b = Math.min(1, Math.max(0, -(y + 0.17) / 0.09)); return 1 + FL * (a * a * (3 - 2 * a)) * (1 - 0.65 * b * b * (3 - 2 * b)); };   // (from below the crotch, where the seat ends; fullest mid-thigh, coming back in a little to the hem)
-      const S0 = -0.262, prof = thighAt(TW).map(([r, y]) => [r * out(y), y]), i = prof.findIndex(([, y]) => y > S0), [r0, y0] = prof[i - 1], [r1, y1] = prof[i];
+      // (one with the seat at the top; from below the crotch a straight, roomy tube, hanging very slightly wider to the hem,
+      // like the cloth it is, rather than following the thigh's own curve in to the knee)
+      const FL = 0, R = 0.09 * TW;
+      // (below the seat, no longer following the thigh in towards the knee: straight down at the seat's own width, hanging
+      // a touch wider to the hem)
+      const shape = ([r, y]) => (y < -0.04 ? [R + 0.01 * Math.min(1, -(y + 0.04) / 0.22), y] : [r, y]);
+      const base = thighAt(TW), rAt = y => { for (let k = 1; k < base.length; k++) if (base[k][1] >= y) { const [r0, y0] = base[k - 1], [r1, y1] = base[k]; return r0 + (r1 - r0) * (y - y0) / (y1 - y0); } return 0.001; };
+      const S0 = -0.262, prof = [-THIGH, -0.262, -0.25, -0.235, -0.22, -0.2, -0.15, -0.11, -0.08, -0.06, -0.04, -0.02, -0.005, 0.022, 0.042, 0.05].map(y => shape([rAt(y), y])), i = prof.findIndex(([, y]) => y > S0), [r0, y0] = prof[i - 1], [r1, y1] = prof[i];
       const cut = [r0 + (r1 - r0) * (S0 - y0) / (y1 - y0), S0], rh = cut[0];
       const pantsIn = pants.clone(); pantsIn.side = THREE.DoubleSide;
-      shortsLeg = mk(lathe(`shorts4:${TW}:${FL}`, [cut, ...prof.slice(i)], 20), pantsIn, 0, 0, 0, hip); cover.push(shortsLeg);   // (both faces: its inside shows at the hem, in its own colour)
+      shortsLeg = mk(lathe(`shorts9:${TW}:${FL}`, [cut, ...prof.slice(i)], 20), pantsIn, 0, 0, 0, hip); cover.push(shortsLeg);   // (both faces: its inside shows at the hem, in its own colour)
       cover.push(mk(cy(rh + 0.003, rh + 0.004, 0.018, 18, true), pantsDark, 0, S0 + 0.009, 0, hip, false));   // the turned-up hem
     }
     const knee = new THREE.Group(); knee.position.set(0, -THIGH, 0); hip.add(knee);
