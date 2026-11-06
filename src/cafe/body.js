@@ -389,12 +389,14 @@ const laceM = mat(0xeeeeea, { roughness: 0.7 });
 // a canvas shoe's rubber: the upper's own outline a hair larger, from the ground up the sides to FOX (a band wrapping
 // the foot, not a plate under it); its flat underside on the ground where a sneaker's sole is
 const FOX = 0.006;
+const CANVAS_HEEL = 0.78;   // a canvas shoe's heel drawn in, to sit just behind the ankle rather than well out behind it
 const smooth = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 const foxGeo = () => geo('fox', () => {
   const g = new THREE.SphereGeometry(1, D(56), D(36)), p = g.attributes.position;   // (fine, so its top edge runs smooth)
   for (let i = 0; i < p.count; i++) {
     const z0 = p.getZ(i), curl = 0.012 * Math.max(0, z0) ** 3;   // (the upper's toe turns up; the sole stays flat out to the tip, wrapping up over it)
     let [X, Y, Z] = shoeShape(p.getX(i), p.getY(i), z0);
+    if (Z < 0) Z *= CANVAS_HEEL;
     X *= 1.018; Z = (Z - SHOE.fwd) * 1.015 + SHOE.fwd;
     const cap = 0.036 * smooth(0.4, 0.8, z0);   // over the toe it rises into the rounded rubber toe cap, one piece with the sole
     // (stood just proud of the upper all over, so the two never flicker where they meet)
@@ -413,6 +415,7 @@ const hiTopGeo = (S = HI) => geo(`shoeRaised:${S.top}`, () => {
   for (let i = 0; i < p.count; i++) {
     const x = p.getX(i), y = p.getY(i), z = p.getZ(i);
     let [X, Y, Z] = shoeShape(x, y, z);
+    if (Z < 0) Z *= CANVAS_HEEL;
     if (y > 0) {
       const w = smooth(S.z0 ?? 0.14, S.z1 ?? 0.05, Z) * smooth(0.15, 0.7, y);   // how much it's drawn up: the back half, the upper part
       const phi = uv.getX(i) * Math.PI * 2, a = Math.atan2(-Math.cos(phi), Math.sin(phi));   // its angle round the leg (from the sphere's own u, so even the pole's points have one)
