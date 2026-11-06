@@ -9,8 +9,7 @@ export * from './look';
 export type MenuItem = { name: string; en: string; section: string; hot: string; ice: string };
 // 隱藏菜單: drinks that aren't on the menu customers see, but that some of them order anyway
 export const HIDDEN_SECTION = '隱藏菜單';
-// 蛋糕: the cakes, not on the menu either; nobody orders one on a whim (a first-timer's pick, a regular trying something
-// new), only a regular whose usual it is
+// 蛋糕: the cakes, not on the paper menu either; ordered like anything else, but what's said about one never has it 來一杯
 export const CAKE_SECTION = '蛋糕';
 export const MENU_SECTIONS = ['Original', 'Coffee late', 'Something special', 'Not coffee', HIDDEN_SECTION, CAKE_SECTION];
 export const OFF_MENU = [HIDDEN_SECTION, CAKE_SECTION];   // sections not printed on the paper menu

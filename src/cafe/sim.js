@@ -7,7 +7,7 @@ import { DOOR, TOILET, zoneSpot, route, LANE, MACHINE, HUBX } from './layout.js'
 import { Person, makeCup, makeTakeaway, setLevel, sip, walk } from './people.js';
 import { newProfile, tvGames, GAME_LABEL } from './profiles.js';
 import { doTops } from './tops.js';
-import { sayLine, priceOf, drinkFor, pickVariant, orderName, drinkNames } from './content.js';
+import { sayLine, priceOf, drinkFor, pickVariant, orderName, menuNames } from './content.js';
 import { log, floatText } from './feed.js';
 import { closeCard } from './hud.js';
 import { setStoreLight, setToiletLight } from './world/lights.js';
@@ -175,7 +175,7 @@ async function ownerLoop(owner) {
     const c = S.orderQueue.shift();
     if (c.gone) continue;
     // a regular's usual (on the menu or not), though now and then they try something else, hidden menu and all
-    const usual = drinkFor(c.p.drink), others = drinkNames().filter(n => n !== usual);   // (trying something new: a drink, not a cake)
+    const usual = drinkFor(c.p.drink), others = menuNames().filter(n => n !== usual);
     const tryOther = c.p.regular && others.length && Math.random() < 0.3;
     const drink = tryOther ? pick(others) : usual;
     const variant = pickVariant(drink);

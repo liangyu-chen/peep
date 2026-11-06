@@ -18,7 +18,7 @@ export default async function MenuPage({ searchParams }: { searchParams: Promise
       <h1>菜單</h1>
       <p className="hint">
         直接在表格裡改，改完按下方「儲存」。價格欄寫什麼就印什麼（例如 <code>120</code>、<code>∞</code>、<code>???</code>），留白代表沒有這個做法；
-        兩欄都有的飲料，客人會點冰或熱。用 ▲▼ 調整順序，就是紙菜單上的順序。放在「隱藏菜單」的品項不會印在菜單上，但客人還是可能會點；「蛋糕」也不會印在菜單上，而且只有常點是它的熟客才會點。
+        兩欄都有的飲料，客人會點冰或熱。用 ▲▼ 調整順序，就是紙菜單上的順序。放在「隱藏菜單」的品項不會印在菜單上，但客人還是可能會點；「蛋糕」也不會印在菜單上，客人一樣會點，點的時候不會說「來一杯」。
       </p>
       {msg && <p className="note ok">{msg}</p>}
       {/* a fresh key each render, so the editor starts from what was just saved */}

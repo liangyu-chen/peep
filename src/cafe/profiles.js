@@ -1,7 +1,7 @@
 // Who comes in: the regulars (each with their usual drink and 2K team) and random first-timers.
 import * as THREE from 'three';
 import { rand, randi, pick } from './util.js';
-import { drinkNames } from './content.js';
+import { menuNames } from './content.js';
 import { S } from './state.js';
 import { FACE, FIGHTER_NAMES } from '../content/catalog';
 
@@ -68,7 +68,7 @@ export function newProfile() {
   }
   return {
     name, regular: false, visits: 1, job: pick(job),
-    drink: pick(drinkNames()),   // (never a cake)
+    drink: pick(menuNames()),   // (cakes included)
     team: pick(TEAM_NAMES), fighter: pick(FIGHTER_NAMES), wins: 0, losses: 0, quirk: '第一次來',
     plays2k: Math.random() < 0.35, playsFight: Math.random() < 0.2, playsTops: false, smokes: Math.random() < 0.2,
     look: L(pick(SKINS), pick(HAIRS), 'short',
