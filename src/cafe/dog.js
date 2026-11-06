@@ -204,7 +204,13 @@ export function makeCorgi() {
   // the fluffy white seat at the back and the ruff of his chest (fawn, a white bib down it): soft, only lightly tufted,
   // and sunk well into the body, each over the body's own matching colour; the seat kept in close to his rump
   const soft = (r, seed, mm, x, y, z, sx, sy, sz) => { const me = new THREE.Mesh(fuzzGeo(r, seed, 0.08), mm); me.position.set(x, y, z); me.scale.set(sx, sy, sz); me.castShadow = true; b.add(me); return me; };
-  soft(0.05, 11, m.white, 0, C_HIP + 0.02, -0.098, 1.2, 0.85, 0.58);
+  {   // (the seat: white down its middle, the coat's fawn round its sides, blending)
+    const sg = fuzzGeo(0.05, 11, 0.08).clone(), sp = sg.attributes.position, sc = [];
+    const fawn = new THREE.Color(picked(0xc99a62)), wh = new THREE.Color(picked(0xf6f0e6)), cc = new THREE.Color();
+    for (let i = 0; i < sp.count; i++) { const ax = Math.abs(sp.getX(i)) / 0.05, ay = sp.getY(i) / 0.05; cc.copy(wh).lerp(fawn, smooth(0.35, 0.75, ax) * smooth(-0.6, 0.1, ay)); sc.push(cc.r, cc.g, cc.b); }
+    sg.setAttribute('color', new THREE.Float32BufferAttribute(sc, 3));
+    const seat = new THREE.Mesh(sg, m.body); seat.position.set(0, C_HIP + 0.02, -0.098); seat.scale.set(1.2, 0.85, 0.58); seat.castShadow = true; b.add(seat);
+  }
   soft(0.052, 13, m.tan, 0, C_HIP + 0.042, 0.104, 1.08, 1.05, 0.62);
   soft(0.026, 14, m.white, 0, C_HIP + 0.03, 0.132, 0.85, 1.4, 0.55);
 
