@@ -16,7 +16,7 @@ export const HUBX = -1.6;          // the main walkway runs along this x
 export const TVX = -2.6, TVZ = -3.15, TVY = 1.3;   // the TV on its rolling cart
 export const LW = -2.78;                          // seats along the purple wall
 export const LSEATS = [2.0, 0.9, -0.2, -1.3];     // from the door inwards
-const LCUP = { '2.0': 1.62, '0.9': 1.28, '-0.2': 0.3, '-1.3': -0.92 };   // which table each purple-wall seat puts its cup on
+const LCUP = new Map([[2.0, 1.62], [0.9, 1.28], [-0.2, 0.3], [-1.3, -0.92]]);   // which table each purple-wall seat puts its cup on (by number: String(2.0) is '2')
 
 // the middle table outside, street side first: blocks, crates, crates, crates, blocks (built small, then scaled up)
 export const STRIP = { blocks: [6.42, 5.30], crates: [6.14, 5.86, 5.58], scale: 1.35, from: 5.86, to: 6.0 };
@@ -39,7 +39,7 @@ export function createSeats() {
   [0.4, 1.6].forEach(x => seat('table', x, -3.95, Math.PI, 0.12, [x, 1.03, -4.28], [[x, -3.95], [HUBX, -4.1]], { where: '霓虹燈下的漫畫吧檯' }));
   // purple wall cinder seats, backs to the wall
   LSEATS.forEach(z => {
-    const cz = LCUP[String(z)], onStump = Math.abs(cz - 0.35) < 0.1;
+    const cz = LCUP.get(z), onStump = Math.abs(cz - 0.35) < 0.1;
     seat('table', LW, z, Math.PI / 2, -0.1, [LW, onStump ? 0.43 : 0.61, cz], [[LW, z], [HUBX, z]], { where: '紫色牆邊' });
   });
   // by the work counter: two at the back end, an L in the door-end corner

@@ -35,8 +35,14 @@ function ledgeAndTv() {
   const L0 = -1.46, L1 = 3.02;
   box(L1 - L0, 0.05, 0.34, woodM, (L0 + L1) / 2, 1.0, -5.3);
   [L0 + 0.25, (L0 + L1) / 2, L1 - 0.25].forEach(x => box(0.04, 0.2, 0.25, blackM, x, 0.88, -5.36));
-  const nBooks = Math.floor((L1 - L0 - 0.1) / 0.058);
-  for (let i = 0; i < nBooks; i++) box(0.045, rand(0.17, 0.2), 0.12, mat(pick([0xd8d0c0, 0xf2f2f2, 0xc94a3a, 0x3a5fa8, 0xe6c34a, 0x2a2a2a])), L0 + 0.06 + i * 0.058, 1.12, -5.42);
+  // the manga, spines out, packed close: each about 4 cm thick (as seen, after the squeeze; 0.06 in plan), a little
+  // thicker or thinner volume to volume, standing on the ledge
+  let bx = L0 + 0.05;
+  while (bx < L1 - 0.1) {
+    const w = rand(0.05, 0.068), h = rand(0.17, 0.2);
+    box(w, h, 0.13, mat(pick([0xd8d0c0, 0xf2f2f2, 0xc94a3a, 0x3a5fa8, 0xe6c34a, 0x2a2a2a])), bx + w / 2, 1.025 + h / 2, -5.42);
+    bx += w + 0.006;
+  }
   [0.4, 1.6].forEach(x => highStool(x, -4.95));
   // the TV stands on a rolling TV cart near the purple wall, with a PS5 on the shelf underneath
   const cartM = mat(0x1b1b1d, { metalness: 0.6, roughness: 0.35 });
