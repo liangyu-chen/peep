@@ -85,8 +85,8 @@ export default function Cafe({ content }: { content: CafeContent }) {
           <button id="tagToggle" className="on">名牌</button>
         </div>
         <div className="row"><span>效能</span>
-          <button data-quality="high">開啟陰影</button>
-          <button data-quality="normal">簡化陰影</button>
+          <button data-quality="high" title="每秒 60 張、完整解析度，影子每張重算">高</button>
+          <button data-quality="normal" title="每秒 30 張、解析度較低，影子只算一次：省電">低</button>
           <a href="/admin" className="adminLink">後台登入</a>
         </div>
         <div className="row soundRow"><span>聲音</span><button id="sfxToggle" className="on">音效</button><button id="musicToggle" className="on">音樂</button></div>
