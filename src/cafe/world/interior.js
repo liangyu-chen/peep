@@ -202,7 +202,8 @@ function workCounter() {
   box(0.006, 0.012, Z1 - Z0, seamM, FX, 0.05, (Z0 + Z1) / 2);
   for (let i = 0; i < BAYS; i++) box(0.012, 0.01, 0.14, seamM, FX - 0.003, 0.83, Z0 + (i + 0.5) * bw);   // a finger pull under each top edge
   for (let i = 0; i < 6; i++) cyl(0.055, 0.04, 0.06, mat(0xf2f0ea, { roughness: 0.3 }), 2.78 + (i % 2) * 0.13, 0.99, 0.2 + Math.floor(i / 2) * 0.14, ctx.scene, 12);
-  workBottles(2.92, 0.96, 1.66);   // (the back row's backs at the wall face, 3.01)
+  workBottles(2.92, 0.96, 1.66);
+  macbook(2.75, 0.96, 0.95);   // the owner's laptop, along from the bottles   // (the back row's backs at the wall face, 3.01)
   buildPegboard();   // the crammed pegboard above (pegboard.js)
   // back end: two cinder seats against the wall with two stacked crates between them
   cinderSeat(2.75, -2.55); cinderSeat(2.75, -3.65);
@@ -305,6 +306,22 @@ function cornerNook() {
   };
   onWall(0.46, 0.15, clockTex, 2.08, 3.25, true);
   S.ledClock = draw; draw();
+}
+
+// the owner's laptop on the 工作台: a thin silver laptop, open, its screen turned to the room (to him, behind the bar),
+// the keyboard dark in its well, a faint glow on the screen. In true size (unsqueezed): 30 x 21 cm, 1.1 cm thin
+function macbook(x, y, z) {
+  const g = new THREE.Group(); g.position.set(x, y, z); g.rotation.y = -Math.PI / 2 + 0.12; ctx.scene.add(g);
+  g.scale.z = 1 / K;   // (turned side-on, its depth is what lies along the squeezed x)
+  const alu = mat(0xc9cbcf, { roughness: 0.32, metalness: 0.7 }), dark = mat(0x1b1c1f, { roughness: 0.6 });
+  box(0.30, 0.008, 0.21, alu, 0, 0.004, 0, g);                                   // the base
+  box(0.27, 0.001, 0.10, dark, 0, 0.0085, -0.025, g);                          // the keys
+  box(0.11, 0.001, 0.065, mat(0xb9bbbf, { roughness: 0.25, metalness: 0.6 }), 0, 0.0085, 0.065, g);   // the trackpad
+  const lid = new THREE.Group(); lid.position.set(0, 0.008, -0.105); lid.rotation.x = -0.32; g.add(lid);   // hinged at the back, opened a little past upright
+  box(0.30, 0.2, 0.005, alu, 0, 0.1, -0.003, lid);
+  const screen = new THREE.Mesh(new THREE.PlaneGeometry(0.275, 0.175), mat(0x203040, { emissive: 0x3a5a7a, emissiveIntensity: 0.6, roughness: 0.2 }));
+  screen.position.set(0, 0.1, 0.0013); lid.add(screen);
+  box(0.29, 0.188, 0.001, dark, 0, 0.1, 0.0002, lid);                           // the black bezel round it
 }
 
 // the bottles crowded on the 工作台 against the wall, in true size (a group unsqueezed): a row of MONIN syrup bottles in

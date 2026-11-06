@@ -4,7 +4,7 @@ import { ctx } from './engine.js';
 import { S, sleep } from './state.js';
 import { rand, randi, pick, K } from './util.js';
 import { DOOR, TOILET, zoneSpot, route, LANE, MACHINE, HUBX } from './layout.js';
-import { Person, makeCup, makeTakeaway, walk } from './people.js';
+import { Person, makeCup, makeTakeaway, setLevel, sip, walk } from './people.js';
 import { newProfile, tvGames, GAME_LABEL } from './profiles.js';
 import { doTops } from './tops.js';
 import { sayLine, priceOf, drinkFor, pickVariant, orderName, menuNames } from './content.js';
@@ -45,8 +45,8 @@ const BIN = [[2.45, 2.36], [2.1, 2.8], [HUBX, 3.0]];
 // one at a time: out to the ashtray, picked up, carried in to the bin and tipped out, then carried back and put down
 async function emptyAshtrays(owner, trays) {
   owner.status = '去戶外區收菸灰缸';
-  await ownerTo(owner, LANE, -2.3);
-  let zone = BAR_OUT;
+  await ownerTo(owner, LANE, 2.9);
+  let zone = FRONT_OUT;
   for (const a of trays) {
     owner.status = '去戶外區收菸灰缸';
     await walk(owner, route(zone, a.path)); zone = a.path;
@@ -67,33 +67,62 @@ async function emptyAshtrays(owner, trays) {
     owner.act = null; owner.actT = 0; await sleep(0.4);
   }
   owner.status = '回吧台';
-  const back = [[LANE, rand(-1.5, 1.5)]].concat(BAR_OUT);
+  const back = [[LANE, rand(-1.5, 1.5)]].concat(FRONT_OUT);
   await walk(owner, route(zone, back));
   owner.act = null; owner.actT = 0;
 }
 
 // the empties left on the tables: out to them a few at a time (to the seat's way in, not onto the seat, in case someone's
 // sat down there since), picked up, and back behind the bar to set them in the sink, where they're washed up a while later
+// out from behind the bar at its front end, where the menu is, and round to the walkway: clear of the sliding door at
+// the back (which the way out past the 2K stools opened) and of the front door
+const FRONT_OUT = [[LANE, 2.9], [1.0, 2.95], [-0.2, 2.95], [HUBX, 2.55]];
 const SINK_AT = [[0.32, -1.66], [0.5, -1.44], [0.66, -1.66], [0.42, -1.52], [0.6, -1.4], [0.3, -1.42]];   // in the sink at the bar's inner end (world/interior.js)
+const cupAt = e => { const p = new THREE.Vector3(); e.g.getWorldPosition(p); return p; };
 async function clearEmpties(owner) {
-  const take = S.empties.splice(0, 4);
+  // up to four, taken in the order they lie (each next one the nearest to the last), so the round's short
+  const left = S.empties.filter(e => e.g.parent), take = [];
+  let from = left.shift(); if (!from) { S.empties.length = 0; return; }
+  take.push(from);
+  while (take.length < 4 && left.length) {
+    const f = cupAt(from); left.sort((a, b) => cupAt(a).distanceTo(f) - cupAt(b).distanceTo(f));
+    take.push(from = left.shift());
+  }
+  S.empties = S.empties.filter(e => e.g.parent && !take.includes(e));
   owner.status = '去收空杯';
-  await ownerTo(owner, LANE, -2.3);
-  let zone = BAR_OUT;
-  const wp = new THREE.Vector3();
-  for (const [i, e] of take.entries()) {
-    if (!e.g.parent) continue;
+  let held = 0;
+  const pick = e => {
+    owner.hand.attach(e.g); e.g.position.set((held - 1.5) * 0.035, -0.06, 0.02); e.g.rotation.set(0, 0, 0); held++; e.got = true;
+  };
+  // the manga ledge's stools are right behind the bar's back end: those he reaches from there, without going round by
+  // the walkway (whose end is by the sliding door, which would open)
+  const ledge = take.filter(e => e.ledge && e.g.parent);
+  if (ledge.length) {
+    await ownerTo(owner, LANE, -2.3);
+    for (const e of ledge) {
+      await walk(owner, [[Math.max(0.6, e.x), -3.55]]);   // just behind the stool
+      owner.face(Math.PI); await sleep(0.4); owner.gesture('serve', 0.6); await sleep(0.5); pick(e);
+    }
+    await walk(owner, [[LANE, -2.3]]);
+  }
+  if (take.some(e => !e.got && e.g.parent)) await ownerTo(owner, LANE, 2.9);
+  let zone = FRONT_OUT;
+  for (const e of take) {
+    if (e.got || !e.g.parent) continue;
     const to = e.path.length > 1 ? e.path.slice(1) : e.path;
     await walk(owner, route(zone, to)); zone = to;
-    e.g.getWorldPosition(wp);
+    const wp = cupAt(e);
     owner.face(Math.atan2(wp.x - owner.g.position.x, wp.z - owner.g.position.z)); await sleep(0.4);
     owner.gesture('serve', 0.6); await sleep(0.5);
-    owner.hand.attach(e.g); e.g.position.set((i - 1.5) * 0.035, -0.06, 0.02); e.g.rotation.set(0, 0, 0);
+    // this one, and any other on the list within reach of where he stands (the next table along, the same crates)
+    pick(e);
+    for (const o of take) if (!o.got && o.g.parent && cupAt(o).distanceTo(owner.g.position) < 1.1) { await sleep(0.35); pick(o); }
     owner.status = '收空杯';
   }
   owner.status = '把空杯拿去水槽';
   owner.gesture('serve', 60);
-  await walk(owner, route(zone, BAR_OUT)); await walk(owner, [[2.0, -1.55]]);
+  if (take.some(e => !e.ledge)) await walk(owner, route(zone, FRONT_OUT));
+  await walk(owner, [[LANE, owner.g.position.z], [2.0, -1.55]]);
   owner.face(-Math.PI / 2); await sleep(0.4);
   take.forEach((e, i) => {
     if (e.g.parent !== owner.hand) return;
@@ -131,7 +160,7 @@ async function ownerLoop(owner) {
       if (dirty.length && dirty.reduce((t, a) => t + a.n, 0) >= 4 && Math.random() < 0.06 && !S.closing) { await emptyAshtrays(owner, dirty); continue; }
       // or out to clear the empties off the tables, the more of them the sooner
       const empties = (S.empties || []).length;
-      if (empties && Math.random() < (empties >= 2 ? 0.7 : 0.25)) { await clearEmpties(owner); continue; }
+      if (empties && Math.random() < (empties >= 2 ? 0.7 : 0.08)) { await clearEmpties(owner); continue; }   // (a lone one can wait for company)
       owner.status = pick(['擦吧台', '整理茶杯', '試喝今天的豆子', '練雕花']);
       // he steps up to whichever side he works at, just far enough off it that his hands stop at its edge
       const toBar = Math.random() < 0.5;
@@ -221,7 +250,7 @@ async function leave(c, zone) {
   const p = c.p;
   c.status = '準備離開';
   // still holding a glass or a tea cup (watching the TV, say): the last of it, then it's left behind, not taken out
-  if (c.cup && !c.cup.userData.togo) { c.gesture('sip', 1.4); await sleep(1.4); c.dropCup(); }
+  if (c.cup && !c.cup.userData.togo) { c.gesture('sip', 1.4); await sleep(1.4); setLevel(c.cup, 0); c.dropCup(); }
   await walk(c, route(zone, OUT));
   c.outside = true;
   sayLine(c, p.regular ? 'customer.leaveRegular' : 'customer.leaveNew');
@@ -325,7 +354,7 @@ async function doTable(c, zone, s) {
   while (t < stay && !S.closing && !c.tops && !c.smokeNow) {
     await sleep(2); t += 2;
     if (c.tops || c.smokeNow) break;
-    if (Math.random() < 0.25) { c.pickCup(); c.gesture('sip', 1.4); await sleep(1.4); t += 1.4; c.putCup(...s.cup); }
+    if (Math.random() < 0.25) { c.pickCup(); c.gesture('sip', 1.4); await sleep(0.8); sip(c.cup); await sleep(0.6); t += 1.4; c.putCup(...s.cup); }
     if (Math.random() < 0.08) sayLine(c, s.porch ? 'customer.chatPorch' : 'customer.chatTable', { name: c.p.name });
     // smoking is allowed outside only
     if (s.porch && c.p.smokes && !c.cig && Math.random() < 0.1) { c.lightUp(rand(30, 50)); if (Math.random() < 0.5) sayLine(c, 'customer.smoke', { name: c.p.name }); }
@@ -356,7 +385,7 @@ async function doTable(c, zone, s) {
   // off somewhere else in the shop: the drink goes with them. Leaving: they've finished it, and the empty is left on the
   // table for the owner to clear
   if (c.nextGoal || (c.cup && c.cup.userData.togo)) c.pickCup();
-  else if (c.cup) { (S.empties || (S.empties = [])).push({ g: c.cup, path: s.path }); c.cup = null; }
+  else if (c.cup) { setLevel(c.cup, 0); (S.empties || (S.empties = [])).push({ g: c.cup, path: s.path, ledge: s.where === '霓虹燈下的漫畫吧檯', x: s.x }); c.cup = null; }
   return s.path;
 }
 

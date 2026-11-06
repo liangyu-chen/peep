@@ -82,16 +82,29 @@ export function makeCup(drink, variant) {
   const g = new THREE.Group();
   if (variant === 'ice') {
     cyl(0.055, 0.045, 0.22, glassM, 0, 0.11, 0, g, 12);
-    cyl(0.05, 0.042, 0.12, coffeeM, 0, 0.065, 0, g, 12);
-    cyl(0.05, 0.05, 0.06, mat(drink === '林美如' ? 0xe6a23c : 0xe8dcc8), 0, 0.15, 0, g, 12);
+    // the drink in it, two layers, in a group standing on the glass's bottom so it can go down as it's drunk
+    const fill = new THREE.Group(); fill.position.y = 0.005; g.add(fill);
+    cyl(0.05, 0.042, 0.12, coffeeM, 0, 0.06, 0, fill, 12);
+    cyl(0.05, 0.05, 0.06, mat(drink === '林美如' ? 0xe6a23c : 0xe8dcc8), 0, 0.145, 0, fill, 12);
+    g.userData.fill = fill;
   } else { // Taiwanese tea cup for hot lattes
     cyl(0.06, 0.04, 0.06, teaCupM, 0, 0.03, 0, g, 14);
-    cyl(0.056, 0.056, 0.006, mat(0xc89b6c), 0, 0.058, 0, g, 14);
+    g.userData.top = cyl(0.056, 0.056, 0.006, mat(0xc89b6c), 0, 0.058, 0, g, 14);   // the latte's surface, sinking as it's drunk
   }
+  g.userData.level = 1;
   g.traverse(o => { o.castShadow = false; });
   g.userData.h = variant === 'ice' ? 0.22 : 0.06;   // height, for gripping it and lifting the rim to the lips
   return g;
 }
+
+// how full a glass or tea cup is, 0..1: the iced drink's layers shorten, the latte's surface sinks down the tapered cup
+export function setLevel(cup, level) {
+  const u = cup.userData, l = Math.max(0, Math.min(1, level)); u.level = l;
+  if (u.fill) { u.fill.scale.y = Math.max(0.02, l); u.fill.visible = l > 0.01; }
+  if (u.top) { u.top.position.y = 0.006 + 0.052 * l; const r = (0.04 + 0.016 * l) / 0.056; u.top.scale.set(r, 1, r); u.top.visible = l > 0.01; }
+}
+// a sip: a little less in it (a long stay drinks it down to the dregs; it's finished off on the way out)
+export const sip = cup => { if (cup && cup.userData.level !== undefined) setLevel(cup, cup.userData.level - (0.1 + Math.random() * 0.08)); };
 
 // a takeaway cup: a kraft paper cup, tapered, with a white rolled rim and a black sip lid (for anyone leaving with
 // their drink still in hand)
