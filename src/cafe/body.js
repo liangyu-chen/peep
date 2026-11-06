@@ -386,7 +386,19 @@ const shoeGeo = sole => geo(`shoe:${sole}`, () => {
 // the height of the top of the shoe above its centre, a distance z forward (for laying the laces on it)
 const shoeTop = z => SHOE.h * Math.sqrt(Math.max(0, 1 - ((z - SHOE.fwd) / SHOE.l) ** 2)) * (1 - 0.35 * Math.max(0, (z - SHOE.fwd) / SHOE.l) ** 2);
 const laceM = mat(0xeeeeea, { roughness: 0.7 });
-// a high-top's upper: the sneaker's, its back and sides drawn up round the ankle in one smooth piece. Over the upper
+// a canvas shoe's rubber: the upper's own outline a hair larger, from the ground up the sides to FOX (a band wrapping
+// the foot, not a plate under it); its flat underside on the ground where a sneaker's sole is
+const FOX = 0.006;
+const foxGeo = () => geo('fox', () => {
+  const g = new THREE.SphereGeometry(1, D(32), D(20)), p = g.attributes.position;
+  for (let i = 0; i < p.count; i++) {
+    let [X, Y, Z] = shoeShape(p.getX(i), p.getY(i), p.getZ(i));
+    X *= 1.018; Z = (Z - SHOE.fwd) * 1.012 + SHOE.fwd;
+    Y = Y <= SHOE.flat + 1e-4 ? SHOE.flat - 0.012 : Math.min(Y, FOX);
+    p.setXYZ(i, X, Y, Z);
+  }
+  g.computeVertexNormals(); return g;
+});// a high-top's upper: the sneaker's, its back and sides drawn up round the ankle in one smooth piece. Over the upper
 // half, toward the heel, the surface is pulled out onto a ring of radius HI.r round the leg and up to HI.top; its very
 // top folds in under the collar (hidden in the leg). The front, under the laces, slopes on up from the toe.
 const HI = { r: 0.07, top: 0.104 };
@@ -443,15 +455,13 @@ function buildShoe(style, knee, mk, { shoe, skin, light, ankle = true }) {   // 
     return;
   }
   if (style === 'hightop' || style === 'lowtop') {
-    // 帆布鞋: canvas on a white rubber sole, flush with the upper, a big rounded rubber toe cap, laced criss-cross
-    // between two rows of eyelets. 高筒: the upper itself rises up round the ankle in one piece (no tube stuck on top),
+    // 帆布鞋: canvas in a band of white rubber wrapping the foot flush with it, a big rounded rubber toe cap, laced
+    // criss-cross. 高筒: the upper itself rises up round the ankle in one piece (no tube stuck on top),
     // the laces running up its sloping front to a white-edged collar; 低筒: cut low under the ankle, laced over the foot
     const high = style === 'hightop', upper = high ? hiTopGeo() : shoeGeo(false);
     mk(upper, shoe, 0, Y, 0, knee);
-    const sole = mk(shoeGeo(true), light, 0, Y + 0.002, 0, knee, false); sole.scale.set(0.985, 1.5, 0.99);
+    mk(foxGeo(), light, 0, Y, 0, knee, false);
     const toe = mk(sp(1, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2), light, 0, Y - 0.013, 0.12, knee, false); toe.scale.set(0.072, 0.047, 0.06);
-    const eyeM = mat(0xb9bcc2, { roughness: 0.3, metalness: 0.8 });
-    const eyelet = (x, y, z) => mk(sp(0.0035, 6, 4), eyeM, x, y, z, knee, false);
     if (high) {
       mk(cy(HI.r + 0.002, HI.r + 0.002, 0.008, 18, true), light, 0, Y + HI.top - 0.004, 0, knee, false);   // the collar's white edge
       collarTop(HI.r + 0.002, Y + HI.top, 0);
@@ -460,16 +470,14 @@ function buildShoe(style, knee, mk, { shoe, skin, light, ankle = true }) {   // 
         const z = hiFront(h), tilt = Math.atan2(hiFront(h + 0.008) - hiFront(h - 0.008), 0.016);
         [-1, 1].forEach(k => {
           const l = mk(bx(0.04, 0.005, 0.005), laceM, 0, Y + h, z + 0.005, knee, false); l.rotation.set(tilt, 0, k * 0.42);   // (stood a touch proud, over the curve between the sampled points)
-          eyelet(k * 0.019, Y + h + 0.008, hiFront(h + 0.008)); eyelet(k * 0.019, Y + h - 0.008, hiFront(h - 0.008));
         });
       });
     } else {
-      // over the top of the foot: an X seen from above between each pair of eyelets
+      // over the top of the foot: an X seen from above at each step
       [0.098, 0.08, 0.062].forEach(z => {   // (ahead of the leg)
         const y = Y + shoeTop(z) + 0.003;
         [-1, 1].forEach(k => {
           const l = mk(bx(0.04, 0.005, 0.005), laceM, 0, y, z, knee, false); l.rotation.y = k * 0.42;
-          eyelet(k * 0.019, y - 0.001, z - 0.008); eyelet(k * 0.019, y - 0.001, z + 0.008);
         });
       });
     }
