@@ -4,7 +4,7 @@ import { ctx } from './engine.js';
 import { S, sleep } from './state.js';
 import { rand, randi, pick, K } from './util.js';
 import { DOOR, TOILET, zoneSpot, route, LANE, MACHINE, HUBX } from './layout.js';
-import { Person, makeCup, walk } from './people.js';
+import { Person, makeCup, makeTakeaway, walk } from './people.js';
 import { newProfile, tvGames, GAME_LABEL } from './profiles.js';
 import { doTops } from './tops.js';
 import { sayLine, priceOf, drinkFor, pickVariant, orderName, menuNames } from './content.js';
@@ -130,7 +130,8 @@ async function ownerLoop(owner) {
     // he takes the cup as he steps back into his lane, and serves from there, reaching it up and over onto the bar,
     // so it is never carried low into the bar's side
     await walk(owner, [[LANE, MACHINE[1]]]);
-    const cup = makeCup(drink, variant); owner.hold(cup);
+    // ordered as the shop's closing: they'll be off with it, so it goes in a takeaway cup
+    const cup = S.closing ? makeTakeaway() : makeCup(drink, variant); owner.hold(cup);
     await ownerTo(owner, LANE, c.spot.z);
     owner.face(-Math.PI / 2); await sleep(0.3);
     if (c.gone) { owner.dropCup(); continue; }
@@ -180,6 +181,8 @@ const OUT = [[-1.75, WALK_Z]].concat(DOOR.slice(1));   // out of the door to the
 async function leave(c, zone) {
   const p = c.p;
   c.status = '準備離開';
+  // still holding their drink: it goes with them, in a takeaway cup
+  if (c.cup && !c.cup.userData.togo) { c.dropCup(); c.hold(makeTakeaway()); }
   await walk(c, route(zone, OUT));
   c.outside = true;
   sayLine(c, p.regular ? 'customer.leaveRegular' : 'customer.leaveNew');

@@ -93,6 +93,21 @@ export function makeCup(drink, variant) {
   return g;
 }
 
+// a takeaway cup: a kraft paper cup, tapered, with a white rolled rim and a black sip lid (for anyone leaving with
+// their drink still in hand)
+const kraftM = mat(0xb98a5a, { roughness: 0.85 }), lidM = mat(0x1a1a1c, { roughness: 0.35 }), rimM = mat(0xf2f0ea, { roughness: 0.5 });
+export function makeTakeaway() {
+  const g = new THREE.Group();
+  cyl(0.046, 0.035, 0.13, kraftM, 0, 0.065, 0, g, 16);
+  cyl(0.048, 0.048, 0.006, rimM, 0, 0.131, 0, g, 16);
+  cyl(0.05, 0.049, 0.012, lidM, 0, 0.14, 0, g, 16);                 // the lid's skirt
+  cyl(0.04, 0.046, 0.012, lidM, 0, 0.152, 0, g, 16);                // its raised top
+  cyl(0.008, 0.008, 0.006, lidM, 0.026, 0.16, 0, g, 8);             // the sip hole's lip
+  g.traverse(o => { o.castShadow = false; });
+  g.userData.h = 0.16; g.userData.togo = true;
+  return g;
+}
+
 // the right arm with a drink: carrying it in front, and lifting it for a sip (fitted in the scene so the rim meets the lips;
 // the tall glass is tipped more, the low tea cup lifted higher)
 export const DRINK_POSE = {
