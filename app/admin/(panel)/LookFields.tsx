@@ -1,4 +1,4 @@
-import { CLOTHES, COLOR_PRESETS, COMPANIONS, FACE, HAIR, HAT_STYLES, SHOE_STYLES, SOCKS, TATTOO_PARTS, TATTOO_STYLES,clothesOf, companionOf, faceOf, hairOf, hatOf, shoeOf, socksOf, tattooOf, type Look } from '@/src/content/catalog';
+import { CLOTHES, COLOR_PRESETS, COMPANIONS, EARRINGS, earringsOf, FACE, HAIR, HAT_STYLES, SHOE_STYLES, SOCKS, TATTOO_PARTS, TATTOO_STYLES,clothesOf, companionOf, faceOf, hairOf, hatOf, shoeOf, socksOf, tattooOf, type Look } from '@/src/content/catalog';
 import ColorField from './ColorField';
 
 function Pick({ name, label, value, options }: { name: string; label: string; value: string; options: { value: string; label: string }[] }) {
@@ -15,7 +15,7 @@ function Pick({ name, label, value, options }: { name: string; label: string; va
 // the 捏臉 fields shared by the regulars' editor and the owner's page; parseLook() reads them back
 export default function LookFields({ look, seed }: { look: Look; seed: string }) {
   const f = faceOf(look, seed);
-  const hat = hatOf(look), hair = hairOf(look), clothes = clothesOf(look), shoe = shoeOf(look), socks = socksOf(look), tattoo = tattooOf(look);
+  const hat = hatOf(look), hair = hairOf(look), clothes = clothesOf(look), shoe = shoeOf(look), socks = socksOf(look), tattoo = tattooOf(look), ears = earringsOf(look);
   return (
     <>
       <section className="panel-block">
@@ -33,6 +33,8 @@ export default function LookFields({ look, seed }: { look: Look; seed: string })
         <Pick name="facialHair" label="鬍子" value={f.facialHair} options={FACE.facialHair} />
         <Pick name="beard" label="鬍子濃淡" value={f.beard} options={FACE.beard} />
         <Pick name="glasses" label="眼鏡" value={f.glasses} options={FACE.glasses} />
+        <Pick name="earR" label="右耳耳環" value={ears.right} options={EARRINGS} />
+        <Pick name="earL" label="左耳耳環" value={ears.left} options={EARRINGS} />
         <fieldset className="pick tattoos">
           <legend>刺青（每個部位各選風格；小腿穿短褲、裙子才看得到）</legend>
           {TATTOO_PARTS.map(p => (

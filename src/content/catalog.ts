@@ -297,6 +297,14 @@ export const SHOE_STYLES: Option[] = [
 export function shoeOf(look: Look): { style: string; color: number } {
   return { style: SHOE_STYLES.some(o => o.value === look.shoeStyle) ? (look.shoeStyle as string) : 'sneaker', color: typeof look.shoe === 'number' ? look.shoe : 0x1d1d1d };
 }
+// earrings, chosen for each ear
+export const EARRINGS: Option[] = [
+  { value: 'none', label: '無' }, { value: 'hoop', label: '金色圈' }, { value: 'hoopSilver', label: '銀色圈' }, { value: 'stud', label: '耳釘' }, { value: 'drop', label: '垂墜' },
+];
+export function earringsOf(look: Look): { left: string; right: string } {
+  const ok = (v: unknown) => (EARRINGS.some(o => o.value === v) ? (v as string) : 'none');
+  return { left: ok(look.earL), right: ok(look.earR) };
+}
 // socks (seen on bare legs, under shorts or a skirt, and in slides)
 export const SOCKS: Option[] = [{ value: 'none', label: '無' }, { value: 'short', label: '短襪' }, { value: 'long', label: '長襪' }];
 export function socksOf(look: Look): { style: string; color: number } {
@@ -397,6 +405,8 @@ export function parseLook(get: (k: string) => string | null, prev?: Look): Look 
     glasses: opt('glasses', face.glasses), eyeColor: hex('eyeColor', face.eyeColor), blush: get('blush') === 'on',
     companion: COMPANIONS.some(c => c.value === get('companion')) ? (get('companion') as string) : companionOf(base),
     shoe: hex('shoe', shoeOf(base).color),
+    earL: EARRINGS.some(o => o.value === get('earL')) ? (get('earL') as string) : earringsOf(base).left,
+    earR: EARRINGS.some(o => o.value === get('earR')) ? (get('earR') as string) : earringsOf(base).right,
     socks: SOCKS.some(o => o.value === get('socks')) ? (get('socks') as string) : socksOf(base).style,
     sock: hex('sock', socksOf(base).color),
     shoeStyle: SHOE_STYLES.some(o => o.value === get('shoeStyle')) ? (get('shoeStyle') as string) : shoeOf(base).style,

@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import { BufferGeometryUtils } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { mat, canvasTex } from './engine.js';
 import { PIX } from './util.js';
-import { faceOf, hairOf, hatOf, clothesOf, shoeOf, socksOf, tattooOf } from '../content/catalog';
+import { faceOf, hairOf, hatOf, clothesOf, shoeOf, socksOf, tattooOf, earringsOf } from '../content/catalog';
 
 // how much longer the legs are than first drawn: the hips sit this much higher (people.js lowers sitting and squatting to match)
 export const LEG_EXTRA = 0.08;
@@ -51,6 +51,7 @@ const glossM = mat(0x070708, { roughness: 0.22, metalness: 0 });                
 // thin wire frames, gold or silver
 const WIRE = { metal: mat(0xd2ae62, { roughness: 0.28, metalness: 0.85 }), metalSilver: mat(0xc9ccd1, { roughness: 0.25, metalness: 0.9 }) };
 const goldM = mat(0xd9ad52, { roughness: 0.25, metalness: 0.9 });                   // and the gold lines across it
+const silverM = mat(0xd4d7dc, { roughness: 0.22, metalness: 0.9 });                 // silver earrings
 // 健誌嘴巴: a burst of light right where the mouth is, as if the camera caught a flash: a white-hot middle, a warm
 // glow fading out round it and a few thin rays
 let flareM = null;
@@ -409,6 +410,8 @@ const foxGeo = () => geo('fox', () => {
 const HI = { r: 0.07, top: 0.104 };
 // a low-top's: only round the heel and sides, up to just under the ankle; the front over the laces as the sneaker's
 const LO = { r: 0.068, top: 0.066, z0: 0.075, z1: 0.0 };
+// a sneaker's padded collar: up the back and sides a little way round the ankle
+const SNK = { r: 0.066, top: 0.076, z0: 0.13, z1: 0.045 };   // (the front drawn up too, as the tongue, so no ankle shows over the laces)
 const hiTopGeo = (S = HI) => geo(`shoeRaised:${S.top}`, () => {
   const g = new THREE.SphereGeometry(1, D(32), D(22)), p = g.attributes.position, uv = g.attributes.uv;
   for (let i = 0; i < p.count; i++) {
@@ -426,17 +429,17 @@ const hiTopGeo = (S = HI) => geo(`shoeRaised:${S.top}`, () => {
 });
 // how far forward the high-top's front is at a height above the foot's centre (for laying the laces on it)
 const HI_FRONT = new Map();
-const hiFront = h => {
-  const k = Math.round(h * 1000);
+const hiFront = (h, S = HI) => {
+  const k = `${S.top}:${Math.round(h * 1000)}`;
   if (!HI_FRONT.has(k)) {
-    const p = hiTopGeo().attributes.position; let best = 0;
+    const p = hiTopGeo(S).attributes.position; let best = 0;
     // (on the sloping front above the foot: the upper surface down the middle, behind the toe, nearest that height)
     let near = 1;
     for (let i = 0; i < p.count; i++) {
       const X = p.getX(i), Y = p.getY(i), Z = p.getZ(i);
       if (Math.abs(X) < 0.012 && Y > 0.01 && Z > 0.02 && Z < 0.13 && Math.abs(Y - h) < near) { near = Math.abs(Y - h); best = Z; }
     }
-    HI_FRONT.set(k, best || HI.r);
+    HI_FRONT.set(k, best || S.r);
   }
   return HI_FRONT.get(k);
 };
@@ -500,11 +503,11 @@ function buildShoe(style, knee, mk, { shoe, skin, light, ankle = true }) {   // 
     return;
   }
   // 球鞋: one rounded piece on a sole that follows its outline, a padded collar a little way up the ankle, laces across the top
-  mk(shoeGeo(false), shoe, 0, Y, 0, knee);
+  // (the collar is the upper itself drawn up round the ankle, as a canvas shoe's; under trousers, whose hem's over it, plain)
+  mk(ankle ? hiTopGeo(SNK) : shoeGeo(false), shoe, 0, Y, 0, knee);
   mk(shoeGeo(true), soleM, 0, Y, 0, knee, false);
-  if (ankle) { mk(cy(0.066, 0.069, 0.046, 18, true), shoe, 0, Y + 0.052, -0.004, knee); collarTop(0.066, Y + 0.075, -0.004); }   // (under trousers, their hem's over it)
-  laces([0.03, 0.055, 0.08]);
-  if (ankle) mk(bx(0.05, 0.006, 0.01), laceM, 0, Y + 0.066, 0.06, knee, false);   // one more, up the collar
+  if (ankle) [0.03, 0.045, 0.06].forEach(h => mk(bx(0.046, 0.006, 0.008), laceM, 0, Y + h, hiFront(h, SNK) + 0.003, knee, false));   // laced up the tongue
+  else laces([0.03, 0.055, 0.08]);
 }
 // the torso: slices up the body, each an oval [y, half-width, half-depth]; it narrows a little to the waist, widens to
 // the shoulders and then slopes up to the neck in one curve
@@ -837,10 +840,24 @@ function buildBodyAt(look, seed) {
   const surf = SURF[shape] || (SURF[shape] = surfaceFor(shape));
   const at = (x, y, z) => deform(H, new THREE.Vector3(x, y, z).normalize());   // surface point in a direction
   // ears, sitting on the side of whatever head shape it is
+  const ears = earringsOf(look);
   [-1, 1].forEach(s => {
     const p = at(s, -0.04, 0.02);
     mk(sp(0.042, 12, 10), skin, p.x + s * 0.004, p.y, p.z, head).scale.set(0.42, 1, 0.72);
     mk(sp(0.022, 8, 6), skinShade, p.x + s * 0.016, p.y, p.z + 0.004, head, false).scale.set(0.3, 0.75, 0.55);
+    // an earring through the lobe (the ear at -x is the person's right): a small hoop hanging edge-on to the cheek, a
+    // stud, or a drop on a short chain
+    const kind = s < 0 ? ears.right : ears.left;
+    if (kind !== 'none') {
+      const lx = p.x + s * 0.014, ly = p.y - 0.036, lz = p.z + 0.006, metal = kind === 'hoopSilver' ? silverM : goldM;
+      if (kind === 'hoop' || kind === 'hoopSilver') {
+        const ring = mk(geo('earHoop', () => new THREE.TorusGeometry(0.011, 0.0022, 6, 20)), metal, lx, ly - 0.009, lz, head, false); ring.rotation.y = Math.PI / 2;
+      } else if (kind === 'stud') mk(sp(0.0045, 8, 6), silverM, lx, ly + 0.002, lz + 0.002, head, false);
+      else {
+        mk(cy(0.0009, 0.0009, 0.014, 4), goldM, lx, ly - 0.007, lz, head, false);
+        mk(sp(0.005, 8, 6), metal, lx, ly - 0.017, lz, head, false).scale.set(0.8, 1.3, 0.8);
+      }
+    }
   });
   const face = new THREE.Group(); head.add(face);
   const fm = (geom, m, x, y, z, par = face) => mk(geom, m, x, y, z, par, false);
