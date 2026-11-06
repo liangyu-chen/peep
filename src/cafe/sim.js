@@ -72,6 +72,39 @@ async function emptyAshtrays(owner, trays) {
   owner.act = null; owner.actT = 0;
 }
 
+// the empties left on the tables: out to them a few at a time (to the seat's way in, not onto the seat, in case someone's
+// sat down there since), picked up, and back behind the bar to set them in the sink, where they're washed up a while later
+const SINK_AT = [[0.32, -1.66], [0.5, -1.44], [0.66, -1.66], [0.42, -1.52], [0.6, -1.4], [0.3, -1.42]];   // in the sink at the bar's inner end (world/interior.js)
+async function clearEmpties(owner) {
+  const take = S.empties.splice(0, 4);
+  owner.status = '去收空杯';
+  await ownerTo(owner, LANE, -2.3);
+  let zone = BAR_OUT;
+  const wp = new THREE.Vector3();
+  for (const [i, e] of take.entries()) {
+    if (!e.g.parent) continue;
+    const to = e.path.length > 1 ? e.path.slice(1) : e.path;
+    await walk(owner, route(zone, to)); zone = to;
+    e.g.getWorldPosition(wp);
+    owner.face(Math.atan2(wp.x - owner.g.position.x, wp.z - owner.g.position.z)); await sleep(0.4);
+    owner.gesture('serve', 0.6); await sleep(0.5);
+    owner.hand.attach(e.g); e.g.position.set((i - 1.5) * 0.035, -0.06, 0.02); e.g.rotation.set(0, 0, 0);
+    owner.status = '收空杯';
+  }
+  owner.status = '把空杯拿去水槽';
+  owner.gesture('serve', 60);
+  await walk(owner, route(zone, BAR_OUT)); await walk(owner, [[2.0, -1.55]]);
+  owner.face(-Math.PI / 2); await sleep(0.4);
+  take.forEach((e, i) => {
+    if (e.g.parent !== owner.hand) return;
+    ctx.scene.attach(e.g); const [x, z] = SINK_AT[(S.sinkN = ((S.sinkN || 0) + 1)) % SINK_AT.length];
+    e.g.position.set(x * K, 0.79, z); e.g.rotation.set(0, Math.random() * 3, 0);
+    S.timers.push({ t: rand(40, 70), r: () => e.g.parent?.remove(e.g) });   // washed and put away
+  });
+  owner.gesture('wipe', 1.6); await sleep(1.6);   // a rinse
+  owner.act = null; owner.actT = 0;
+}
+
 async function ownerLoop(owner) {
   while (!S.stopped) {
     if (!S.orderQueue.length) {
@@ -94,6 +127,9 @@ async function ownerLoop(owner) {
       // or out to the arcade to empty the ashtrays, once there are a few butts in them
       const dirty = (S.ashtrays || []).filter(a => a.n >= 2);
       if (dirty.length && dirty.reduce((t, a) => t + a.n, 0) >= 4 && Math.random() < 0.06 && !S.closing) { await emptyAshtrays(owner, dirty); continue; }
+      // or out to clear the empties off the tables, the more of them the sooner
+      const empties = (S.empties || []).length;
+      if (empties && Math.random() < (empties >= 2 ? 0.7 : 0.25)) { await clearEmpties(owner); continue; }
       owner.status = pick(['擦吧台', '整理茶杯', '試喝今天的豆子', '練雕花']);
       // he steps up to whichever side he works at, just far enough off it that his hands stop at its edge
       const toBar = Math.random() < 0.5;
@@ -316,9 +352,9 @@ async function doTable(c, zone, s) {
   c.putOut(); c.pose = 'stand'; s.occ = null; c.seat = null;   // stubbed out in the ashtray before getting up
   if (c.invited || c.tops || c.smokeNow) c.nextGoal = true;
   // off somewhere else in the shop: the drink goes with them. Leaving: they've finished it, and the empty is left on the
-  // table, cleared away a little later
+  // table for the owner to clear
   if (c.nextGoal || (c.cup && c.cup.userData.togo)) c.pickCup();
-  else if (c.cup) { const empty = c.cup; c.cup = null; S.timers.push({ t: rand(25, 45), r: () => empty.parent?.remove(empty) }); }
+  else if (c.cup) { (S.empties || (S.empties = [])).push({ g: c.cup, path: s.path }); c.cup = null; }
   return s.path;
 }
 
