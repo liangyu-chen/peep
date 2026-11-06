@@ -506,8 +506,15 @@ function buildShoe(style, knee, mk, { shoe, skin, light, ankle = true }) {   // 
   // (the collar is the upper itself drawn up round the ankle, as a canvas shoe's; under trousers, whose hem's over it, plain)
   mk(ankle ? hiTopGeo(SNK) : shoeGeo(false), shoe, 0, Y, 0, knee);
   mk(shoeGeo(true), soleM, 0, Y, 0, knee, false);
-  if (ankle) [0.03, 0.045, 0.06].forEach(h => mk(bx(0.046, 0.006, 0.008), laceM, 0, Y + h, hiFront(h, SNK) + 0.003, knee, false));   // laced up the tongue
-  else laces([0.03, 0.055, 0.08]);
+  // laced criss-cross up the tongue: two laces crossing at each step, tipped back with the slope there
+  if (ankle) [0.028, 0.045, 0.062].forEach(h => {
+    const z = hiFront(h, SNK), tilt = Math.atan2(hiFront(h + 0.008, SNK) - hiFront(h - 0.008, SNK), 0.016);
+    [-1, 1].forEach(k => { const l = mk(bx(0.042, 0.005, 0.005), laceM, 0, Y + h, z + 0.004, knee, false); l.rotation.set(tilt, 0, k * 0.42); });
+  });
+  else [0.035, 0.058, 0.081].forEach(z => {   // (under trousers: crossing over the top of the foot)
+    const y = Y + shoeTop(z) + 0.003;
+    [-1, 1].forEach(k => { const l = mk(bx(0.042, 0.005, 0.005), laceM, 0, y, z, knee, false); l.rotation.y = k * 0.42; });
+  });
 }
 // the torso: slices up the body, each an oval [y, half-width, half-depth]; it narrows a little to the waist, widens to
 // the shoulders and then slopes up to the neck in one curve
