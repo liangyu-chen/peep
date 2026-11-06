@@ -79,7 +79,7 @@ export const SMOKE_POSE = {
 };
 
 // an iced drink's colour in the glass, by what it is
-const strawM = mat(0x161616, { roughness: 0.4 });
+const strawM = mat(0xd4d7db, { roughness: 0.18, metalness: 0.9 });
 const iceM = mat(0xeef6fa, { roughness: 0.1, transparent: true, opacity: 0.7 });
 function icedColour(drink = '') {
   const d = String(drink);
@@ -106,8 +106,10 @@ export function makeCup(drink, variant) {
       const cube = new THREE.Mesh(new THREE.BoxGeometry(0.022, 0.022, 0.022), iceM); cube.position.set(x, y, z); cube.rotation.set(r, r * 0.7, 0); fill.add(cube);
     });
     g.userData.fill = fill;
-    // a straw, leaning against the rim and standing well up out of it
-    const straw = cyl(0.0035, 0.0035, 0.26, strawM, 0.016, 0.15, 0.006, g, 6); straw.rotation.z = -0.14;
+    // a steel straw, leaning across the glass toward whoever's drinking (the glass's -z, see gripCup) and standing well
+    // up out of it; its top end is what goes to the lips, the glass kept upright
+    const straw = cyl(0.0035, 0.0035, 0.26, strawM, 0, 0.15, 0.008, g, 8); straw.rotation.x = -0.2;
+    g.userData.straw = new THREE.Vector3(0, 0.15 + 0.13 * Math.cos(0.2), 0.008 - 0.13 * Math.sin(0.2));   // its top, in the glass
   } else { // Taiwanese tea cup for hot lattes
     cyl(0.06, 0.04, 0.06, teaCupM, 0, 0.03, 0, g, 14);
     g.userData.top = cyl(0.056, 0.056, 0.006, mat(0xc89b6c), 0, 0.058, 0, g, 14);   // the latte's surface, sinking as it's drunk
@@ -150,8 +152,9 @@ export const DRINK_POSE = {
   high: { x: -0.75, z: -0.06, el: -1.1 },   // the owner, behind the bar: held up at chest height, clear over the bar top
   sip: { x: -1.101, y: -0.759, z: -0.609, el: -1.604, tilt: 0.548 },
   sipHot: { x: -1.398, y: -0.675, z: -1.055, el: -1.86, tilt: 0.3 },
+  sipStraw: { x: -1.181, y: -1.144, z: -0.369, el: -1.901, tilt: 0 },   // an iced drink: the glass upright, the straw's top at the lips (fitted in the scene, within 2 cm for anyone)
 };
-const sipPose = cup => DRINK_POSE[cup && cup.userData.h < 0.1 ? 'sipHot' : 'sip'];
+const sipPose = cup => DRINK_POSE[cup && cup.userData.straw ? 'sipStraw' : cup && cup.userData.h < 0.1 ? 'sipHot' : 'sip'];
 // the cup stays upright in the hand (tipped toward the mouth for a sip), held in front of the palm, gripped round its middle
 const _qh = new THREE.Quaternion(), _qg = new THREE.Quaternion(), _qt = new THREE.Quaternion(), _p = new THREE.Vector3(), _f = new THREE.Vector3();
 const X_AXIS = new THREE.Vector3(1, 0, 0);
