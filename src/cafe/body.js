@@ -1406,11 +1406,12 @@ function buildHair(hairParts, shape, head, hairM, mk, at, look) {
       // snug round the head, a stalk in the middle of the top
       // (shaped as one piece from the band up: bellying out past the head, then rounding over to a full soft top a little
       // above the crown of the head, which it covers; slouched forward and to one side)
-      const crownTop = deform(HEADS[shape], v.copy(hatN)).addScaledVector(hatN, T).sub(c).dot(hatN), h = crownTop + 0.008;   // (sat down close over the crown)
-      const slouch = new THREE.Group(); slouch.rotation.set(0.1, 0, 0.14); hat.add(slouch);
-      const body = new THREE.LatheGeometry([[rb, -0.004], [rb * 1.06, h * 0.22], [rb * 1.24, h * 0.5], [rb * 1.27, h * 0.64], [rb * 1.14, h * 0.84], [rb * 0.72, h * 0.98], [0.001, h]].map(([r, y]) => new THREE.Vector2(r, y)), 40);
+      const crownTop = deform(HEADS[shape], v.copy(hatN)).addScaledVector(hatN, T).sub(c).dot(hatN), h = crownTop - 0.004;   // (sat down close over the crown, soft and flattened)
+      const slouch = new THREE.Group(); slouch.rotation.set(0.05, 0, 0.24); slouch.position.x = 0.01; hat.add(slouch);   // (worn well over to one side)
+      // (soft: only a little fuller than the head, and the top nearly flat, so it drapes rather than domes)
+      const body = new THREE.LatheGeometry([[rb * 0.98, -0.034], [rb * 1.01, -0.012],   // (reaching down past the band all round, however it tilts)
+        [rb * 1.1, h * 0.3], [rb * 1.16, h * 0.5], [rb * 1.13, h * 0.68], [rb * 0.98, h * 0.84], [rb * 0.7, h * 0.95], [0.001, h]].map(([r, y]) => new THREE.Vector2(r, y)), 40);
       mk(body, hm, 0, 0, 0, slouch);
-      mk(new THREE.CylinderGeometry(rb + 0.002, rb + 0.004, 0.022, 32, 1, true), hm, 0, 0.008, 0, hat, false);   // the band
       mk(new THREE.CylinderGeometry(0.003, 0.006, 0.016, 6), hm, 0, h + 0.006, 0, slouch, false);   // the stalk
     }  } else {
     // a beanie: knitted, long, with no pompom: the crown standing up off the head and slouching back a little, in a
