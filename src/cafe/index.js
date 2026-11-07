@@ -19,6 +19,7 @@ import { makeDog, makeCorgi, animateDog, followDog } from './dog.js';
 import * as THREE from 'three';
 import { updateSurroundings } from './world/surroundings.js';
 import { mergeStatic } from './optimize.js';
+import { gatherWallItems, fadeWallItems } from './wallItems.js';
 import { setQuality, DEFAULT_QUALITY, highQuality, qualityPR, frameMs } from './quality.js';
 import { disposePortraits } from './portrait.js';
 // (one café at a time: a new one waits until the one before is built and, if it was let go meanwhile, torn down)
@@ -43,6 +44,7 @@ async function build(root, content) {
 
   createEngine(stage);
   buildWorld(); await breathe();
+  gatherWallItems();                 // (what hangs on the outer walls, so it can fade with them)
   mergeStatic(); await breathe();   // the set's still parts drawn in far fewer calls
   createStadium();
   createSteam();
@@ -83,8 +85,10 @@ async function build(root, content) {
       const q = p.g.position, seated = p.pose === 'sit' && p.seat && p.seat.type === 'game';
       p.g.visible = !(w && !seated && q.x > w.x + 0.2 && q.x < cp.x + 0.6 && Math.abs(q.z - w.z) < 1.5);
     });
+    const behindOf = side => (side === 'L' && cp.x < -3.1 * K) || (side === 'R' && cp.x > 3.1 * K) || (side === 'B' && cp.z < -8.35);
+    fadeWallItems(behindOf, dt);   // (and the posters, pegboard and all on them with them)
     S.fadeWalls.forEach(w => {
-      const behind = (w.side === 'L' && cp.x < -3.1 * K) || (w.side === 'R' && cp.x > 3.1 * K) || (w.side === 'B' && cp.z < -8.35);
+      const behind = behindOf(w.side);
       w.me.material.opacity += ((behind ? 0.12 : 1) - w.me.material.opacity) * Math.min(1, dt * 8);
       w.me.material.depthWrite = w.me.material.opacity > 0.9;
       if (w.me.castShadow !== !behind) { w.me.castShadow = !behind; S.shadowDirty = true; }

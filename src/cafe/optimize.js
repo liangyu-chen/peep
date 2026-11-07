@@ -118,8 +118,13 @@ function mergeUnder(root, { objs, mats }, own = null) {
 }
 
 export function mergeStatic() {
-  const h = held(new Set([S.world, ...(S.envBlocks || []).map(b => b.group)]));
+  const wallGroups = (S.wallItems || []).map(w => w.group);
+  const h = held(new Set([S.world, ...(S.envBlocks || []).map(b => b.group), ...wallGroups]));
+  // (what hangs on each outer wall merged on its own, by its own materials, so it can fade with its wall: out of the
+  // set while the rest is merged, then back)
+  wallGroups.forEach(g => g.parent && g.parent.remove(g));
   let saved = S.world ? mergeUnder(S.world, h) : 0;
+  (S.wallItems || []).forEach(w => { S.world.add(w.group); saved += mergeUnder(w.group, h, w.mats); });
   // each neighbouring building on its own (they fade when in the way, a whole building at a time, by their own materials)
   (S.envBlocks || []).forEach(b => { saved += mergeUnder(b.group, h, b.mats); });
   return saved;
