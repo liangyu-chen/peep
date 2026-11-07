@@ -990,7 +990,7 @@ function buildBodyAt(look, seed) {
   // the shirt and the bare skin of the neck share one surface; the skin one doesn't take the head's shadow, so the neck
   // and chest are the same colour as the face
   const torso = mk(torsoGeo(topFit), [shirt, hideM], 0, 0, 0);
-  mk(torsoGeo(topFit), [hideM, skin], 0, 0, 0).receiveShadow = false;
+  const torsoSkin = mk(torsoGeo(topFit), [hideM, skin], 0, 0, 0); torsoSkin.receiveShadow = false;
   // the hem: a rolled edge with some thickness to it, and underneath, the shirt's shadowed inside closing the gap down to
   // the hips, so it reads as cloth with body in it, not a shell
   const hemY = 0.71 - TF.drop, hemR = 0.202 * TF.w + TF.flare, hemZ = (0.15 * TF.d + TF.flare * 0.7) / hemR;
@@ -1494,7 +1494,20 @@ function buildBodyAt(look, seed) {
   // all but the head, which stays its own size (a tall person has longer legs and body, not a bigger head). Whatever
   // places them by height (the hips on a seat, a squat, their shadow) takes heightK into account (people.js)
   const heightK = HEIGHT_K[heightOf(look)] || 1;
-  if (heightK !== 1) { g.scale.setScalar(heightK); head.scale.setScalar(1 / heightK); }
+  if (heightK !== 1) {
+    g.scale.setScalar(heightK); head.scale.setScalar(1 / heightK);
+    // (the neck, flaring up into the underside of the head, taken back to the head's own width as it rises, or, scaled
+    // with the body, it stood out round the jaw of a taller person and fell short inside a shorter one's)
+    const tg = torso.geometry.clone(), tp = tg.attributes.position;
+    for (let i = 0; i < tp.count; i++) {
+      // (and set where it meets the head as high as it is on the head itself, which stays its own size: scaled with the
+      // body, the flare under the jaw came out lower than the jaw)
+      const y = tp.getY(i), t0 = Math.min(1, Math.max(0, (y - 1.25) / 0.07)), t = t0 * t0 * (3 - 2 * t0), f = 1 + (1 / heightK - 1) * t;
+      tp.setXYZ(i, tp.getX(i) * f, y + t * ((y - 1.44) / heightK + 1.44 - y), tp.getZ(i) * f);
+    }
+    torso.geometry = tg;   // (its normals kept: near enough, and its seam's normals stay matched)
+    torsoSkin.geometry = tg;   // (the same surface's skin, the neck itself, drawn from it)
+  }
   return { g, legs, arms, elbows, head, hand, handL, pad, eyes, mouth, skirt, heightK, skinM: skin, strip: { bare, bunch, cover, pants, skin } };
 }
 
