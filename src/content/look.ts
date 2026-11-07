@@ -44,7 +44,7 @@ export const heightOf = (look: Look) => pickIn(HEIGHTS, look.height, 'regular');
 export const FACE: Record<'faceShape' | 'eyes' | 'brows' | 'nose' | 'mouth' | 'facialHair' | 'beard' | 'glasses' | 'glassesShape', Option[]> = {
   faceShape: [{ value: 'round', label: '圓臉' }, { value: 'oval', label: '鵝蛋臉' }, { value: 'square', label: '方臉' }, { value: 'long', label: '長臉' }],
   eyes: [{ value: 'round', label: '圓眼' }, { value: 'big', label: '大眼' }, { value: 'dot', label: '豆豆眼' }, { value: 'sleepy', label: '睏睏眼' }, { value: 'smile', label: '笑眼' }, { value: 'narrow', label: '瞇瞇眼' },
-    { value: 'almond', label: '杏眼' }, { value: 'phoenix', label: '鳳眼' }, { value: 'droopy', label: '下垂眼' }, { value: 'wink', label: '眨眼' }, { value: 'sparkle', label: '閃亮眼' }, { value: 'tired', label: '黑眼圈' }],
+    { value: 'almond', label: '杏眼' }, { value: 'phoenix', label: '鳳眼' }, { value: 'droopy', label: '下垂眼' }, { value: 'wink', label: '眨眼' }, { value: 'sparkle', label: '閃亮眼' }, { value: 'deadpan', label: '死魚眼' }],
   brows: [{ value: 'thin', label: '細眉' }, { value: 'thick', label: '粗眉' }, { value: 'angry', label: '劍眉' }, { value: 'worried', label: '八字眉' },
     { value: 'arched', label: '挑眉' }, { value: 'straight', label: '一字眉' }, { value: 'unibrow', label: '連心眉' }, { value: 'short', label: '短眉' }, { value: 'raised', label: '單挑眉' }, { value: 'none', label: '無' }],
   nose: [{ value: 'small', label: '小鼻子' }, { value: 'normal', label: '一般' }, { value: 'big', label: '大鼻子' }, { value: 'button', label: '圓鼻頭' }, { value: 'none', label: '無' }],

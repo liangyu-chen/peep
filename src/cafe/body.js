@@ -1221,11 +1221,9 @@ function buildBodyAt(look, seed) {
         [0, Math.PI / 2].forEach(r => { fm(bx(0.014, 0.0028, 0.002), shineM, -s * 0.004, 0.004, 0.03, e).rotation.z = r + Math.PI / 4; });
         lid(0.042); break;
       }
-      case 'tired': {                                                    // 黑眼圈: round, with shadowed rings under
-        sclera(0.031); fm(sp(0.019, 12, 10), iris, 0, 0, 0.004, e); fm(sp(0.01, 8, 6), darkM, 0, 0, 0.012, e);
-        fm(sp(0.005, 6, 4), shineM, s * 0.007, 0.008, 0.019, e); lid(0.031);
-        const ring = fm(geo('underRing', () => new THREE.TorusGeometry(0.033, 0.006, 6, 18, Math.PI * 0.7)), mat(shade(C.skin, 0.72), { roughness: 0.7 }), 0, 0.002, 0.001, e);
-        ring.rotation.z = Math.PI + Math.PI * 0.15; ring.scale.set(1, 0.75, 0.4); break;
+      case 'deadpan': {                                                  // 死魚眼: a wide white, a tiny dot of a pupil, the lid level across the top half
+        sclera(0.032); fm(sp(0.0065, 8, 6), darkM, 0, -0.006, 0.006, e);
+        fm(bx(0.07, 0.033, 0.026), skin, 0, 0.0165, 0.011, e); fm(bx(0.066, 0.0055, 0.012), darkM, 0, 0.0005, 0.024, e); break;
       }
       case 'dot': fm(sp(0.021, 10, 8), darkM, 0, 0, 0.004, e); fm(sp(0.005, 6, 4), shineM, s * 0.006, 0.007, 0.022, e); break;
       case 'big':
