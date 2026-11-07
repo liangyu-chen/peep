@@ -1194,12 +1194,13 @@ function buildBodyAt(look, seed) {
   const eyes = [-1, 1].map(s => {
     const e = new THREE.Group(); e.position.set(s * EX, EY, surf(s * EX, EY) - 0.004); face.add(e);
     const sclera = r => { fm(disc(r), whiteM, 0, 0, 0.002, e).rotation.x = Math.PI / 2; };
-    const lid = w => fm(bx(w, 0.008, 0.01), darkM, 0, w * 0.4, 0.008, e);                     // upper lash line
+    // the upper lash line: a thin dark curve along the top of the eye's white (not a straight bar, which read as a brow)
+    const lid = r => { const l = fm(geo(`lid:${r}`, () => new THREE.TorusGeometry(r * 0.97, 0.0032, 6, 24, Math.PI * 0.76)), darkM, 0, 0, 0.007, e); l.rotation.z = Math.PI * 0.12; };
     switch (f.eyes) {
       case 'dot': fm(sp(0.021, 10, 8), darkM, 0, 0, 0.004, e); fm(sp(0.005, 6, 4), shineM, s * 0.006, 0.007, 0.022, e); break;
       case 'big':
         sclera(0.042); fm(sp(0.027, 14, 10), iris, 0, -0.002, 0.004, e); fm(sp(0.014, 10, 8), darkM, 0, -0.002, 0.016, e);
-        fm(sp(0.007, 6, 4), shineM, s * 0.009, 0.01, 0.025, e); fm(sp(0.004, 6, 4), shineM, -s * 0.008, -0.01, 0.024, e); lid(0.084); break;
+        fm(sp(0.007, 6, 4), shineM, s * 0.009, 0.01, 0.025, e); fm(sp(0.004, 6, 4), shineM, -s * 0.008, -0.01, 0.024, e); lid(0.042); break;
       case 'sleepy':
         sclera(0.031); fm(sp(0.019, 10, 8), iris, 0, -0.004, 0.004, e); fm(sp(0.01, 8, 6), darkM, 0, -0.004, 0.012, e);
         fm(bx(0.072, 0.034, 0.03), skin, 0, 0.017, 0.012, e); fm(bx(0.068, 0.007, 0.012), darkM, 0, 0.0, 0.026, e); break;
@@ -1207,7 +1208,7 @@ function buildBodyAt(look, seed) {
       case 'narrow': fm(bx(0.05, 0.01, 0.01), darkM, 0, 0, 0.006, e).rotation.z = -s * 0.08; break;
       default:   // round
         sclera(0.031); fm(sp(0.019, 12, 10), iris, 0, 0, 0.004, e); fm(sp(0.01, 8, 6), darkM, 0, 0, 0.012, e);
-        fm(sp(0.005, 6, 4), shineM, s * 0.007, 0.008, 0.019, e); lid(0.064);
+        fm(sp(0.005, 6, 4), shineM, s * 0.007, 0.008, 0.019, e); lid(0.031);
     }
     return e;
   });
@@ -1221,7 +1222,9 @@ function buildBodyAt(look, seed) {
     const brows = [-1, 1].map(s => { const b = fm(bx(w, h, 0.014), hairM, s * EX, BY, surf(s * EX, BY) + 0.004); b.rotation.z = s * tilt; return b; });
     // a fringe over the forehead hides them: where any of a brow (its middle or either end) is behind hair, seen from in
     // front, it isn't drawn, rather than showing through the curls
-    const hairMeshes = []; head.traverse(o => { if (o.isMesh && o.material === hairM && !brows.includes(o)) hairMeshes.push(o); });
+    // (the hair and any hat: all that's put on the head after the face; a hat's edge counts as much as a fringe does,
+    // so the brows go down under a beret rather than showing on it)
+    const hairMeshes = []; head.children.slice(head.children.indexOf(face) + 1).forEach(c => c.traverse(o => { if (o.isMesh) hairMeshes.push(o); }));
     if (hairMeshes.length) {
       head.updateMatrixWorld(true);
       const ray = new THREE.Raycaster(), p = new THREE.Vector3(), back = new THREE.Vector3(0, 0, -1);
@@ -1451,7 +1454,7 @@ function buildBodyAt(look, seed) {
 // (elev: how high the hat's front edge comes on the forehead, in radians up from the eyes' level: clear of the brows,
 // which are tucked down under it)
 const HATS = { cap: { tilt: 0.25, elev: 0.52, own: 0.012 }, bucket: { tilt: 0.1, elev: 0.52, own: 0.014 }, beanie: { tilt: 0.42, elev: 0.5, own: 0.016 },
-  fedora: { tilt: 0.12, elev: 0.5, own: 0.012 }, beret: { tilt: 0.25, elev: 0.66, own: 0.008 } };   // (the beanie pulled down a little lower, its crown slouching back)
+  fedora: { tilt: 0.12, elev: 0.5, own: 0.012 }, beret: { tilt: 0.25, elev: 0.6, own: 0.008 } };   // (the beanie pulled down a little lower, its crown slouching back)
 // the top of the head for each way the front can go: the hairline (radians above the eyes' horizon) all the way round,
 // and how full it stands, both by φ, the angle from straight ahead; lift is how far it stands off the head at most
 const line = phi => -0.16 + 0.66 * Math.cos(phi);                          // just above the brows, past the temples, down the nape
@@ -1746,8 +1749,9 @@ function buildHair(hairParts, shape, head, hairM, mk, at, look) {
       // (a flat soft disc more than a dome: snug at the band, flaring out wide, a rounded rim, the top nearly flat)
       // (its edge a full round roll, not a thin lip: swelling out over a good depth and rounding back in smoothly)
       // (the roll near enough a half circle in section, from just over the band up to the top, then the top rounding in)
-      const roll = []; for (let s = 0; s <= 12; s++) { const th = -Math.PI / 2 + Math.PI * s / 12; roll.push([rb * (1.0 + 0.22 * Math.cos(th)), h * (0.5 + 0.42 * Math.sin(th))]); }
-      const profile = [[rb * 0.99, -0.03], [rb * 1.0, -0.008], ...roll, [rb * 0.86, h * 0.95], [rb * 0.62, h * 0.982], [rb * 0.34, h * 0.997], [0.001, h]];
+      // (and coming right down to the head at its foot: no straight band under it ringing the forehead)
+      const roll = []; for (let s = 0; s <= 12; s++) { const th = -Math.PI / 2 + Math.PI * s / 12; roll.push([rb * (1.0 + 0.22 * Math.cos(th)), h * (0.46 + 0.46 * Math.sin(th))]); }
+      const profile = [[rb * 0.985, -0.012], ...roll, [rb * 0.86, h * 0.95], [rb * 0.62, h * 0.982], [rb * 0.34, h * 0.997], [0.001, h]];
       const body = new THREE.LatheGeometry(profile.map(([r, y]) => new THREE.Vector2(r, y)), 56);
       // the band stays snug round the head all the way round (nothing lifts off it to show the hair under it); only the
       // soft body above it slouches over to one side, the more the higher it is: tighter on the side it slouches away
@@ -1762,10 +1766,10 @@ function buildHair(hairParts, shape, head, hairM, mk, at, look) {
         const k = 1 + 0.12 * w * Math.max(0, -x / rb) - 0.06 * w * Math.max(0, x / rb);   // (fuller toward -x, the side it drops to)
         x *= k; z *= k;
         // (tipped by shearing it down toward -x, not turning it: turning pulled the dropping side in, into the hair)
-        // (the middle of the top stays level over the crown; it's the edge that drops, more the further out it is)
-        const out = Math.min(1, Math.max(0, (Math.hypot(x, z) - rb * 0.45) / (rb * 0.6))), ow = out * out * (3 - 2 * out);
-        // (only the one side drops: the other isn't tipped up into the air, it stays down round the head)
-        bp.setXYZ(i, x + 0.004 * w, y + Math.min(0, x) * Math.tan(SL) * w * ow, z + 0.006 * w);
+        // (only the one side drops: the other isn't tipped up into the air, it stays down round the head; and the change
+        // from the one to the other is a smooth curve across the middle, not a crease, which showed as a ridge on top)
+        const dropX = (x - Math.sqrt(x * x + 0.03 * 0.03)) / 2;   // (a smoothed min(0, x))
+        bp.setXYZ(i, x + 0.004 * w, y + dropX * Math.tan(SL) * w, z + 0.006 * w);
         w0.push(w);
       }
       // and never down in the hair: if any of it would be, the whole body over the band is lifted clear by as much as
