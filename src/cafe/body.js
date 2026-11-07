@@ -893,7 +893,7 @@ function buildBodyAt(look, seed) {
   const { bottom, fit } = clothesOf(look), skirted = bottom === 'skirt', shorts = bottom === 'shorts', bareLegs = skirted || shorts;
   const legM = bareLegs ? skin : pants;                   // bare legs under a skirt or shorts
   // wide legs: baggy all the way, flaring out to the hem (bare legs are just legs: the fit is the shorts' width)
-  const W = bareLegs ? 1 : { slim: 0.85, regular: 1, wide: 1.45 }[fit] || 1, flare = fit === 'wide' && !shorts ? 0.125 : 0.062 * W;
+  const W = bareLegs ? 1 : { slim: 0.85, regular: 1, wide: 1.45 }[fit] || 1, flare = fit === 'wide' && !shorts ? 0.086 * W + 0.002 : 0.062 * W;   // (wide: straight down, barely wider at the hem than the knee)
   // shorts are the pants' own thighs (one surface with the seat, so no seam round the hips), roomy, in the pants colour,
   // ending at the knee in a turned-up hem, the knee and shin bare below
   // (the seat as roomy as the legs below it, so from behind the shorts are one width all the way down, no waist pinched in)
@@ -907,11 +907,14 @@ function buildBodyAt(look, seed) {
     const hip = new THREE.Group(); hip.position.set(x, HIP_Y, 0); g.add(hip);
     // thigh and shin are open tubes meeting exactly at the knee at the same width, so a straight leg has no seam; a
     // slightly smaller ball fills the joint only when the knee bends
-    const RK = 0.074 * W, TK = 0.074 * TW;   // (the thigh's width at the knee: the shorts' there)
+    // (wide-legged trousers hang straight down from the seat: no tapering in to the knee and out again to the hem, so
+    // their outer line is one straight drop)
+    const straight = fit === 'wide' && !bareLegs, kneeW = straight ? 0.086 : 0.074;
+    const RK = kneeW * W, TK = 0.074 * TW;   // (the thigh's width at the knee: the shorts' there)
     // the thigh: rounded over its top, which sits up inside the hips, fullest just below them, tapering to the knee, so
     // the hips flow on down into the leg instead of a tube coming out from under them (profile from the knee up, faces out)
-    const thighAt = w => [[0.074 * w, -THIGH], [0.078 * w, -0.24], [0.086 * w, -0.12], [0.09 * w, -0.04], [0.088 * w, -0.005], [0.074 * w, 0.022], [0.044 * w, 0.042], [0.001, 0.05]];
-    const thigh = mk(flatLit(lathe(`thigh2:${W}`, thighAt(W), 20)), legM, 0, 0, 0, hip);
+    const thighAt = (w, st = false) => [[(st ? 0.086 : 0.074) * w, -THIGH], [(st ? 0.086 : 0.078) * w, -0.24], [(st ? 0.087 : 0.086) * w, -0.12], [0.09 * w, -0.04], [0.088 * w, -0.005], [0.074 * w, 0.022], [0.044 * w, 0.042], [0.001, 0.05]];
+    const thigh = mk(flatLit(lathe(`thigh3:${W}:${straight}`, thighAt(W, straight), 20)), legM, 0, 0, 0, hip);
     if (!bareLegs) bare.push(thigh);
     let shortsLeg = null;
     if (shorts) {
