@@ -751,7 +751,9 @@ const pantsTopGeo = (w, k = 1) => geo(`ptop3:${w}:${k}`, () => {
     const t = r / ROWS, y = crotch + (waist - crotch) * t, e = t * t * (3 - 2 * t);
     for (let i = 0; i <= N; i++) {
       const a = (i / N) * Math.PI * 2, sx = Math.sin(a), sz = Math.cos(a);
-      const kk = 1 + (k - 1) * (1 - t);   // roomy through the seat, the waist itself the usual size, inside the shirt
+      // roomy through the seat, the waist itself the usual size, inside the shirt (a roomy seat stays roomy right up to
+      // under the shirt's hem, so its side drops straight to the legs, no waist pinched in)
+      const kk = 1 + (k - 1) * (1 - t ** 4);
       const oval = 1 / Math.sqrt((sx / (rx * kk)) ** 2 + (sz / (rz * kk)) ** 2), d = lobes(sx, sz) + (oval - lobes(sx, sz)) * e;
       pos.push(sx * d, y, sz * d);
     }
