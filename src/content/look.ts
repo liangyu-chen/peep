@@ -91,7 +91,7 @@ export function faceOf(look: Look, seed = ''): Face {
 
 // hair is chosen part by part: how long, straight or curly, what it does at the forehead, and whether it's tied up
 export const HAIR: Record<'length' | 'curl' | 'front' | 'tie', Option[]> = {
-  length: [{ value: 'bald', label: '光頭' }, { value: 'buzz', label: '平頭' }, { value: 'short', label: '短髮' }, { value: 'bob', label: '短長髮' }, { value: 'medium', label: '中長髮' }, { value: 'long', label: '長髮' }],
+  length: [{ value: 'bald', label: '光頭' }, { value: 'buzz', label: '平頭' }, { value: 'mushroom', label: '蘑菇頭' }, { value: 'azhi', label: '阿志頭' }, { value: 'short', label: '短髮' }, { value: 'bob', label: '短長髮' }, { value: 'medium', label: '中長髮' }, { value: 'long', label: '長髮' }],
   curl: [{ value: 'straight', label: '直髮' }, { value: 'curly', label: '捲髮' }, { value: 'spiky', label: '刺蝟頭' }],
   front: [{ value: 'none', label: '無瀏海' }, { value: 'bangs', label: '瀏海' }, { value: 'center', label: '中分' }, { value: 'side', label: '旁分' }],
   tie: [{ value: 'none', label: '不綁' }, { value: 'ponytail', label: '馬尾' }, { value: 'twintails', label: '雙馬尾' }, { value: 'bun', label: '包頭' }],
@@ -100,6 +100,8 @@ export type Hair = { length: string; curl: string; front: string; tie: string; c
 // the hair's length in cm, set with − / + from 短髮 (0) up; which band of length that is (and so what it can do: tied
 // back from 中長髮 on), and how many cm each of the old fixed lengths was
 export const HAIR_CM = { step: 2, max: 60 };
+// the cuts that are what they are, with no length to set (光頭, 平頭, 蘑菇頭, 阿志頭)
+export const FIXED_CUTS = ['bald', 'buzz', 'mushroom', 'azhi'];
 export const lengthForCm = (cm: number) => (cm <= 0 ? 'short' : cm <= 10 ? 'bob' : cm <= 30 ? 'medium' : 'long');
 export const CM_OF_LENGTH: Record<string, number> = { short: 0, bob: 8, medium: 29, long: 33 };
 // what each of the older single hairstyles was, part by part
@@ -123,7 +125,7 @@ export function hairOf(look: Look): Hair {
   const old = HAIR_FROM_STYLE[look.hairStyle] ?? HAIR_FROM_STYLE.short;
   const length = pickIn(HAIR.length, look.hairLength, old.length);
   // a length set in cm (not for 光頭 / 平頭): that, and the band it falls in
-  const cm = typeof look.hairCm === 'number' && length !== 'bald' && length !== 'buzz' ? Math.max(0, Math.min(HAIR_CM.max, Math.round(look.hairCm))) : undefined;
+  const cm = typeof look.hairCm === 'number' && !FIXED_CUTS.includes(length) ? Math.max(0, Math.min(HAIR_CM.max, Math.round(look.hairCm))) : undefined;
   return {
     length: cm !== undefined ? lengthForCm(cm) : length, curl: pickIn(HAIR.curl, look.hairCurl, old.curl),
     front: pickIn(HAIR.front, look.hairFront, old.front), tie: pickIn(HAIR.tie, look.hairTie, old.tie),
@@ -135,7 +137,7 @@ export const tieColorOf = (look: Look) => (typeof look.tieColor === 'number' ? l
 // a short description, like 長髮・捲髮・瀏海・馬尾
 export function hairLabel(h: Hair): string {
   const l = (key: keyof typeof HAIR, v: string) => HAIR[key].find(o => o.value === v)?.label ?? v;
-  if (h.length === 'bald' || h.length === 'buzz') return l('length', h.length);
+  if (FIXED_CUTS.includes(h.length)) return l('length', h.length);
   return [l('length', h.length), h.curl !== 'straight' && l('curl', h.curl), h.front !== 'none' && l('front', h.front), h.tie !== 'none' && l('tie', h.tie)].filter(Boolean).join('・');
 }
 
@@ -306,7 +308,7 @@ export function parseLook(get: (k: string) => string | null, prev?: Look): Look 
   };
   // the hair's length in cm, when it's been set with − / + (empty: left as the fixed length it was)
   const cmIn = get('hairCm'), cmVal = cmIn != null && cmIn !== '' ? Number(cmIn) : NaN;
-  if (look.hairLength === 'bald' || look.hairLength === 'buzz') delete look.hairCm;
+  if (FIXED_CUTS.includes(look.hairLength ?? '')) delete look.hairCm;
   else if (Number.isFinite(cmVal)) { look.hairCm = Math.max(0, Math.min(HAIR_CM.max, Math.round(cmVal))); look.hairLength = lengthForCm(look.hairCm); }
   if (tatText) look.tattooText = tatText; else delete look.tattooText;
   if (number) look.number = number; else delete look.number;

@@ -1627,7 +1627,25 @@ function buildHair(hairParts, shape, head, hairM, mk, at, look) {
   };
 
   let lift = 0;
-  if (length === 'buzz') {
+  // a bowl-cut cap of hair (蘑菇頭, 阿志頭): one thick even layer down to a cut edge (its own hairline edge(φ)), full
+  // and blunt there, swelling a little toward the edge like a mushroom's cap
+  const bowl = (key, edge, th) => mk(capGeo(shape, `${key}:${th}`, edge, () => th * 0.7, u => th * 0.55 * Math.max(0, 1 - u.y) ** 1.2), hairM, 0, 0, 0, head);
+  if (length === 'mushroom') {
+    // 蘑菇頭: a round helmet of hair, the fringe cut straight across just above the brows, the sides and back falling
+    // straight to the bottom of the ears all round
+    bowl('mushroom1', phi => { const a = Math.abs(ang(phi)), s = Math.min(1, Math.max(0, (a - 0.62) / 0.5)), e = s * s * (3 - 2 * s); return 0.5 + (-0.3 - 0.5) * e; }, 0.048);
+    lift = 0.056;
+  } else if (length === 'azhi') {
+    // 阿志頭: a thick bowl on top, cut in one sharp level line round the head (a blunt straight fringe across the
+    // forehead), and under it the sides and back clipped short and faded, as a 平頭's are
+    buzzLayer();
+    bowl('azhi1', phi => { const a = Math.abs(ang(phi)), s = Math.min(1, Math.max(0, (a - 0.55) / 0.7)), e = s * s * (3 - 2 * s); return 0.54 + (0.3 - 0.54) * e; }, 0.034);
+    lift = 0.04;
+  } else if (length === 'buzz') {
+    buzzLayer();
+    lift = 0.01;
+  }
+  function buzzLayer() {
     // 平頭: a short crew cut, faded. The top an even short layer (about a centimetre), following the head's own round;
     // the sides and back faded down close, so they read lighter, the skin showing through, darkest on top. Its hairline:
     // straight across the forehead, a squared corner at each temple, short sideburns in front of the ears, arching up
@@ -1652,8 +1670,8 @@ function buildHair(hairParts, shape, head, hairM, mk, at, look) {
     buzzM.color = new THREE.Color(0xffffff); buzzM.vertexColors = true;
     buzzM.map = hairM.map.clone(); buzzM.map.repeat.set(70, 1); buzzM.map.needsUpdate = true;
     mk(g2, buzzM, 0, 0, 0, head);
-    lift = 0.01;
-  } else if (length !== 'bald') {
+  }
+  if (length !== 'bald' && length !== 'buzz' && length !== 'mushroom' && length !== 'azhi') {
     // the top of the head: shaped by the front, with curls in its surface if it's curly
     const F = FRONTS[front] || FRONTS.none, curly = curl === 'curly';
     const amp = length === 'short' ? 0.02 : length === 'bob' ? 0.016 : CURL_TOP;   // the wet perm lies fairly close
