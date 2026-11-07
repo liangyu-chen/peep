@@ -1196,7 +1196,37 @@ function buildBodyAt(look, seed) {
     const sclera = r => { fm(disc(r), whiteM, 0, 0, 0.002, e).rotation.x = Math.PI / 2; };
     // the upper lash line: a thin dark curve along the top of the eye's white (not a straight bar, which read as a brow)
     const lid = r => { const l = fm(geo(`lid:${r}`, () => new THREE.TorusGeometry(r * 0.97, 0.0032, 6, 24, Math.PI * 0.76)), darkM, 0, 0, 0.007, e); l.rotation.z = Math.PI * 0.12; };
+    // an almond eye (杏眼 and its kin): the white an oval, wider than tall, the iris showing most of it, a curved lash
+    // line along its top; tipped up at the outer corner (鳳眼) or down (下垂眼) by `tip`
+    const almond = (rx, ry, tip) => {
+      const a = new THREE.Group(); a.rotation.z = s * tip; e.add(a);
+      const wh = fm(disc(rx), whiteM, 0, 0, 0.002, a); wh.rotation.x = Math.PI / 2; wh.scale.set(1, 1, ry / rx);
+      fm(sp(ry * 0.78, 12, 10), iris, 0, -0.001, 0.004, a); fm(sp(ry * 0.42, 8, 6), darkM, 0, -0.001, 0.0105, a);
+      fm(sp(0.0042, 6, 4), shineM, s * 0.005, 0.005, 0.016, a);
+      const l = fm(geo(`alid:${rx}:${ry}`, () => new THREE.TorusGeometry(rx * 0.97, 0.0034, 6, 24, Math.PI * 0.8)), darkM, 0, 0, 0.007, a); l.rotation.z = Math.PI * 0.1; l.scale.set(1, ry / rx, 1);
+      // (a lifted eye's lash line flicks out past its outer corner)
+      if (tip > 0) { const fl = fm(bx(0.016, 0.0045, 0.006), darkM, s * (rx + 0.004), ry * 0.3, 0.007, a); fl.rotation.z = s * 0.5; }
+    };
     switch (f.eyes) {
+      case 'almond': almond(0.036, 0.024, 0); break;                     // 杏眼
+      case 'phoenix': almond(0.04, 0.017, 0.3); break;                   // 鳳眼: long, narrow, the outer corners lifting
+      case 'droopy': almond(0.034, 0.026, -0.3); break;                  // 下垂眼: the outer corners falling, soft
+      case 'wink':                                                       // 眨眼: one shut in a happy curve, the other open
+        if (s > 0) { const c = fm(geo('winkArc', () => new THREE.TorusGeometry(0.022, 0.0042, 6, 16, Math.PI * 0.8)), darkM, 0, -0.008, 0.007, e); c.rotation.z = Math.PI * 0.1; }
+        else { sclera(0.031); fm(sp(0.019, 12, 10), iris, 0, 0, 0.004, e); fm(sp(0.01, 8, 6), darkM, 0, 0, 0.012, e); fm(sp(0.005, 6, 4), shineM, s * 0.007, 0.008, 0.019, e); lid(0.031); }
+        break;
+      case 'sparkle': {                                                  // 閃亮眼: big and shining, a little star in each
+        sclera(0.042); fm(sp(0.027, 14, 10), iris, 0, -0.002, 0.004, e); fm(sp(0.014, 10, 8), darkM, 0, -0.002, 0.016, e);
+        fm(sp(0.008, 6, 4), shineM, s * 0.01, 0.011, 0.026, e); fm(sp(0.004, 6, 4), shineM, -s * 0.009, -0.011, 0.025, e);
+        [0, Math.PI / 2].forEach(r => { fm(bx(0.014, 0.0028, 0.002), shineM, -s * 0.004, 0.004, 0.03, e).rotation.z = r + Math.PI / 4; });
+        lid(0.042); break;
+      }
+      case 'tired': {                                                    // 黑眼圈: round, with shadowed rings under
+        sclera(0.031); fm(sp(0.019, 12, 10), iris, 0, 0, 0.004, e); fm(sp(0.01, 8, 6), darkM, 0, 0, 0.012, e);
+        fm(sp(0.005, 6, 4), shineM, s * 0.007, 0.008, 0.019, e); lid(0.031);
+        const ring = fm(geo('underRing', () => new THREE.TorusGeometry(0.033, 0.006, 6, 18, Math.PI * 0.7)), mat(shade(C.skin, 0.72), { roughness: 0.7 }), 0, 0.002, 0.001, e);
+        ring.rotation.z = Math.PI + Math.PI * 0.15; ring.scale.set(1, 0.75, 0.4); break;
+      }
       case 'dot': fm(sp(0.021, 10, 8), darkM, 0, 0, 0.004, e); fm(sp(0.005, 6, 4), shineM, s * 0.006, 0.007, 0.022, e); break;
       case 'big':
         sclera(0.042); fm(sp(0.027, 14, 10), iris, 0, -0.002, 0.004, e); fm(sp(0.014, 10, 8), darkM, 0, -0.002, 0.016, e);
@@ -1214,12 +1244,32 @@ function buildBodyAt(look, seed) {
   });
   // brows
   if (f.brows !== 'none') {
-    const [w, h] = f.brows === 'thick' || f.brows === 'angry' ? [0.068, 0.02] : [0.06, 0.011];
-    const tilt = { angry: 0.32, worried: -0.3, thick: 0.04, thin: -0.06 }[f.brows] || 0;
+    // each kind: its width and thickness, how it slopes, and its shape (a bar, an arch, a short rounded tuft; joined
+    // across the nose; one side raised)
+    const B = {
+      thin: { w: 0.06, h: 0.011, tilt: -0.06 }, thick: { w: 0.068, h: 0.02, tilt: 0.04 }, angry: { w: 0.068, h: 0.02, tilt: 0.32 },
+      worried: { w: 0.06, h: 0.011, tilt: -0.3 },
+      arched: { w: 0.066, h: 0.012, tilt: 0, arch: true },               // 挑眉: a clean arch
+      straight: { w: 0.074, h: 0.016, tilt: 0 },                          // 一字眉: long and level
+      unibrow: { w: 0.07, h: 0.017, tilt: 0.02, join: true },             // 連心眉: meeting over the nose
+      short: { w: 0.03, h: 0.017, tilt: 0, tuft: true },                  // 短眉: short round tufts
+      raised: { w: 0.062, h: 0.012, tilt: -0.05, raise: true },           // 單挑眉: one up, quizzical
+    }[f.brows] || { w: 0.06, h: 0.011, tilt: 0 };
+    const { w, h, tilt } = B;
     // under a hat they sit just below its front edge (which is at height elev straight in front), or they'd show through it
     const hs = HATS[hatOf(look).hat];
-    const BY = hs ? Math.min(0.074, at(0, Math.sin(hs.elev), Math.cos(hs.elev)).y - h / 2 - Math.abs(Math.sin(tilt)) * w / 2 - 0.004) : 0.074;
-    const brows = [-1, 1].map(s => { const b = fm(bx(w, h, 0.014), hairM, s * EX, BY, surf(s * EX, BY) + 0.004); b.rotation.z = s * tilt; return b; });
+    const BY = hs ? Math.min(0.074, at(0, Math.sin(hs.elev), Math.cos(hs.elev)).y - h / 2 - Math.abs(Math.sin(tilt)) * w / 2 - 0.004 - (B.raise ? 0.012 : 0)) : 0.074;
+    // (each brow a group round its own middle, so the checks below work alike for every shape)
+    const browShape = (grp, s) => {
+      if (B.arch) { const a = fm(geo('browArch', () => new THREE.TorusGeometry(0.05, h / 2, 6, 16, 2 * Math.asin(w / 2 / 0.05))), hairM, 0, -0.05 + h / 2 - 0.004, 0, grp); a.rotation.z = Math.PI / 2 - Math.asin(w / 2 / 0.05); a.scale.z = 0.5; }
+      else if (B.tuft) { const t = fm(sp(w / 2, 10, 8), hairM, 0, 0, 0, grp); t.scale.set(1, h / w, 0.4); }
+      else fm(bx(w, h, 0.014), hairM, 0, 0, 0, grp);
+    };
+    const brows = [-1, 1].map(s => {
+      const b = new THREE.Group(), y = BY + (B.raise && s > 0 ? 0.012 : 0); b.position.set(s * EX, y, surf(s * EX, y) + 0.004); b.rotation.z = s * tilt * (B.raise && s > 0 ? -2.5 : 1); face.add(b);
+      browShape(b, s); return b;
+    });
+    if (B.join) { const mid = fm(bx(2 * EX - w + 0.012, h * 0.75, 0.012), hairM, 0, BY - 0.002, surf(0, BY) + 0.003); brows.push(mid); }
     // a fringe over the forehead hides them: where any of a brow (its middle or either end) is behind hair, seen from in
     // front, it isn't drawn, rather than showing through the curls
     // (the hair and any hat: all that's put on the head after the face; a hat's edge counts as much as a fringe does,
@@ -1578,17 +1628,31 @@ function buildHair(hairParts, shape, head, hairM, mk, at, look) {
 
   let lift = 0;
   if (length === 'buzz') {
-    // 平頭: a crew cut over the whole head, the back included, down to a natural hairline (round the forehead, over the
-    // ears, down the nape); the top cut flat (fuller where the head rounds off, so it reads level), the sides close.
-    // A fine stubbly texture rather than long strands, a touch of the skin showing through
-    // (all its thickness in the bump, which thins away to nothing over the last rows at the hairline, so there's no
-    // step there; most of it in a ring where the top of the head rounds off, which squares the top off level)
-    const flatTop = u => 0.0035 + 0.016 * Math.exp(-(((u.y - 0.8) / 0.11) ** 2)) - 0.0015 * Math.max(0, 0.4 - u.y) / 0.4;
+    // 平頭: a short crew cut, faded. The top an even short layer (about a centimetre), following the head's own round;
+    // the sides and back faded down close, so they read lighter, the skin showing through, darkest on top. Its hairline:
+    // straight across the forehead, a squared corner at each temple, short sideburns in front of the ears, arching up
+    // over each ear, and down the back to a faded nape
+    // (down round the ears, which sit over it, and on down the back to the nape)
+    const HL = [[0, 0.6], [0.5, 0.6], [0.72, 0.56], [0.86, 0.42], [1.0, 0.12], [1.15, -0.12], [1.5, -0.16], [1.9, -0.2], [2.3, -0.36], [2.7, -0.55], [Math.PI, -0.6]];
+    const hairlineAt = phi => {
+      const a = Math.abs(ang(phi));
+      for (let k = 1; k < HL.length; k++) if (a <= HL[k][0]) { const [a0, e0] = HL[k - 1], [a1, e1] = HL[k], t = (a - a0) / (a1 - a0), s = t * t * (3 - 2 * t); return e0 + (e1 - e0) * s; }
+      return HL[HL.length - 1][1];
+    };
+    // (its thickness all in the bump, thinning away over the last rows at the hairline: an even short top, faded
+    // down to a mere shadow round the sides and back)
+    const top = u => Math.min(1, Math.max(0, (u.y + 0.1) / 0.6)), even = u => { const s = top(u); return 0.0018 + 0.0075 * s * s * (3 - 2 * s); };
+    const geo0 = capGeo(shape, 'buzz4', hairlineAt, () => 0.001, even), g2 = geo0.clone(), pp = g2.attributes.position, col = [];
+    // the fade, in its colour: the hair's on top, toward the skin's down the sides and back
+    const hc = new THREE.Color(picked(look.hair)), sc = new THREE.Color(picked(look.skin)), cc = new THREE.Color(), uu = new THREE.Vector3();
+    // (a long gradual fade, from just above the ears and nape up to the top: no line where it changes)
+    for (let i = 0; i < pp.count; i++) { uu.fromBufferAttribute(pp, i).normalize(); const f = Math.min(1, Math.max(0, (uu.y + 0.35) / 0.95)); cc.copy(sc).lerp(hc, 0.55 + 0.45 * f * f * (3 - 2 * f)); col.push(cc.r, cc.g, cc.b); }
+    g2.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
     const buzzM = hairM.clone();
-    buzzM.color = hairM.color.clone().lerp(new THREE.Color(picked(look.skin)), 0.05);
-    buzzM.map = hairM.map.clone(); buzzM.map.repeat.set(60, 1); buzzM.map.needsUpdate = true;
-    mk(capGeo(shape, 'buzz3', phi => line(phi) + 0.2 * lobe(phi, 0, 2) - 0.04, () => 0.0012, flatTop), buzzM, 0, 0, 0, head);
-    lift = 0.012;
+    buzzM.color = new THREE.Color(0xffffff); buzzM.vertexColors = true;
+    buzzM.map = hairM.map.clone(); buzzM.map.repeat.set(70, 1); buzzM.map.needsUpdate = true;
+    mk(g2, buzzM, 0, 0, 0, head);
+    lift = 0.01;
   } else if (length !== 'bald') {
     // the top of the head: shaped by the front, with curls in its surface if it's curly
     const F = FRONTS[front] || FRONTS.none, curly = curl === 'curly';
