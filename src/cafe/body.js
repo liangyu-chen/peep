@@ -1638,18 +1638,18 @@ function buildHair(hairParts, shape, head, hairM, mk, at, look) {
   } else if (length === 'azhi') {
     // 阿志頭: a thick bowl on top, cut in one sharp level line round the head (a blunt straight fringe across the
     // forehead), and under it the sides and back clipped short and faded, as a 平頭's are
-    buzzLayer();
+    buzzLayer(0.32);   // (clipped closer under it than a 平頭, so the step from the top shows)
     // (more a longer 平頭 on top than a helmet: a thinner layer, little flare, its line cut higher round the sides)
     // (and thick in front, the fringe jutting out over the forehead, blunt-cut, like a visor)
     // (its thickness at the cut edge, which stays full right to the edge: deep across the front, close at the sides)
-    const jut = phi => 0.012 + 0.066 * Math.max(0, Math.cos(phi)) ** 2;
-    mk(capGeo(shape, 'azhi6', phi => { const a = Math.abs(ang(phi)), s = Math.min(1, Math.max(0, (a - 0.55) / 0.7)), e = s * s * (3 - 2 * s); return 0.62 + (0.46 - 0.62) * e; }, jut, u => 0.004 * Math.max(0, 1 - u.y)), hairM, 0, 0, 0, head);
+    const jut = phi => 0.022 + 0.056 * Math.max(0, Math.cos(phi)) ** 2;   // (blunt all round: a clear step down to the clipped sides)
+    mk(capGeo(shape, 'azhi7', phi => { const a = Math.abs(ang(phi)), s = Math.min(1, Math.max(0, (a - 0.55) / 0.7)), e = s * s * (3 - 2 * s); return 0.62 + (0.46 - 0.62) * e; }, jut, u => 0.004 * Math.max(0, 1 - u.y)), hairM, 0, 0, 0, head);
     lift = 0.03;
   } else if (length === 'buzz') {
     buzzLayer();
     lift = 0.01;
   }
-  function buzzLayer() {
+  function buzzLayer(minHair = 0.55) {
     // 平頭: a short crew cut, faded. The top an even short layer (about a centimetre), following the head's own round;
     // the sides and back faded down close, so they read lighter, the skin showing through, darkest on top. Its hairline:
     // straight across the forehead, a squared corner at each temple, short sideburns in front of the ears, arching up
@@ -1668,7 +1668,7 @@ function buildHair(hairParts, shape, head, hairM, mk, at, look) {
     // the fade, in its colour: the hair's on top, toward the skin's down the sides and back
     const hc = new THREE.Color(picked(look.hair)), sc = new THREE.Color(picked(look.skin)), cc = new THREE.Color(), uu = new THREE.Vector3();
     // (a long gradual fade, from just above the ears and nape up to the top: no line where it changes)
-    for (let i = 0; i < pp.count; i++) { uu.fromBufferAttribute(pp, i).normalize(); const f = Math.min(1, Math.max(0, (uu.y + 0.35) / 0.95)); cc.copy(sc).lerp(hc, 0.55 + 0.45 * f * f * (3 - 2 * f)); col.push(cc.r, cc.g, cc.b); }
+    for (let i = 0; i < pp.count; i++) { uu.fromBufferAttribute(pp, i).normalize(); const f = Math.min(1, Math.max(0, (uu.y + 0.35) / 0.95)); cc.copy(sc).lerp(hc, minHair + (1 - minHair) * f * f * (3 - 2 * f)); col.push(cc.r, cc.g, cc.b); }
     g2.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
     const buzzM = hairM.clone();
     buzzM.color = new THREE.Color(0xffffff); buzzM.vertexColors = true;
