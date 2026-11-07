@@ -1716,42 +1716,52 @@ function buildHair(hairParts, shape, head, hairM, mk, at, look) {
       // snug round the head, a stalk in the middle of the top
       // (shaped as one piece from the band up: bellying out past the head, then rounding over to a full soft top a little
       // above the crown of the head, which it covers; slouched forward and to one side)
-      const crownTop = deform(HEADS[shape], v.copy(hatN)).addScaledVector(hatN, T).sub(c).dot(hatN), h = crownTop - 0.012;   // (sat down close over the crown, soft and flattened; kept clear of the hair below)
+      const crownTop = deform(HEADS[shape], v.copy(hatN)).addScaledVector(hatN, T).sub(c).dot(hatN), h = crownTop + 0.002;   // (sat down close over the crown, soft and flattened, just clear of the hair)
       // (a flat soft disc more than a dome: snug at the band, flaring out wide, a rounded rim, the top nearly flat)
       // (its edge a full round roll, not a thin lip: swelling out over a good depth and rounding back in smoothly)
       // (the roll near enough a half circle in section, from just over the band up to the top, then the top rounding in)
       const roll = []; for (let s = 0; s <= 12; s++) { const th = -Math.PI / 2 + Math.PI * s / 12; roll.push([rb * (1.0 + 0.22 * Math.cos(th)), h * (0.5 + 0.42 * Math.sin(th))]); }
-      const body = new THREE.LatheGeometry([[rb * 0.99, -0.03], [rb * 1.0, -0.008], ...roll,
-        [rb * 0.86, h * 0.95], [rb * 0.62, h * 0.982], [rb * 0.34, h * 0.997], [0.001, h]].map(([r, y]) => new THREE.Vector2(r, y)), 56);
+      const profile = [[rb * 0.99, -0.03], [rb * 1.0, -0.008], ...roll, [rb * 0.86, h * 0.95], [rb * 0.62, h * 0.982], [rb * 0.34, h * 0.997], [0.001, h]];
+      const body = new THREE.LatheGeometry(profile.map(([r, y]) => new THREE.Vector2(r, y)), 56);
       // the band stays snug round the head all the way round (nothing lifts off it to show the hair under it); only the
       // soft body above it slouches over to one side, the more the higher it is: tighter on the side it slouches away
       // from, fuller on the other, where it hangs down over the edge
-      const bp = body.attributes.position, SL = 0.38;
+      // (the body above the band tipped over as one piece, so its round roll keeps its section all the way round and
+      // doesn't shear into a sharp edge on the side it drops to; it eases from the band into that over the roll's foot)
+      const bp = body.attributes.position, SL = 0.34, NP = profile.length, w0 = [];
       for (let i = 0; i < bp.count; i++) {
         let x = bp.getX(i), y = bp.getY(i), z = bp.getZ(i);
-        // (by how far out it is toward -x or +x, not its direction: near the middle of the top that's all but nothing,
-        // where a direction would jump about and drop bits of the top down into the hair)
-        const w = Math.min(1, Math.max(0, (y - h * 0.1) / (h * 0.9))) ** 1.2, rr = rb;
-        const k = 1 + 0.14 * w * Math.max(0, -x / rr) - 0.08 * w * Math.max(0, x / rr);   // (fuller toward -x, the side it drops to)
+        // (fuller by how far out it is toward -x, not its direction, which near the middle of the top would jump about)
+        const s = Math.min(1, Math.max(0, (y - h * 0.02) / (h * 0.28))), w = s * s * (3 - 2 * s);
+        const k = 1 + 0.12 * w * Math.max(0, -x / rb) - 0.06 * w * Math.max(0, x / rb);   // (fuller toward -x, the side it drops to)
         x *= k; z *= k;
-        const a = SL * w, ca = Math.cos(a), sa = Math.sin(a), py = h * 0.1;
-        const nx = x * ca - (y - py) * sa, ny = x * sa + (y - py) * ca + py;
-        bp.setXYZ(i, nx + 0.012 * w, ny - 0.012 * w * Math.max(0, -x / rr), z + 0.006 * w);   // (the full side hanging down)
+        // (tipped by shearing it down toward -x, not turning it: turning pulled the dropping side in, into the hair)
+        // (the middle of the top stays level over the crown; it's the edge that drops, more the further out it is)
+        const out = Math.min(1, Math.max(0, (Math.hypot(x, z) - rb * 0.45) / (rb * 0.6))), ow = out * out * (3 - 2 * out);
+        bp.setXYZ(i, x + 0.004 * w, y + x * Math.tan(SL) * w * ow, z + 0.006 * w);
+        w0.push(w);
       }
-      // and wherever that leaves it, never down inside the hair: any of it that would be is set back out just over it
-      const qi = q.clone().invert(), P = new THREE.Vector3(), dir = new THREE.Vector3();
-      for (let i = 0; i < bp.count; i++) {
-        P.set(bp.getX(i), bp.getY(i), bp.getZ(i)).applyQuaternion(q).add(c);
-        if (P.y < c.y - 0.01) continue;   // (the band, round the head, is where it should be)
-        dir.copy(P).normalize();
-        const need = deform(HEADS[shape], v.copy(dir)).length() + T + 0.006;
-        if (P.length() < need) { P.copy(dir).multiplyScalar(need).sub(c).applyQuaternion(qi); bp.setXYZ(i, P.x, P.y, P.z); }
+      // and never down in the hair: if any of it would be, the whole body over the band is lifted clear by as much as
+      // the worst of it needs (one smooth lift, not each point pushed out on its own, which left it lumpy)
+      const P = new THREE.Vector3(), dir = new THREE.Vector3();
+      for (let pass = 0; pass < 3; pass++) {
+        let worst = 0;
+        for (let i = 0; i < bp.count; i++) {
+          if (w0[i] < 0.3) continue;   // (the band, round the head, is where it should be)
+          P.set(bp.getX(i), bp.getY(i), bp.getZ(i)).applyQuaternion(q).add(c);
+          dir.copy(P).normalize();
+          worst = Math.max(worst, deform(HEADS[shape], v.copy(dir)).length() + T + 0.006 - P.length());
+        }
+        if (worst <= 0) break;
+        for (let i = 0; i < bp.count; i++) bp.setY(i, bp.getY(i) + (worst + 0.001) * w0[i]);
       }
       body.computeVertexNormals();
       mk(body, hm, 0, 0, 0, hat);
-      // the stalk, on the slouched top
-      const st = mk(new THREE.CylinderGeometry(0.003, 0.006, 0.016, 6), hm, 0, 0, 0, hat, false);
-      st.position.set(-Math.sin(SL) * (h - h * 0.1) + 0.012, h * 0.1 + Math.cos(SL) * (h - h * 0.1) + 0.004, 0.006); st.rotation.z = SL;
+      // the stalk, in the middle of the top wherever it's ended up
+      const top = new THREE.Vector3(); let nTop = 0;
+      for (let i = NP - 1; i < bp.count; i += NP) { top.x += bp.getX(i); top.y += bp.getY(i); top.z += bp.getZ(i); nTop++; }
+      top.multiplyScalar(1 / nTop);
+      const st = mk(new THREE.CylinderGeometry(0.003, 0.006, 0.016, 6), hm, top.x, top.y + 0.004, top.z, hat, false); st.rotation.z = SL;
     }  } else {
     // a beanie: knitted, long, with no pompom: the crown standing up off the head and slouching back a little, in a
     // broad round dome (not a point), the cuff rolled up thick at the bottom
