@@ -1728,7 +1728,7 @@ function buildHair(hairParts, shape, head, hairM, mk, at, look) {
       // from, fuller on the other, where it hangs down over the edge
       // (the body above the band tipped over as one piece, so its round roll keeps its section all the way round and
       // doesn't shear into a sharp edge on the side it drops to; it eases from the band into that over the roll's foot)
-      const bp = body.attributes.position, SL = 0.34, NP = profile.length, w0 = [];
+      const bp = body.attributes.position, SL = 0.34, w0 = [];
       for (let i = 0; i < bp.count; i++) {
         let x = bp.getX(i), y = bp.getY(i), z = bp.getZ(i);
         // (fuller by how far out it is toward -x, not its direction, which near the middle of the top would jump about)
@@ -1738,7 +1738,8 @@ function buildHair(hairParts, shape, head, hairM, mk, at, look) {
         // (tipped by shearing it down toward -x, not turning it: turning pulled the dropping side in, into the hair)
         // (the middle of the top stays level over the crown; it's the edge that drops, more the further out it is)
         const out = Math.min(1, Math.max(0, (Math.hypot(x, z) - rb * 0.45) / (rb * 0.6))), ow = out * out * (3 - 2 * out);
-        bp.setXYZ(i, x + 0.004 * w, y + x * Math.tan(SL) * w * ow, z + 0.006 * w);
+        // (only the one side drops: the other isn't tipped up into the air, it stays down round the head)
+        bp.setXYZ(i, x + 0.004 * w, y + Math.min(0, x) * Math.tan(SL) * w * ow, z + 0.006 * w);
         w0.push(w);
       }
       // and never down in the hair: if any of it would be, the whole body over the band is lifted clear by as much as
@@ -1757,11 +1758,7 @@ function buildHair(hairParts, shape, head, hairM, mk, at, look) {
       }
       body.computeVertexNormals();
       mk(body, hm, 0, 0, 0, hat);
-      // the stalk, in the middle of the top wherever it's ended up
-      const top = new THREE.Vector3(); let nTop = 0;
-      for (let i = NP - 1; i < bp.count; i += NP) { top.x += bp.getX(i); top.y += bp.getY(i); top.z += bp.getZ(i); nTop++; }
-      top.multiplyScalar(1 / nTop);
-      const st = mk(new THREE.CylinderGeometry(0.003, 0.006, 0.016, 6), hm, top.x, top.y + 0.004, top.z, hat, false); st.rotation.z = SL;
+      // (no stalk on top: it only read as a bump)
     }  } else {
     // a beanie: knitted, long, with no pompom: the crown standing up off the head and slouching back a little, in a
     // broad round dome (not a point), the cuff rolled up thick at the bottom
