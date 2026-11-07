@@ -1639,8 +1639,9 @@ function buildHair(hairParts, shape, head, hairM, mk, at, look) {
     // 阿志頭: a thick bowl on top, cut in one sharp level line round the head (a blunt straight fringe across the
     // forehead), and under it the sides and back clipped short and faded, as a 平頭's are
     buzzLayer();
-    bowl('azhi1', phi => { const a = Math.abs(ang(phi)), s = Math.min(1, Math.max(0, (a - 0.55) / 0.7)), e = s * s * (3 - 2 * s); return 0.54 + (0.3 - 0.54) * e; }, 0.034);
-    lift = 0.04;
+    // (more a longer 平頭 on top than a helmet: a thinner layer, little flare, its line cut higher round the sides)
+    mk(capGeo(shape, 'azhi2', phi => { const a = Math.abs(ang(phi)), s = Math.min(1, Math.max(0, (a - 0.55) / 0.7)), e = s * s * (3 - 2 * s); return 0.62 + (0.46 - 0.62) * e; }, () => 0.014, u => 0.006 * Math.max(0, 1 - u.y)), hairM, 0, 0, 0, head);
+    lift = 0.022;
   } else if (length === 'buzz') {
     buzzLayer();
     lift = 0.01;
@@ -1651,7 +1652,7 @@ function buildHair(hairParts, shape, head, hairM, mk, at, look) {
     // straight across the forehead, a squared corner at each temple, short sideburns in front of the ears, arching up
     // over each ear, and down the back to a faded nape
     // (down round the ears, which sit over it, and on down the back to the nape)
-    const HL = [[0, 0.6], [0.5, 0.6], [0.72, 0.56], [0.86, 0.42], [1.0, 0.12], [1.15, -0.12], [1.5, -0.16], [1.9, -0.2], [2.3, -0.36], [2.7, -0.55], [Math.PI, -0.6]];
+    const HL = [[0, 0.72], [0.5, 0.71], [0.72, 0.64], [0.86, 0.46], [1.0, 0.12], [1.15, -0.12], [1.5, -0.16], [1.9, -0.2], [2.3, -0.36], [2.7, -0.55], [Math.PI, -0.6]];
     const hairlineAt = phi => {
       const a = Math.abs(ang(phi));
       for (let k = 1; k < HL.length; k++) if (a <= HL[k][0]) { const [a0, e0] = HL[k - 1], [a1, e1] = HL[k], t = (a - a0) / (a1 - a0), s = t * t * (3 - 2 * t); return e0 + (e1 - e0) * s; }
