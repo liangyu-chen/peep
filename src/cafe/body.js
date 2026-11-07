@@ -1451,7 +1451,7 @@ function buildBodyAt(look, seed) {
 // (elev: how high the hat's front edge comes on the forehead, in radians up from the eyes' level: clear of the brows,
 // which are tucked down under it)
 const HATS = { cap: { tilt: 0.25, elev: 0.52, own: 0.012 }, bucket: { tilt: 0.1, elev: 0.52, own: 0.014 }, beanie: { tilt: 0.42, elev: 0.5, own: 0.016 },
-  fedora: { tilt: 0.12, elev: 0.5, own: 0.012 }, beret: { tilt: 0.25, elev: 0.58, own: 0.008 } };   // (the beanie pulled down a little lower, its crown slouching back)
+  fedora: { tilt: 0.12, elev: 0.5, own: 0.012 }, beret: { tilt: 0.25, elev: 0.66, own: 0.008 } };   // (the beanie pulled down a little lower, its crown slouching back)
 // the top of the head for each way the front can go: the hairline (radians above the eyes' horizon) all the way round,
 // and how full it stands, both by φ, the angle from straight ahead; lift is how far it stands off the head at most
 const line = phi => -0.16 + 0.66 * Math.cos(phi);                          // just above the brows, past the temples, down the nape
@@ -1515,6 +1515,7 @@ const tailFor = (L, curly) => (w, y0) => {
 // (if any) put on over it, made bigger by however far the hair stands off the head so nothing pokes through it
 function buildHair(hairParts, shape, head, hairM, mk, at, look) {
   const { length, curl, front, tie, cm } = hairParts;
+  const hairStart = head.children.length;   // (everything added to the head from here till the hat is the hair)
   const HL = cm !== undefined ? Math.max(0.03, cm / 100) : null;   // (a length set in cm: how far it hangs, in metres)
   const TILT = 0.66;                                    // the old tipped crown, still used to spread spikes
 
@@ -1654,6 +1655,31 @@ function buildHair(hairParts, shape, head, hairM, mk, at, look) {
   }
 
   if (!H) return;
+  // under a beret, the hair it covers is pressed down flat against the head (it can't be seen there), so the soft beret
+  // sits down close on the head, its shape its own, with nothing of the hair showing through it as lumps; below its
+  // band the hair comes back out to its full fullness, as hair does from under a beret
+  if (hatStyle === 'beret') {
+    const flat = 0.006, toHead = new THREE.Matrix4(), back = new THREE.Matrix4(), P = new THREE.Vector3(), u = new THREE.Vector3(), hv = new THREE.Vector3();
+    head.updateMatrixWorld(true);
+    const headInv = head.matrixWorld.clone().invert();
+    head.children.slice(hairStart).forEach(root => root.traverse(m => {
+      if (!m.isMesh) return;
+      toHead.multiplyMatrices(headInv, m.matrixWorld); back.copy(toHead).invert();
+      const g2 = m.geometry.clone(), p = g2.attributes.position;
+      for (let i = 0; i < p.count; i++) {
+        P.fromBufferAttribute(p, i).applyMatrix4(toHead);
+        const len = P.length(); if (len < 1e-6) continue;
+        u.copy(P).multiplyScalar(1 / len);
+        const ang = Math.acos(Math.max(-1, Math.min(1, u.dot(hatN))));
+        const s = Math.min(1, Math.max(0, (ang - (hatA + 0.06)) / 0.2)), ease = s * s * (3 - 2 * s);   // 0 under it, 1 well below its band
+        if (ease >= 1) continue;
+        const skin = deform(HEADS[shape], hv.copy(u)).length(), allowed = skin + flat + (len - skin - flat) * ease;
+        if (len > allowed) { P.multiplyScalar(allowed / len).applyMatrix4(back); p.setXYZ(i, P.x, P.y, P.z); }
+      }
+      g2.computeVertexNormals(); m.geometry = g2;
+    }));
+    lift = flat;
+  }
   // the hat, made bigger by however far this hairstyle stands off the head, so it sits on the hair, not through it.
   // Each is one piece: crown, brim or cuff and the edge tucked back in to the hair, with no seams between parts
   const T = lift + H.own, A = hatA, tuck = [A + 0.03, lift + 0.002, 0, 0];
