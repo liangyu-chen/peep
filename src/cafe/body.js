@@ -1750,7 +1750,11 @@ function buildHair(hairParts, shape, head, hairM, mk, at, look) {
       // (its edge a full round roll, not a thin lip: swelling out over a good depth and rounding back in smoothly)
       // (the roll near enough a half circle in section, from just over the band up to the top, then the top rounding in)
       // (and coming right down to the head at its foot: no straight band under it ringing the forehead)
-      const roll = []; for (let s = 0; s <= 12; s++) { const th = -Math.PI / 2 + Math.PI * s / 12; roll.push([rb * (1.0 + 0.22 * Math.cos(th)), h * (0.46 + 0.46 * Math.sin(th))]); }
+      // (its lower half sloping out from the head to the fullest point, rather than rounding in flat underneath, which
+      // left a ledge that read as a second layer; its upper half rounding over to the top as before)
+      const roll = [];
+      for (let s = 0; s <= 6; s++) { const t = s / 6; roll.push([rb * (1.0 + 0.21 * Math.sin(t * Math.PI / 2) ** 0.9), h * 0.5 * t]); }
+      for (let s = 1; s <= 6; s++) { const th = Math.PI / 2 * s / 6; roll.push([rb * (1.0 + 0.21 * Math.cos(th)), h * (0.5 + 0.42 * Math.sin(th))]); }
       const profile = [[rb * 0.985, -0.012], ...roll, [rb * 0.86, h * 0.95], [rb * 0.62, h * 0.982], [rb * 0.34, h * 0.997], [0.001, h]];
       const body = new THREE.LatheGeometry(profile.map(([r, y]) => new THREE.Vector2(r, y)), 56);
       // the band stays snug round the head all the way round (nothing lifts off it to show the hair under it); only the
