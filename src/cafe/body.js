@@ -1642,8 +1642,8 @@ function buildHair(hairParts, shape, head, hairM, mk, at, look) {
     // (more a longer 平頭 on top than a helmet: a thinner layer, little flare, its line cut higher round the sides)
     // (and thick in front, the fringe jutting out over the forehead, blunt-cut, like a visor)
     // (its thickness at the cut edge, which stays full right to the edge: deep across the front, close at the sides)
-    const jut = phi => 0.012 + 0.042 * Math.max(0, Math.cos(phi)) ** 2.5;
-    mk(capGeo(shape, 'azhi5', phi => { const a = Math.abs(ang(phi)), s = Math.min(1, Math.max(0, (a - 0.55) / 0.7)), e = s * s * (3 - 2 * s); return 0.62 + (0.46 - 0.62) * e; }, jut, u => 0.004 * Math.max(0, 1 - u.y)), hairM, 0, 0, 0, head);
+    const jut = phi => 0.012 + 0.066 * Math.max(0, Math.cos(phi)) ** 2;
+    mk(capGeo(shape, 'azhi6', phi => { const a = Math.abs(ang(phi)), s = Math.min(1, Math.max(0, (a - 0.55) / 0.7)), e = s * s * (3 - 2 * s); return 0.62 + (0.46 - 0.62) * e; }, jut, u => 0.004 * Math.max(0, 1 - u.y)), hairM, 0, 0, 0, head);
     lift = 0.03;
   } else if (length === 'buzz') {
     buzzLayer();
@@ -1663,8 +1663,8 @@ function buildHair(hairParts, shape, head, hairM, mk, at, look) {
     };
     // (its thickness all in the bump, thinning away over the last rows at the hairline: an even short top, faded
     // down to a mere shadow round the sides and back)
-    const top = u => Math.min(1, Math.max(0, (u.y + 0.1) / 0.6)), even = u => { const s = top(u); return 0.0016 + 0.0042 * s * s * (3 - 2 * s); };   // (the top cropped short)
-    const geo0 = capGeo(shape, 'buzz5', hairlineAt, () => 0.001, even), g2 = geo0.clone(), pp = g2.attributes.position, col = [];
+    const top = u => Math.min(1, Math.max(0, (u.y + 0.1) / 0.6)), even = u => { const s = top(u); return 0.0012 + 0.0024 * s * s * (3 - 2 * s); };   // (the top cropped short)
+    const geo0 = capGeo(shape, 'buzz6', hairlineAt, () => 0.001, even), g2 = geo0.clone(), pp = g2.attributes.position, col = [];
     // the fade, in its colour: the hair's on top, toward the skin's down the sides and back
     const hc = new THREE.Color(picked(look.hair)), sc = new THREE.Color(picked(look.skin)), cc = new THREE.Color(), uu = new THREE.Vector3();
     // (a long gradual fade, from just above the ears and nape up to the top: no line where it changes)
