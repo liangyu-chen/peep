@@ -1047,7 +1047,7 @@ function buildBodyAt(look, seed) {
   const SK = socksOf(look), sockM = SK.style !== 'none' ? mat(picked(SK.color), { roughness: 0.95 }) : null, sockRib = sockM && mat(shade(picked(SK.color), 0.8), { roughness: 0.95 });
   const THIGH = 0.32, HIP_Y = 0.55 + LEG_EXTRA;
   // 牛仔褲's stitching: a darker seam with a line of golden-orange thread beside it (gone with the pants when they come down)
-  const threadM = mat(0xc06a18, { roughness: 0.85 }), seamM = mat(shade(C.pants, 0.6), { roughness: 0.9 }), rivetM = mat(0xb8803e, { roughness: 0.3, metalness: 0.8 });
+  const threadM = mat(0xa8906e, { roughness: 0.9 }), seamM = mat(shade(C.pants, 0.6), { roughness: 0.9 }), rivetM = mat(0xb8803e, { roughness: 0.3, metalness: 0.8 });
   const jtube = (key, pts, r, m, par) => { const me = mk(geo(`jeans7:${key}`, () => new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts, false, 'centripetal'), pts.length * 2, r, 4, false)), m, 0, 0, 0, par, false); cover.push(me); return me; };
   const legs = [-0.094, 0.094].map(x => {   // close enough that the tops of the thighs meet, so the crotch is just where the legs join
     const hip = new THREE.Group(); hip.position.set(x, HIP_Y, 0); g.add(hip);
@@ -1361,7 +1361,7 @@ function buildBodyAt(look, seed) {
   const ribM = topStyle === 'denim'   // (a denim jacket's band and cuffs: its own cloth, a shade deeper, being doubled)
     ? (() => { const m = patterned(mat(shade(C.shirt, 0.9), { roughness: 0.9 }), pattern, shade(C.shirt, 0.9)); m.side = THREE.DoubleSide; return m; })()
     : (() => { const t = ribs().clone(); t.repeat.set(26, 1); t.needsUpdate = true; return mat(shade(C.shirt, 0.82), { roughness: 0.95, map: t, side: THREE.DoubleSide }); })();
-  const jThread = mat(0xc06a18, { roughness: 0.85 }), jButton = mat(0xa88552, { roughness: 0.3, metalness: 0.75 });   // (a denim jacket's thread, its metal buttons)
+  const jThread = mat(0xa8906e, { roughness: 0.9 }), jButton = mat(0xa88552, { roughness: 0.3, metalness: 0.75 });   // (a denim jacket's thread, its metal buttons)
   // ---------------------------------------------------------------- the winter tops: 帽T, 夾克, 西裝外套, 棒球外套
   // (all laid on the top's own surface, as the shirt's collar and placket are: each point found from the cut's slices)
   if (winter) {
