@@ -22,6 +22,7 @@ export type Look = {
   earL?: string; earR?: string; earColor?: number;                             // 飾品: earrings (one style per ear, one metal)
   headphones?: string; headphoneColor?: number;                                // 耳機: worn on the head or round the neck
   watch?: string; watchColor?: number;                                         // 手錶: on which wrist, its strap's colour
+  watchFace?: string; watchDial?: number;                                      // and its face: hands, digital or a smartwatch, and the face's colour
   tattoos?: Record<string, string>; tattooText?: string;                       // a style per part (older looks: tattoo + tattooCover)
   companion?: string;
   topStyle?: string; topPattern?: string; topFit?: string; longSleeve?: boolean; number?: string;   // T恤, 襯衫 or a winter top, its cut, its sleeves
@@ -219,9 +220,12 @@ export const headphonesOf = (look: Look): { wear: string; color: number } => ({
   color: typeof look.headphoneColor === 'number' ? look.headphoneColor : 0x1e1e22,
 });
 export const WATCHES: Option[] = [{ value: 'left', label: '左手' }, { value: 'right', label: '右手' }];
-export const watchOf = (look: Look): { wrist: string; color: number } => ({
+export const WATCH_FACES: Option[] = [{ value: 'analog', label: '指針' }, { value: 'mechanical', label: '機械錶' }, { value: 'digital', label: '電子錶' }, { value: 'smart', label: '智慧手錶' }];
+export const watchOf = (look: Look): { wrist: string; color: number; face: string; dial: number } => ({
   wrist: look.watch === 'left' || look.watch === 'right' ? look.watch : 'none',
   color: typeof look.watchColor === 'number' ? look.watchColor : 0x4a3222,
+  face: pickIn(WATCH_FACES, look.watchFace, 'analog'),
+  dial: typeof look.watchDial === 'number' ? look.watchDial : 0x16181c,
 });
 
 // tattoos: American traditional, in black and grey; each part of the arms and legs inked with a piece of its own, or
@@ -311,8 +315,12 @@ export const SKIN_TONES = [
   { value: 0xd9a27c, label: '小麥' }, { value: 0xc68a5e, label: '黝黑' }, { value: 0x8d5a3b, label: '深色' }, { value: 0x6b4430, label: '深棕' },
 ];
 // swatches next to each colour field in the editor
-export const COLOR_PRESETS: Record<'skin' | 'hair' | 'eyes' | 'clothes' | 'lens' | 'frame' | 'metal', { value: number; label: string }[]> = {
+export const COLOR_PRESETS: Record<'skin' | 'hair' | 'eyes' | 'clothes' | 'lens' | 'frame' | 'metal' | 'dial', { value: number; label: string }[]> = {
   skin: SKIN_TONES,
+  dial: [
+    { value: 0x16181c, label: '黑' }, { value: 0xf2efe6, label: '白' }, { value: 0x1d2f5a, label: '深藍' }, { value: 0x1f4a38, label: '墨綠' },
+    { value: 0xd9c08a, label: '香檳金' }, { value: 0x9fb2a0, label: '液晶灰綠' }, { value: 0xce1141, label: '紅' }, { value: 0x7ec8ff, label: '天藍' },
+  ],
   metal: [
     { value: 0xd9ad52, label: '金' }, { value: 0xd4d7dc, label: '銀' }, { value: 0xe0a48c, label: '玫瑰金' }, { value: 0x2a2a2e, label: '黑' },
     { value: 0xb87333, label: '銅' }, { value: 0xf2f2f2, label: '珍珠白' },
@@ -383,6 +391,7 @@ export function parseLook(get: (k: string) => string | null, prev?: Look): Look 
     earL: earsOn ? one('earL', EARRINGS, ears.left) : 'none', earR: earsOn ? one('earR', EARRINGS, ears.right) : 'none', earColor: hex('earColor', earColorOf(base)),
     headphones: on('headphones', phones.wear !== 'none') ? one('headphonesWear', HEADPHONES, phones.wear === 'none' ? 'head' : phones.wear) : 'none', headphoneColor: hex('headphoneColor', phones.color),
     watch: on('watch', watch.wrist !== 'none') ? one('watchWrist', WATCHES, watch.wrist === 'none' ? 'left' : watch.wrist) : 'none', watchColor: hex('watchColor', watch.color),
+    watchFace: one('watchFace', WATCH_FACES, watch.face), watchDial: hex('watchDial', watch.dial),
     tattoos: Object.fromEntries(TATTOO_PARTS.map(p => [p.value, get('tat_' + p.value) ?? inked[p.value]] as const).filter((e): e is [string, string] => tatStyle(e[1]))),
     companion: one('companion', COMPANIONS, companionOf(base)),
     // 穿著

@@ -512,6 +512,59 @@ const hatGeo = (shape, key, n, rings) => geo(`hat:${shape},${key}`, () => {
   g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
   g.setIndex(idx); g.computeVertexNormals(); return g;
 });
+// a watch's case: a rounded rectangle `w` wide and `h` tall, `d` deep (facing +z), its edges rounded
+const roundSlab = (w, h, d, r) => geo(`roundSlab:${w}:${h}:${d}:${r}`, () => {
+  const sh = new THREE.Shape(), x0 = -w / 2, y0 = -h / 2;
+  sh.moveTo(x0 + r, y0); sh.lineTo(x0 + w - r, y0); sh.quadraticCurveTo(x0 + w, y0, x0 + w, y0 + r);
+  sh.lineTo(x0 + w, y0 + h - r); sh.quadraticCurveTo(x0 + w, y0 + h, x0 + w - r, y0 + h);
+  sh.lineTo(x0 + r, y0 + h); sh.quadraticCurveTo(x0, y0 + h, x0, y0 + h - r);
+  sh.lineTo(x0, y0 + r); sh.quadraticCurveTo(x0, y0, x0 + r, y0);
+  const eg = new THREE.ExtrudeGeometry(sh, { depth: d - 0.003, bevelEnabled: true, bevelThickness: 0.0015, bevelSize: 0.0015, bevelSegments: 2, curveSegments: 6 });
+  eg.translate(0, 0, -(d - 0.003) / 2); return eg;
+});
+// the watch faces, drawn once for each kind and colour: hands at ten past ten; 10:08 in segments; a smartwatch's time
+// and its three activity rings
+const WATCH_TEX = {};
+const watchTex = (kind, dial) => WATCH_TEX[kind + dial] || (WATCH_TEX[kind + dial] = (() => {
+  const c = new THREE.Color(dial), hex = '#' + c.getHexString(), pale = c.getHSL({}).l > 0.55, ink = pale ? '#1b1c20' : '#f2f2f2';
+  if (kind === 'analog' || kind === 'mechanical') return canvasTex(128, 128, (g, W) => {
+    g.fillStyle = hex; g.beginPath(); g.arc(64, 64, 64, 0, Math.PI * 2); g.fill();
+    if (kind === 'mechanical') {
+      // the open heart: a window low on the face onto the movement: gold wheels with teeth, a balance wheel, jewels
+      g.save(); g.beginPath(); g.arc(64, 84, 24, 0, Math.PI * 2); g.clip();
+      g.fillStyle = '#3a3d44'; g.fillRect(30, 50, 70, 70);
+      const gear = (x, y, r, teeth, col) => {
+        g.fillStyle = col; g.beginPath();
+        for (let k = 0; k < teeth * 2; k++) { const a = k / (teeth * 2) * Math.PI * 2, rr = k % 2 ? r : r * 0.86; g.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr); }
+        g.fill(); g.fillStyle = '#3a3d44'; g.beginPath(); g.arc(x, y, r * 0.55, 0, Math.PI * 2); g.fill();
+        g.strokeStyle = col; g.lineWidth = 2; for (let k = 0; k < 4; k++) { const a = k * Math.PI / 2; g.beginPath(); g.moveTo(x, y); g.lineTo(x + Math.cos(a) * r * 0.6, y + Math.sin(a) * r * 0.6); g.stroke(); }
+        g.fillStyle = '#c0392b'; g.beginPath(); g.arc(x, y, 2.2, 0, Math.PI * 2); g.fill();   // its jewel
+      };
+      gear(56, 86, 15, 18, '#d9b25a'); gear(78, 74, 9, 12, '#e8c878'); gear(76, 98, 7, 10, '#c9a24a');
+      g.restore();
+      g.strokeStyle = '#c9ccd1'; g.lineWidth = 3; g.beginPath(); g.arc(64, 84, 24, 0, Math.PI * 2); g.stroke();
+    }
+    g.strokeStyle = ink; g.lineCap = 'round';
+    for (let k = 0; k < 12; k++) { const a = k / 12 * Math.PI * 2, r0 = k % 3 ? 50 : 44; g.lineWidth = k % 3 ? 3 : 6; g.beginPath(); g.moveTo(64 + Math.sin(a) * r0, 64 - Math.cos(a) * r0); g.lineTo(64 + Math.sin(a) * 57, 64 - Math.cos(a) * 57); g.stroke(); }
+    const hand = (a, len, w) => { g.lineWidth = w; g.beginPath(); g.moveTo(64, 64); g.lineTo(64 + Math.sin(a) * len, 64 - Math.cos(a) * len); g.stroke(); };
+    hand(-Math.PI / 3, 30, 7); hand(Math.PI / 3, 46, 5);
+    g.fillStyle = ink; g.beginPath(); g.arc(64, 64, 5, 0, Math.PI * 2); g.fill();
+  });
+  if (kind === 'digital') return canvasTex(96, 64, (g, W, H) => {
+    g.fillStyle = hex; g.fillRect(0, 0, W, H);
+    g.fillStyle = pale ? 'rgba(20,24,20,0.85)' : 'rgba(235,240,235,0.9)'; g.font = 'bold 30px "Courier New", monospace'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillText('10:08', W / 2, H / 2 + 6);
+    g.font = 'bold 12px "Courier New", monospace'; g.fillText('FR 13', W / 2, 13);
+  });
+  return canvasTex(80, 96, (g, W, H) => {
+    g.fillStyle = '#050505'; g.fillRect(0, 0, W, H);
+    [['#fa114f', 26], ['#92e82a', 19], ['#1eeaef', 12]].forEach(([col, r], i) => {
+      g.lineWidth = 6; g.lineCap = 'round'; g.strokeStyle = col; g.globalAlpha = 0.28; g.beginPath(); g.arc(W / 2, 62, r, 0, Math.PI * 2); g.stroke();
+      g.globalAlpha = 1; g.beginPath(); g.arc(W / 2, 62, r, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * [0.75, 0.55, 0.85][i]); g.stroke();
+    });
+    g.fillStyle = c.getHSL({}).l < 0.15 ? '#f2f2f2' : hex; g.font = 'bold 20px Helvetica, Arial, sans-serif'; g.textAlign = 'center'; g.fillText('10:08', W / 2, 24);
+  });
+})());
 // knitted ribs for a beanie
 let ribTex = null;
 const ribs = () => ribTex || (ribTex = (() => {
@@ -1672,12 +1725,6 @@ function buildBodyAt(look, seed) {
       mk(oval('inner', CW * 0.62, CH * 0.62, 0.004, 0.002), mat(0x1a1a1c, { roughness: 1 }), s * 0.006, 0, 0, c, false);   // the dark fabric inside it
       mk(oval('shell', CW, CH, 0.016, 0.009), shellM, s * 0.033, 0, 0, c, false);
       const boss = mk(cy(0.019, 0.02, 0.006, 24), padM, s * 0.0455, 0, 0, c, false); boss.rotation.z = Math.PI / 2;   // the round boss on its outside
-      // the band's end forking down either edge of the cup, on its inner half, to a pivot halfway down (so band and cup
-      // are one piece)
-      for (const e of [-1, 1]) {
-        mk(bx(0.014, CH / 2 + 0.006, 0.007), bandM, s * 0.012, CH / 4 + 0.003, e * (CW / 2 + 0.002), c, false);
-        mk(cy(0.009, 0.009, 0.009, 16), bandM, s * 0.012, 0, e * (CW / 2 + 0.002), c, false).rotation.x = Math.PI / 2;
-      }
       return c;
     };
     // the band: wide and flat, along a curve through pts (its width across z), the sliders a short darker stretch near
@@ -1706,17 +1753,20 @@ function buildBodyAt(look, seed) {
     // neck it's the same pair, unchanged, just lowered to the base of the neck and tipped back, the band behind the neck
     // and the cups either side of the throat
     const ear = at(1, -0.04, 0.02), top = at(0, 1, -0.05), ey = ear.y + 0.004;
+    // (over a beanie or a cap, the band goes on over it: higher and a little wider; a bucket hat, fedora or beret goes on
+    // over the band instead)
+    const overHat = { beanie: 0.034, cap: 0.02 }[hatOf(look).hat] || 0;
     // (round the neck it springs in tighter than over the head: the cups close in either side of the throat)
-    const ex = phones.wear === 'head' ? Math.abs(ear.x) + 0.016 : 0.078;
+    const ex = phones.wear === 'head' ? Math.abs(ear.x) + 0.016 + overHat * 0.25 : 0.078;
     const set = new THREE.Group();
     [-1, 1].forEach(s => cup(set, s).position.set(s * ex, 0, 0));
     // out of the top of each cup, up and over the head, close over the hair
-    const fx = ex + 0.008, by = CH / 2 - 0.006, rise = top.y + 0.026 - ey - by + (phones.wear === 'head' ? 0 : 0.05), pts = [];   // (round the neck, opened out longer to reach right round behind it)
+    const fx = ex + 0.008 + overHat * 0.35, by = CH / 2 - 0.006, rise = top.y + 0.026 - ey - by + (phones.wear === 'head' ? overHat : 0.02), pts = [];   // (round the neck, a little longer to reach round behind it)
     for (let k = 0; k <= 24; k++) { const t = -Math.PI / 2 + Math.PI * k / 24; pts.push(new THREE.Vector3(Math.sin(t) * fx, by + Math.cos(t) * rise, 0)); }
-    band(`set:${shape}:${ex.toFixed(3)}:${rise.toFixed(3)}`, pts, set);
+    band(`set:${shape}:${ex.toFixed(3)}:${fx.toFixed(3)}:${rise.toFixed(3)}`, pts, set);
     if (phones.wear === 'head') { head.add(set); set.position.set(0, ey, ear.z); }
     else {
-      g.add(set); set.position.set(0, 1.215, 0.07); set.rotation.x = -1.3;
+      g.add(set); set.position.set(0, 1.232, 0.055); set.rotation.x = -1.38;
       // and nowhere into the body: the cups' rims checked against the top's own slices, the pair eased forward a
       // little at a time until none of it is inside
       const rows = torsoRows(topFit, topStyle), inside = v => {
@@ -2063,11 +2113,32 @@ function buildBodyAt(look, seed) {
     // sleeve), its face on the back of the wrist, outward
     const W8 = watchOf(look);
     if (W8.wrist === (s < 0 ? 'right' : 'left')) {
-      const wy = -0.2, r = (long ? wrist + 0.003 : wrist + (0.052 * S - wrist) * 0.17) + 0.004;   // (the forearm's width there)
-      mk(cy(r, r, 0.014, 18, true), mat(picked(W8.color), { roughness: 0.6, side: THREE.DoubleSide }), 0, wy, 0, elbow, false);   // the strap
-      mk(cy(0.0135, 0.0135, 0.007, 18), silverM, s * (r + 0.002), wy, 0, elbow, false).rotation.z = Math.PI / 2;   // the case
-      mk(cy(0.0108, 0.0108, 0.002, 18), mat(0x16181c, { roughness: 0.15, metalness: 0.3 }), s * (r + 0.0056), wy, 0, elbow, false).rotation.z = Math.PI / 2;   // the dial
-      const hand2 = mk(bx(0.0012, 0.008, 0.0012), whiteM, s * (r + 0.007), wy + 0.003, 0, elbow, false); hand2.rotation.x = 0.6;   // a hand on it
+      // (just up from the wrist)
+      const wy = -0.212, r = (long ? wrist + 0.003 : wrist + (0.052 * S - wrist) * 0.12) + 0.003;   // (the forearm's width there)
+      // the strap: a broad band with some thickness to it, its edges rounded
+      const SH = 0.024, ST = 0.004, strap = [[r, -SH / 2], [r + ST * 0.7, -SH / 2], [r + ST, -SH / 2 + ST * 0.4], [r + ST, SH / 2 - ST * 0.4], [r + ST * 0.7, SH / 2], [r, SH / 2]];
+      mk(geo(`watchStrap:${r.toFixed(4)}`, () => new THREE.LatheGeometry(strap.map(([x, y]) => new THREE.Vector2(x, y)), 24)), mat(picked(W8.color), { roughness: 0.6, side: THREE.DoubleSide }), 0, wy, 0, elbow, false);
+      const R0 = r + ST;   // (the case sits on the strap)
+      // its face, square to the back of the wrist, turned the way a watch is worn: 12 toward the back of the arm (away
+      // from the thumb), 3 toward the hand
+      const turn = m => { m.rotation.y = s * Math.PI / 2; m.rotateZ(-s * Math.PI / 2); return m; };
+      const facePlane = (w, h, tex, dx) => turn(mk(new THREE.PlaneGeometry(w, h), new THREE.MeshStandardMaterial({ map: tex, roughness: 0.25, metalness: 0.1 }), s * (R0 + dx), wy, 0, elbow, false));
+      if (W8.face === 'analog' || W8.face === 'mechanical') {
+        // 指針: a round steel case, the face in its colour, a ring of hour marks and two hands (dark on a pale face); 機械錶
+        // the same, its face cut open to show the gold movement turning underneath
+        mk(cy(0.019, 0.019, 0.008, 24), silverM, s * (R0 + 0.003), wy, 0, elbow, false).rotation.z = Math.PI / 2;   // the case
+        const disc = mk(new THREE.CircleGeometry(0.0158, 32), new THREE.MeshStandardMaterial({ map: watchTex(W8.face, W8.dial), roughness: 0.2, metalness: 0.2 }), s * (R0 + 0.0072), wy, 0, elbow, false);
+        turn(disc);
+      } else if (W8.face === 'digital') {
+        // 電子錶: a squared black resin case, a grey-green (or the chosen colour) display showing the time in segments
+        turn(mk(roundSlab(0.034, 0.03, 0.009, 0.006), mat(0x1c1c1f, { roughness: 0.55 }), s * (R0 + 0.0045), wy, 0, elbow, false));
+        facePlane(0.024, 0.016, watchTex('digital', W8.dial), 0.0094);
+      } else {
+        // 智慧手錶: a tall rounded-square case in dark aluminium, all screen in front: black, the time and the three rings
+        turn(mk(roundSlab(0.03, 0.036, 0.01, 0.009), mat(0x2b2d31, { roughness: 0.3, metalness: 0.7 }), s * (R0 + 0.005), wy, 0, elbow, false));
+        facePlane(0.026, 0.032, watchTex('smart', W8.dial), 0.0104);
+        mk(cy(0.0028, 0.0028, 0.004, 12), mat(0x9a9da3, { roughness: 0.3, metalness: 0.8 }), s * (R0 + 0.005), wy - 0.017, -0.007, elbow, false);   // the crown, on its side toward the hand, up by the 12
+      }
     }
     return sh;
   });
@@ -2475,6 +2546,8 @@ function buildHair(hairParts, shape, head, hairM, mk, at, look) {
   // the hat, made bigger by however far this hairstyle stands off the head, so it sits on the hair, not through it.
   // Each is one piece: crown, brim or cuff and the edge tucked back in to the hair, with no seams between parts
   const T = lift + H.own, A = hatA, tuck = [A + 0.03, lift + 0.002, 0, 0];
+  // (headphones worn under a bucket hat, fedora or beret: the hat a little roomier, sat over their band)
+  const phonesUnder = headphonesOf(look).wear === 'head' && ['bucket', 'fedora', 'beret'].includes(hatStyle);
   const steps = (n, f) => Array.from({ length: n }, (_, k) => f(k / (n - 1)));
   if (hatStyle === 'cap') {
     // a six-panel cap: rounded crown, and a peak at the front only, curving down a little, with an underside
@@ -2491,10 +2564,11 @@ function buildHair(hairParts, shape, head, hairM, mk, at, look) {
   } else if (hatStyle === 'bucket') {
     // a bucket hat: soft crown, the brim turning out and down all the way round, with an underside and a rolled edge
     const capM = mat(picked(hatColor), { roughness: 0.9, side: THREE.DoubleSide });
-    mk(hatGeo(shape, `bucket:${T.toFixed(3)}`, hatN, () => [
-      ...steps(10, t => [t * A, T, 0, 0]),
-      [A, T, 0.012, 0.004], [A, T, 0.032, 0.014], [A, T, 0.052, 0.028], [A, T - 0.002, 0.06, 0.036],
-      [A, T - 0.008, 0.056, 0.038], [A, T - 0.008, 0.03, 0.02], [A, T - 0.008, 0.006, 0.006],
+    const TB = T + (phonesUnder ? 0.026 : 0);
+    mk(hatGeo(shape, `bucket:${TB.toFixed(3)}`, hatN, () => [
+      ...steps(10, t => [t * A, TB, 0, 0]),
+      [A, TB, 0.012, 0.004], [A, TB, 0.032, 0.014], [A, TB, 0.052, 0.028], [A, TB - 0.002, 0.06, 0.036],
+      [A, TB - 0.008, 0.056, 0.038], [A, TB - 0.008, 0.03, 0.02], [A, TB - 0.008, 0.006, 0.006],
       tuck,
     ]), capM, 0, 0, 0, head);
   } else if (hatStyle === 'fedora' || hatStyle === 'beret') {
@@ -2507,7 +2581,7 @@ function buildHair(hairParts, shape, head, hairM, mk, at, look) {
       ring.push(deform(HEADS[shape], v.copy(d)).addScaledVector(d, T).clone());
     }
     ring.forEach(p => c.add(p)); c.multiplyScalar(1 / ring.length);
-    const rb = ring.reduce((s, p) => s + p.distanceTo(c), 0) / ring.length + 0.004;   // the hat's opening, round the head
+    const rb = ring.reduce((s, p) => s + p.distanceTo(c), 0) / ring.length + 0.004 + (phonesUnder ? 0.014 : 0);   // the hat's opening, round the head
     const hat = new THREE.Group(); hat.position.copy(c); hat.quaternion.copy(q); head.add(hat);
     const hm = mat(picked(hatColor), { roughness: hatStyle === 'beret' ? 0.95 : 0.75, side: THREE.DoubleSide });
     if (hatStyle === 'fedora') {
@@ -2534,7 +2608,7 @@ function buildHair(hairParts, shape, head, hairM, mk, at, look) {
       // snug round the head, a stalk in the middle of the top
       // (shaped as one piece from the band up: bellying out past the head, then rounding over to a full soft top a little
       // above the crown of the head, which it covers; slouched forward and to one side)
-      const crownTop = deform(HEADS[shape], v.copy(hatN)).addScaledVector(hatN, T).sub(c).dot(hatN), h = crownTop + 0.002;   // (sat down close over the crown, soft and flattened, just clear of the hair)
+      const crownTop = deform(HEADS[shape], v.copy(hatN)).addScaledVector(hatN, T).sub(c).dot(hatN), h = crownTop + 0.002 + (phonesUnder ? 0.026 : 0);   // (sat down close over the crown, soft and flattened, just clear of the hair, or of the headphones' band)
       // (a flat soft disc more than a dome: snug at the band, flaring out wide, a rounded rim, the top nearly flat)
       // (its edge a full round roll, not a thin lip: swelling out over a good depth and rounding back in smoothly)
       // (the roll near enough a half circle in section, from just over the band up to the top, then the top rounding in)

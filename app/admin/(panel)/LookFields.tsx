@@ -1,4 +1,4 @@
-import { BUILDS, buildOf, HEIGHTS, heightOf,tieColorOf, CLOTHES, COLOR_PRESETS, COMPANIONS, EARRINGS, earringsOf, earColorOf, HEADPHONES, headphonesOf, WATCHES, watchOf, FACE, frameColorOf, HAIR, HAT_STYLES, SHOE_STYLES, SOCKS, TATTOO_PARTS, TATTOO_STYLES,clothesOf, companionOf, faceOf, hairOf, hatOf, lensOf, shoeOf, socksOf, tattooOf, type Look } from '@/src/content/catalog';
+import { BUILDS, buildOf, HEIGHTS, heightOf,tieColorOf, CLOTHES, COLOR_PRESETS, COMPANIONS, EARRINGS, earringsOf, earColorOf, HEADPHONES, headphonesOf, WATCHES, WATCH_FACES, watchOf, FACE, frameColorOf, HAIR, HAT_STYLES, SHOE_STYLES, SOCKS, TATTOO_PARTS, TATTOO_STYLES,clothesOf, companionOf, faceOf, hairOf, hatOf, lensOf, shoeOf, socksOf, tattooOf, type Look } from '@/src/content/catalog';
 import ColorField from './ColorField';
 import HairLengthField from './HairLengthField';
 import LensOpacityField from './LensOpacityField';
@@ -95,7 +95,11 @@ export default function LookFields({ look, seed }: { look: Look; seed: string })
             <label className="check acc-name"><input type="checkbox" name="acc_watch" defaultChecked={watch.wrist !== 'none'} /><span>手錶</span></label>
             <div className="acc-body">
               <Pick name="watchWrist" label="戴在" value={watch.wrist === 'none' ? 'left' : watch.wrist} options={WATCHES} />
-              <div className="colors"><ColorField name="watchColor" label="錶帶顏色" value={watch.color} presets={COLOR_PRESETS.clothes} /></div>
+              <Pick name="watchFace" label="錶面" value={watch.face} options={WATCH_FACES} />
+              <div className="colors">
+                <ColorField name="watchColor" label="錶帶顏色" value={watch.color} presets={COLOR_PRESETS.clothes} />
+                <ColorField name="watchDial" label="錶面顏色" value={watch.dial} presets={COLOR_PRESETS.dial} />
+              </div>
             </div>
           </div>
         </div>
