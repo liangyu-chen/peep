@@ -19,10 +19,18 @@ export const menuSection = (name: string, section: string) => (section === HIDDE
 
 // the games a regular plays: NBA 2K and the fighting game on the TV, spinning tops in the arcade.
 // An empty team or fighter means a random one each visit. The fighting game is 快打旋風, its fighters in SF_FIGHTERS.
+export const SEAT_PREFS = [
+  { value: '', label: '隨機（不設定）' },
+  { value: 'porch', label: '偏好戶外區' },
+  { value: 'inside', label: '偏好室內' },
+] as const;
+export type SeatPref = typeof SEAT_PREFS[number]['value'];
+
 export type Regular = {
   name: string; job: string; drink: string; visits: number; quirk: string; look: Look;
   plays2k: boolean; team: string; playsFight: boolean; fighter: string; playsTops: boolean;
-  smokes: boolean;   // smokers like sitting outside, where smoking is allowed
+  smokes: boolean;          // smoking is allowed outside, so smokers always head for the porch
+  seatPref: SeatPref;       // '' = random each visit; a preference still loses to smoking
 };
 export type Owner = { name: string; job: string; look: Look };
 
@@ -216,18 +224,18 @@ export const TEAM_NAMES = ['塞爾提克', '籃網', '尼克', '76人', '暴龍'
   '金塊', '灰狼', '雷霆', '拓荒者', '爵士', '勇士', '快艇', '湖人', '太陽', '國王', '獨行俠', '火箭', '灰熊', '鵜鶘', '馬刺'];
 const look = (skin: number, hair: number, hairStyle: string, shirt: number, pants: number, extra: Partial<Look> = {}): Look => ({ skin, hair, hairStyle, shirt, pants, ...extra });
 export const DEFAULT_REGULARS: Regular[] = [
-  { name: '阿凱', job: '軟體工程師', drink: '美式', team: '勇士', visits: 214, look: look(0xe0ac80, 0x111111, 'short', 0x1D428A, 0x2b2b2b, { glasses: true, number: '30' }), plays2k: true, playsFight: false, fighter: '', playsTops: false, smokes: false, quirk: '每天下班一定來打一場' },
-  { name: '美美', job: '平面設計師', drink: '卡布', team: '湖人', visits: 167, look: look(0xf6d7bd, 0x3b2618, 'long', 0xf1d27a, 0x3a3f5c), plays2k: true, playsFight: true, fighter: '春麗', playsTops: false, smokes: false, quirk: '自稱店內 2K 女王' },
-  { name: '大頭', job: '大學生', drink: '榛果拿鐵', team: '公牛', visits: 98, look: look(0xf1c9a5, 0x1b1410, 'short', 0xCE1141, 0x222222, { hat: 'cap', hatColor: 0x111111, number: '23' }), plays2k: true, playsFight: true, fighter: '隆', playsTops: true, smokes: false, quirk: '翹課來打電動' },
-  { name: '阿嘉', job: '外送員', drink: '林美如', team: '塞爾提克', visits: 131, look: look(0xc68a5e, 0x111111, 'short', 0x2e8b57, 0x334455), plays2k: false, playsFight: false, fighter: '', playsTops: true, smokes: true, quirk: '送單空檔會在戶外區坐一下' },
-  { name: '小胖', job: '研究生', drink: '朱古力', team: '熱火', visits: 76, look: look(0xf1c9a5, 0x3b2618, 'short', 0x98002E, 0x555555, { glasses: true }), plays2k: true, playsFight: true, fighter: '桑吉爾夫', playsTops: true, smokes: false, quirk: '論文寫不出來就來這' },
-  { name: 'Jason', job: '隔壁五金行少東', drink: '別害羞', team: '獨行俠', visits: 120, look: look(0xe0ac80, 0x6b4423, 'short', 0xf2f2f2, 0x1f2a44, { longSleeve: true }), plays2k: true, playsFight: false, fighter: '', playsTops: true, smokes: true, quirk: '顧店空檔溜過來' },
-  { name: '阿翔', job: '健身教練', drink: '康保藍', team: '金塊', visits: 88, look: look(0x8d5a3b, 0x111111, 'bald', 0x0E2240, 0x111111), plays2k: true, playsFight: true, fighter: '古烈', playsTops: false, smokes: false, quirk: '輸了會去戶外區做伏地挺身' },
-  { name: '小雨', job: '插畫家', drink: '拿鐵', team: '公鹿', visits: 143, look: look(0xf6d7bd, 0x111111, 'bun', 0x7fae8b, 0xd9c7a4), plays2k: false, playsFight: false, fighter: '', playsTops: false, smokes: false, quirk: '最愛台式茶杯裡的拉花' },
-  { name: '老陳', job: '退休老師', drink: '拿鐵', team: '塞爾提克', visits: 302, look: look(0xe0ac80, 0x8a8a8a, 'short', 0x8b6b4a, 0x4a4a4a, { glasses: true, longSleeve: true }), plays2k: true, playsFight: false, fighter: '', playsTops: false, smokes: false, quirk: '從萬華店就跟過來的元老' },
-  { name: '阿德', job: '廚師', drink: '一起搖擺', team: '太陽', visits: 65, look: look(0xd9a27c, 0x1b1410, 'short', 0xE56020, 0x2b2b2b, { hat: 'cap', hatColor: 0x1D1160 }), plays2k: false, playsFight: true, fighter: '肯', playsTops: true, smokes: true, quirk: '休假日整天泡在這' },
-  { name: '欣欣', job: '護理師', drink: '榛果拿鐵', team: '尼克', visits: 91, look: look(0xf6d7bd, 0x6b4423, 'long', 0x006BB6, 0x2b2b2b), plays2k: true, playsFight: false, fighter: '', playsTops: false, smokes: false, quirk: '大夜班下班來放鬆' },
-  { name: '球哥', job: '前校隊後衛', drink: '林美如', team: '公牛', visits: 188, look: look(0xc68a5e, 0x111111, 'short', 0x111111, 0xCE1141, { number: '1' }), plays2k: true, playsFight: true, fighter: '達爾錫', playsTops: true, smokes: true, quirk: '嘴上說不玩，坐下就不走' },
+  { name: '阿凱', job: '軟體工程師', drink: '美式', team: '勇士', visits: 214, look: look(0xe0ac80, 0x111111, 'short', 0x1D428A, 0x2b2b2b, { glasses: true, number: '30' }), plays2k: true, playsFight: false, fighter: '', playsTops: false, smokes: false, seatPref: '', quirk: '每天下班一定來打一場' },
+  { name: '美美', job: '平面設計師', drink: '卡布', team: '湖人', visits: 167, look: look(0xf6d7bd, 0x3b2618, 'long', 0xf1d27a, 0x3a3f5c), plays2k: true, playsFight: true, fighter: '春麗', playsTops: false, smokes: false, seatPref: '', quirk: '自稱店內 2K 女王' },
+  { name: '大頭', job: '大學生', drink: '榛果拿鐵', team: '公牛', visits: 98, look: look(0xf1c9a5, 0x1b1410, 'short', 0xCE1141, 0x222222, { hat: 'cap', hatColor: 0x111111, number: '23' }), plays2k: true, playsFight: true, fighter: '隆', playsTops: true, smokes: false, seatPref: '', quirk: '翹課來打電動' },
+  { name: '阿嘉', job: '外送員', drink: '林美如', team: '塞爾提克', visits: 131, look: look(0xc68a5e, 0x111111, 'short', 0x2e8b57, 0x334455), plays2k: false, playsFight: false, fighter: '', playsTops: true, smokes: true, seatPref: '', quirk: '送單空檔會在戶外區坐一下' },
+  { name: '小胖', job: '研究生', drink: '朱古力', team: '熱火', visits: 76, look: look(0xf1c9a5, 0x3b2618, 'short', 0x98002E, 0x555555, { glasses: true }), plays2k: true, playsFight: true, fighter: '桑吉爾夫', playsTops: true, smokes: false, seatPref: '', quirk: '論文寫不出來就來這' },
+  { name: 'Jason', job: '隔壁五金行少東', drink: '別害羞', team: '獨行俠', visits: 120, look: look(0xe0ac80, 0x6b4423, 'short', 0xf2f2f2, 0x1f2a44, { longSleeve: true }), plays2k: true, playsFight: false, fighter: '', playsTops: true, smokes: true, seatPref: '', quirk: '顧店空檔溜過來' },
+  { name: '阿翔', job: '健身教練', drink: '康保藍', team: '金塊', visits: 88, look: look(0x8d5a3b, 0x111111, 'bald', 0x0E2240, 0x111111), plays2k: true, playsFight: true, fighter: '古烈', playsTops: false, smokes: false, seatPref: '', quirk: '輸了會去戶外區做伏地挺身' },
+  { name: '小雨', job: '插畫家', drink: '拿鐵', team: '公鹿', visits: 143, look: look(0xf6d7bd, 0x111111, 'bun', 0x7fae8b, 0xd9c7a4), plays2k: false, playsFight: false, fighter: '', playsTops: false, smokes: false, seatPref: '', quirk: '最愛台式茶杯裡的拉花' },
+  { name: '老陳', job: '退休老師', drink: '拿鐵', team: '塞爾提克', visits: 302, look: look(0xe0ac80, 0x8a8a8a, 'short', 0x8b6b4a, 0x4a4a4a, { glasses: true, longSleeve: true }), plays2k: true, playsFight: false, fighter: '', playsTops: false, smokes: false, seatPref: '', quirk: '從萬華店就跟過來的元老' },
+  { name: '阿德', job: '廚師', drink: '一起搖擺', team: '太陽', visits: 65, look: look(0xd9a27c, 0x1b1410, 'short', 0xE56020, 0x2b2b2b, { hat: 'cap', hatColor: 0x1D1160 }), plays2k: false, playsFight: true, fighter: '肯', playsTops: true, smokes: true, seatPref: '', quirk: '休假日整天泡在這' },
+  { name: '欣欣', job: '護理師', drink: '榛果拿鐵', team: '尼克', visits: 91, look: look(0xf6d7bd, 0x6b4423, 'long', 0x006BB6, 0x2b2b2b), plays2k: true, playsFight: false, fighter: '', playsTops: false, smokes: false, seatPref: '', quirk: '大夜班下班來放鬆' },
+  { name: '球哥', job: '前校隊後衛', drink: '林美如', team: '公牛', visits: 188, look: look(0xc68a5e, 0x111111, 'short', 0x111111, 0xCE1141, { number: '1' }), plays2k: true, playsFight: true, fighter: '達爾錫', playsTops: true, smokes: true, seatPref: '', quirk: '嘴上說不玩，坐下就不走' },
 ];
 
 // 快打旋風's fighters, as they're known in Taiwan; the TV draws each one in its own colours (gi, trim, hair) and skin

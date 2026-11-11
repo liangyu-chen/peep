@@ -39,6 +39,7 @@ export const regulars = pgTable('regulars', {
   fighter: text('fighter').notNull().default(''),           // '' = a random character each visit
   playsTops: boolean('plays_tops').notNull().default(false),
   smokes: boolean('smokes').notNull().default(false),
+  seatPref: text('seat_pref').notNull().default(''),     // '' = random, or 'porch' / 'inside'
   sort: integer('sort').notNull().default(0),
   active: boolean('active').notNull().default(true),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),

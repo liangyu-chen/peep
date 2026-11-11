@@ -17,7 +17,8 @@ export type Look = {
   hairCm?: number;   // set with the length's − / +: how far it hangs below the head, in cm (0 is 短髮); its band sets hairLength
   tieColor?: number;                                                           // the ponytail's hair tie
   hat?: string; hatColor?: number;                                             // (older looks: hairStyle 'cap'/'bucket' + cap, or beanie)
-  glasses?: boolean | string; glassesShape?: string;                           // (older looks: true, 'round' or 'square' black frames)
+  glasses?: boolean | string; glassesShape?: string; frameColor?: number;      // (older looks: true, 'round' or 'square' black frames)
+  lensColor?: number; lensOpacity?: number;                                    // 鏡片: its tint and how solid it is (0-1)
   earL?: string; earR?: string;
   tattoos?: Record<string, string>; tattooText?: string;                       // a style per part (older looks: tattoo + tattooCover)
   companion?: string;
@@ -42,18 +43,24 @@ export const HEIGHTS: Option[] = [{ value: 'xshort', label: '很矮' }, { value:
 export const heightOf = (look: Look) => pickIn(HEIGHTS, look.height, 'regular');
 
 export const FACE: Record<'faceShape' | 'eyes' | 'brows' | 'nose' | 'mouth' | 'facialHair' | 'beard' | 'glasses' | 'glassesShape', Option[]> = {
-  faceShape: [{ value: 'round', label: '圓臉' }, { value: 'oval', label: '鵝蛋臉' }, { value: 'square', label: '方臉' }, { value: 'long', label: '長臉' }],
-  eyes: [{ value: 'round', label: '圓眼' }, { value: 'big', label: '大眼' }, { value: 'dot', label: '豆豆眼' }, { value: 'sleepy', label: '睏睏眼' }, { value: 'smile', label: '笑眼' }, { value: 'narrow', label: '瞇瞇眼' },
-    { value: 'almond', label: '杏眼' }, { value: 'phoenix', label: '鳳眼' }, { value: 'droopy', label: '下垂眼' }, { value: 'wink', label: '眨眼' }, { value: 'sparkle', label: '閃亮眼' }, { value: 'deadpan', label: '死魚眼' }],
-  brows: [{ value: 'thin', label: '細眉' }, { value: 'thick', label: '粗眉' }, { value: 'angry', label: '劍眉' }, { value: 'worried', label: '八字眉' },
-    { value: 'arched', label: '挑眉' }, { value: 'straight', label: '一字眉' }, { value: 'unibrow', label: '連心眉' }, { value: 'short', label: '短眉' }, { value: 'raised', label: '單挑眉' }, { value: 'none', label: '無' }],
-  nose: [{ value: 'small', label: '小鼻子' }, { value: 'normal', label: '一般' }, { value: 'big', label: '大鼻子' }, { value: 'button', label: '圓鼻頭' }, { value: 'none', label: '無' }],
+  faceShape: [{ value: 'round', label: '圓臉' }, { value: 'oval', label: '鵝蛋臉' }, { value: 'heart', label: '心形臉' }, { value: 'square', label: '方臉' }, { value: 'long', label: '長臉' }],
+  eyes: [{ value: 'round', label: '圓眼' }, { value: 'big', label: '大眼' }, { value: 'dot', label: '豆豆眼' }, { value: 'sparkle', label: '閃亮眼' },
+    { value: 'almond', label: '杏眼' }, { value: 'phoenix', label: '鳳眼' }, { value: 'droopy', label: '下垂眼' },
+    { value: 'sleepy', label: '睏睏眼' }, { value: 'narrow', label: '瞇瞇眼' }, { value: 'deadpan', label: '死魚眼' }, { value: 'smile', label: '笑眼' }, { value: 'wink', label: '眨眼' }],
+  brows: [{ value: 'thin', label: '細眉' }, { value: 'thick', label: '粗眉' }, { value: 'bushy', label: '濃眉' },
+    { value: 'straight', label: '一字眉' }, { value: 'short', label: '短眉' }, { value: 'unibrow', label: '連心眉' },
+    { value: 'arched', label: '挑眉' }, { value: 'raised', label: '單挑眉' }, { value: 'angry', label: '劍眉' }, { value: 'worried', label: '八字眉' }, { value: 'none', label: '無' }],
+  nose: [{ value: 'small', label: '小鼻子' }, { value: 'button', label: '圓鼻頭' }, { value: 'normal', label: '一般' }, { value: 'big', label: '大鼻子' }, { value: 'none', label: '無' }],
   mouth: [{ value: 'smile', label: '微笑' }, { value: 'grin', label: '露齒笑' }, { value: 'smirk', label: '壞笑' }, { value: 'flat', label: '面無表情' }, { value: 'open', label: '張嘴' }, { value: 'jianzhi', label: '健誌嘴巴' }],
   facialHair: [{ value: 'none', label: '無' }, { value: 'stubble', label: '鬍渣' }, { value: 'mustache', label: '八字鬍' }, { value: 'goatee', label: '山羊鬍' }, { value: 'both', label: '八字鬍＋山羊鬍' }, { value: 'full', label: '落腮鬍' }],
   beard: [{ value: 'light', label: '淡' }, { value: 'normal', label: '一般' }, { value: 'thick', label: '濃' }],   // how dense the facial hair is
   // (配戴, but read with the face: the frame, and its shape on its own; 阿亮眼鏡 always its own round)
-  glasses: [{ value: 'none', label: '無' }, { value: 'frame', label: '黑框' }, { value: 'metal', label: '金屬框（金）' }, { value: 'metalSilver', label: '金屬框（銀）' }, { value: 'sun', label: '墨鏡' }, { value: 'aliang', label: '阿亮眼鏡' }],
-  glassesShape: [{ value: 'round', label: '圓' }, { value: 'square', label: '方' }],
+  glasses: [{ value: 'none', label: '無' }, { value: 'frame', label: '黑框' }, { value: 'browline', label: '眉框' },
+    { value: 'metal', label: '金屬框' }, { value: 'rimless', label: '無框' }, { value: 'aliang', label: '阿亮眼鏡' }],
+  glassesShape: [{ value: 'round', label: '圓框' }, { value: 'oval', label: '橢圓框' },
+    { value: 'square', label: '方框' }, { value: 'rectangle', label: '長方框' }, { value: 'wayfarer', label: '威靈頓框' },
+    { value: 'catEye', label: '貓眼框' }, { value: 'aviator', label: '飛行員框' },
+    { value: 'hexagon', label: '六角框' }, { value: 'octagon', label: '八角框' }, { value: 'diamond', label: '菱形框' }],
 };
 export type Face = { faceShape: string; eyes: string; brows: string; nose: string; mouth: string; facialHair: string; beard: string; glasses: string; glassesShape: string; blush: boolean; eyeColor: number };
 
@@ -79,8 +86,12 @@ export function faceOf(look: Look, seed = ''): Face {
     facialHair: validFace('facialHair', look.facialHair) ? look.facialHair : oldHair,
     beard: validFace('beard', look.beard) ? look.beard : 'normal',
     // (older looks stored the shape in the frame: 'round' / 'square' black frames, true for square; sunglasses were square)
-    glasses: validFace('glasses', frames) ? frames : frames === 'round' || frames === 'square' || frames === true ? 'frame' : 'none',
-    glassesShape: validFace('glassesShape', look.glassesShape) ? look.glassesShape : frames === 'round' || frames === 'metal' || frames === 'metalSilver' ? 'round' : 'square',
+    // (the first take on the new frames used catEye / aviator / octagon as a frame; they are shapes now)
+    glasses: frames === 'metalSilver' ? 'metal'
+      : validFace('glasses', frames) ? frames : frames === 'round' || frames === 'square' || frames === true || frames === 'sun' ||
+      frames === 'catEye' || frames === 'aviator' || frames === 'octagon' ? 'frame' : 'none',
+    glassesShape: frames === 'catEye' || frames === 'aviator' || frames === 'octagon' ? frames
+      : validFace('glassesShape', look.glassesShape) ? look.glassesShape : frames === 'round' || frames === 'metal' || frames === 'metalSilver' ? 'round' : 'square',
     blush: !!look.blush,
     eyeColor: typeof look.eyeColor === 'number' ? look.eyeColor : 0x2a1a10,
   };
@@ -91,17 +102,20 @@ export function faceOf(look: Look, seed = ''): Face {
 
 // hair is chosen part by part: how long, straight or curly, what it does at the forehead, and whether it's tied up
 export const HAIR: Record<'length' | 'curl' | 'front' | 'tie', Option[]> = {
-  length: [{ value: 'bald', label: '光頭' }, { value: 'buzz', label: '平頭' }, { value: 'mushroom', label: '蘑菇頭' }, { value: 'azhi', label: '阿志頭' }, { value: 'short', label: '短髮' }, { value: 'bob', label: '短長髮' }, { value: 'medium', label: '中長髮' }, { value: 'long', label: '長髮' }],
-  curl: [{ value: 'straight', label: '直髮' }, { value: 'curly', label: '捲髮' }, { value: 'spiky', label: '刺蝟頭' }],
+  length: [{ value: 'bald', label: '光頭' }, { value: 'buzz', label: '平頭' }, { value: 'mushroom', label: '蘑菇頭' }, { value: 'azhi', label: '阿志頭' },
+    { value: 'spiky', label: '刺蝟頭' }, { value: 'pompadour', label: '飛機頭' },
+    { value: 'short', label: '短髮' }, { value: 'bob', label: '短長髮' }, { value: 'medium', label: '中長髮' }, { value: 'long', label: '長髮' }],
+  curl: [{ value: 'straight', label: '直髮' }, { value: 'curly', label: '捲髮' }],
   front: [{ value: 'none', label: '無瀏海' }, { value: 'bangs', label: '瀏海' }, { value: 'center', label: '中分' }, { value: 'side', label: '旁分' }],
-  tie: [{ value: 'none', label: '不綁' }, { value: 'ponytail', label: '馬尾' }, { value: 'twintails', label: '雙馬尾' }, { value: 'bun', label: '包頭' }],
+  tie: [{ value: 'none', label: '不綁' }, { value: 'ponytail', label: '馬尾' }, { value: 'lowpony', label: '低馬尾' },
+    { value: 'twintails', label: '雙馬尾' }, { value: 'lowtwintails', label: '低雙馬尾' }, { value: 'bun', label: '包頭' }, { value: 'halfup', label: '半丸子頭' }],
 };
 export type Hair = { length: string; curl: string; front: string; tie: string; cm?: number };
 // the hair's length in cm, set with − / + from 短髮 (0) up; which band of length that is (and so what it can do: tied
 // back from 中長髮 on), and how many cm each of the old fixed lengths was
 export const HAIR_CM = { step: 2, max: 60 };
-// the cuts that are what they are, with no length to set (光頭, 平頭, 蘑菇頭, 阿志頭)
-export const FIXED_CUTS = ['bald', 'buzz', 'mushroom', 'azhi'];
+// the cuts that are what they are, with no length to set (光頭, 平頭, 蘑菇頭, 阿志頭, 刺蝟頭, 飛機頭)
+export const FIXED_CUTS = ['bald', 'buzz', 'mushroom', 'azhi', 'spiky', 'pompadour'];
 export const lengthForCm = (cm: number) => (cm <= 0 ? 'short' : cm <= 10 ? 'bob' : cm <= 30 ? 'medium' : 'long');
 export const CM_OF_LENGTH: Record<string, number> = { short: 0, bob: 8, medium: 29, long: 33 };
 // what each of the older single hairstyles was, part by part
@@ -110,7 +124,7 @@ const HAIR_FROM_STYLE: Record<string, Hair> = {
   buzz: { length: 'buzz', curl: 'straight', front: 'none', tie: 'none' },
   short: { length: 'short', curl: 'straight', front: 'none', tie: 'none' },
   side: { length: 'short', curl: 'straight', front: 'side', tie: 'none' },
-  spiky: { length: 'short', curl: 'spiky', front: 'none', tie: 'none' },
+  spiky: { length: 'spiky', curl: 'straight', front: 'none', tie: 'none' },
   curly: { length: 'short', curl: 'curly', front: 'none', tie: 'none' },
   medium: { length: 'medium', curl: 'straight', front: 'center', tie: 'none' },
   long: { length: 'long', curl: 'straight', front: 'bangs', tie: 'none' },
@@ -123,11 +137,12 @@ const HAIR_FROM_STYLE: Record<string, Hair> = {
 // a look's hair, part by part: what's stored, or what its older single hairstyle meant
 export function hairOf(look: Look): Hair {
   const old = HAIR_FROM_STYLE[look.hairStyle] ?? HAIR_FROM_STYLE.short;
-  const length = pickIn(HAIR.length, look.hairLength, old.length);
+  const oldSpiky = look.hairCurl === 'spiky';
+  const length = oldSpiky ? 'spiky' : pickIn(HAIR.length, look.hairLength, old.length);
   // a length set in cm (not for 光頭 / 平頭): that, and the band it falls in
   const cm = typeof look.hairCm === 'number' && !FIXED_CUTS.includes(length) ? Math.max(0, Math.min(HAIR_CM.max, Math.round(look.hairCm))) : undefined;
   return {
-    length: cm !== undefined ? lengthForCm(cm) : length, curl: pickIn(HAIR.curl, look.hairCurl, old.curl),
+    length: cm !== undefined ? lengthForCm(cm) : length, curl: pickIn(HAIR.curl, oldSpiky ? 'straight' : look.hairCurl, old.curl),
     front: pickIn(HAIR.front, look.hairFront, old.front), tie: pickIn(HAIR.tie, look.hairTie, old.tie),
     ...(cm !== undefined ? { cm } : {}),
   };
@@ -163,6 +178,24 @@ export function hatOf(look: Look): { hat: string; color: number } {
 }
 
 // (glasses: FACE.glasses and FACE.glassesShape, read by faceOf)
+// the frame's colour; older looks keep the material colour their frame kind always had
+export const FRAME_COLOR: Record<string, number> = {
+  frame: 0x1b1b1b, browline: 0x1b1b1b, metal: 0xd2ae62, metalSilver: 0xc9ccd1, rimless: 0xc9ccd1, aliang: 0x070708,
+};
+export const frameColorOf = (look: Look, style = typeof look.glasses === 'string' ? look.glasses : 'frame') =>
+  typeof look.frameColor === 'number' ? look.frameColor
+    : look.glasses === 'metalSilver' ? FRAME_COLOR.metalSilver : FRAME_COLOR[style] ?? FRAME_COLOR.frame;
+// 鏡片: clear unless its tint or opacity was chosen; older sunglasses start black and fully solid
+export const CLEAR_LENS = { color: 0xdff2ff, opacity: 0.1 };
+export const SUN_LENS = { color: 0x0d0d10, opacity: 1 };
+export const lensOf = (look: Look): { color: number; opacity: number } => {
+  const plain = look.glasses === 'sun' ? SUN_LENS : CLEAR_LENS;
+  return {
+    color: typeof look.lensColor === 'number' ? look.lensColor : plain.color,
+    opacity: typeof look.lensOpacity === 'number' ? Math.max(0, Math.min(1, look.lensOpacity)) : plain.opacity,
+  };
+};
+export const sunglassesOf = lensOf;
 
 // earrings, chosen for each ear
 export const EARRINGS: Option[] = [
@@ -250,7 +283,7 @@ export const SKIN_TONES = [
   { value: 0xd9a27c, label: '小麥' }, { value: 0xc68a5e, label: '黝黑' }, { value: 0x8d5a3b, label: '深色' }, { value: 0x6b4430, label: '深棕' },
 ];
 // swatches next to each colour field in the editor
-export const COLOR_PRESETS: Record<'skin' | 'hair' | 'eyes' | 'clothes', { value: number; label: string }[]> = {
+export const COLOR_PRESETS: Record<'skin' | 'hair' | 'eyes' | 'clothes' | 'lens' | 'frame', { value: number; label: string }[]> = {
   skin: SKIN_TONES,
   hair: [
     { value: 0x111111, label: '黑' }, { value: 0x2b1d14, label: '深棕' }, { value: 0x5a3a22, label: '棕' }, { value: 0x8a5a2b, label: '栗色' },
@@ -267,6 +300,16 @@ export const COLOR_PRESETS: Record<'skin' | 'hair' | 'eyes' | 'clothes', { value
     { value: 0xf1d27a, label: '鵝黃' }, { value: 0x2e8b57, label: '綠' }, { value: 0x7fae8b, label: '薄荷' }, { value: 0x8b6b4a, label: '咖啡' },
     { value: 0xd9c7a4, label: '卡其' }, { value: 0x9b6bff, label: '紫' }, { value: 0xff8fb0, label: '粉紅' },
   ],
+  frame: [
+    { value: 0x1b1b1b, label: '黑' }, { value: 0x070708, label: '亮黑' }, { value: 0x5a3a22, label: '棕' },
+    { value: 0x8a5a2b, label: '玳瑁' }, { value: 0x8a1e2d, label: '酒紅' }, { value: 0x1d3d6b, label: '藍' },
+    { value: 0x2e8b57, label: '綠' }, { value: 0xd2ae62, label: '金' }, { value: 0xc9ccd1, label: '銀' },
+    { value: 0xf2f2f2, label: '白' }, { value: 0xe87aa8, label: '粉' }, { value: 0xdff2ff, label: '透明' },
+  ],
+  lens: [
+    { value: CLEAR_LENS.color, label: '透明' }, { value: 0x0d0d10, label: '黑' }, { value: 0x3a3a40, label: '灰' }, { value: 0x5a3620, label: '棕' }, { value: 0x1f4a38, label: '綠' },
+    { value: 0x1d3d6b, label: '藍' }, { value: 0x3d2a5a, label: '紫' }, { value: 0x6b2a3a, label: '玫瑰' }, { value: 0xb8c0c8, label: '銀鏡' },
+  ],
 };
 
 
@@ -279,7 +322,8 @@ export function parseLook(get: (k: string) => string | null, prev?: Look): Look 
   const hex = (k: string, fallback: number) => { const v = get(k) ?? ''; return /^#[0-9a-f]{6}$/i.test(v) ? parseInt(v.slice(1), 16) : fallback; };
   const one = (k: string, opts: Option[], now: string) => pickIn(opts, get(k), now);   // a picked option, or what it was
   const face = faceOf(base, String(get('name') ?? '')), hair = hairOf(base), hat = hatOf(base), clothes = clothesOf(base);
-  const shoe = shoeOf(base), socks = socksOf(base), ears = earringsOf(base), inked = tattooOf(base);
+  const shoe = shoeOf(base), socks = socksOf(base), ears = earringsOf(base), inked = tattooOf(base), sunGlass = sunglassesOf(base);
+  const lensIn = get('lensOpacity'), lensVal = lensIn != null && lensIn !== '' ? Number(lensIn) : NaN;
   const number = (get('number') ?? '').trim().slice(0, 2);
   const tatText = (get('tattooText') ?? (typeof base.tattooText === 'string' ? base.tattooText : '')).trim().slice(0, 12);
   const look: Look = {
@@ -297,6 +341,9 @@ export function parseLook(get: (k: string) => string | null, prev?: Look): Look 
     // 配戴
     hat: one('hat', HAT_STYLES, hat.hat), hatColor: hex('hatColor', hat.color),
     glasses: one('glasses', FACE.glasses, face.glasses), glassesShape: one('glassesShape', FACE.glassesShape, face.glassesShape),
+    frameColor: hex('frameColor', frameColorOf(base, face.glasses)),
+    lensColor: hex('lensColor', sunGlass.color),
+    lensOpacity: Number.isFinite(lensVal) ? Math.max(0, Math.min(1, lensVal)) : sunGlass.opacity,
     earL: one('earL', EARRINGS, ears.left), earR: one('earR', EARRINGS, ears.right),
     tattoos: Object.fromEntries(TATTOO_PARTS.map(p => [p.value, get('tat_' + p.value) ?? inked[p.value]] as const).filter((e): e is [string, string] => tatStyle(e[1]))),
     companion: one('companion', COMPANIONS, companionOf(base)),

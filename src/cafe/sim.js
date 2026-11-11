@@ -300,6 +300,9 @@ export const canJoinTv = c => {
 
 // someone is on the TV alone against the computer: anyone who plays that game is welcome to take the other controller
 const vsCpu = () => !!S.tv.match && !S.tv.match.away.person;
+// smokers always head outside; otherwise the regular's saved preference, or a coin toss if it isn't set
+const preferPorch = c => c.p.smokes || c.p.seatPref === 'porch' ? true
+  : c.p.seatPref === 'inside' ? false : Math.random() < 0.5;
 
 // a few things to do before leaving: the TV, watching, a table, or spinning tops if two regulars get it going
 async function stayAWhile(c, zone, hops) {
@@ -313,7 +316,7 @@ async function stayAWhile(c, zone, hops) {
     else if (c.smokeNow && (s = freePorchSeat())) zone = await doTable(c, zone, s);
     else if ((wantsPlay || c.invited || (vsCpu() && Math.random() < 0.7)) && canJoinTv(c) && (s = freeSeat(gameSeats))) zone = await doGame(c, zone, s);
     else if (wantsPlay && S.tv.match && hops === 1 && (s = freeSeat(specSpots))) zone = await doSpectate(c, zone, s);
-    else if ((s = freeTableSeat(Math.random() < (c.p.smokes ? 0.85 : 0.3)))) zone = await doTable(c, zone, s);   // smokers head outside
+    else if ((s = freeTableSeat(preferPorch(c)))) zone = await doTable(c, zone, s);
     else { c.status = '外帶'; sayLine(c, 'customer.takeaway'); break; }
     if (!c.invited && !c.nextGoal && !c.tops) break;
     c.nextGoal = false;

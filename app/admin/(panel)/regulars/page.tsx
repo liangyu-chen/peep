@@ -35,7 +35,7 @@ export default async function RegularsPage({ searchParams }: { searchParams: Pro
               <span className="who">
                 <b>{r.name}</b>{!r.active && <span className="badge mute">停用</span>}
                 <span className="muted">{r.job} · 常點 {r.drink}</span>
-                <span className="muted">{[r.plays2k && `2K（${r.team || '隨機'}）`, r.playsFight && `快打旋風（${r.fighter || '隨機'}）`, r.playsTops && '戰鬥陀螺', r.smokes && '抽菸'].filter(Boolean).join(' · ') || '不打電動'}</span>
+                <span className="muted">{[r.plays2k && `2K（${r.team || '隨機'}）`, r.playsFight && `快打旋風（${r.fighter || '隨機'}）`, r.playsTops && '戰鬥陀螺', r.smokes && '抽菸', r.seatPref === 'porch' && '偏好戶外', r.seatPref === 'inside' && '偏好室內'].filter(Boolean).join(' · ') || '不打電動'}</span>
                 <span className="muted">{hairLabel(hairOf(r.look))}{hatOf(r.look).hat !== 'none' ? `＋${label(HAT_STYLES, hatOf(r.look).hat)}` : ''} · {label(FACE.faceShape, f.faceShape)} · {label(FACE.eyes, f.eyes)}</span>
               </span>
               <span className="go">編輯 · 捏臉 →</span>

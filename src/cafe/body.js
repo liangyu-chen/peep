@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import { BufferGeometryUtils } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { mat, canvasTex } from './engine.js';
 import { PIX } from './util.js';
-import { faceOf, hairOf, hatOf, clothesOf, shoeOf, socksOf, tattooOf, earringsOf, buildOf, heightOf, tieColorOf } from '../content/catalog';
+import { CLEAR_LENS, faceOf, frameColorOf, hairOf, hatOf, clothesOf, shoeOf, socksOf, tattooOf, earringsOf, buildOf, heightOf, lensOf, tieColorOf } from '../content/catalog';
 // how much taller or shorter than standard each height is (身高)
 const HEIGHT_K = { xshort: 0.88, short: 0.94, regular: 1, tall: 1.06, xtall: 1.12 };
 // 身形: how much wider (w) and deeper (d) the body is than the standard
@@ -42,6 +42,7 @@ const geo = (key, make) => { key = `${DETAIL}|${key}`; let g = GEO.get(key); if 
 const bx = (w, h, d) => geo(`b${w},${h},${d}`, () => new THREE.BoxGeometry(w, h, d));
 const sp = (r, ws = 12, hs = 10, ...part) => geo(`s${r},${ws},${hs},${part}`, () => new THREE.SphereGeometry(r, D(ws, 6), D(hs, 4), ...part));
 const cy = (rt, rb, h, seg = 12, ...rest) => geo(`c${rt},${rb},${h},${seg},${rest}`, () => new THREE.CylinderGeometry(rt, rb, h, D(seg, 6), 1, ...rest));
+const prism = (r, h, sides) => geo(`p${r},${h},${sides}`, () => new THREE.CylinderGeometry(r, r, h, sides, 1));
 const disc = r => cy(r, r, 0.006, 18);
 const lathe = (key, pts, seg = 24, ...arc) => geo(`l${key}`, () => new THREE.LatheGeometry(pts.map(([r, y]) => new THREE.Vector2(r, y)), D(seg, 8), ...arc));
 
@@ -50,8 +51,6 @@ const whiteM = mat(0xfbfaf5, { roughness: 0.35 });
 const shineM = new THREE.MeshBasicMaterial({ color: 0xffffff });
 const tongueM = mat(0xd9646e, { roughness: 0.5 });
 const blushM = mat(0xff8f9c, { roughness: 1, transparent: true, opacity: 0.45, depthWrite: false });
-const frameM = mat(0x1b1b1b, { roughness: 0.4, metalness: 0.3 });
-const glossM = mat(0x070708, { roughness: 0.22, metalness: 0 });                  // 阿亮眼鏡: thick, shiny black acetate
 // thin wire frames, gold or silver
 const WIRE = { metal: mat(0xd2ae62, { roughness: 0.28, metalness: 0.85 }), metalSilver: mat(0xc9ccd1, { roughness: 0.25, metalness: 0.9 }) };
 const goldM = mat(0xd9ad52, { roughness: 0.25, metalness: 0.9 });                   // and the gold lines across it
@@ -77,7 +76,6 @@ const flashM = () => flareM || (flareM = new THREE.MeshBasicMaterial({
   transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false,
 }));
 const lensM = mat(0xdff2ff, { roughness: 0.05, metalness: 0.2, transparent: true, opacity: 0.12, depthWrite: false });
-const sunLensM = mat(0x0d0d10, { roughness: 0.08, metalness: 0.6 });
 const beltM = mat(0x2a2420, { roughness: 0.6 });
 const hideM = new THREE.MeshBasicMaterial({ visible: false });   // a part of a shared surface another mesh draws
 const buckleM = mat(0xc9b26a, { roughness: 0.3, metalness: 0.8 });
@@ -389,6 +387,7 @@ const HEADS = {
   oval: { e: 2.0, s: [0.93, 1.07, 0.97], jaw: 0.24 },
   square: { e: 3.2, s: [0.97, 0.95, 0.95], jaw: 0.03 },
   long: { e: 2.25, s: [0.9, 1.13, 0.95], jaw: 0.16 },
+  heart: { e: 2.3, s: [1.02, 1.02, 0.95], jaw: 0.3 },   // 心形臉: wide at the temples, a narrower chin
 };
 // a unit direction -> the point on that head's surface
 function deform(h, v) {
@@ -438,7 +437,7 @@ const tier = s => { const f = s - Math.floor(s); return f < 0.72 ? 0.5 - 0.5 * M
 // (fading out round the back, where longer hair hangs over it, so it never pokes through that and leaves a seam)
 const layerAt = (phi, t) => LAYER_DEPTH * tier(t * 3.3 + 0.1 * Math.sin(3 * phi)) * Math.min(1, Math.max(0, (t - 0.15) / 0.15))
   * Math.min(1, Math.max(0, (2.1 - Math.abs(Math.atan2(Math.sin(phi), Math.cos(phi)))) / 0.6));
-const capGeo = (shape, key, edge, thick, bump = null, groove = null, flow = null) => geo(`cap7:${shape},${key}`, () => {
+const capGeo = (shape, key, edge, thick, bump = null, groove = null, flow = null, under = 0) => geo(`cap7:${shape},${key}${under ? `:under${under}` : ''}`, () => {
   const h = HEADS[shape], NA = D(groove ? 320 : bump ? 180 : 160, 48), NT = D(bump ? 54 : 60, 18), pos = [], uv = [], idx = [], v = new THREE.Vector3(), u = new THREE.Vector3();
   // with a parting, curls lie flat along it (a band about twice the crease's width), so the line reads clean between them
   let gmax = 0; if (groove) for (let i = 0; i < 720; i++) gmax = Math.max(gmax, groove(i / 720 * Math.PI * 2));
@@ -456,6 +455,21 @@ const capGeo = (shape, key, edge, thick, bump = null, groove = null, flow = null
   for (let i = 0; i < NA; i++) for (let j = 0; j < NT; j++) {
     const a = i * (NT + 1) + j, b = a + NT + 1;
     idx.push(a, b, a + 1, b, b + 1, a + 1);
+  }
+  if (under) {
+    // close the shell's open hairline back onto the head, so a thick, jutting
+    // edge has a solid underside instead of an empty hollow seen from below
+    const base = pos.length / 3;
+    for (let i = 0; i <= NA; i++) {
+      const phi = (i / NA) * Math.PI * 2, polar = Math.PI / 2 - edge(phi);
+      u.set(Math.sin(polar) * Math.sin(phi), Math.cos(polar), Math.sin(polar) * Math.cos(phi));
+      deform(h, v.copy(u)).addScaledVector(u, under);
+      pos.push(v.x, v.y, v.z); uv.push(i / NA * 6, 1);
+    }
+    for (let i = 0; i < NA; i++) {
+      const a = i * (NT + 1) + NT, b = a + NT + 1, c = base + i, d = c + 1;
+      idx.push(a, c, b, b, c, d);
+    }
   }
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
@@ -1246,6 +1260,7 @@ function buildBodyAt(look, seed) {
     // across the nose; one side raised)
     const B = {
       thin: { w: 0.06, h: 0.011, tilt: -0.06 }, thick: { w: 0.068, h: 0.02, tilt: 0.04 }, angry: { w: 0.068, h: 0.02, tilt: 0.32 },
+      bushy: { w: 0.076, h: 0.027, tilt: 0.02 },                           // 濃眉: the fullest, a little unruly
       worried: { w: 0.06, h: 0.011, tilt: -0.3 },
       arched: { w: 0.066, h: 0.012, tilt: 0, arch: true },               // 挑眉: a clean arch
       straight: { w: 0.074, h: 0.016, tilt: 0 },                          // 一字眉: long and level
@@ -1330,35 +1345,121 @@ function buildBodyAt(look, seed) {
     const AR = 0.0345, AT = 0.0085;   // 阿亮眼鏡: the round frames, a touch narrower, in thick acetate
     const gy = EY + 0.002, gz = Math.max(surf(EX, EY), surf(0, NY) - 0.01) + 0.03;
     const earX = at(1, 0.02, 0).x - 0.004;
-    // the frame: black, thin gold or silver wire (金屬框), or sunglasses; round or square, its own choice; 阿亮眼鏡 its own
-    const wire = WIRE[f.glasses], rimM = wire || frameM, sun = f.glasses === 'sun', square = f.glassesShape === 'square';
+    // the frame: first its kind (black, browline, gold/silver wire, rimless), then its shape (round, square, cat-eye,
+    // aviator, octagon); the lens tint is its own choice, so any frame can wear the sunglasses lens
+    const style = f.glasses, shape = f.glassesShape;
+    const metal = style === 'metal' || style === 'rimless';
+    const frameMat = mat(frameColorOf(look, style), metal ? { roughness: 0.28, metalness: 0.85 }
+      : style === 'aliang' ? { roughness: 0.22, metalness: 0 } : { roughness: 0.4, metalness: 0.3 });
+    const wire = metal || style === 'browline' ? frameMat : undefined;
+    const browline = style === 'browline', rimless = style === 'rimless', rimM = frameMat;
+    const lensLook = lensOf(look), tinted = look.glasses === 'sun' || look.lensColor !== undefined || look.lensOpacity !== undefined;
+    const clearLens = lensLook.color === CLEAR_LENS.color && lensLook.opacity <= CLEAR_LENS.opacity;
+    const frameLens = tinted && !clearLens ? mat(picked(lensLook.color), { roughness: 0.08, metalness: 0.6, transparent: lensLook.opacity < 1, opacity: lensLook.opacity, depthWrite: lensLook.opacity >= 1 }) : lensM;
+    const R = shape === 'aviator' ? 0.037 : 0.038, T = wire ? 0.0022 : 0.006;
+    const outerAdd = { round: 0.038, oval: 0.043, square: 0.039, rectangle: 0.043, wayfarer: 0.042, catEye: 0.042, aviator: 0.04, hexagon: 0.039, octagon: 0.04, diamond: 0.039 }[shape] ?? 0.038;
     [-1, 1].forEach(s => {
       const cx = s * EX;
-      if (f.glasses === 'aliang') {
+      // 眉框: a thicker black upper rim joined to a thin silver lower rim, not a bar laid across the lens
+      const browArc = (radius, tube, m, start, len, seg, radial, sx = 1, sy = 1, tilt = 0) => {
+        const key = `${radius},${tube},${start},${len},${seg},${radial}`;
+        const part = new THREE.Mesh(geo(`browArc:${key}`, () => new THREE.TorusGeometry(radius, tube, radial, seg, len)), m);
+        part.position.set(cx, gy, gz); part.scale.set(sx, sy, 1); part.rotation.z = start + tilt; face.add(part);
+      };
+      const browRim = (radius, sx = 1, sy = 1, tilt = 0, seg = 14, radial = 6) => {
+        browArc(radius, 0.0042, frameMat, 0, Math.PI, seg, radial, sx, sy, tilt);
+        browArc(radius, 0.0019, WIRE.metalSilver, Math.PI, Math.PI, seg, radial, sx, sy, tilt);
+      };
+      if (style === 'aliang') {
         // the round frames, in thick glossy black, the rims cut in a few flat facets rather than perfectly round, with a
         // little wing sticking out at each outer top corner where the arm hinges on
-        const ring = new THREE.Mesh(geo(`aliangRim:${AR},${AT}`, () => new THREE.TorusGeometry(AR, AT, 8, 16)), glossM); ring.position.set(cx, gy, gz); ring.scale.z = 0.8; face.add(ring);
-        fm(disc(AR - AT * 0.6), lensM, cx, gy, gz).rotation.x = Math.PI / 2;
-        fm(bx(0.018, 0.011, 0.012), glossM, s * (EX + AR + AT + 0.004), gy + 0.012, gz);
-      } else if (square) {
-        const w = 0.078, h = sun ? 0.05 : 0.054, t = wire ? 0.0035 : 0.008;
-        fm(bx(w, t, t), rimM, cx, gy + h / 2, gz); fm(bx(w, t, t), rimM, cx, gy - h / 2, gz);
-        fm(bx(t, h, t), rimM, cx - w / 2, gy, gz); fm(bx(t, h, t), rimM, cx + w / 2, gy, gz);
-        fm(bx(w, h, 0.003), sun ? sunLensM : lensM, cx, gy, gz);
+        const ring = new THREE.Mesh(geo(`aliangRim:${AR},${AT}`, () => new THREE.TorusGeometry(AR, AT, 8, 16)), frameMat); ring.position.set(cx, gy, gz); ring.scale.z = 0.8; face.add(ring);
+        fm(disc(AR - AT * 0.6), frameLens, cx, gy, gz).rotation.x = Math.PI / 2;
+        fm(bx(0.018, 0.011, 0.012), frameMat, s * (EX + AR + AT + 0.004), gy + 0.012, gz);
       } else {
-        const R = wire ? 0.038 : 0.037, T = wire ? 0.0022 : 0.006;
-        const ring = new THREE.Mesh(geo(`rim:${R},${T}`, () => new THREE.TorusGeometry(R, T, wire ? 6 : 8, wire ? 28 : 20)), rimM); ring.position.set(cx, gy, gz); face.add(ring);
-        fm(disc(R - T * 0.4), sun ? sunLensM : lensM, cx, gy, gz).rotation.x = Math.PI / 2;
+        if (shape === 'square' || shape === 'rectangle') {
+          const w = shape === 'rectangle' ? 0.086 : 0.078, h = shape === 'rectangle' ? 0.046 : 0.054, t = browline ? 0.0024 : wire ? 0.0035 : 0.008;
+          if (browline) {
+            fm(bx(w, 0.0068, 0.0068), frameMat, cx, gy + h / 2, gz);
+            fm(bx(w, t, t), WIRE.metalSilver, cx, gy - h / 2, gz);
+            fm(bx(t, h, t), WIRE.metalSilver, cx - w / 2, gy, gz); fm(bx(t, h, t), WIRE.metalSilver, cx + w / 2, gy, gz);
+          } else if (!rimless) {
+            fm(bx(w, t, t), rimM, cx, gy + h / 2, gz); fm(bx(w, t, t), rimM, cx, gy - h / 2, gz);
+            fm(bx(t, h, t), rimM, cx - w / 2, gy, gz); fm(bx(t, h, t), rimM, cx + w / 2, gy, gz);
+          }
+          fm(bx(w, h, 0.003), frameLens, cx, gy, gz);
+        } else if (shape === 'oval') {
+          // 橢圓: a wide, softly rounded lens
+          if (browline) browRim(R, 1.15, 0.88);
+          else if (!rimless) {
+            const ring = new THREE.Mesh(geo(`ovalRim:${R},${T}`, () => new THREE.TorusGeometry(R, T, 6, 24)), rimM); ring.position.set(cx, gy, gz); ring.scale.set(1.15, 0.88, 1); face.add(ring);
+          }
+          const l = fm(disc(R - T * 0.4), frameLens, cx, gy, gz); l.rotation.x = Math.PI / 2; l.scale.set(1.15, 1, 0.88);
+        } else if (shape === 'wayfarer') {
+          // 威靈頓: a trapezoid, wider across the brow than the bottom
+          const wTop = 0.082, wBot = 0.062, h = 0.05, t = browline ? 0.0024 : wire ? 0.0035 : 0.008;
+          const side = (m, thick) => [-1, 1].forEach(k => {
+            const bar = fm(bx(thick, Math.hypot((wTop - wBot) / 2, h), thick), m, cx + k * (wTop + wBot) / 4, gy, gz);
+            bar.rotation.z = -k * Math.atan2((wTop - wBot) / 2, h);
+          });
+          if (browline) {
+            fm(bx(wTop, 0.0068, 0.0068), frameMat, cx, gy + h / 2, gz);
+            fm(bx(wBot, t, t), WIRE.metalSilver, cx, gy - h / 2, gz); side(WIRE.metalSilver, t);
+          } else if (!rimless) {
+            fm(bx(wTop, t, t), rimM, cx, gy + h / 2, gz); fm(bx(wBot, t, t), rimM, cx, gy - h / 2, gz); side(rimM, t);
+          }
+          const lens = new THREE.Mesh(geo(`wayfarerLens:${wTop},${wBot},${h}`, () => {
+            const p = new THREE.Shape(); p.moveTo(-wTop / 2, h / 2); p.lineTo(wTop / 2, h / 2); p.lineTo(wBot / 2, -h / 2); p.lineTo(-wBot / 2, -h / 2); p.closePath();
+            return new THREE.ExtrudeGeometry(p, { depth: 0.003, bevelEnabled: false });
+          }), frameLens); lens.position.set(cx, gy, gz - 0.0015); face.add(lens);
+        } else if (shape === 'catEye') {
+          // 貓眼: an oval lifted at the outer corner, with a small flick at each tip
+          if (browline) browRim(R, 1, 0.72, s * 0.16);
+          else if (!rimless) {
+            const ring = new THREE.Mesh(geo(`catRim:${R},${T}`, () => new THREE.TorusGeometry(R, T, 6, 24)), rimM); ring.position.set(cx, gy, gz); ring.scale.set(1, 0.72, 1); ring.rotation.z = s * 0.16; face.add(ring);
+          }
+          const l = fm(disc(R - T * 0.4), frameLens, cx, gy, gz); l.rotation.set(Math.PI / 2, 0, s * 0.16); l.scale.z = 0.72;
+          if (!rimless && !browline) fm(bx(0.018, 0.0045, 0.007), rimM, s * (EX + R * 0.88), gy + 0.018, gz).rotation.z = s * 0.35;
+        } else if (shape === 'aviator') {
+          // 飛行員: a tall teardrop lens
+          if (browline) browRim(R, 1, 1.18);
+          else if (!rimless) {
+            const ring = new THREE.Mesh(geo(`aviatorRim:${R},${T}`, () => new THREE.TorusGeometry(R, T, 6, 24)), rimM); ring.position.set(cx, gy, gz); ring.scale.set(1, 1.18, 1); face.add(ring);
+          }
+          const l = fm(disc(R - T * 0.5), frameLens, cx, gy, gz); l.rotation.x = Math.PI / 2; l.scale.z = 1.18;
+        } else if (shape === 'hexagon' || shape === 'diamond' || shape === 'octagon') {
+          // 六角 / 菱形 / 八角: a faceted rim, the lens cut to match
+          const sides = shape === 'hexagon' ? 6 : shape === 'diamond' ? 4 : 8;
+          if (browline && shape === 'octagon') {
+            browArc(R, 0.0042, frameMat, -Math.PI / 8, 5 * Math.PI / 4, 5, 4);
+            browArc(R, 0.0019, WIRE.metalSilver, 9 * Math.PI / 8, 3 * Math.PI / 4, 3, 4);
+          } else if (browline) browRim(R, 1, 1, 0, sides / 2, 4);
+          else if (!rimless) {
+            const ring = new THREE.Mesh(geo(`${shape}Rim:${R},${T}`, () => new THREE.TorusGeometry(R, T, 4, sides)), rimM); ring.position.set(cx, gy, gz); ring.rotation.z = shape === 'octagon' ? Math.PI / 8 : 0; face.add(ring);
+          }
+          const l = fm(prism(R - T * 0.5, 0.003, sides), frameLens, cx, gy, gz); l.rotation.set(Math.PI / 2, 0, shape === 'octagon' ? Math.PI / 8 : 0, 'ZYX');
+        } else {
+          if (browline) browRim(R);
+          else if (!rimless) {
+            const ring = new THREE.Mesh(geo(`rim:${R},${T}`, () => new THREE.TorusGeometry(R, T, wire ? 6 : 8, wire ? 28 : 20)), rimM); ring.position.set(cx, gy, gz); face.add(ring);
+          }
+          fm(disc(R - T * 0.4), frameLens, cx, gy, gz).rotation.x = Math.PI / 2;
+        }
+        if (rimless) {
+          const half = shape === 'rectangle' ? 0.04 : shape === 'wayfarer' ? 0.036 : shape === 'oval' ? 0.039 : shape === 'square' ? 0.036 : shape === 'aviator' ? 0.032 : 0.034;
+          fm(sp(0.0035, 6, 4), wire || WIRE.metalSilver, s * (EX + half), gy, gz);
+          fm(sp(0.0035, 6, 4), wire || WIRE.metalSilver, s * (EX - half), gy, gz);
+        }
+        if (wire) fm(sp(0.004, 6, 4), wire, s * (EX - 0.03), gy - 0.012, gz - 0.006);   // nose pads
       }
-      if (wire) fm(sp(0.004, 6, 4), wire, s * (EX - 0.03), gy - 0.012, gz - 0.006);   // nose pads
-      const outer = EX + (f.glasses === 'aliang' ? AR + AT + 0.012 : square ? 0.039 : wire ? 0.038 : 0.037);
-      // the arms: out to the side of the head and back to the ear (阿亮眼鏡's as thick as its rims, in their black, from the wings)
-      const [armM, aw, ay] = f.glasses === 'aliang' ? [glossM, AT * 1.6, gy + 0.012] : wire ? [wire, 0.0035, gy + 0.004] : [frameM, 0.007, gy + 0.004];
+      const outer = EX + (style === 'aliang' ? AR + AT + 0.012 : outerAdd);
+      // the arms: out to the side of the head and back to the ear (阿亮眼鏡's as thick as its rims, in their colour, from the wings)
+      const [armM, aw, ay] = style === 'aliang' ? [frameMat, AT * 1.6, gy + 0.012] : wire ? [wire, 0.0035, gy + 0.004] : [frameMat, 0.007, gy + 0.004];
       fm(bx(earX - outer + 0.006, aw, aw), armM, s * (outer + earX) / 2, ay, gz);
       fm(bx(aw * 0.85, aw * 0.85, gz), armM, s * earX, ay, gz / 2);
     });
-    if (f.glasses === 'aliang') {
-      fm(bx(EX * 2 - AR * 2 + AT, 0.014, 0.012), glossM, 0, gy + 0.016, gz);                       // a thick bridge, set high
+    if (style === 'aliang') {
+      fm(bx(EX * 2 - AR * 2 + AT, 0.014, 0.012), frameMat, 0, gy + 0.016, gz);                     // a thick bridge, set high
       // the gold lines, like cracks mended in gold: a short one across the lower left of one rim, a long one from that
       // rim's top over the bridge onto the other's, and one down the far side of the other rim
       const zF = gz + AT * 0.8, rim = (cx, deg, k) => { const a = deg * Math.PI / 180, r = AR + AT * k; return new THREE.Vector3(cx + Math.cos(a) * r, gy + Math.sin(a) * r * 0.94, zF); };
@@ -1366,9 +1467,12 @@ function buildBodyAt(look, seed) {
       line([rim(-EX, 205, 1), rim(-EX, 200, 0), rim(-EX, 196, -1)]);
       line([rim(-EX, 40, -1), rim(-EX, 32, 0), new THREE.Vector3(-0.012, gy + 0.019, zF), new THREE.Vector3(0.012, gy + 0.021, zF), rim(EX, 148, 0), rim(EX, 128, 0.6), rim(EX, 112, 1)]);
       line([rim(EX, 32, 1), rim(EX, 18, 0.1), rim(EX, -10, 0), rim(EX, -32, -0.6), rim(EX, -40, -1)]);
-    } else if (wire) {   // a thin arched bridge
-      const br = new THREE.Mesh(geo(`wireBridge:${EX.toFixed(4)}`, () => new THREE.TorusGeometry(EX - 0.038, 0.0019, 5, 12, Math.PI)), wire); br.position.set(0, gy + 0.004, gz); face.add(br);
-    } else fm(bx(0.03, 0.007, 0.007), frameM, 0, gy + 0.012, gz);                                   // bridge
+    } else {
+      if (wire) {   // a thin arched bridge
+        const br = new THREE.Mesh(geo(`wireBridge:${EX.toFixed(4)}`, () => new THREE.TorusGeometry(EX - 0.038, 0.0019, 5, 12, Math.PI)), wire); br.position.set(0, gy + 0.004, gz); face.add(br);
+      } else fm(bx(0.03, 0.007, 0.007), frameMat, 0, gy + 0.012, gz);                                 // bridge
+      if (shape === 'aviator' && !rimless && !browline) fm(bx(EX * 2 - 0.074, 0.003, 0.004), wire || frameMat, 0, gy + 0.019, gz);
+    }
   }
 
   // ---------------------------------------------------------------- arms: shoulder -> elbow -> hand
@@ -1575,7 +1679,7 @@ const tailFor = (L, curly) => (w, y0) => {
   return pts;
 };
 
-// the hair first, built from its parts (length, straight / curly / spiky, the front, tied up or not), then the hat
+// the hair first, built from its parts (length, straight / curly, the front, tied up or not), then the hat
 // (if any) put on over it, made bigger by however far the hair stands off the head so nothing pokes through it
 function buildHair(hairParts, shape, head, hairM, mk, at, look) {
   const { length, curl, front, tie, cm } = hairParts;
@@ -1591,8 +1695,8 @@ function buildHair(hairParts, shape, head, hairM, mk, at, look) {
   const hatBack = H ? Math.PI / 2 - hatA - H.tilt : 9;  // the height (radians) of the hat's edge straight behind
   const backAt = e => at(0, Math.sin(e), -Math.cos(e)); // the point at height e straight behind
   // spread small pieces evenly over the part of the head the hair covers, skipping any a hat would sit on
-  const scatter = (limit, margin, place) => FIB.forEach(u => {
-    const a = Math.acos(u.dot(crown(TILT)));
+  const scatter = (limit, margin, place, axis = crown(TILT)) => FIB.forEach(u => {
+    const a = Math.acos(u.dot(axis));
     if (a < limit && !underHat(u, margin)) place(u, at(u.x, u.y, u.z));
   });
   // a curtain round the back and sides, open at the face; its top follows the head's own outline right up to the
@@ -1654,19 +1758,39 @@ function buildHair(hairParts, shape, head, hairM, mk, at, look) {
     // (and thick in front, the fringe jutting out over the forehead, blunt-cut, like a visor)
     // (its thickness at the cut edge, which stays full right to the edge: deep across the front, close at the sides)
     const jut = phi => 0.022 + 0.056 * Math.max(0, Math.cos(phi)) ** 2;   // (blunt all round: a clear step down to the clipped sides)
-    mk(capGeo(shape, 'azhi7', phi => { const a = Math.abs(ang(phi)), s = Math.min(1, Math.max(0, (a - 0.55) / 0.7)), e = s * s * (3 - 2 * s); return 0.62 + (0.46 - 0.62) * e; }, jut, u => 0.004 * Math.max(0, 1 - u.y)), hairM, 0, 0, 0, head);
+    mk(capGeo(shape, 'azhi7', phi => { const a = Math.abs(ang(phi)), s = Math.min(1, Math.max(0, (a - 0.55) / 0.7)), e = s * s * (3 - 2 * s); return 0.62 + (0.46 - 0.62) * e; }, jut, u => 0.004 * Math.max(0, 1 - u.y), null, null, 0.0015), hairM, 0, 0, 0, head);
     lift = 0.03;
+  } else if (length === 'spiky') {
+    buzzLayer(0.4, -0.78);
+    const rnd = seeded(`${shape}:spiky:${hatStyle || ''}`), up = new THREE.Vector3(0, 1, 0);
+    const earL = new THREE.Vector3(0.97, -0.23, 0.12).normalize(), earR = new THREE.Vector3(-0.97, -0.23, 0.12).normalize();
+    scatter(1.54, 0.4, (u, p) => {
+      if (u.dot(earL) > 0.95 || u.dot(earR) > 0.95) return;
+      const h = 0.07 + rnd() * 0.035, r = 0.024 + rnd() * 0.012;
+      const s = mk(cy(0, r, h, 6), hairM, p.x + u.x * h * 0.42, p.y + u.y * h * 0.42, p.z + u.z * h * 0.42, head);
+      s.quaternion.setFromUnitVectors(up, u);
+      s.scale.set(0.85 + rnd() * 0.3, 1, 0.85 + rnd() * 0.3);
+    }, crown(0.7));
+    lift = 0.02;
+  } else if (length === 'pompadour') {
+    buzzLayer(0.3);
+    const edge = phi => { const a = Math.abs(ang(phi)), s = Math.min(1, Math.max(0, (a - 0.35) / 0.8)), e = s * s * (3 - 2 * s); return 0.64 + (0.3 - 0.64) * e; };
+    const jut = phi => 0.016 + 0.05 * Math.max(0, Math.cos(phi)) ** 2 + 0.012 * Math.sin(phi) ** 2;
+    const bump = u => 0.07 * Math.exp(-(((u.y - 0.6) / 0.24) ** 2 + ((u.z - 0.55) / 0.27) ** 2 + (u.x / 0.42) ** 2))
+      + 0.02 * Math.exp(-(((u.y - 0.2) / 0.3) ** 2 + ((u.z + 0.38) / 0.35) ** 2 + (u.x / 0.52) ** 2));
+    mk(capGeo(shape, 'pompadour', edge, jut, bump, null, null, 0.0015), hairM, 0, 0, 0, head);
+    lift = 0.035;
   } else if (length === 'buzz') {
     buzzLayer();
     lift = 0.01;
   }
-  function buzzLayer(minHair = 0.55) {
+  function buzzLayer(minHair = 0.55, nape = -0.6) {
     // 平頭: a short crew cut, faded. The top an even short layer (about a centimetre), following the head's own round;
     // the sides and back faded down close, so they read lighter, the skin showing through, darkest on top. Its hairline:
     // straight across the forehead, a squared corner at each temple, short sideburns in front of the ears, arching up
     // over each ear, and down the back to a faded nape
     // (down round the ears, which sit over it, and on down the back to the nape)
-    const HL = [[0, 0.72], [0.5, 0.71], [0.72, 0.64], [0.86, 0.46], [1.0, 0.12], [1.15, -0.12], [1.5, -0.16], [1.9, -0.2], [2.3, -0.36], [2.7, -0.55], [Math.PI, -0.6]];
+    const HL = [[0, 0.72], [0.5, 0.71], [0.72, 0.64], [0.86, 0.46], [1.0, 0.12], [1.15, -0.12], [1.5, -0.16], [1.9, -0.2], [2.3, -0.36], [2.7, -0.55], [Math.PI, nape]];
     const hairlineAt = phi => {
       const a = Math.abs(ang(phi));
       for (let k = 1; k < HL.length; k++) if (a <= HL[k][0]) { const [a0, e0] = HL[k - 1], [a1, e1] = HL[k], t = (a - a0) / (a1 - a0), s = t * t * (3 - 2 * t); return e0 + (e1 - e0) * s; }
@@ -1686,21 +1810,20 @@ function buildHair(hairParts, shape, head, hairM, mk, at, look) {
     buzzM.map = hairM.map.clone(); buzzM.map.repeat.set(70, 1); buzzM.map.needsUpdate = true;
     mk(g2, buzzM, 0, 0, 0, head);
   }
-  if (length !== 'bald' && length !== 'buzz' && length !== 'mushroom' && length !== 'azhi') {
+  if (!['bald', 'buzz', 'mushroom', 'azhi', 'spiky', 'pompadour'].includes(length)) {
     // the top of the head: shaped by the front, with curls in its surface if it's curly
     const F = FRONTS[front] || FRONTS.none, curly = curl === 'curly';
     const amp = length === 'short' ? 0.02 : length === 'bob' ? 0.016 : CURL_TOP;   // the wet perm lies fairly close
     mk(capGeo(shape, `${front}${curly ? `:waves${amp}` : ':flow'}`, F.edge, F.thick, curly ? curlLumps(amp) : null, F.groove, F.flow), hairM, 0, 0, 0, head);
     lift = F.lift + LAYER_DEPTH + (curly ? amp : 0);
-    if (curl === 'spiky') {
-      scatter(1.0, 0.4, (u, p) => {                     // spikes stick out a long way, so keep them well clear of a hat's edge and brim
-        const s = mk(cy(0, 0.04, 0.11, 6), hairM, p.x + u.x * 0.05, p.y + u.y * 0.05, p.z + u.z * 0.05, head);
-        s.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), u);
-      });
-    }
     // what hangs below: left loose to its length, or pulled back and tied
     const long = length === 'medium' || length === 'long';   // long enough to tie back
     const hangs = long || length === 'bob';
+    if (tie === 'halfup' && long) {
+      // 半丸子頭: a small bun on the crown, the rest of the hair left down
+      const e = H ? Math.min(0.8, hatBack - 0.28) : 0.8, p = backAt(e), out = new THREE.Vector3(0, Math.sin(e), -Math.cos(e));
+      mk(sp(curly ? 0.065 : 0.058, 14, 12), hairM, p.x + out.x * 0.04, p.y + out.y * 0.04, p.z + out.z * 0.04, head);
+    }
     if (tie === 'bun' && long) {
       // up on the crown, or, under a hat, a low bun below its edge at the back
       const e = H ? Math.min(0.86, hatBack - 0.3) : 0.86, p = backAt(e), out = new THREE.Vector3(0, Math.sin(e), -Math.cos(e));
@@ -1721,6 +1844,22 @@ function buildHair(hairParts, shape, head, hairM, mk, at, look) {
         mk(cy(0.03, 0.03, 0.024, 12), tieM, 0, 0, 0, grp);
         mk(lathe(`twin:${L}:${R}`, [[0.001, 0.02], [0.034 * R, 0], [0.042 * R, -0.07 * L], [0.03 * R, -0.18 * L], [0.01 * R, -0.25 * L], [0, -0.26 * L]], 14), hairM, 0, -0.008, 0, grp);
       });
+    } else if (tie === 'lowtwintails' && long) {
+      // 低雙馬尾: one each side at the nape, hanging straight down
+      const e = H ? Math.min(-0.05, hatBack - 0.24) : -0.14, az = 0.72, L = HL !== null ? Math.min(1.5, Math.max(0.55, HL / 0.37)) : length === 'long' ? 0.9 : 0.65, R = curly ? 1.2 : 0.9;
+      const tieM = mat(picked(tieColorOf(look)), { roughness: 0.6 });
+      [-1, 1].forEach(s => {
+        const p = at(s * Math.sin(az) * Math.cos(e), Math.sin(e), -Math.cos(az) * Math.cos(e));
+        const grp = new THREE.Group(); grp.position.set(p.x + s * 0.008, p.y, p.z - 0.006); grp.rotation.set(0.08, 0, s * 0.14); head.add(grp);
+        mk(cy(0.03, 0.03, 0.024, 12), tieM, 0, 0, 0, grp);
+        mk(lathe(`twin:${L}:${R}`, [[0.001, 0.02], [0.034 * R, 0], [0.042 * R, -0.07 * L], [0.03 * R, -0.18 * L], [0.01 * R, -0.25 * L], [0, -0.26 * L]], 14), hairM, 0, -0.008, 0, grp);
+      });
+    } else if (tie === 'lowpony' && long) {
+      // 低馬尾: gathered at the nape, hanging straight down under the hair tie
+      const p = backAt(H ? Math.min(-0.05, hatBack - 0.24) : -0.12), L = HL !== null ? Math.min(1.7, Math.max(0.6, HL / 0.33)) : length === 'long' ? 1 : 0.7, R = curly ? 1.25 : 1;
+      mk(cy(0.038, 0.038, 0.03, 12), mat(picked(tieColorOf(look)), { roughness: 0.6 }), p.x, p.y, p.z - 0.012, head).rotation.x = Math.PI / 2;
+      const tail = mk(lathe(`tail:${L}:${R}`, [[0.001, 0.02], [0.04 * R, 0], [0.05 * R, -0.08 * L], [0.035 * R, -0.2 * L], [0.012 * R, -0.28 * L], [0, -0.29 * L]], 14), hairM, p.x, p.y - 0.02, p.z - 0.03, head);
+      tail.rotation.x = 0.12;
     } else if (hangs) {
       curtain(HL !== null ? `cm${cm}${curly ? ':curly' : ''}` : `${length}${curly ? ':curly' : ''}`, HL !== null ? tailFor(HL, curly) : (curly ? CURLY_LENGTHS : LENGTHS)[length], curly ? (length === 'bob' ? 0.016 : 0.018) : 0);
       if (curly) {
@@ -1755,11 +1894,11 @@ function buildHair(hairParts, shape, head, hairM, mk, at, look) {
   }
 
   if (!H) return;
-  // under a beret, the hair it covers is pressed down flat against the head (it can't be seen there), so the soft beret
-  // sits down close on the head, its shape its own, with nothing of the hair showing through it as lumps; below its
-  // band the hair comes back out to its full fullness, as hair does from under a beret
-  if (hatStyle === 'beret') {
-    const flat = 0.006, toHead = new THREE.Matrix4(), back = new THREE.Matrix4(), P = new THREE.Vector3(), u = new THREE.Vector3(), hv = new THREE.Vector3();
+  // under any hat, the covered hair is pressed down flat against the head (it can't be seen there), so the hat sits
+  // down close instead of being pushed up and floating on it; below the band the hair comes back out to its full
+  // fullness, leaving only the hair below the brim showing
+  if (length !== 'bald') {
+    const flat = 0.008, toHead = new THREE.Matrix4(), back = new THREE.Matrix4(), P = new THREE.Vector3(), u = new THREE.Vector3(), hv = new THREE.Vector3();
     head.updateMatrixWorld(true);
     const headInv = head.matrixWorld.clone().invert();
     head.children.slice(hairStart).forEach(root => root.traverse(m => {

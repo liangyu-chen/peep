@@ -50,10 +50,10 @@ export const GAME_LABEL = { nba: 'NBA 2K', fight: '快打旋風' };
 // a name already in the shop is avoided when another is possible
 // a first-timer's hair, part by part
 function randomHair(female) {
-  const hairLength = female ? pick(['long', 'long', 'medium', 'medium', 'bob', 'bob', 'short']) : pick(['short', 'short', 'short', 'buzz', 'bald', 'bob', 'medium', 'mushroom', 'azhi']);
-  const hairCurl = Math.random() < 0.25 ? 'curly' : hairLength === 'short' && !female && Math.random() < 0.2 ? 'spiky' : 'straight';
+  const hairLength = female ? pick(['long', 'long', 'medium', 'medium', 'bob', 'bob', 'short']) : pick(['short', 'short', 'short', 'buzz', 'bald', 'bob', 'medium', 'mushroom', 'azhi', 'spiky', 'pompadour']);
+  const hairCurl = Math.random() < 0.25 ? 'curly' : 'straight';
   const hairFront = pick(female ? ['bangs', 'bangs', 'center', 'side', 'none'] : ['none', 'none', 'side', 'center', 'bangs']);
-  const hairTie = female && (hairLength === 'medium' || hairLength === 'long') && Math.random() < 0.35 ? pick(['ponytail', 'bun', 'twintails']) : 'none';
+  const hairTie = female && (hairLength === 'medium' || hairLength === 'long') && Math.random() < 0.35 ? pick(['ponytail', 'lowpony', 'twintails', 'lowtwintails', 'bun', 'halfup']) : 'none';
   return { hairLength, hairCurl, hairFront, hairTie };
 }
 
@@ -80,7 +80,8 @@ export function newProfile() {
         topStyle: Math.random() < 0.25 ? 'shirt' : 'tee', topPattern: Math.random() < 0.45 ? pick(['stripe', 'plaid', 'dots', 'camo', 'floral', 'p_coffee', 'p_cat', 'p_sunset', 'p_mountain', 'p_smile', 'p_wave', 'p_logo']) : 'none',
         hat: Math.random() < 0.3 ? pick(['cap', 'cap', 'bucket', 'beanie']) : 'none', hatColor: new THREE.Color().setHSL(Math.random(), 0.5, 0.45).getHex(), longSleeve: Math.random() < 0.4,
         faceShape: pickFace('faceShape'), eyes: pickFace('eyes'), brows: pickFace('brows'), nose: pickFace('nose'), mouth: pickFace('mouth'),
-        glasses: Math.random() < 0.15 ? pick(['round', 'square']) : 'none',
+        glasses: Math.random() < 0.18 ? pick(['frame', 'browline', 'metal', 'rimless']) : 'none',
+        glassesShape: pick(['round', 'oval', 'square', 'rectangle', 'wayfarer', 'catEye', 'aviator', 'hexagon', 'octagon', 'diamond']),
         facialHair: !female && Math.random() < 0.25 ? pick(['stubble', 'mustache', 'goatee', 'full']) : 'none',
         beard: pick(['light', 'normal', 'normal', 'thick']),
         blush: female && Math.random() < 0.3,

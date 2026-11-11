@@ -2,8 +2,10 @@ import { asc, eq } from 'drizzle-orm';
 import { getDb, schema } from './db';
 import {
   DEFAULT_CONTENT, DEFAULT_MENU, DEFAULT_OWNER, DEFAULT_POOLS, DEFAULT_REGULARS, LINE_KEYS, POOL_KEYS, menuSection,
-  type CafeContent, type RandomPools,
+  type CafeContent, type RandomPools, type Regular,
 } from '../content/catalog';
+
+const asSeatPref = (v: string): Regular['seatPref'] => v === 'porch' ? 'porch' : v === 'inside' ? 'inside' : '';
 
 // What the café shows, read from Neon.
 // - no database, or it can't be reached: the built-in defaults
@@ -31,8 +33,8 @@ export async function getContent(): Promise<CafeContent & { source: 'db' | 'defa
       lines[key] = lineRows.filter(r => r.category === key && r.active).map(r => r.text);
     }
     const regulars = regularRows?.length
-      ? regularRows.filter(r => r.active).map(({ name, job, drink, team, visits, quirk, look, plays2k, playsFight, fighter, playsTops, smokes }) =>
-        ({ name, job, drink, team, visits, quirk, look, plays2k, playsFight, fighter, playsTops, smokes }))
+      ? regularRows.filter(r => r.active).map(({ name, job, drink, team, visits, quirk, look, plays2k, playsFight, fighter, playsTops, smokes, seatPref }) =>
+        ({ name, job, drink, team, visits, quirk, look, plays2k, playsFight, fighter, playsTops, smokes, seatPref: asSeatPref(seatPref) }))
       : DEFAULT_REGULARS;
     const pools = {} as RandomPools;
     for (const key of POOL_KEYS) {

@@ -18,7 +18,7 @@ export default function LookPreview({ initial, seed }: { initial: Look; seed: st
   const [spotH, setSpotH] = useState(0);
 
   useEffect(() => {
-    let cancelled = false, unbind = () => {};
+    let cancelled = false, unbind = () => {}, queued = 0, lastKey = '';
     import('@/src/cafe/preview.js').then(({ mountPreview }) => {
       const el = host.current;
       if (cancelled || !el) return;
@@ -26,12 +26,25 @@ export default function LookPreview({ initial, seed }: { initial: Look; seed: st
       preview.current = p;
       const form = el.closest('form');
       if (!form) return;
-      const redraw = () => {
+      const draw = () => {
         const fd = new FormData(form);
-        p.update(parseLook(k => { const v = fd.get(k); return v == null ? null : String(v); }, initial), String(fd.get('name') || seed));
+        const who = String(fd.get('name') || seed);
+        const look = parseLook(k => { const v = fd.get(k); return v == null ? null : String(v); }, initial);
+        const key = JSON.stringify([look, who]);
+        if (key === lastKey) return;
+        lastKey = key;
+        p.update(look, who);
+      };
+      // the picker fires input all through a drag: one rebuild per frame, not one per event
+      const redraw = () => {
+        if (queued) return;
+        queued = requestAnimationFrame(() => { queued = 0; draw(); });
       };
       form.addEventListener('input', redraw); form.addEventListener('change', redraw);
-      unbind = () => { form.removeEventListener('input', redraw); form.removeEventListener('change', redraw); };
+      unbind = () => {
+        if (queued) cancelAnimationFrame(queued);
+        form.removeEventListener('input', redraw); form.removeEventListener('change', redraw);
+      };
       redraw();
     });
     return () => { cancelled = true; unbind(); preview.current?.dispose(); preview.current = null; };

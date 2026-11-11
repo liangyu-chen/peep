@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { saveMenu } from '../../actions';
 import SaveBar, { notify } from '../SaveBar';
+import ConfirmButton from '../ConfirmButton';
 import { CAKE_SECTION, HIDDEN_SECTION } from '@/src/content/catalog';
 
 export type MenuRow = { id: number | null; name: string; en: string; section: string; hot: string; ice: string; active: boolean };
@@ -64,7 +65,9 @@ export default function MenuEditor({ initial, sections, readOnly }: { initial: M
                   {sectionList.map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
                 <label className="check"><input type="checkbox" checked={r.active} onChange={e => set(r.key, 'active', e.target.checked)} disabled={readOnly} /><span>上架</span></label>
-                <button type="button" className="danger" onClick={() => remove(r.key)} disabled={readOnly} aria-label={`刪除 ${r.name || '這一列'}`}>刪除</button>
+                <ConfirmButton className="danger" onConfirm={() => remove(r.key)} disabled={readOnly}
+                  title="刪除品項" message={`刪除「${r.name || '這一列'}」？按「儲存」後才會真正刪除。`}
+                  aria-label={`刪除 ${r.name || '這一列'}`}>刪除</ConfirmButton>
               </div>
             ))}
             <button type="button" className="add-row" onClick={() => add(section)} disabled={readOnly}>＋ 在 {section} 新增一項</button>

@@ -45,8 +45,10 @@ export function mountPreview(host) {
 
   let body = null, bear = null;
   const anim = {};
+  // materials are per build, but their maps (strands, tattoos, prints) are shared and cached: disposing a map would
+  // throw away its uploaded texture and make the next build upload it again, which is what made colour dragging stutter
   const disposeMaterials = root => root.traverse(o => {
-    (Array.isArray(o.material) ? o.material : o.material ? [o.material] : []).forEach(m => { if (m.map) m.map.dispose(); m.dispose(); });
+    (Array.isArray(o.material) ? o.material : o.material ? [o.material] : []).forEach(m => m.dispose());
   });
   function update(look, seed) {
     if (body) { scene.remove(body.g); disposeMaterials(body.g); }

@@ -112,13 +112,14 @@ export async function saveLines(f: FormData) {
 // ---------------------------------------------------------------- regulars
 const lookFrom = (f: FormData, prev?: Look) => parseLook(k => { const v = f.get(k); return v == null ? null : String(v); }, prev);
 function regularFields(f: FormData) {
-  const team = str(f, 'team');
+  const team = str(f, 'team'), seatPref = str(f, 'seatPref');
   return {
     name: str(f, 'name'), job: str(f, 'job'), drink: str(f, 'drink'), quirk: str(f, 'quirk'),
     visits: int(f, 'visits') ?? 1, sort: int(f, 'sort') ?? 0,
     plays2k: bool(f, 'plays2k'), team: TEAM_NAMES.includes(team) ? team : '',   // '' = random each visit
     playsFight: bool(f, 'playsFight'), fighter: str(f, 'fighter'),
     playsTops: bool(f, 'playsTops'), smokes: bool(f, 'smokes'),
+    seatPref: seatPref === 'porch' || seatPref === 'inside' ? seatPref : '',   // '' = random each visit
   };
 }
 

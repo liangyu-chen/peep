@@ -3,11 +3,12 @@ import { notFound } from 'next/navigation';
 import { asc, eq } from 'drizzle-orm';
 import { requireAdmin } from '@/src/lib/auth';
 import { getDb, schema } from '@/src/lib/db';
-import { FIGHTER_NAMES, TEAM_NAMES, type Look } from '@/src/content/catalog';
+import { FIGHTER_NAMES, SEAT_PREFS, TEAM_NAMES, type Look } from '@/src/content/catalog';
 import { addRegular, updateRegular, deleteRegular } from '../../../actions';
 import LookPreview from '../../LookPreview';
 import LookFields from '../../LookFields';
 import SaveBar from '../../SaveBar';
+import ConfirmButton from '../../ConfirmButton';
 import DrinkField from './DrinkField';
 
 const NEW_LOOK: Look = { skin: 0xe0ac80, hair: 0x1b1410, hairStyle: 'short', shirt: 0x7fae8b, pants: 0x2b2b2b, faceShape: 'round', eyes: 'round', brows: 'thin', nose: 'small', mouth: 'smile', facialHair: 'none', glasses: 'none' };
@@ -46,8 +47,13 @@ export default async function RegularEditor({ params, searchParams }: { params: 
               </label>
               <label>來店次數<input name="visits" type="number" min={1} defaultValue={row?.visits ?? 1} /></label>
               <label>排序<input name="sort" type="number" defaultValue={row?.sort ?? 0} /></label>
+              <label>座位偏好
+                <select name="seatPref" defaultValue={row?.seatPref ?? ''}>
+                  {SEAT_PREFS.map(o => <option key={o.value || 'any'} value={o.value}>{o.label}</option>)}
+                </select>
+              </label>
               <label className="wide">小檔案<input name="quirk" defaultValue={row?.quirk} maxLength={60} placeholder="例如：每天下班一定來打一場" /></label>
-              <label className="check"><input type="checkbox" name="smokes" defaultChecked={row?.smokes ?? false} /><span>會抽菸（喜歡坐戶外區）</span></label>
+              <label className="check"><input type="checkbox" name="smokes" defaultChecked={row?.smokes ?? false} /><span>會抽菸</span></label>
               {row && <label className="check"><input type="checkbox" name="active" defaultChecked={row.active} /><span>啟用（會來店裡）</span></label>}
             </div>
           </section>
@@ -82,7 +88,9 @@ export default async function RegularEditor({ params, searchParams }: { params: 
           <LookFields look={look} seed={row?.name ?? ''} />
 
           <SaveBar label={isNew ? '新增熟客' : '儲存'}>
-            {row && <button formAction={deleteRegular} className="danger" formNoValidate>刪除這位熟客</button>}
+            {row && <ConfirmButton formAction={deleteRegular} className="danger" formNoValidate
+              title="刪除熟客" message={`刪除「${row.name}」？這位熟客會從店裡消失，無法復原。`}
+              confirmLabel="刪除這位熟客">刪除這位熟客</ConfirmButton>}
           </SaveBar>
         </div>
       </form>

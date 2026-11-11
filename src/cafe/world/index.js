@@ -12,7 +12,7 @@ import { buildArcade } from './arcade.js';
 import { buildBack } from './back.js';
 import { buildSurroundings } from './surroundings.js';
 
-const stepM = new THREE.MeshStandardMaterial({ color: 0x9a968e, roughness: 0.95 });   // the plinth's concrete
+const stepM = new THREE.MeshPhongMaterial({ color: 0x9a968e, specular: 0x000000, shininess: 0 });   // the plinth's concrete
 export function buildWorld() {
   const scene = ctx.scene;
   buildSky();

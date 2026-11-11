@@ -138,7 +138,7 @@ function rowHouse(x0, x1, frontZ, facing, floors, depth, corner = 0, shop = null
   const faceTex = Math.random() < 0.6
     ? tiles(`t${randi(0, 3)}`, pick([0xd8c9a8, 0xc9b9a0, 0xe0d6c4, 0xbfa58c]), '#8d8478')
     : washed(`w${randi(0, 3)}`, pick(['#a9a59c', '#b8b2a6', '#9c978e', '#c2bcb0']));
-  const face = K.own(new THREE.MeshStandardMaterial({ map: faceTex, roughness: 0.95 }));
+  const face = K.own(new THREE.MeshPhongMaterial({ map: faceTex, specular: 0x000000, shininess: 0 }));
   const GF = 3.1, FH = 2.9, H = GF + floors * FH;
   bx(g, w, H, depth, face, 0, H / 2, -depth / 2);
   // ground floor: a roller shutter (mostly down), or an open front with a door and a caged window; maybe a sign
@@ -172,7 +172,7 @@ function rowHouse(x0, x1, frontZ, facing, floors, depth, corner = 0, shop = null
   const name = nextDoor ? ['政泰', '刨床加工 各式零件承製'] : shop || (Math.random() < 0.45 && signDeck.pop());
   const balcony = Math.random() < 0.55;   // (a first-floor balcony over the front: decided here, since the sign goes under it)
   if (name) {
-    const sm = K.own(new THREE.MeshStandardMaterial({ map: signTex(name, nextDoor ? '#1f4f9a' : pick(['#1f4f9a', '#b8232b', '#f2efe6', '#1c6a43'])), roughness: 0.7 }));
+    const sm = K.own(new THREE.MeshPhongMaterial({ map: signTex(name, nextDoor ? '#1f4f9a' : pick(['#1f4f9a', '#b8232b', '#f2efe6', '#1c6a43'])), specular: 0x000000, shininess: 0 }));
     const sw = Math.min(1.6, w * 0.45), sh = sw * 0.375;
     // over the front, or with a balcony there, hung under its front edge (above it, its bottom would be buried in the slab)
     const [sy, sz] = balcony ? [GF - sh / 2 - 0.03, 0.85] : [GF + 0.38, 0.3];
@@ -211,7 +211,7 @@ function rowHouse(x0, x1, frontZ, facing, floors, depth, corner = 0, shop = null
   if (Math.random() < 0.6) {
     const tz = -depth + 1.2, tx = rand(-w / 4, w / 4);
     bx(g, 0.9, 0.7, 0.9, K.iron, tx, H + 0.35, tz);
-    const t = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.45, 1.0, 12), K.m(pick([0xe9e6dd, 0x3e7db8]))); t.position.set(tx, H + 1.2, tz); t.castShadow = true; g.add(t);
+    const t = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.45, 1.0, 12), K.own(new THREE.MeshPhongMaterial({ color: col(pick([0xe9e6dd, 0x3e7db8])), specular: 0x000000, shininess: 0 }))); t.position.set(tx, H + 1.2, tz); t.castShadow = true; g.add(t);
   }
   S.envBlocks.push({ group: g, mats: K.list, box: new THREE.Box3().setFromObject(g), fade: 1 });
 }
@@ -220,7 +220,7 @@ function rowHouse(x0, x1, frontZ, facing, floors, depth, corner = 0, shop = null
 function shopUpstairs() {
   const K = fixtures(kit()), g = new THREE.Group(); g.position.set(0, 0, FRONT - 0.15); env.add(g);
   const w = 4.5;
-  const face = K.own(new THREE.MeshStandardMaterial({ map: washed('shop', '#a8a49b'), roughness: 0.95 }));
+  const face = K.own(new THREE.MeshPhongMaterial({ map: washed('shop', '#a8a49b'), specular: 0x000000, shininess: 0 }));
   bx(g, w, 6.0, 0.3, face, 0, 6.1, -0.15);
   bx(g, w, 0.2, 1.4, K.slab, 0, 3.15, 0.55);                                // the balcony slab, overhanging the arcade
   railing(g, K, w - 0.05, 3.25, 1.2);
@@ -342,28 +342,28 @@ export function buildSurroundings() {
   S.traffic = traffic; S.spawnVehicle = spawn;   // handy from the console
   ctx.scene.fog = new THREE.Fog(0xd9dcdc, 45, 140);
   // ground: concrete, with the roads asphalt on top of it, so the lane and the cross street read as roads
-  const ground = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), mat(0x6f6b65, { roughness: 1 }));
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), new THREE.MeshPhongMaterial({ color: col(0x6f6b65), specular: 0x000000, shininess: 0 }));
   ground.rotation.x = -Math.PI / 2; ground.position.y = -0.05; ground.receiveShadow = true;
   // everything at street level sits RISE down, below the raised frontage
   const low = new THREE.Group(); low.position.y = -RISE; env.add(low); low.add(ground);
   // the lane: asphalt right up to the fronts of the houses, no pavement, as in the photos
   const ROAD0 = FRONT - 0.4, ROAD1 = OPP + 0.3;
   const at = asphaltTex().clone(); at.needsUpdate = true; at.repeat.set(24, 2.6);
-  const lane = new THREE.Mesh(new THREE.PlaneGeometry(96, ROAD1 - ROAD0), new THREE.MeshStandardMaterial({ map: at, roughness: 0.95 }));
+  const lane = new THREE.Mesh(new THREE.PlaneGeometry(96, ROAD1 - ROAD0), new THREE.MeshPhongMaterial({ map: at, specular: 0x000000, shininess: 0 }));
   lane.rotation.x = -Math.PI / 2; lane.position.set(0, -0.015, (ROAD0 + ROAD1) / 2); lane.receiveShadow = true; low.add(lane);
   // a white edge line on the far side, and before the crossroads 停 and 消防通道, stacked to be read by drivers coming
   // down the one-way lane
-  const paint = new THREE.MeshStandardMaterial({ color: col(0xe8e6e0), roughness: 0.8 });
+  const paint = new THREE.MeshPhongMaterial({ color: col(0xe8e6e0), specular: 0x000000, shininess: 0 });
   [[-48, CROSS0], [CROSS1, 48]].forEach(([a, b]) => { const e = new THREE.Mesh(new THREE.PlaneGeometry(b - a, 0.12), paint); e.rotation.x = -Math.PI / 2; e.position.set((a + b) / 2, -0.01, OPP - 0.35); low.add(e); });
   // the cross street, running back past the end of the shop's row, and a stop line across the lane before it
   const ct = asphaltTex().clone(); ct.needsUpdate = true; ct.repeat.set(2, 24);
-  const cross = new THREE.Mesh(new THREE.PlaneGeometry(CROSS1 - CROSS0, 96), new THREE.MeshStandardMaterial({ map: ct, roughness: 0.95 }));
+  const cross = new THREE.Mesh(new THREE.PlaneGeometry(CROSS1 - CROSS0, 96), new THREE.MeshPhongMaterial({ map: ct, specular: 0x000000, shininess: 0 }));
   cross.rotation.x = -Math.PI / 2; cross.position.set((CROSS0 + CROSS1) / 2, -0.02, LANE_Z); cross.receiveShadow = true; low.add(cross);
   const stop = new THREE.Mesh(new THREE.PlaneGeometry(0.3, LANE_W - 0.3), paint); stop.rotation.x = -Math.PI / 2; stop.position.set(CROSS0 - 0.5, -0.008, LANE_Z); low.add(stop);
   const roadWord = (ch, x, across, along) => {
     const t = canvasTex(256, 256, (g, w) => { g.fillStyle = '#ece9e2'; g.font = 'bold 220px "Noto Sans TC", sans-serif'; g.textAlign = 'center'; g.fillText(ch, w / 2, 210); });
     S.fontTex.push(t);
-    const m = new THREE.Mesh(new THREE.PlaneGeometry(across, along), new THREE.MeshStandardMaterial({ map: t, transparent: true, roughness: 0.8, depthWrite: false }));
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(across, along), new THREE.MeshPhongMaterial({ map: t, transparent: true, specular: 0x000000, shininess: 0, depthWrite: false }));
     m.rotation.set(-Math.PI / 2, 0, -ONE_WAY * Math.PI / 2); m.position.set(x, -0.005, LANE_Z); low.add(m);   // its top points the way they drive
   };
   // drawn long and spread out along the road, as road lettering is, so it reads from a driver's seat, all the same size,
@@ -382,7 +382,7 @@ export function buildSurroundings() {
   while (x > -40) { const w = x === -2.3 ? 4.6 : rand(3.6, 5.2), f = x === -2.3 ? FRONT : FRONT - rand(0, 0.3); rowHouse(x - w, x, f, 1, randi(1, 2), f - BACK, 0, null, x === -2.3); x -= w; }
   shopUpstairs();
   // only our shop stands raised: a concrete plinth under it, its front edge flush with the pillar and the storeroom wall
-  const stepM = new THREE.MeshStandardMaterial({ map: washed('step', '#9a968e'), roughness: 0.95 });
+  const stepM = new THREE.MeshPhongMaterial({ map: washed('step', '#9a968e'), specular: 0x000000, shininess: 0 });
   // (all but the back corridor past the sliding door, which is down at the street's level: the plinth stops at the neon
   // wall there and carries on only under the storeroom and toilet beside it)
   const half = 3.18 * SQ, plinthBox = (x0, x1, z0, z1) => {

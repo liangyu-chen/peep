@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { notify } from './SaveBar';
+import ConfirmButton from './ConfirmButton';
 
 export type LineRow = { id: number | null; text: string; active: boolean };
 export type LineCat = { key: string; label: string; vars?: string[]; rows: LineRow[] };
@@ -60,7 +61,8 @@ export default function LinesEditor({ categories, readOnly }: { categories: Line
               <span className="row-tools">
                 <label className="check"><input type="checkbox" checked={r.active} disabled={readOnly}
                   onChange={e => { const v = e.target.checked; update(c.key, rows => rows.map(x => (x.k === r.k ? { ...x, active: v } : x))); }} /><span>啟用</span></label>
-                <button type="button" className="danger" disabled={readOnly} onClick={() => update(c.key, rows => rows.filter(x => x.k !== r.k))}>刪除</button>
+                <ConfirmButton className="danger" disabled={readOnly} onConfirm={() => update(c.key, rows => rows.filter(x => x.k !== r.k))}
+                  title="刪除台詞" message={`刪除${r.text.trim() ? `「${r.text.trim().slice(0, 60)}${r.text.trim().length > 60 ? '…' : ''}」` : '這句空白台詞'}？按「儲存」後才會真正刪除。`}>刪除</ConfirmButton>
               </span>
             </div>
           ))}

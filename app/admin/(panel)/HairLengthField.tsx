@@ -5,7 +5,7 @@ import { HAIR, HAIR_CM, FIXED_CUTS, lengthForCm } from '@/src/content/catalog';
 
 const label = (v: string) => HAIR.length.find(o => o.value === v)?.label ?? v;
 
-// the hair's length: a cut that is what it is (光頭, 平頭, 蘑菇頭, 阿志頭), or hair whose length is set with − / +, from
+// the hair's length: a cut that is what it is (光頭, 平頭, 蘑菇頭, 阿志頭, 刺蝟頭, 飛機頭), or hair whose length is set with − / +, from
 // 短髮 (0 cm) on up a couple of cm at a time; it shows which band that is (短長髮, 中長髮, 長髮). Each change fires the
 // form's input event, so the preview follows. Until − / + is used, a look keeps the fixed length it had (hairCm empty)
 export default function HairLengthField({ length, cm }: { length: string; cm: number | undefined; }) {

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { notify } from '../SaveBar';
+import ConfirmButton from '../ConfirmButton';
 
 export type ValueRow = { id: number | null; value: string; active: boolean };
 export type Pool = { key: string; label: string; hint: string; rows: ValueRow[] };
@@ -51,7 +52,9 @@ export default function PoolsEditor({ pools, readOnly }: { pools: Pool[]; readOn
                   onChange={e => { const v = e.target.value; update(p.key, rows => rows.map(x => (x.k === r.k ? { ...x, value: v } : x))); }} />
                 <label className="check" title="啟用"><input type="checkbox" checked={r.active} disabled={readOnly} aria-label={`啟用 ${r.value}`}
                   onChange={e => { const v = e.target.checked; update(p.key, rows => rows.map(x => (x.k === r.k ? { ...x, active: v } : x))); }} /></label>
-                <button type="button" className="danger" disabled={readOnly} aria-label={`刪除 ${r.value}`} onClick={() => update(p.key, rows => rows.filter(x => x.k !== r.k))}>✕</button>
+                <ConfirmButton className="danger" disabled={readOnly} onConfirm={() => update(p.key, rows => rows.filter(x => x.k !== r.k))}
+                  title="刪除隨機值" message={`刪除「${r.value || '這個空白值'}」？按「儲存」後才會真正刪除。`}
+                  aria-label={`刪除 ${r.value}`}>✕</ConfirmButton>
               </span>
             ))}
           </div>

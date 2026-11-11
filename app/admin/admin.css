@@ -110,9 +110,17 @@ body:has(.admin){margin:0;background:#141218}
 .admin .look-preview.tucked .views{display:none}
 .admin .look-preview.tucked .tuck{position:static}
 .admin button.on{background:var(--gold);color:#1f1c27;box-shadow:inset -3px -3px 0 0 #b08d10,inset 3px 3px 0 0 #fff2a8}
-.admin .editor-fields{display:grid;gap:14px;min-width:0}
+.admin .editor-fields{display:grid;gap:14px;min-width:0;counter-reset:look-block}
 .admin .panel-block{background:var(--panel);padding:14px 16px;display:grid;gap:12px}
 .admin .panel-block h2{margin:0}
+/* the look editor is split into numbered 8-bit panels */
+.admin .look-block{padding:16px;box-shadow:inset 0 0 0 2px #302b3d,0 4px 0 0 #0f0d13}
+.admin .look-block > h2{display:flex;align-items:center;gap:10px;margin:0 0 2px}
+.admin .look-block > h2::before{counter-increment:look-block;content:counter(look-block,decimal-leading-zero);flex:none;
+  font-family:var(--f-pixel);font-size:9px;line-height:1;color:#1f1c27;background:var(--gold);padding:4px 5px 3px;
+  box-shadow:2px 2px 0 #000}
+.admin .look-block > h2::after{content:"";flex:1;height:2px;
+  background:repeating-linear-gradient(90deg,var(--line) 0 3px,transparent 3px 7px)}
 .admin .panel-block .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px 12px;align-items:end}
 .admin .panel-block label:not(.check){display:grid;gap:4px;font-size:12px;color:var(--muted)}
 .admin .panel-block .wide{grid-column:1 / -1}
@@ -186,6 +194,14 @@ body:has(.admin){margin:0;background:#141218}
 .admin .line-row.off textarea{color:var(--muted);text-decoration:line-through}
 .admin .line-row.new textarea{border-color:var(--gold)}
 .admin .row-tools{display:flex;gap:10px;align-items:center;padding-top:4px}
+
+/* confirm delete */
+.admin .confirm-overlay{position:fixed;inset:0;z-index:100;display:grid;place-items:center;padding:16px;background:rgba(10,8,14,.72)}
+.admin .confirm{width:min(420px,100%);display:grid;gap:14px;padding:20px;background:var(--panel);
+  box-shadow:0 -4px 0 0 var(--ink),0 4px 0 0 var(--ink),-4px 0 0 0 var(--ink),4px 0 0 0 var(--ink),8px 8px 0 0 #000}
+.admin .confirm h2{margin:0;font-family:var(--f-pixel);font-size:11px;color:var(--neon);letter-spacing:.06em}
+.admin .confirm p{margin:0;color:var(--ink);overflow-wrap:anywhere}
+.admin .confirm-actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end}
 
 /* login */
 .admin .login{min-height:100vh;display:grid;place-items:center;padding:16px}
