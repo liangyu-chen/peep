@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { ctx } from './engine.js';
 import { S, sleep } from './state.js';
 import { rand, randi, pick, K } from './util.js';
-import { DOOR, TOILET, zoneSpot, route, LANE, MACHINE, HUBX } from './layout.js';
+import { DOOR, TOILET, zoneSpot, route, LANE, MACHINE, HUBX, BAR_TO_BACK } from './layout.js';
 import { Person, makeCup, makeTakeaway, setLevel, sip, walk } from './people.js';
 import { newProfile, tvGames, GAME_LABEL } from './profiles.js';
 import { doTops } from './tops.js';
@@ -39,7 +39,7 @@ async function ownerTo(owner, x, z, more = []) {
 }
 
 // out from behind the bar at its back end, round the 2K stools to the walkway (a path out to the walkway, like a seat's)
-const BAR_OUT = [[LANE, -2.3], [0.6, -3.4], [-1.2, -3.95], [HUBX, -3.95]];
+const BAR_OUT = [[LANE, -2.3], ...BAR_TO_BACK];
 // the bin in the corner past the end of the 工作台 (world/interior.js), where he stands to tip one out, out to the walkway
 const BIN = [[2.45, 2.36], [2.1, 2.8], [HUBX, 3.0]];
 // one at a time: out to the ashtray, picked up, carried in to the bin and tipped out, then carried back and put down
@@ -146,7 +146,7 @@ async function ownerLoop(owner) {
       if (Math.random() < 0.08 && !S.closing) {
         owner.status = '去倉庫拿豆子';
         // in at the storeroom door, the light flicked on at the switch outside it (and back off, if it was off, coming out)
-        const back = [[LANE, -2.3], [0.6, -3.4], [-1.2, -3.95], [-1.85, -4.1], [-1.85, -5.8], [-0.3, -5.8]], shelf = [1.0, -5.8];
+        const back = [[LANE, -2.3], ...BAR_TO_BACK, [-1.85, -4.1], [-1.85, -5.8], [-0.3, -5.8]], shelf = [1.0, -5.8];
         await ownerTo(owner, LANE, null, back);
         const wasOn = S.storeLight?.on; if (!wasOn) { setStoreLight(true); await sleep(0.3); }
         await walk(owner, [shelf]);
@@ -374,13 +374,14 @@ async function doTable(c, zone, s) {
       await walk(c, toDoor.concat([[-1.2, -7.05]]));
       c.face(Math.PI / 2); await sleep(0.4);
       const lit = S.toiletLight?.on; if (!lit) { c.gesture('serve', 0.4); setToiletLight(true); await sleep(0.4); }
-      await walk(c, [[-1.2, -7.7], TOILET[1], TOILET[0]]); await walk(c, [[1.7, -7.55]]);
+      await walk(c, [[-1.2, -7.7], TOILET[1], TOILET[0]]); S.toiletUser = c; await walk(c, [[1.7, -7.55]]);   // inside now (hud.js: light switched off on them)
       c.face(Math.PI); await sleep(0.6);
       c.gesture('pull', 0.8); await sleep(0.8); c.pantsDown(true); c.pose = 'squat'; c.status = '蹲廁所';
       await sleep(rand(6, 10));
       c.pose = 'stand'; c.gesture('pull', 0.8); await sleep(0.8); c.pantsDown(false); c.status = '去廁所';
       // out of the door, the light switched off behind them if they found it off, and back to the seat
-      await walk(c, [TOILET[0], TOILET[1], [-1.2, -7.7], [-1.2, -7.05]]);
+      await walk(c, [TOILET[0], TOILET[1]]); S.toiletUser = null;
+      await walk(c, [[-1.2, -7.7], [-1.2, -7.05]]);
       if (!lit) { c.face(Math.PI / 2); await sleep(0.3); setToiletLight(false); await sleep(0.2); }
       await walk(c, [[TOILET[2][0], -7.05]].concat(route(TOILET.slice(2), s.path))); S.toiletBusy = false; c.busy = false;
       c.face(s.face); c.pose = 'sit'; c.status = '坐著喝咖啡'; t += 8;

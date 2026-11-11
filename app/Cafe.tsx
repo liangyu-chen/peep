@@ -13,6 +13,65 @@ const SPEAKER = ['....#.......', '...##...#...', '..###....#..', '####.#.#..#.',
   '..###....#..', '...##...#...', '....#.......', '............', '............'];
 const SPEAKER_OFF = ['....#.......', '...##.......', '..###.......', '####.#.#...#', '####.#..#.#.', '####.#...#..', '####.#..#.#.',
   '..###..#...#', '...##.......', '....#.......', '............', '............'];
+// a snowflake, for the AC remote's cooling mode
+const SNOW = ['#....#....#', '.#...#...#.', '..#..#..#..', '...#.#.#...', '###########', '...#.#.#...', '..#..#..#..', '.#...#...#.',
+  '#....#....#'];
+// a sun, for its heating mode
+const SUN = ['.....#.....', '..#..#..#..', '...#.#.#...', '....###....', '##.#####.##', '....###....', '...#.#.#...', '..#..#..#..',
+  '.....#.....'];
+// a water drop, for its drying mode
+const DROP = ['.....#.....', '....###....', '....###....', '...#####...', '...#####...', '..#######..', '..#######..', '..#######..',
+  '...#####...', '....###....'];
+// a pinwheel, for its fan-only (送風) mode
+const FAN = ['...##......', '...###.....', '....##..##.', '.....#.###.', '....###....', '.###.#.....', '.##..##....', '.....###...',
+  '......##...'];
+// the louvre icons on the LCD, drawn the way a real remote's LCD draws them: five solid wedge segments fanning out
+// from the unit, the one the flap is held at lit and the rest ghosted. 上下風擺 is the unit seen from the side (a
+// rounded outline at the right) with the wedges dropping from level-left to straight down; 左右風擺 is the unit seen
+// from the front (a long rounded outline, its outlet a solid bar) with the wedges spread left to right beneath it,
+// their tops and bottoms cut level. While a louvre swings (自動) the screen shows words instead of the icon
+const wedge = (cx: number, cy: number, r0: number, r1: number, mid: number, span: number) => {
+  const p = (r: number, d: number) => `${(cx + r * Math.cos((d * Math.PI) / 180)).toFixed(2)} ${(cy + r * Math.sin((d * Math.PI) / 180)).toFixed(2)}`;
+  const a0 = mid - span / 2, a1 = mid + span / 2;
+  return `M${p(r0, a0)}L${p(r1, a0)}A${r1} ${r1} 0 0 1 ${p(r1, a1)}L${p(r0, a1)}A${r0} ${r0} 0 0 0 ${p(r0, a0)}Z`;
+};
+function LouvreIcon({ dir, id }: { dir: 'h' | 'v'; id: string }) {
+  if (dir === 'v') return (
+    <svg id={id} className="acLouvre v" viewBox="0 0 28 22" aria-hidden="true">
+      <rect className="unitLine" x={19.6} y={0.8} width={7} height={12} rx={3.4} />
+      {[172, 153, 134, 115, 96].map((m, i) => <path key={i} className="ray" d={wedge(19.6, 7, 3.8, 15, m, 14)} />)}
+    </svg>
+  );
+  return (
+    <svg id={id} className="acLouvre h" viewBox="0 0 34 22" aria-hidden="true">
+      <defs><clipPath id={`${id}Clip`}><rect x={0} y={10.6} width={34} height={10.6} /></clipPath></defs>
+      <rect className="unitLine" x={0.8} y={0.8} width={32.4} height={8.4} rx={2.6} />
+      <rect className="unit" x={3.6} y={5} width={27} height={2.6} rx={0.8} />
+      <g clipPath={`url(#${id}Clip)`}>
+        {[127, 108.5, 90, 71.5, 53].map((m, i) => <path key={i} className="ray" d={wedge(17, -5, 10, 32, m, 12.5)} />)}
+      </g>
+    </svg>
+  );
+}
+// the remote's screen, lit like an old digital watch: seven bars a digit, the bars it isn't using left ghosted.
+// Which bars each digit lights is worked out in the CSS from the data-val on .acDigit, so hud.js only swaps digits
+function SegDigits({ value }: { value: number }) {
+  const digits = String(value).padStart(2, ' ');
+  return (
+    <span className="acSeg" id="acSeg">
+      {[...digits].map((ch, i) => (
+        <span className="acDigit" key={i} data-val={ch === ' ' ? '' : ch}>
+          {['a', 'b', 'c', 'd', 'e', 'f', 'g'].map(s => <i key={s} className={`sg ${s}`} />)}
+        </span>
+      ))}
+    </span>
+  );
+}
+// the remote's outline, not a plain rounded rectangle: straight down the sides, then both sides tuck in evenly below
+// the keys toward a rounded foot, mirror-symmetric about the middle (x 98). Drawn in a 200 × 460 box and stretched
+// to the remote's size
+const SHELL = 'M26 3C60 1 136 1 170 3C186 5 195 22 195 54L193 296C192 336 186 360 184 392C182 430 156 454 98 454' +
+  'C40 454 14 430 12 392C10 360 4 336 3 296L1 54C1 22 10 5 26 3Z';
 function PixelIcon({ rows, className }: { rows: string[]; className?: string }) {
   return (
     <svg className={className} viewBox={`0 0 ${rows[0].length} ${rows.length}`} shapeRendering="crispEdges" aria-hidden="true">
@@ -118,7 +177,84 @@ export default function Cafe({ content }: { content: CafeContent }) {
         <button id="cSmoke" hidden>來根小菸</button>
       </aside>
 
-      <div id="hint">拖曳旋轉 · 滾輪縮放 · 點人物看資料</div>
+      <div id="hint">拖曳旋轉 · 滾輪縮放 · 點人物看資料 · 拉出冷氣遙控器</div>
+
+      {/* the AC remote: a white handheld remote leaning out of the right edge at an angle, just the corner of its
+          head showing; click it to have it fly in square-on, click the head again to let it lean back out. Off, the
+          doors stand open for air and the outdoor unit's fan slows to a stop (index.js); mode, temp and fan are the
+          remote's own settings, shown on its screen as a digital watch would show them */}
+      <section id="acRemote" aria-label="冷氣遙控器" data-mode="cool">
+        {/* the moulded body: the back shell's side wall showing below-right, the front shell with its seam, a shade
+            toward the foot, a gloss from the top left, and the face panel's faint line a few px in */}
+        <svg className="acShell" viewBox="0 0 200 460" preserveAspectRatio="none" aria-hidden="true">
+          <defs>
+            <linearGradient id="acShellFill" x1="0" y1="0" x2="1" y2="0.55">
+              <stop offset="0" stopColor="#fdfcf8" /><stop offset="0.34" stopColor="#f6f4ee" />
+              <stop offset="0.68" stopColor="#ece8df" /><stop offset="1" stopColor="#ddd8cb" />
+            </linearGradient>
+            <linearGradient id="acShellShade" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0.62" stopColor="#000" stopOpacity="0" /><stop offset="1" stopColor="#000" stopOpacity="0.12" />
+            </linearGradient>
+            <linearGradient id="acShellGloss" x1="0" y1="0" x2="0.8" y2="0.35">
+              <stop offset="0" stopColor="#fff" stopOpacity="0.55" /><stop offset="0.3" stopColor="#fff" stopOpacity="0.12" />
+              <stop offset="0.6" stopColor="#fff" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          <path d={SHELL} transform="translate(2.5 4)" fill="#b4ac9b" stroke="rgba(60,52,40,.5)" vectorEffect="non-scaling-stroke" />
+          <path d={SHELL} fill="url(#acShellFill)" stroke="rgba(78,70,56,.6)" vectorEffect="non-scaling-stroke" />
+          <path d={SHELL} fill="url(#acShellShade)" />
+          <path d={SHELL} fill="url(#acShellGloss)" />
+          <path d={SHELL} transform="translate(98 228) scale(.94 .974) translate(-98 -228)" fill="none" stroke="rgba(0,0,0,.06)"
+            vectorEffect="non-scaling-stroke" />
+          <path d={SHELL} transform="translate(98 229) scale(.94 .974) translate(-98 -228)" fill="none" stroke="rgba(255,255,255,.75)"
+            vectorEffect="non-scaling-stroke" />
+        </svg>
+        <button id="acHead" type="button" aria-label="冷氣遙控器" aria-expanded="false">
+          <i className="acLed" aria-hidden="true" />
+          <span className="acFold" aria-hidden="true"><b>›</b>收起遙控器</span>
+        </button>
+        <div className="acBody">
+          <div id="acScreen">
+            <div className="acLcdTop">
+              <span className="acMode" aria-hidden="true">
+                <PixelIcon rows={SNOW} className="mCool" />
+                <PixelIcon rows={SUN} className="mHeat" />
+                <PixelIcon rows={DROP} className="mDry" />
+                <PixelIcon rows={FAN} className="mFan" />
+                <span className="acModeName" id="acModeName">冷氣</span>
+              </span>
+              <span className="acBatt" aria-hidden="true" />
+            </div>
+            <div className="acLcdMain"><SegDigits value={26} /><span className="acUnit">°C</span></div>
+            <div className="acLcdFoot" aria-hidden="true">
+              <span>風量<em id="acFanVal" /><span id="acFanBars" className="acFanBars"><i /><i /><i /></span></span>
+              <span><LouvreIcon dir="h" id="acPosH" /><em id="acSwingH" /></span>
+              <span><LouvreIcon dir="v" id="acPosV" /><em id="acSwingV" /></span>
+            </div>
+          </div>
+          {/* the keys, laid out like a real remote's rather than in a tidy grid: the names printed on the face beside
+              them, oval keys tipped round the temperature rocker in an arc (positions and tilts in cafe.css) */}
+          <div className="acPad">
+            <span className="acLbl" style={{ left: '23%', top: 0 }}>運轉/停止</span>
+            <button id="acPower" className="acKey k1" aria-label="運轉/停止" />
+            <span className="acLbl" style={{ left: '77%', top: 0 }}>風量</span>
+            <button id="acWind" className="acKey k2" aria-label="風量" />
+            <div className="acRocker">
+              <button id="acUp" aria-label="溫度調高">▲</button>
+              <button id="acDown" aria-label="溫度調低">▼</button>
+            </div>
+            <span className="acLbl" style={{ left: '50%', top: 108 }}>溫度設定</span>
+            <span className="acLbl" style={{ left: '21%', top: 80 }}>左右風擺</span>
+            <button id="acSwingHBtn" className="acKey k3" aria-label="左右風擺" />
+            <span className="acLbl" style={{ left: '79%', top: 80 }}>功能</span>
+            <button id="acMode" className="acKey k4" aria-label="功能" />
+            <button id="acSwingVBtn" className="acKey k5" aria-label="上下風擺" />
+            <span className="acLbl" style={{ left: '50%', top: 178 }}>上下風擺</span>
+          </div>
+          <span className="acModel" aria-hidden="true">MODEL AC-5487</span>
+          <div className="acGrip" aria-hidden="true" />
+        </div>
+      </section>
       {loading && <LoadingHands ready={ready} onDone={done} />}
     </div>
   );

@@ -53,6 +53,10 @@ export function ceilingFan(x, z, y = 2.62) {
   cyl(0.012, 0.012, 0.25, blackM, 0, 0.13, 0, fan, 6); cyl(0.07, 0.07, 0.07, mat(0x2a2a2a), 0, 0, 0, fan, 12);
   const blades = new THREE.Group(); fan.add(blades);
   for (let i = 0; i < 3; i++) { const b = box(0.5, 0.01, 0.09, mat(0x3a2a1e), 0.3, -0.02, 0, blades); const p = new THREE.Group(); p.rotation.y = i * Math.PI * 2 / 3; p.add(b); blades.add(p); }
+  // off until clicked (hud.js); spin eases up to speed and coasts down (index.js). Every part of it is a click target
+  blades.userData.fan = { on: false, spin: 0 };
+  fan.traverse(o => { if (o.isMesh) o.userData.fanBlades = blades; });
+  (S.fanUnits || (S.fanUnits = [])).push(fan);   // (held through S, so optimize.js leaves the rod and motor clickable too)
   (S.fans || (S.fans = [])).push(blades);
 }
 

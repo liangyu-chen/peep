@@ -775,6 +775,50 @@ const pantsTopGeo = (w, k = 1) => geo(`ptop3:${w}:${k}`, () => {
   for (let r = 0; r < ROWS; r++) for (let i = 0; i < N; i++) { const a = r * (N + 1) + i, b = a + N + 1; idx.push(a, a + 1, b, b, a + 1, b + 1); }
   const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals(); return g;
 });
+// a skirt as it lies sitting (thighs level, straight out in front from the hips), in the skirt's own frame (its pivot
+// at the waist, 0.72 + LEG_EXTRA up; sx, sz the build's widening of it, which its group is scaled by): from the same
+// waistband as the hanging skirt, down over the hips and on along the thighs to just past the knees, always clear of
+// them: across, wider than both thighs side by side; up and down, its top resting just over the thighs (as thick as
+// they are, the build's fuller thighs too) and its back down under them, ending short of the shins, so neither the
+// thighs nor the knees ever come through it. Over the knees its front falls a little, as cloth would.
+// F: how wide its cut (narrow, A-line, full); tuck: taken in under a fitted top; fx, fz: the thighs' widening across
+// and their deepening up and down for the build (as the legs are in buildBodyAt)
+const lapSkirtGeo = (F, tuck, fx, fz) => geo(`lapskirt2:${F}:${tuck}:${fx}:${fz}`, () => {
+  const PIV = 0.72 + LEG_EXTRA, HIP = 0.55 + LEG_EXTRA, KNEE = 0.32, X = 0.094 * fx;
+  const NA = D(32, 12), NT = D(18, 8), N = 2.6, pos = [], idx = [];
+  const sup = c => Math.sign(c) * Math.abs(c) ** (2 / N);
+  const waist = 0.185 * tuck, hipR = (0.185 + 0.058 * F) * tuck;   // (the hanging skirt's radius at the waist, and down at the hips)
+  const half = (X + 0.09 * fx) + (0.035 + 0.05 * (F - 0.35)) * fx;  // across: out past both thighs, by the cut
+  const thick = s => { const k = Math.min(1, s / KNEE); return (0.09 - 0.016 * k) * (fz + (fx - fz) * k); };   // a thigh's half-depth
+  // a point on the lap, s along the thighs from the hips (a, c: across and up the cross-section, -1..1)
+  const lapAt = (s, a, c) => {
+    const up = c >= 0, v = (up ? thick(s) + 0.014 : thick(s) + 0.006) * sup(c);
+    const droop = up && s > 0.33 ? 5 * (s - 0.33) ** 2 * c : 0;
+    return [half * sup(a), HIP + v - droop, s];
+  };
+  const bez = (p0, p1, p2, t) => p0.map((_, i) => (1 - t) ** 2 * p0[i] + 2 * t * (1 - t) * p1[i] + t * t * p2[i]);
+  for (let j = 0; j <= NT; j++) {
+    const t = j / NT;
+    for (let i = 0; i <= NA; i++) {
+      const phi = (i / NA) * Math.PI * 2, a = Math.sin(phi), c = Math.cos(phi);   // c: +1 the front, -1 the back
+      const top = [waist * a * fx, PIV - 0.05, waist * 0.78 * c * fz];
+      // the front ends past the knees, the back short of the shins (straight down from the knees, or out along the floor)
+      const L = 0.22 + 0.2 * ((c + 1) / 2) ** 1.5;
+      // where it turns from hanging to lying along the thighs: at the front, as far forward as the waistband; behind, as
+      // far back as the hanging skirt at the hips
+      const s1 = Math.max(0, top[2]), hip = lapAt(s1, a, c);
+      if (c < 0) hip[2] = hipR * 0.78 * c * fz * 1.05;
+      const sm = Math.min(L, s1 + 0.06), T = 0.45;   // the first part of its length the turn, the rest along the lap
+      const p = t <= T ? bez(top, hip, lapAt(sm, a, c), t / T) : lapAt(sm + (L - sm) * (t - T) / (1 - T), a, c);
+      pos.push(p[0], p[1] - PIV, p[2]);
+    }
+  }
+  for (let j = 0; j < NT; j++) for (let i = 0; i < NA; i++) { const a = j * (NA + 1) + i, b = a + NA + 1; idx.push(a, b, a + 1, b, b + 1, a + 1); }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx);
+  // (the build's widening, which its group is scaled by, taken back out here: it's already built for that build)
+  g.scale(1 / fx, 1, 1 / fz);
+  g.computeVertexNormals(); return g;
+});
 // curls in a hair surface, like the ringlets lower down: wavy locks running out from the crown, each waving from side
 // to side and bulging where it curls; they smooth out right at the crown so they don't bunch up where they all meet
 const curlLumps = amp => u => {
@@ -984,7 +1028,13 @@ function buildBodyAt(look, seed) {
     const F = { slim: 0.35, regular: 1, wide: 1.7 }[fit] || 1, flareTo = ([r, y]) => [0.185 + (r - 0.185) * F, y];
     // (under a fitted top, its waistband taken in to stay inside the narrower shirt)
     const tuck = clothesOf(look).top === 'slim' ? 0.92 : 1;
-    mk(lathe(`skirt3:${F}`, [[0.185, -0.05], [0.19, -0.08], [0.215, -0.11], [0.24, -0.16], [0.266, -0.24], [0.288, -0.32], [0.284, -0.33]].map(flareTo), 28), sm, 0, 0, 0, skirt).scale.set(tuck, 1, 0.78 * tuck);
+    const hang = mk(lathe(`skirt3:${F}`, [[0.185, -0.05], [0.19, -0.08], [0.215, -0.11], [0.24, -0.16], [0.266, -0.24], [0.288, -0.32], [0.284, -0.33]].map(flareTo), 28), sm, 0, 0, 0, skirt);
+    hang.scale.set(tuck, 1, 0.78 * tuck);
+    // sitting, it's swapped for the same skirt drawn on the lap (see lapSkirtGeo), made for this build's thighs
+    const B0 = BUILDS[buildOf(look)], lo = v => 1 + (v - 1) * 0.7;
+    const lap = mk(lapSkirtGeo(F, tuck, lo(B0.w), lo(B0.d)), sm, 0, 0, 0, skirt);
+    lap.visible = false;
+    skirt.userData = { hang, lap };
   }
   // the belt at the waist, just under the shirt's hem, its buckle on its front
   // (the waist is the same size whatever the cut, roomy through the seat or not, so the belt is too: snug on it)

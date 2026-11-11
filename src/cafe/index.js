@@ -67,14 +67,18 @@ async function build(root, content) {
     updateTops(sdt);
     updateSurroundings(dt);
     if (S.ledClock) S.ledClock();   // the corner's LED clock (redraws only when the minute changes)
-    S.acFan.rotation.x += dt * 12;
-    S.fans.forEach(f => { f.rotation.y += dt * 4; });
-    // doors open when someone comes close
-    S.slide.open += ((near(-1.84, -4.5, 1.3) ? 1 : 0) - S.slide.open) * Math.min(1, dt * 5);
+    // the outdoor unit's fan spins up when the AC comes on and coasts to a stop when it goes off
+    S.ac.spin += ((S.ac.on ? 12 : 0) - S.ac.spin) * Math.min(1, dt * 1.5);
+    S.acFan.rotation.x += S.ac.spin * dt;
+    // the ceiling fans start still; a click sets one going (hud.js), and it spins up, or coasts to a stop
+    S.fans.forEach(f => { const st = f.userData.fan; st.spin += ((st.on ? 4 : 0) - st.spin) * Math.min(1, dt * 1.2); f.rotation.y += dt * st.spin; });
+    // doors open when someone comes close; with the AC off they stand open for air instead
+    const slideTarget = !S.ac.on || near(-1.84, -4.5, 1.3);
+    S.slide.open += ((slideTarget ? 1 : 0) - S.slide.open) * Math.min(1, dt * 5);
     S.slideDoor.position.x = -1.86 - S.slide.open * 0.76;   // slides left in front of the fixed panel
     S.toiletDoor.rotation.y += ((near(-0.8, -7.7, 1.1) ? -Math.PI / 2 : 0) - S.toiletDoor.rotation.y) * Math.min(1, dt * 5);   // swings in, flat to the toilet's front wall
     // (held shut while someone plays darts: it swings in right across the board)
-    const doorOpen = near(-1.7, 4.0, 1.3) && !S.darting;
+    const doorOpen = (!S.ac.on || near(-1.7, 4.0, 1.3)) && !S.darting;
     S.frontDoor.rotation.y += ((doorOpen ? 1.45 : 0) - S.frontDoor.rotation.y) * Math.min(1, dt * 5);
     // fade the outer walls the camera is behind
     const cp = ctx.camera.position;

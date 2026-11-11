@@ -30,6 +30,9 @@ export const DOOR = [[-1.75, 11], [-1.75, 4.75], [-1.6, 4.5], [HUBX, 3.6]];
 // the way past the TV players: through the gap between the bar's inner end (z -2.08) and the nearer player (z -2.7),
 // so nobody walks between the two of them or behind their shoulders
 export const GAME_GAP = [[0.9, -2.3], [-0.45, -2.3], [HUBX, -2.3]];
+// from the bar's inner end round to the back of the shop: out through GAME_GAP and up the walkway, never past the
+// inner player's right side (between them and the manga ledge)
+export const BAR_TO_BACK = [[0.9, -2.3], [-0.45, -2.3], [HUBX, -2.3], [HUBX, -3.95]];
 export const zoneSpot = s => [[s.x, s.z], [HUBX, s.z]];
 export const route = (from, to) => from.slice(1).concat(to.slice().reverse());
 
@@ -39,7 +42,8 @@ export function createSeats() {
   const seat = (type, x, z, face, sitY, cup, path, extra = {}) => { const s = Object.assign({ type, x, z, face, sitY, cup, path, occ: null }, extra); seats.push(s); return s; };
 
   // manga ledge stools facing the neon wall
-  [0.4, 1.6].forEach(x => seat('table', x, -3.95, Math.PI, 0.12, [x, 1.03, -4.28], [[x, -3.95], [HUBX, -4.1]], { where: '霓虹燈下的漫畫吧檯' }));
+  // (in and out round the bar's inner end, like the spectator behind the players: never past the inner player's right)
+  [0.4, 1.6].forEach(x => seat('table', x, -3.95, Math.PI, 0.12, [x, 1.03, -4.28], [[x, -3.95], [x, -2.3], ...GAME_GAP], { where: '霓虹燈下的漫畫吧檯' }));
   // purple wall cinder seats, backs to the wall
   LSEATS.forEach(z => {
     const cz = LCUP.get(z), onStump = Math.abs(cz - 0.35) < 0.1;

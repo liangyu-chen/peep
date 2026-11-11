@@ -14,7 +14,7 @@ export function resetState(content) {
 
     // people
     people: [], customers: [], orderQueue: [], floaters: [],
-    owner: null, selected: null, showTags: true, toiletBusy: false,
+    owner: null, selected: null, showTags: true, toiletBusy: false, toiletUser: null,
     labelsEl: null,
 
     // the game on the TV
@@ -22,6 +22,11 @@ export function resetState(content) {
 
     // spinning tops in the arcade
     topsSession: null, topsCooldown: 25,
+
+    // the air conditioner, worked by the white remote that waits at the right edge of the screen: off to start
+    // with, so the sliding door and the front door stand open for air and the outdoor unit's fan is still
+    // (index.js); mode, temp and fan are the remote's own settings, shown on its screen
+    ac: { on: false, spin: 0, temp: 26, fan: 'auto', mode: 'cool', swingH: 'auto', swingV: 'auto' },
 
     // filled in by the world builders and createSeats()
     seats: null,

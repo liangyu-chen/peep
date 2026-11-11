@@ -79,6 +79,7 @@ export const LINE_GROUPS: LineGroup[] = [
       { key: 'customer.chatPorch', label: '戶外區座位閒聊', vars: ['owner'] },
       { key: 'customer.smoke', label: '在戶外區點菸', vars: ['owner'] },
       { key: 'customer.wantsTv', label: '看到電視空了' },
+      { key: 'customer.toiletDark', label: '上廁所時被人偷關燈', vars: ['owner'] },
       { key: 'customer.leaveRegular', label: '熟客離開', vars: ['owner'] },
       { key: 'customer.leaveNew', label: '新客離開', vars: ['owner'] },
     ],
@@ -181,6 +182,7 @@ export const DEFAULT_LINES: Record<string, string[]> = {
   'customer.chatPorch': ['外面吹風好舒服', '隔壁五金行好熱鬧', '這盆栽是新的嗎', '機車停好近'],
   'customer.smoke': ['來一根', '外面抽比較舒服', '{owner}，菸灰缸借一下'],
   'customer.wantsTv': ['電視空了！我去打一場'],
+  'customer.toiletDark': ['啊！！誰偷關燈，裡面有人！', '欸欸欸！有人啦！開燈！', '誰啦！！我還沒好！', '{owner}～～廁所燈被關了啦！', '幹嘛啦！黑漆漆的看不到！', '不要鬧喔！快開燈！', '我在裡面啦！！手機燈手機燈…'],
   'customer.leaveRegular': ['掰掰，明天見！', '走啦，下次再戰', '{owner}掰～'],
   'customer.leaveNew': ['謝謝，下次再來！', '拉花好漂亮～'],
 

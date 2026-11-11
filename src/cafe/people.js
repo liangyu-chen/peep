@@ -272,7 +272,6 @@ export class Person {
   constructor(profile, role) {
     this.p = profile; this.role = role;
     Object.assign(this, buildBody(profile.look, profile.name, { detail: CAFE_DETAIL }));
-    if (this.skirt) this.skirtBase = this.skirt.scale.clone();
     mergeParts(this.g, bodyKeep(this));
     this.faceAnim = { blinkT: Math.random() * 4 };
     this.g.traverse(o => { if (o.isMesh) o.userData.person = this; });
@@ -429,14 +428,9 @@ export class Person {
     this.groundY = (this.groundY || 0) + (ground - (this.groundY || 0)) * Math.min(1, dt * 14);
     this.g.position.y = this.groundY + y + bob;
     this.blob.position.y = (0.012 - y - bob) / this.heightK;   // kept on the floor, whatever the pose (in their own scaled frame)
-    if (this.skirt) {   // sitting, the skirt drapes forward over the lap: a little longer, tipped forward from the
-      // waist, and still as wide as the body itself (the build's own scaling kept, or a fuller figure's thighs show)
-      const lap = sitting || squat, b = this.skirtBase;
-      const tilt = 0.3, sy = b.y * 1.25;
-      this.skirt.rotation.x = lap ? -tilt : 0;
-      this.skirt.scale.set(b.x, lap ? sy : b.y, b.z * (lap ? 1.7 : 1));
-      this.skirt.position.z = 0;
-      this.skirt.position.y = lap ? 0.70 + 0.05 * sy * Math.cos(tilt) : 0.72 + LEG_EXTRA;
+    if (this.skirt) {   // sitting, the skirt lies along the lap (body.js draws it so, clear of the thighs and knees)
+      const { hang, lap } = this.skirt.userData, onLap = sitting || squat;
+      if (hang.visible === onLap) { hang.visible = !onLap; lap.visible = onLap; }
     }
     this.head.rotation.y = this.pose === 'game' ? 0 : ph ? turn : rest.head;
     this.head.rotation.x = pitch;

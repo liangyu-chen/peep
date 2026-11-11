@@ -3,10 +3,11 @@
 import * as THREE from 'three';
 import { ctx } from './engine.js';
 import { S } from './state.js';
-import { $, K } from './util.js';
-import { fmtTime } from './feed.js';
+import { $, K, pick } from './util.js';
+import { fmtTime, log } from './feed.js';
 import { matchClock } from './tv.js';
 import { DAYS, smokeState, sendOutToSmoke } from './sim.js';
+import { sayLine } from './content.js';
 import { canInviteTops, inviteTops } from './tops.js';
 import { portraitOf, petPortraitOf } from './portrait.js';
 import { makeDog, makeCorgi } from './dog.js';
@@ -37,7 +38,7 @@ export function updateHUD() {
 }
 
 // ---------------------------------------------------------------- the person card
-export function openCard(p) { S.selected = p; $('card').hidden = false; fillCard(); sfx('boop'); }
+export function openCard(p) { setAcOpen(false, true); S.selected = p; $('card').hidden = false; fillCard(); sfx('boop'); }
 export function closeCard() { S.selected = null; const card = $('card'); if (card) card.hidden = true; }
 // a companion's card (配件: 路易斯, 夜叉丸, 蘿蔔糕): what it is, whose it is, a line about it, what it says, what it's up to
 const PET_INFO = {
@@ -105,6 +106,45 @@ function toggleNeon() {
   [[true, 70], [false, 120], [true, 50], [false, 260], [true, 90], [false, 80], [true, 0]].forEach(([on, ms]) => {
     neonTimers.push(setTimeout(() => { if (n.lit) { lightNeon(on); if (on && ms === 0) sfx('buzz'); } }, t)); t += ms;
   });
+}
+
+// ---------------------------------------------------------------- the AC remote: what the owner says over it
+// by what the remote is set to: on (turning it on in that mode), off (turning it off from that mode) and to (switching
+// to that mode while it's running; switching while it's off just changes the setting, nobody says anything)
+const AC_LINES = {
+  cool: {
+    on: ['涼～開冷氣了', '天氣熱，開一下冷氣', '呼～舒服多了'],
+    off: ['冷氣關囉，開門透氣一下', '省個電，開門通風就好', '關冷氣，空氣流通一下'],
+    to: ['換冷氣，涼一下', '還是開冷氣好了', '太熱了，切冷氣'],
+  },
+  heat: {
+    on: ['好冷～開個暖氣', '天氣冷，開一下暖氣', '開暖氣，暖和一點'],
+    off: ['暖氣關囉，開門透透氣', '夠暖了，關暖氣吧', '關暖氣，空氣流通一下'],
+    to: ['換暖氣，暖一下', '有點冷，切暖氣', '還是開暖氣好了'],
+  },
+  dry: {
+    on: ['有點潮，開個除濕', '濕濕黏黏的，除濕一下', '開除濕，咖啡豆怕潮'],
+    off: ['除濕關囉，開門透透氣', '乾爽多了，關掉吧', '關除濕，空氣流通一下'],
+    to: ['換除濕，有點悶', '濕氣好重，切除濕', '咖啡豆怕潮，除濕一下'],
+  },
+  fan: {
+    on: ['開個送風就好', '吹吹風，不用開冷', '送風就夠了'],
+    off: ['送風關囉，開門透透氣', '關掉送風吧', '關送風，開門通風就好'],
+    to: ['換送風，吹吹風就好', '不用那麼冷，送風就好', '切送風，省點電'],
+  },
+};
+// 風量: 自動, then 弱 / 中 / 強 (one, two, three bars lit on the screen); 左右 / 上下 風向: swinging (自動), then held
+// at one of five louvre positions, left to right / level to straight down (the louvre icon's wedge in use lit)
+const WINDS = ['auto', '弱', '中', '強'];
+const SWING_STEPS = ['auto', 0, 1, 2, 3, 4];
+const MODE_NAMES = { cool: '冷氣', heat: '暖氣', dry: '除濕', fan: '送風' };
+const MODES = ['cool', 'heat', 'dry', 'fan'];
+// have the remote fly in square-on (click its head) or lean back out to the edge; silent when the card needs the room
+function setAcOpen(open, silent) {
+  const r = $('acRemote'); if (!r) return;
+  r.classList.toggle('open', open);
+  $('acHead')?.setAttribute('aria-expanded', String(open));
+  if (!silent) sfx(open ? 'pop' : 'popDown');
 }
 
 // ---------------------------------------------------------------- camera presets
@@ -195,10 +235,61 @@ export function bindHUD(root, stage) {
   // 畫質: 高效能 (shadows redrawn every frame, everything casting its own; the default) or 一般 (drawn once)
   const qBtns = [...root.querySelectorAll('[data-quality]')], showQ = () => qBtns.forEach(b => b.classList.toggle('on', b.dataset.quality === (S.quality || DEFAULT_QUALITY)));
   showQ(); qBtns.forEach(b => on(b, 'click', () => { setQuality(b.dataset.quality); showQ(); sfx('pop'); }));
+  // the AC remote: leans out of the right edge at an angle with just the corner of its head showing; click it to
+  // have it fly in square-on, click the head again to let it lean back out. Off, the doors stand open for air and
+  // the outdoor unit's fan slows to a stop (index.js); mode, temp and fan are the remote's own settings, drawn on
+  // its screen like a digital watch
+  const remote = $('acRemote');
+  // the little red lamp in the head blinks once per key press, the way a real remote's IR lamp does
+  const led = remote.querySelector('.acLed');
+  let ledTimer;
+  const blink = () => { led.classList.add('flash'); clearTimeout(ledTimer); ledTimer = setTimeout(() => led.classList.remove('flash'), 160); };
+  const showAc = () => {
+    remote.classList.toggle('on', S.ac.on);
+    remote.dataset.mode = S.ac.mode;
+    const t = String(S.ac.temp), digits = $('acSeg').children;
+    digits[0].dataset.val = t.length > 1 ? t[0] : '';
+    digits[1].dataset.val = t[t.length - 1];
+    $('acModeName').textContent = MODE_NAMES[S.ac.mode];
+    const lv = WINDS.indexOf(S.ac.fan);
+    remote.classList.toggle('fanAuto', S.ac.fan === 'auto');
+    $('acFanVal').textContent = S.ac.fan === 'auto' ? '自動' : '';
+    [...$('acFanBars').children].forEach((b, i) => b.classList.toggle('on', i < lv));
+    // swinging, the cell just says so (左右自動 / 上下自動); held, it shows the louvre icon with that wedge lit
+    [['swingH', 'acSwingH', 'acPosH', '左右'], ['swingV', 'acSwingV', 'acPosV', '上下']].forEach(([k, txt, pos, name]) => {
+      if (!SWING_STEPS.includes(S.ac[k])) S.ac[k] = 'auto';
+      const auto = S.ac[k] === 'auto';
+      $(txt).textContent = auto ? name + '自動' : '';
+      $(pos).style.display = auto ? 'none' : '';
+      [...$(pos).querySelectorAll('.ray')].forEach((t, i) => t.classList.toggle('on', i === S.ac[k]));
+    });
+  };
+  remote.classList.remove('open'); $('acHead')?.setAttribute('aria-expanded', 'false');
+  showAc();
+  on(remote, 'click', e => {
+    if (remote.classList.contains('open')) { if (e.target.closest('#acHead')) setAcOpen(false); }
+    else setAcOpen(true);
+  });
+  on($('acPower'), 'click', () => {
+    S.ac.on = !S.ac.on;
+    showAc(); sfx('beep'); blink();
+    log(MODE_NAMES[S.ac.mode] + (S.ac.on ? '開啟' : '關閉'));
+    S.owner?.say(pick(AC_LINES[S.ac.mode][S.ac.on ? 'on' : 'off']));
+  });
+  on($('acDown'), 'click', () => { S.ac.temp = Math.max(16, S.ac.temp - 1); showAc(); sfx('beep'); blink(); });
+  on($('acUp'), 'click', () => { S.ac.temp = Math.min(30, S.ac.temp + 1); showAc(); sfx('beep'); blink(); });
+  on($('acWind'), 'click', () => { S.ac.fan = WINDS[(WINDS.indexOf(S.ac.fan) + 1) % WINDS.length]; showAc(); sfx('beep'); blink(); });
+  const flipSwing = k => { S.ac[k] = SWING_STEPS[(SWING_STEPS.indexOf(S.ac[k]) + 1) % SWING_STEPS.length]; showAc(); sfx('beep'); blink(); };
+  on($('acSwingHBtn'), 'click', () => flipSwing('swingH'));
+  on($('acSwingVBtn'), 'click', () => flipSwing('swingV'));
+  on($('acMode'), 'click', () => {
+    S.ac.mode = MODES[(MODES.indexOf(S.ac.mode) + 1) % MODES.length]; showAc(); sfx('beep'); blink();
+    if (S.ac.on) { log('切換為' + MODE_NAMES[S.ac.mode]); S.owner?.say(pick(AC_LINES[S.ac.mode].to)); }
+  });
   // a soft pop for the HUD's buttons (camera moves swoosh instead; the games make their own sounds), and the sound switch
   on(root, 'click', e => {
     const b = e.target.closest('button, a.tile');
-    if (!b || b.closest('.gamePad, .dartsHud') || b.matches('[data-cam], #sfxToggle, #soundToggle, .gameSound')) return;
+    if (!b || b.closest('.gamePad, .dartsHud, #acRemote') || b.matches('[data-cam], #sfxToggle, #soundToggle, .gameSound')) return;
     sfx(b.classList.contains('on') || b.id === 'closeCard' || b.classList.contains('gameClose') ? 'popDown' : 'pop');
   });
   const sfxBtn = $('sfxToggle'), showSfx = () => sfxBtn?.classList.toggle('on', !sfxMuted());
@@ -233,15 +324,17 @@ export function bindHUD(root, stage) {
     const r = canvas.getBoundingClientRect();
     ndc.set((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1);
     ray.setFromCamera(ndc, ctx.camera);
-    const stadium = [], menu = [];
+    const stadium = [], menu = [], fans = [];
+    (S.fanUnits || []).forEach(f => f.traverse(o => { if (o.isMesh) fans.push(o); }));
     if (S.stadium?.visible) S.stadium.traverse(o => { if (o.isMesh) stadium.push(o); });
     S.menuClip?.traverse(o => { if (o.isMesh) menu.push(o); });
-    const targets = []; S.people.forEach(p => { p.g.traverse(o => { if (o.isMesh) targets.push(o); }); p.bear?.g.traverse(o => { if (o.isMesh) targets.push(o); }); }); targets.push(S.tvScreen, S.tvFrame, S.dartboard, S.neonSwitch?.hit, S.storeLight?.hit, S.toiletLight?.hit, ...stadium, ...menu);
+    const targets = []; S.people.forEach(p => { p.g.traverse(o => { if (o.isMesh) targets.push(o); }); p.bear?.g.traverse(o => { if (o.isMesh) targets.push(o); }); }); targets.push(S.tvScreen, S.tvFrame, S.dartboard, S.neonSwitch?.hit, S.storeLight?.hit, S.toiletLight?.hit, ...stadium, ...menu, ...fans);
     const h = ray.intersectObjects(targets.filter(Boolean), false)[0];
     if (!h) return null;
     if (h.object === S.neonSwitch?.hit) return 'neon';
     if (h.object === S.storeLight?.hit) return 'storeLight';
     if (h.object === S.toiletLight?.hit) return 'toiletLight';
+    if (h.object.userData.fanBlades) return { fan: h.object.userData.fanBlades };
     if (menu.includes(h.object)) return 'menu';
     if (h.object === S.tvScreen || h.object === S.tvFrame) return 'tv';
     if (h.object === S.dartboard) return 'darts';
@@ -257,7 +350,12 @@ export function bindHUD(root, stage) {
     if (h === 'menu') setCam('menu');   // the clipboard on the bar: lean over and read it
     else if (h === 'neon') toggleNeon();
     else if (h === 'storeLight') { setStoreLight(!S.storeLight.on); sfx('flick'); }
-    else if (h === 'toiletLight') { setToiletLight(!S.toiletLight.on); sfx('flick'); }
+    else if (h === 'toiletLight') {
+      const on = !S.toiletLight.on; setToiletLight(on); sfx('flick');
+      // switched off on someone squatting in there: they shout through the door
+      const u = S.toiletUser; if (!on && u) sayLine(u, 'customer.toiletDark', { name: u.p.name }, 2.6);
+    }
+    else if (h && h.fan) { h.fan.userData.fan.on = !h.fan.userData.fan.on; sfx('flick'); }   // a ceiling fan: on, or coasting off
     else if (h && h.bearOf) { h.bearOf.bearSay(h.bearOf.bear.line); openPetCard(h.bearOf); }   // a companion says its piece (路易斯 愛老公, 夜叉丸 汪！) and its card opens
     else if (typeof h === 'string') playAt(h, root); else if (h) openCard(h); else closeCard();
   });

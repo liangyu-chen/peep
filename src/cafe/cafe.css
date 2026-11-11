@@ -72,6 +72,151 @@ body:has(.cafe-root){margin:0;overflow:hidden;background:#141218}
 .cafe-root .tile:active,.cafe-root .tile.on{transform:translate(4px,4px);box-shadow:0 0 0 3px #000,inset 4px 4px 0 0 rgba(0,0,0,.32),inset -4px -4px 0 0 rgba(255,255,255,.25),1px 1px 0 0 #000}
 .cafe-root .tileMenu{background:#ffd23f;color:#1f1c27}
 .cafe-root .tileMenu.on{background:#ffe27a}
+/* the AC remote: a white handheld remote leaning out of the right edge of the screen, just the corner of its head
+   showing; click it to have it fly in square-on, click the head again to let it lean back out. A white plastic body
+   with a big digital-watch LCD, a moulded rim and seam, and chunky beveled buttons. */
+.cafe-root #acRemote{--peek:46px;position:absolute;right:0;top:54%;z-index:8;width:200px;height:auto;max-height:calc(100vh - 16px);
+  display:flex;flex-direction:column;color:#3a3742;cursor:grab;touch-action:manipulation;
+  /* the body itself is drawn by .acShell (an uneven moulded outline); here only the shadow it casts, which follows
+     that outline (--acDrop, deeper once it floats square-on) */
+  background:none;
+  --acDrop:drop-shadow(0 14px 16px rgba(0,0,0,.5));filter:var(--acDrop);
+  transform-origin:0 50%;transform:translateY(-50%) translateX(calc(100% - var(--peek))) rotate(-14deg);
+  transition:transform .55s cubic-bezier(.2,1.1,.3,1),opacity .2s}
+.cafe-root #acRemote,.cafe-root #acRemote *{box-sizing:border-box}
+.cafe-root .acShell{position:absolute;inset:0;width:100%;height:100%;z-index:-1;pointer-events:none;overflow:visible}
+.cafe-root #acRemote:not(.open):hover{transform:translateY(-50%) translateX(calc(100% - var(--peek) - 12px)) rotate(-14deg)}
+.cafe-root #acRemote:not(.open):active{cursor:grabbing}
+/* square-on and floating a little clear of the edge, with a deeper shadow beneath it */
+.cafe-root #acRemote.open{transform:translateY(-50%) translateX(-18px) rotate(0);cursor:default;
+  --acDrop:drop-shadow(0 24px 22px rgba(0,0,0,.58))}
+/* while someone's card is up at the right edge, the remote steps aside */
+.cafe-root:has(#card:not([hidden])) #acRemote{opacity:0;pointer-events:none}
+/* the head: the little window that sends the signal, and a lamp that blinks once on every key press */
+.cafe-root #acHead{position:relative;flex:none;display:grid;justify-items:center;width:100%;padding:12px 16px 4px;cursor:grab;justify-items:start;
+  background:none;border:0;box-shadow:none;border-radius:22px 18px 0 0;color:#3a3742}
+.cafe-root #acHead:hover{background:none}
+.cafe-root #acHead:active{cursor:grabbing}
+.cafe-root .acLed{position:absolute;top:20px;right:26px;width:6px;height:6px;border-radius:50%;
+  background:radial-gradient(circle at 35% 30%,#e2ded4,#bdb8ab 70%);
+  box-shadow:inset 0 1px 2px rgba(0,0,0,.4),0 0 0 1px rgba(0,0,0,.12);transition:background .1s,box-shadow .1s}
+.cafe-root .acLed.flash{background:radial-gradient(circle at 35% 30%,#ffd0d4,#ff3d4e 70%);
+  box-shadow:0 0 9px #ff4f5e,0 0 0 1px rgba(120,0,0,.4)}
+/* no IR window up top any more: square-on, the head instead shows a little "› 收合" pill saying it folds back out to
+   the edge (it fades in once the remote is open, and nudges right on hover, the way it will go) */
+.cafe-root .acFold{display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 10px 0 8px;border-radius:999px;
+  font-family:var(--f-dot);font-size:11px;letter-spacing:.14em;color:#6f6a60;background:rgba(0,0,0,.055);
+  box-shadow:inset 0 1px 2px rgba(0,0,0,.12),0 1px 0 #fff;opacity:0;transform:translateX(-6px);
+  transition:opacity .3s .15s,transform .3s .15s,background .15s,color .15s}
+.cafe-root .acFold b{font-size:15px;line-height:1;font-weight:400;transition:transform .2s}
+.cafe-root #acRemote.open .acFold{opacity:1;transform:none}
+.cafe-root #acRemote.open #acHead{cursor:pointer}
+.cafe-root #acRemote.open #acHead:hover .acFold{background:rgba(0,0,0,.1);color:#3a3742}
+.cafe-root #acRemote.open #acHead:hover .acFold b{transform:translateX(3px)}
+.cafe-root .acBody{display:flex;flex-direction:column;flex:1 1 auto;min-height:0}
+/* the screen: a big digital-watch LCD, pale green-grey with dark seven-bar digits and the unused bars ghosted */
+.cafe-root #acScreen{position:relative;margin:8px 16px 0;padding:10px 12px 8px;border-radius:7px;overflow:hidden;
+  background:linear-gradient(168deg,#dbe0d0 0%,#cdd2c1 55%,#c0c5b3 100%);color:#2b3327;
+  box-shadow:inset 0 0 0 2px rgba(0,0,0,.09),inset 0 4px 10px rgba(0,0,0,.32),inset 0 -3px 6px rgba(0,0,0,.16),
+    0 1px 0 #fff,0 0 0 3px rgba(0,0,0,.07)}
+/* the glass: a soft diagonal reflection over the digits, then the fine scanlines of the LCD */
+.cafe-root #acScreen::before{content:"";position:absolute;inset:0;pointer-events:none;border-radius:inherit;
+  background:linear-gradient(116deg,rgba(255,255,255,.45) 0%,rgba(255,255,255,.08) 28%,transparent 52%)}
+.cafe-root #acScreen::after{content:"";position:absolute;inset:0;pointer-events:none;
+  background:repeating-linear-gradient(180deg,transparent 0 2px,rgba(0,0,0,.05) 2px 3px)}
+.cafe-root #acRemote:not(.on) #acScreen{background:linear-gradient(#c6cabb,#b6baaa);color:#7d8474}
+.cafe-root .acLcdTop{display:flex;justify-content:space-between;align-items:center}
+/* top row: the mode as a pixel snowflake / sun / drop with its name in big LCD ink, and a battery at the right */
+.cafe-root .acLcdTop{height:24px}
+.cafe-root .acMode{display:flex;align-items:center;gap:5px}
+.cafe-root .acMode svg{width:17px;height:17px;image-rendering:pixelated}
+.cafe-root .acModeName{font-family:var(--f-dot);font-size:20px;font-weight:700;letter-spacing:.06em;line-height:1}
+.cafe-root .acMode svg{display:none}
+.cafe-root #acRemote[data-mode="cool"] .mCool,.cafe-root #acRemote[data-mode="heat"] .mHeat,
+.cafe-root #acRemote[data-mode="dry"] .mDry,.cafe-root #acRemote[data-mode="fan"] .mFan{display:block}
+.cafe-root .acBatt{position:relative;width:17px;height:9px;border:2px solid currentColor;border-radius:2px;margin-right:3px}
+.cafe-root .acBatt::before{content:"";position:absolute;inset:1px;background:currentColor}
+.cafe-root .acBatt::after{content:"";position:absolute;right:-5px;top:1px;width:2px;height:3px;background:currentColor}
+/* bottom row: 風量 | 左右 | 上下, three cells ruled off like the reference LCD. 風量 reads 自動, or shows 1–3 bars */
+.cafe-root .acLcdFoot{display:grid;grid-template-columns:repeat(3,1fr);margin:6px -12px -8px;border-top:2px solid currentColor}
+.cafe-root .acLcdFoot>span{display:flex;align-items:center;justify-content:center;gap:2px;height:26px;
+  font-family:var(--f-dot);font-size:10px;white-space:nowrap}
+.cafe-root .acLcdFoot>span+span{border-left:2px solid currentColor}
+.cafe-root .acLcdFoot em{font-style:normal}
+.cafe-root .acFanBars{display:flex;align-items:flex-end;gap:2px;height:11px;margin-left:2px}
+.cafe-root .acFanBars i{width:4px;height:45%;background:currentColor;opacity:.14}
+.cafe-root .acFanBars i:nth-child(2){height:72%}
+.cafe-root .acFanBars i:nth-child(3){height:100%}
+.cafe-root .acFanBars i.on{opacity:1}
+.cafe-root #acRemote.fanAuto .acFanBars{display:none}
+/* the louvre icons: solid LCD wedges, ghosted like unused bars, the held one lit */
+.cafe-root .acLouvre{height:20px;width:auto;flex:none}
+.cafe-root .acLouvre.h{width:34px}
+.cafe-root .acLouvre.v{width:25px}
+.cafe-root .acLouvre .unit{fill:currentColor;stroke:none}
+.cafe-root .acLouvre .unitLine{fill:none;stroke:currentColor;stroke-width:1.4}
+.cafe-root .acLouvre .ray{fill:currentColor;opacity:.13}
+.cafe-root .acLouvre .ray.on{opacity:1}
+/* the temperature, seven bars a digit, sized in % of the digit box */
+.cafe-root .acLcdMain{display:flex;justify-content:center;align-items:flex-end;gap:5px;margin-top:2px;line-height:1}
+.cafe-root .acSeg{display:flex;gap:6px}
+.cafe-root .acDigit{position:relative;width:38px;height:60px}
+.cafe-root .acDigit i{position:absolute;background:currentColor;opacity:.1;border-radius:1px}
+.cafe-root .acDigit .sg.a{left:13%;top:0;width:74%;height:11%}
+.cafe-root .acDigit .sg.b{right:0;top:8%;width:11%;height:38%}
+.cafe-root .acDigit .sg.c{right:0;bottom:8%;width:11%;height:38%}
+.cafe-root .acDigit .sg.d{left:13%;bottom:0;width:74%;height:11%}
+.cafe-root .acDigit .sg.e{left:0;bottom:8%;width:11%;height:38%}
+.cafe-root .acDigit .sg.f{left:0;top:8%;width:11%;height:38%}
+.cafe-root .acDigit .sg.g{left:13%;top:44.5%;width:74%;height:11%}
+/* which bars each digit lights */
+.cafe-root .acDigit:is([data-val="0"],[data-val="2"],[data-val="3"],[data-val="5"],[data-val="6"],[data-val="7"],[data-val="8"],[data-val="9"]) .sg.a{opacity:1}
+.cafe-root .acDigit:is([data-val="0"],[data-val="1"],[data-val="2"],[data-val="3"],[data-val="4"],[data-val="7"],[data-val="8"],[data-val="9"]) .sg.b{opacity:1}
+.cafe-root .acDigit:is([data-val="0"],[data-val="1"],[data-val="3"],[data-val="4"],[data-val="5"],[data-val="6"],[data-val="7"],[data-val="8"],[data-val="9"]) .sg.c{opacity:1}
+.cafe-root .acDigit:is([data-val="0"],[data-val="2"],[data-val="3"],[data-val="5"],[data-val="6"],[data-val="8"],[data-val="9"]) .sg.d{opacity:1}
+.cafe-root .acDigit:is([data-val="0"],[data-val="2"],[data-val="6"],[data-val="8"]) .sg.e{opacity:1}
+.cafe-root .acDigit:is([data-val="0"],[data-val="4"],[data-val="5"],[data-val="6"],[data-val="8"],[data-val="9"]) .sg.f{opacity:1}
+.cafe-root .acDigit:is([data-val="2"],[data-val="3"],[data-val="4"],[data-val="5"],[data-val="6"],[data-val="8"],[data-val="9"]) .sg.g{opacity:1}
+.cafe-root .acUnit{font-family:var(--f-dot);font-size:14px;padding-bottom:7px;opacity:.85}
+/* its buttons: white plastic, molded and beveled; the power one is yellow */
+.cafe-root .acBody button{font:inherit;font-family:var(--f-dot);border:0;cursor:pointer;color:#3a3742;padding:0;
+  background:linear-gradient(#fdfcf8 0%,#eeece5 55%,#dedad0 100%);
+  box-shadow:inset 0 2px 0 #fff,inset 0 -3px 0 rgba(0,0,0,.13),0 0 0 1px rgba(0,0,0,.13),0 2px 3px rgba(0,0,0,.2)}
+.cafe-root .acBody button:active{transform:translateY(1px);
+  box-shadow:inset 0 2px 6px rgba(0,0,0,.24),inset 0 -1px 0 #fff,0 0 0 1px rgba(0,0,0,.13)}
+/* the key area: everything placed by hand. Each oval key sits at --x (its centre, % across) and --y, --w × --h, tipped
+   by --r so they curve round the rocker; their names are printed on the face in small grey type */
+.cafe-root .acPad{position:relative;height:194px;margin:14px 6px 0}
+.cafe-root .acLbl{position:absolute;transform:translateX(-50%);font-size:10px;letter-spacing:.06em;color:#8f897c;white-space:nowrap;
+  pointer-events:none}
+.cafe-root .acPad .acKey{position:absolute;left:calc(var(--x) - var(--w) / 2);top:var(--y);width:var(--w);height:var(--h);
+  border-radius:50%;transform:rotate(var(--r))}
+.cafe-root .acPad .acKey:active{transform:translateY(1px) rotate(var(--r))}
+.cafe-root .acPad .k1{--x:23%;--y:22px;--w:46px;--h:28px;--r:32deg}
+.cafe-root .acPad .k2{--x:77%;--y:22px;--w:46px;--h:28px;--r:-32deg}
+.cafe-root .acPad .k3{--x:21%;--y:98px;--w:48px;--h:26px;--r:12deg}
+.cafe-root .acPad .k4{--x:79%;--y:98px;--w:48px;--h:26px;--r:-12deg}
+.cafe-root .acPad .k5{--x:50%;--y:146px;--w:48px;--h:26px;--r:0deg}
+/* the temperature rocker in the middle: one rounded pillow of a key, rocking up or down */
+.cafe-root .acRocker{position:absolute;left:50%;top:16px;width:42px;margin-left:-21px;display:grid;gap:2px;
+  border-radius:20px;overflow:hidden;background:#d6d1c5;box-shadow:inset 0 2px 4px rgba(0,0,0,.22),0 0 0 2px rgba(0,0,0,.07)}
+.cafe-root .acRocker button{height:43px;font-size:11px;border-radius:0;color:#6d685e}
+.cafe-root .acRocker button:first-child{border-radius:20px 20px 4px 4px}
+.cafe-root .acRocker button:last-child{border-radius:4px 4px 20px 20px}
+/* 運轉/停止: the one coloured key */
+.cafe-root .acPad #acPower{background:radial-gradient(ellipse at 40% 30%,#ffe98f 0%,#ffd23f 52%,#dda30d 100%);
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.75),inset 0 -3px 6px rgba(0,0,0,.2),0 0 0 1px rgba(120,80,0,.3),0 2px 4px rgba(0,0,0,.28)}
+.cafe-root .acPad #acPower:active{box-shadow:inset 0 3px 8px rgba(0,0,0,.28),0 0 0 1px rgba(120,80,0,.3)}
+/* the model number silkscreened on the lower body */
+.cafe-root .acModel{margin:14px 0 12px;text-align:center;font-size:9px;letter-spacing:.24em;color:#a39d90}
+/* the thumb grip at the foot: a few rounded ridges moulded into the plastic, set in from the rim */
+.cafe-root .acGrip{flex:none;display:grid;gap:5px;justify-items:center;margin:2px 0 20px}
+.cafe-root .acGrip::before,.cafe-root .acGrip::after{content:"";width:46px;height:4px;border-radius:999px;
+  background:linear-gradient(rgba(0,0,0,.13),rgba(0,0,0,.04));box-shadow:0 1px 0 rgba(255,255,255,.9)}
+.cafe-root .acGrip::after{width:34px}
+@media (max-width:900px){
+  .cafe-root #acRemote{--peek:64px;width:184px}
+}
 .cafe-root .tile:focus-visible{outline:3px solid #fff;outline-offset:4px}
 /* the sound switch: a pixel speaker tucked in the name panel's top right corner, crossed out and dimmed when off */
 .cafe-root #brand .soundIcon{position:absolute;top:8px;right:8px;width:26px;height:26px;padding:4px;display:grid;place-items:center;
@@ -95,7 +240,7 @@ body:has(.cafe-root){margin:0;overflow:hidden;background:#141218}
 .cafe-root .gameSheet.onTV .gameHelp{font-size:12px}
 .cafe-root .gamePad{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
 /* playing darts on the wall board: the rest of the HUD steps aside; a pixel crosshair, the round and score along the top */
-.cafe-root.playing #labels,.cafe-root.playing #topLeft,.cafe-root.playing #controls,.cafe-root.playing #log,.cafe-root.playing #tvCard,.cafe-root.playing #hint,.cafe-root.playing #card{display:none}
+.cafe-root.playing #labels,.cafe-root.playing #topLeft,.cafe-root.playing #controls,.cafe-root.playing #log,.cafe-root.playing #tvCard,.cafe-root.playing #hint,.cafe-root.playing #card,.cafe-root.playing #acRemote{display:none}
 .cafe-root .dartsHud{position:absolute;inset:0;z-index:20;cursor:none;touch-action:none;user-select:none;-webkit-user-select:none}
 .cafe-root .dTop{position:absolute;top:calc(14px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);display:flex;gap:18px;align-items:center;
   font-family:var(--f-pixel);font-size:12px;color:var(--gold);background:var(--panel);padding:8px 14px;box-shadow:0 0 0 3px #000;white-space:nowrap}
