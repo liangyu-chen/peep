@@ -22,7 +22,7 @@ export type Look = {
   earL?: string; earR?: string;
   tattoos?: Record<string, string>; tattooText?: string;                       // a style per part (older looks: tattoo + tattooCover)
   companion?: string;
-  topStyle?: string; topPattern?: string; topFit?: string; longSleeve?: boolean; number?: string;   // T恤 or 襯衫, its cut, its sleeves
+  topStyle?: string; topPattern?: string; topFit?: string; longSleeve?: boolean; number?: string;   // T恤, 襯衫 or a winter top, its cut, its sleeves
   bottom?: string; pantsFit?: string;                                          // pants, shorts or a skirt (in the pants colour), and how wide
   shoeStyle?: string; shoe?: number; socks?: string; sock?: number;
   [k: string]: unknown;
@@ -242,7 +242,11 @@ export const companionOf = (look: Look) => pickIn(COMPANIONS, look.companion, 'n
 // the top's cut and sleeves; below the waist, pants, shorts or a skirt, and how wide (pants' and shorts' legs, a
 // skirt's flare)
 export const CLOTHES: Record<'style' | 'pattern' | 'bottom' | 'fit' | 'top' | 'sleeve', Option[]> = {
-  style: [{ value: 'tee', label: 'T恤' }, { value: 'shirt', label: '襯衫' }],   // what the top is
+  // what the top is; the winter ones (帽T and the jackets) always have long sleeves
+  style: [
+    { value: 'tee', label: 'T恤' }, { value: 'shirt', label: '襯衫' },
+    { value: 'hoodie', label: '帽T' }, { value: 'jacket', label: '夾克外套' }, { value: 'coat', label: '西裝外套' }, { value: 'varsity', label: '棒球外套' },
+  ],
   // printed on the top, in shades of its own colour
   pattern: [
     { value: 'none', label: '素色' }, { value: 'stripe', label: '橫條紋' }, { value: 'plaid', label: '格紋' },
@@ -257,11 +261,13 @@ export const CLOTHES: Record<'style' | 'pattern' | 'bottom' | 'fit' | 'top' | 's
   top: [{ value: 'slim', label: '合身' }, { value: 'regular', label: '一般' }, { value: 'oversize', label: '寬鬆' }],
   sleeve: [{ value: 'short', label: '短袖' }, { value: 'long', label: '長袖' }],
 };
+export const WINTER_TOPS = ['hoodie', 'jacket', 'coat', 'varsity'];
 export function clothesOf(look: Look): { style: string; pattern: string; bottom: string; fit: string; top: string; sleeve: string } {
+  const style = pickIn(CLOTHES.style, look.topStyle, 'tee');
   return {
-    style: pickIn(CLOTHES.style, look.topStyle, 'tee'), pattern: pickIn(CLOTHES.pattern, look.topPattern, 'none'),
+    style, pattern: pickIn(CLOTHES.pattern, look.topPattern, 'none'),
     bottom: pickIn(CLOTHES.bottom, look.bottom, 'pants'), fit: pickIn(CLOTHES.fit, look.pantsFit, 'regular'),
-    top: pickIn(CLOTHES.top, look.topFit, 'regular'), sleeve: look.longSleeve ? 'long' : 'short',
+    top: pickIn(CLOTHES.top, look.topFit, 'regular'), sleeve: look.longSleeve || WINTER_TOPS.includes(style) ? 'long' : 'short',
   };
 }
 
