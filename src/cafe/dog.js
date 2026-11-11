@@ -324,11 +324,12 @@ function occupied(x, z, y) {
   return false;
 }
 // where he goes: only in the shop itself and out on its raised front, never into the back (past the sliding door: the
-// corridor, the toilet, the storeroom), nor further out than the step by the door until they're leaving
+// corridor, the toilet, the storeroom), nor further out than the step by the door until they're coming in or leaving
 const BACK_Z = -4.45;   // the sliding door's line, in the room as it stands
 const DOOR_Z = 5.2;
 const leaving = person => person.status === '準備離開';
-const allowed = (z, person) => z > BACK_Z + 0.05 && (z < DOOR_Z || leaving(person));
+const arriving = person => person.status === '走進店裡';
+const allowed = (z, person) => z > BACK_Z + 0.05 && (z < DOOR_Z || leaving(person) || arriving(person));
 // while they aren't walking he wanders about the shop on his own: off to a spot somewhere in the room (on the floor, not
 // behind the bar, nothing standing there and nothing in the way on the way there), a sniff about, a sit, then on again
 const ROOM = { x0: -2.55, x1: 2.6, z0: -4.1, z1: 4.3 }, BAR = { x0: -0.45, x1: 2.35, z0: -2.3, z1: 2.85 };   // plan coordinates
@@ -383,7 +384,10 @@ export function followDog(dog, person, dt) {
     _to.copy(w.to || g.position); speed = 0.65;   // (a pottering walk, not a run)
   }
   const was = g.position.clone();
-  if (!dog.placed) { g.position.copy(_to); g.rotation.y = person.heading; dog.placed = true; }
+  if (!dog.placed) {
+    if (!at) _to.set(p.x, floorAt(p.x, p.z), p.z);
+    g.position.copy(_to); g.rotation.y = person.heading; dog.placed = true; g.visible = true;
+  }
   else {
     // trots there: easing in when close, never faster than he goes (so going off to catch them up he runs over rather
     // than jumping)

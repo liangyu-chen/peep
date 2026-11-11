@@ -89,6 +89,7 @@ async function clearEmpties(owner) {
     take.push(from = left.shift());
   }
   S.empties = S.empties.filter(e => e.g.parent && !take.includes(e));
+  take.sort((a, b) => (a.porch ? 1 : 0) - (b.porch ? 1 : 0));   // the outdoor ones last, all in one sweep
   owner.status = '去收空杯';
   let held = 0;
   const pick = e => {
@@ -106,11 +107,14 @@ async function clearEmpties(owner) {
     await walk(owner, [[LANE, -2.3]]);
   }
   if (take.some(e => !e.got && e.g.parent)) await ownerTo(owner, LANE, 2.9);
-  let zone = FRONT_OUT;
+  let zone = FRONT_OUT, porchNow = false;
   for (const e of take) {
     if (e.got || !e.g.parent) continue;
-    const to = e.path.length > 1 ? e.path.slice(1) : e.path;
-    await walk(owner, route(zone, to)); zone = to;
+    const full = e.path.length > 1 ? e.path.slice(1) : e.path;
+    const to = e.porch && porchNow ? full.slice(0, -1) : full;   // once outside, go between the porch tables directly
+    await walk(owner, route(zone, to));
+    zone = e.porch ? full.slice(0, -1) : full;
+    porchNow = !!e.porch;
     const wp = cupAt(e);
     owner.face(Math.atan2(wp.x - owner.g.position.x, wp.z - owner.g.position.z)); await sleep(0.4);
     owner.gesture('serve', 0.6); await sleep(0.5);
@@ -389,7 +393,7 @@ async function doTable(c, zone, s) {
   // off somewhere else in the shop: the drink goes with them. Leaving: they've finished it, and the empty is left on the
   // table for the owner to clear
   if (c.nextGoal || (c.cup && c.cup.userData.togo)) c.pickCup();
-  else if (c.cup) { setLevel(c.cup, 0); (S.empties || (S.empties = [])).push({ g: c.cup, path: s.path, ledge: s.where === '霓虹燈下的漫畫吧檯', x: s.x }); c.cup = null; }
+  else if (c.cup) { setLevel(c.cup, 0); (S.empties || (S.empties = [])).push({ g: c.cup, path: s.path, ledge: s.where === '霓虹燈下的漫畫吧檯', porch: s.porch, x: s.x }); c.cup = null; }
   return s.path;
 }
 

@@ -1581,7 +1581,11 @@ function buildBodyAt(look, seed) {
       c.geometry = gm;   // (its normals kept: near enough for a gentle widening)
     });
     [hand, handL].forEach(h => { h.scale.set(1 / limb, 1, 1 / limb); });   // (what's held stays its own size)
-  }  // the controller: a PS5 DualSense, white with a black middle, the white touchpad up top ringed by its blue light,
+  }
+  // a cup's own anchor, outside the arms: the arms are widened non-uniformly by the build, which would otherwise squash
+  // whatever they hold as soon as the elbow turns (set back to the body's own scale in height, below)
+  const cupHand = new THREE.Object3D(); g.add(cupHand);
+  // the controller: a PS5 DualSense, white with a black middle, the white touchpad up top ringed by its blue light,
   // two black sticks, the face buttons and the d-pad, and the long white grips curving down
   const pad = new THREE.Group();
   const padW = mat(0xf2f2ee, { roughness: 0.5 }), padB = mat(0x151517, { roughness: 0.45 });
@@ -1600,6 +1604,7 @@ function buildBodyAt(look, seed) {
   const heightK = HEIGHT_K[heightOf(look)] || 1;
   if (heightK !== 1) {
     g.scale.setScalar(heightK); head.scale.setScalar(1 / heightK);
+    cupHand.scale.setScalar(1 / heightK);
     // (the neck, flaring up into the underside of the head, taken back to the head's own width as it rises, or, scaled
     // with the body, it stood out round the jaw of a taller person and fell short inside a shorter one's)
     const tg = torso.geometry.clone(), tp = tg.attributes.position;
@@ -1612,7 +1617,7 @@ function buildBodyAt(look, seed) {
     torso.geometry = tg;   // (its normals kept: near enough, and its seam's normals stay matched)
     torsoSkin.geometry = tg;   // (the same surface's skin, the neck itself, drawn from it)
   }
-  return { g, legs, arms, elbows, head, hand, handL, pad, eyes, mouth, skirt, heightK, skinM: skin, strip: { bare, bunch, cover, pants, skin } };
+  return { g, legs, arms, elbows, head, hand, handL, cupHand, pad, eyes, mouth, skirt, heightK, skinM: skin, strip: { bare, bunch, cover, pants, skin } };
 }
 
 // hats, each a shell round its own tipped crown down to a front edge `elev` above the eyes; own is the hat's own thickness

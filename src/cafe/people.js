@@ -160,17 +160,19 @@ const sipPose = cup => DRINK_POSE[cup && cup.userData.straw ? 'sipStraw' : cup &
 // the cup stays upright in the hand (tipped toward the mouth for a sip), held in front of the palm, gripped round its middle
 const _qh = new THREE.Quaternion(), _qg = new THREE.Quaternion(), _qt = new THREE.Quaternion(), _p = new THREE.Vector3(), _f = new THREE.Vector3();
 const X_AXIS = new THREE.Vector3(1, 0, 0);
+// put the cup's anchor where the hand is, at the body's own (evenly scaled) size, so a build's non-uniform arm scaling
+// can't squash the cup as the elbow turns; done in one pass, no extra matrix updates (see the cup's update below)
 function gripCup(person, tilt) {
-  const cup = person.cup, h = cup.userData.h || 0.1;
-  person.g.updateMatrixWorld(true);
-  person.hand.getWorldQuaternion(_qh); person.g.getWorldQuaternion(_qg);
+  const cup = person.cup, h = cup.userData.h || 0.1, { g, hand, cupHand: anchor } = person;
+  g.updateMatrixWorld(true);
+  hand.getWorldQuaternion(_qh); g.getWorldQuaternion(_qg);
+  hand.getWorldPosition(_p); g.worldToLocal(_p); anchor.position.copy(_p);
+  anchor.quaternion.copy(_qg).invert().multiply(_qh);
   _qt.setFromAxisAngle(X_AXIS, -tilt);                                   // tip the top toward the face
   cup.quaternion.copy(_qh).invert().multiply(_qg).multiply(_qt);
-  person.hand.getWorldPosition(_p);
   _f.set(0, 0, 1).applyQuaternion(_qg);
-  _p.addScaledVector(_f, 0.035);
-  _p.y -= h * 0.45 * Math.cos(tilt);
-  person.hand.worldToLocal(_p);
+  _p.set(_f.x * 0.035, _f.y * 0.035 - h * 0.45 * Math.cos(tilt), _f.z * 0.035);
+  _p.applyQuaternion(_qt.copy(_qh).invert());                             // from the hand's frame into the anchor's
   cup.position.copy(_p);
 }
 
@@ -270,6 +272,7 @@ export class Person {
   constructor(profile, role) {
     this.p = profile; this.role = role;
     Object.assign(this, buildBody(profile.look, profile.name, { detail: CAFE_DETAIL }));
+    if (this.skirt) this.skirtBase = this.skirt.scale.clone();
     mergeParts(this.g, bodyKeep(this));
     this.faceAnim = { blinkT: Math.random() * 4 };
     this.g.traverse(o => { if (o.isMesh) o.userData.person = this; });
@@ -283,6 +286,7 @@ export class Person {
     const pet = profile.look?.companion;
     if (pet === 'bear' || pet === 'dog' || pet === 'corgi') {
       this.bear = pet === 'dog' ? Object.assign(makeDog(), { follow: followDog, kind: 'dog' }) : pet === 'corgi' ? Object.assign(makeCorgi(), { follow: followDog, kind: 'corgi' }) : Object.assign(makeBear(), { follow: followBear, kind: 'bear', name: '路易斯', line: '愛老公', bubbleY: 0.24 }); mergeParts(this.bear.g); this.bear.g.traverse(o => { if (o.isMesh) o.userData.bearOf = this; }); ctx.scene.add(this.bear.g); moverShadows(this.bear.g);
+      if (this.bear.kind !== 'bear') this.bear.g.visible = false;
       this.bear.bubble = document.createElement('div'); this.bear.bubble.className = 'bubble'; this.bear.bubble.style.opacity = 0; this.bear.bubbleT = 0;
       S.labelsEl.append(this.bear.bubble);
     }
@@ -302,8 +306,8 @@ export class Person {
   face(a) { this.targetHeading = a; }
   bearSay(text, dur = 2.4) { const b = this.bear; if (!b) return; b.bubble.textContent = text; b.bubble.style.opacity = 1; b.bubbleT = dur; }
   say(text, dur = 2.8) { this.bubble.textContent = text; this.bubble.style.opacity = 1; this.bubbleT = dur; }
-  hold(cup) { this.cup = cup; moverShadows(cup); this.hand.add(cup); cup.position.set(0, -0.05, 0); cup.rotation.set(0, 0, 0); }
-  putCup(x, y, z) { if (!this.cup) return; ctx.scene.attach(this.cup); this.cup.position.set(x * K, y, z); this.cup.rotation.set(0, 0, 0); }
+  hold(cup) { this.cup = cup; moverShadows(cup); this.cupHand.add(cup); cup.position.set(0, -0.05, 0); cup.rotation.set(0, 0, 0); cup.scale.set(1, 1, 1); }
+  putCup(x, y, z) { if (!this.cup) return; ctx.scene.attach(this.cup); this.cup.position.set(x * K, y, z); this.cup.rotation.set(0, 0, 0); this.cup.scale.set(1, 1, 1); }
   pickCup() { if (this.cup) this.hold(this.cup); }
   dropCup() { if (this.cup) { this.cup.parent.remove(this.cup); this.cup = null; } }
   gesture(a, t = 1.4) { this.act = a; this.actT = t; }
@@ -390,7 +394,7 @@ export class Person {
     else if (sitting) { y = (this.seat ? this.seat.sitY : -0.1) - LEG_EXTRA + 0.02 - hipLift;   // hips on the seat, though they sit higher on the longer legs
       hipL = hipR = -Math.PI / 2; kL = kR = this.seat && this.seat.floor ? 0.25 : Math.PI / 2; armLx = armRx = -0.25; elL = elR = -0.7; }   // hands resting on the lap
     if (sitting && this.seat && this.seat.lounge && !moving) { armLz = -0.45; armRz = 0.45; armLx = armRx = -0.3; elL = elR = -0.6; }   // arms out along a beanbag's rolled arms
-    if (this.cup && this.cup.parent === this.hand && !this.act) { const P = DRINK_POSE[this.role === 'owner' ? 'high' : moving ? 'walk' : 'carry']; armRx = P.x; armRz = P.z; elR = P.el; }   // cup carried in front
+    if (this.cup && this.cup.parent === this.cupHand && !this.act) { const P = DRINK_POSE[this.role === 'owner' ? 'high' : moving ? 'walk' : 'carry']; armRx = P.x; armRz = P.z; elR = P.el; }   // cup carried in front
     this.pad.visible = this.pose === 'game';
     if (this.pose === 'game' && !moving) { armLx = armRx = -0.55 + Math.sin(this.walkPhase * 6) * 0.04; elL = elR = -1.0; armLz = 0.3; armRz = -0.3; bob = Math.sin(this.walkPhase * 3) * 0.01; }
     if (this.act === 'sip') { const P = sipPose(this.cup); armRx = P.x; armRy = P.y || 0; armRz = P.z; elR = P.el; }
@@ -419,16 +423,20 @@ export class Person {
     if (this.act === 'pull') { armLx = armRx = -0.12; elL = elR = -0.25; armLz = 0.32; armRz = -0.32; bob = -Math.abs(Math.sin(this.actT * 4)) * 0.03; }   // hands at the waistband, tugging
     if (this.act === 'carry') { armLx = armRx = -0.9; elL = elR = -0.7; armLz = 0.25; armRz = -0.25; }
     poseBody(this, { hipL, hipR, kL, kR, armLx, armLy, armLz, armRx, armRy, armRz, elL, elR });
-    if (this.cup && this.cup.parent === this.hand) gripCup(this, this.act === 'sip' ? sipPose(this.cup).tilt * Math.min(1, (1.4 - this.actT) * 3) : 0);
+    if (this.cup && this.cup.parent === this.cupHand)
+      gripCup(this, this.act === 'sip' ? sipPose(this.cup).tilt * Math.min(1, (1.4 - this.actT) * 3) : 0);
     const ground = this.g.position.z > KERB ? -RISE : inBackHall(this.g.position.x / K, this.g.position.z) ? -BACK_DROP : 0;   // down off the kerb, down into the back corridor
     this.groundY = (this.groundY || 0) + (ground - (this.groundY || 0)) * Math.min(1, dt * 14);
     this.g.position.y = this.groundY + y + bob;
     this.blob.position.y = (0.012 - y - bob) / this.heightK;   // kept on the floor, whatever the pose (in their own scaled frame)
-    if (this.skirt) {   // sitting, a skirt rides up and lies forward over the lap (set a little lower, so where it widens
-      // is still below the shirt's hem and none of it shows through the back of the shirt)
-      const lap = sitting || squat;
-      this.skirt.scale.set(1, lap ? 0.5 : 1, lap ? 1.4 : 1); this.skirt.position.z = lap ? 0.07 : 0;
-      this.skirt.position.y = 0.72 + LEG_EXTRA - (lap ? 0.05 : 0);
+    if (this.skirt) {   // sitting, the skirt drapes forward over the lap: a little longer, tipped forward from the
+      // waist, and still as wide as the body itself (the build's own scaling kept, or a fuller figure's thighs show)
+      const lap = sitting || squat, b = this.skirtBase;
+      const tilt = 0.3, sy = b.y * 1.25;
+      this.skirt.rotation.x = lap ? -tilt : 0;
+      this.skirt.scale.set(b.x, lap ? sy : b.y, b.z * (lap ? 1.7 : 1));
+      this.skirt.position.z = 0;
+      this.skirt.position.y = lap ? 0.70 + 0.05 * sy * Math.cos(tilt) : 0.72 + LEG_EXTRA;
     }
     this.head.rotation.y = this.pose === 'game' ? 0 : ph ? turn : rest.head;
     this.head.rotation.x = pitch;
