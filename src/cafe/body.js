@@ -1646,61 +1646,90 @@ function buildBodyAt(look, seed) {
       }
     }
   });
-  // 耳機: big over-ear headphones in a clean modern style: a tall rounded-rectangle cup on each ear (anodised metal in
-  // the chosen colour, a soft knit cushion against the head), a short steel arm up out of each cup into a thin steel
-  // frame arching over the head, and under the frame, resting on the head, a wide mesh canopy. Or slipped down round
-  // the neck: the cups resting either side of the throat, the frame and canopy behind the neck
+  // 耳機: big over-ear headphones, matte all over in the chosen colour: an oval cup on each ear, a thick plush cushion
+  // round it against the head, a round boss in the middle of its outside; one wide flat band rising out of the top of
+  // each cup and arching over the head, a deeper-toned slider section low on each side where it adjusts. Or slipped
+  // down round the neck: the band behind it, the cups hanging either side of the throat, cushions turned in to the neck
   const phones = headphonesOf(look);
   if (phones.wear !== 'none') {
     const base = picked(phones.color);
-    const shellM = mat(base, { roughness: 0.32, metalness: 0.55 });
-    const softM = mat(base.clone().lerp(new THREE.Color(0xffffff), 0.18), { roughness: 0.95, side: THREE.DoubleSide });   // cushion and canopy: knit, a touch paler
-    const steelM = mat(0xc9ccd1, { roughness: 0.18, metalness: 0.95 });
-    // a rounded rectangle, `w` front to back and `h` tall, extruded `d` deep along x (bevelled all round)
-    const slab = (key, w, h, d, r) => geo(`hp:${key}`, () => {
-      const sh = new THREE.Shape(), x0 = -w / 2, y0 = -h / 2;
-      sh.moveTo(x0 + r, y0); sh.lineTo(x0 + w - r, y0); sh.quadraticCurveTo(x0 + w, y0, x0 + w, y0 + r);
-      sh.lineTo(x0 + w, y0 + h - r); sh.quadraticCurveTo(x0 + w, y0 + h, x0 + w - r, y0 + h);
-      sh.lineTo(x0 + r, y0 + h); sh.quadraticCurveTo(x0, y0 + h, x0, y0 + h - r);
-      sh.lineTo(x0, y0 + r); sh.quadraticCurveTo(x0, y0, x0 + r, y0);
-      const eg = new THREE.ExtrudeGeometry(sh, { depth: d, bevelEnabled: true, bevelThickness: 0.004, bevelSize: 0.004, bevelSegments: 3, curveSegments: 6 });
+    const shellM = mat(base, { roughness: 0.62 });
+    const padM = mat(base.clone().multiplyScalar(0.8), { roughness: 0.9 });
+    const sliderM = mat(base.clone().multiplyScalar(0.72), { roughness: 0.5, side: THREE.DoubleSide });   // (the same colour, a shade deeper)
+    const bandM = mat(base, { roughness: 0.62, side: THREE.DoubleSide });
+    const CW = 0.07, CH = 0.088;   // the cup's oval: front to back, and tall
+    // an oval, extruded `d` deep along x and rounded over its edges
+    const oval = (key, w, h, d, bev) => geo(`hp3:${key}`, () => {
+      const sh = new THREE.Shape(); sh.absellipse(0, 0, w / 2, h / 2, 0, Math.PI * 2, false, 0);
+      const eg = new THREE.ExtrudeGeometry(sh, { depth: d, bevelEnabled: true, bevelThickness: bev, bevelSize: bev, bevelSegments: 4, curveSegments: 28 });
       eg.translate(0, 0, -d / 2); eg.rotateY(Math.PI / 2); return eg;
     });
-    // a cup, its cushion's face at the group's origin, the shell out along +s x; its arm rising from the top
+    // a cup, the cushion's face against the head at the group's origin, the shell out along +s x
     const cup = (par, s) => {
       const c = new THREE.Group(); par.add(c);
-      mk(slab('cushion2', 0.068, 0.086, 0.014, 0.026), softM, s * 0.007, 0, 0, c, false);
-      mk(slab('shell2', 0.076, 0.096, 0.024, 0.028), shellM, s * 0.029, 0, 0, c, false);
-      mk(cy(0.0028, 0.0028, 0.03, 8), steelM, s * 0.024, 0.06, 0, c, false);   // the arm, telescoping up into the frame
+      const pad = mk(geo('hp3:cushion', () => new THREE.TorusGeometry(1, 0.32, 10, 32)), padM, s * 0.012, 0, 0, c, false);   // the plush ring
+      pad.rotation.y = Math.PI / 2; pad.scale.set(CW / 2 * 0.8, CH / 2 * 0.8, 0.04);
+      mk(oval('inner', CW * 0.62, CH * 0.62, 0.004, 0.002), mat(0x1a1a1c, { roughness: 1 }), s * 0.006, 0, 0, c, false);   // the dark fabric inside it
+      mk(oval('shell', CW, CH, 0.016, 0.009), shellM, s * 0.033, 0, 0, c, false);
+      const boss = mk(cy(0.019, 0.02, 0.006, 24), padM, s * 0.0455, 0, 0, c, false); boss.rotation.z = Math.PI / 2;   // the round boss on its outside
+      // the band's end forking down either edge of the cup, on its inner half, to a pivot halfway down (so band and cup
+      // are one piece)
+      for (const e of [-1, 1]) {
+        mk(bx(0.014, CH / 2 + 0.006, 0.007), bandM, s * 0.012, CH / 4 + 0.003, e * (CW / 2 + 0.002), c, false);
+        mk(cy(0.009, 0.009, 0.009, 16), bandM, s * 0.012, 0, e * (CW / 2 + 0.002), c, false).rotation.x = Math.PI / 2;
+      }
       return c;
     };
-    // the frame (a thin steel tube) and the canopy (a wide flat mesh strap, a little lower), along a curve through pts
-    const band = (key, pts, par, wide) => {
-      const curve = new THREE.CatmullRomCurve3(pts);
-      mk(geo(`hpFrame:${key}`, () => new THREE.TubeGeometry(curve, 48, 0.0035, 6, false)), steelM, 0, 0, 0, par, false);
-      mk(geo(`hpCanopy:${key}`, () => {
-        const N = 40, pos = [], idx = [], P = curve.getSpacedPoints(N);
-        P.forEach((p, i) => {
-          const t = i / N, sag = Math.sin(Math.PI * t) * 0.012;   // (hangs a little below the frame, most at the middle)
-          const q = p.clone().addScaledVector(p.clone().setZ(0).normalize(), -sag - 0.004);
-          pos.push(q.x, q.y, q.z - wide / 2, q.x, q.y, q.z + wide / 2);
-        });
-        for (let i = 0; i < N; i++) { const a = i * 2; idx.push(a, a + 2, a + 1, a + 1, a + 2, a + 3); }
-        const cg = new THREE.BufferGeometry(); cg.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); cg.setIndex(idx); cg.computeVertexNormals(); return cg;
-      }), softM, 0, 0, 0, par, false);
+    // the band: wide and flat, along a curve through pts (its width across z), the sliders a short darker stretch near
+    // each end
+    const band = (key, pts, par, side = new THREE.Vector3(0, 0, 1)) => {   // (side: which way its width lies; null round the neck)
+      const curve = new THREE.CatmullRomCurve3(pts), N = 48, P = curve.getSpacedPoints(N), W = 0.034, T = 0.009;
+      const strip = (from, to, grow, m, k) => mk(geo(`hp7:band:${key}:${k}`, () => {
+        const pos = [], idx = [], rows = to - from;
+        for (let i = from; i <= to; i++) {
+          const p = P[i], tan = curve.getTangentAt(i / N), out = side ? side.clone().cross(tan).normalize().multiplyScalar(-1) : new THREE.Vector3(p.x, 0, p.z).normalize();   // (no side: round the neck, its faces out from it)
+          const wdir = side || out.clone().cross(tan).normalize();
+          const w = W / 2 + grow, t = T / 2 + grow;
+          // four corners round its section: inner and outer face, each side
+          [[-w, -t], [w, -t], [w, t], [-w, t]].forEach(([z, o]) => { const v = p.clone().addScaledVector(out, o).addScaledVector(wdir, z); pos.push(v.x, v.y, v.z); });
+        }
+        for (let r = 0; r < rows; r++) for (let k2 = 0; k2 < 4; k2++) {
+          const a = r * 4 + k2, b = r * 4 + (k2 + 1) % 4, c2 = a + 4, d2 = b + 4;
+          idx.push(a, c2, b, b, c2, d2);
+        }
+        const bg = new THREE.BufferGeometry(); bg.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); bg.setIndex(idx); bg.computeVertexNormals(); return bg;
+      }), m, 0, 0, 0, par, false);
+      strip(0, N, 0, bandM, 'main');
+      strip(5, 11, 0.0012, sliderM, 'sl0'); strip(N - 11, N - 5, 0.0012, sliderM, 'sl1');
     };
-    if (phones.wear === 'head') {
-      const ear = at(1, -0.04, 0.02), top = at(0, 1, -0.05), ex = Math.abs(ear.x) + 0.012, ey = ear.y + 0.006;
-      [-1, 1].forEach(s => cup(head, s).position.set(s * ex, ey, ear.z));
-      // over the head from the top of one arm to the other, well clear of the hair
-      const fx = ex + 0.024, fy = ey + 0.075, rise = top.y + 0.05 - fy, pts = [];
-      for (let k = 0; k <= 24; k++) { const t = -Math.PI / 2 + Math.PI * k / 24; pts.push(new THREE.Vector3(Math.sin(t) * fx, fy + Math.cos(t) * rise, ear.z)); }
-      band(`head2:${shape}`, pts, head, 0.058);
-    } else {
-      const ny = 1.25, pts = [];
-      for (let k = 0; k <= 24; k++) { const t = -0.6 * Math.PI + 1.2 * Math.PI * k / 24; pts.push(new THREE.Vector3(Math.sin(t) * 0.11, ny + 0.012, -Math.cos(t) * 0.095)); }
-      band('neck3', pts, g, 0.045);
-      [-1, 1].forEach(s => { const c = cup(g, s); c.position.set(s * 0.125, ny - 0.005, 0.04); c.rotation.set(0, -s * 0.55, s * 1.3, 'YXZ'); });   // (lying flat on the collarbones, shells up, arms in toward the neck)
+    // the pair as worn, built round the line through the two cups: on the head that line is through the ears; round the
+    // neck it's the same pair, unchanged, just lowered to the base of the neck and tipped back, the band behind the neck
+    // and the cups either side of the throat
+    const ear = at(1, -0.04, 0.02), top = at(0, 1, -0.05), ey = ear.y + 0.004;
+    // (round the neck it springs in tighter than over the head: the cups close in either side of the throat)
+    const ex = phones.wear === 'head' ? Math.abs(ear.x) + 0.016 : 0.078;
+    const set = new THREE.Group();
+    [-1, 1].forEach(s => cup(set, s).position.set(s * ex, 0, 0));
+    // out of the top of each cup, up and over the head, close over the hair
+    const fx = ex + 0.008, by = CH / 2 - 0.006, rise = top.y + 0.026 - ey - by + (phones.wear === 'head' ? 0 : 0.05), pts = [];   // (round the neck, opened out longer to reach right round behind it)
+    for (let k = 0; k <= 24; k++) { const t = -Math.PI / 2 + Math.PI * k / 24; pts.push(new THREE.Vector3(Math.sin(t) * fx, by + Math.cos(t) * rise, 0)); }
+    band(`set:${shape}:${ex.toFixed(3)}:${rise.toFixed(3)}`, pts, set);
+    if (phones.wear === 'head') { head.add(set); set.position.set(0, ey, ear.z); }
+    else {
+      g.add(set); set.position.set(0, 1.215, 0.07); set.rotation.x = -1.3;
+      // and nowhere into the body: the cups' rims checked against the top's own slices, the pair eased forward a
+      // little at a time until none of it is inside
+      const rows = torsoRows(topFit, topStyle), inside = v => {
+        for (let i = 1; i < rows.length; i++) if (rows[i][0] >= v.y) { const [, rx, rz] = rows[i - 1]; return (v.x / rx) ** 2 + (v.z / rz) ** 2 < 1; }
+        return false;
+      };
+      const rim = [];
+      [-1, 1].forEach(s => { for (let k = 0; k < 20; k++) { const a = (k / 20) * Math.PI * 2; for (const dx of [0.004, 0.024, 0.045]) rim.push(new THREE.Vector3(s * (ex + dx), Math.sin(a) * CH / 2, Math.cos(a) * CW / 2)); } });   // (cushion to shell, all round)
+      for (let n = 0; n < 40; n++) {
+        set.updateMatrix();
+        if (!rim.some(v => inside(v.clone().applyMatrix4(set.matrix)))) break;
+        set.position.z += 0.002;
+      }
     }
   }
   const face = new THREE.Group(); head.add(face);
