@@ -141,8 +141,14 @@ const PATTERN_BODY = {
     if (length(f2 * vec2(1.0, 2.6)) < 0.02) col = vec3(0.16, 0.36, 0.2);
     if (r < 0.03 * (0.55 + 0.45 * abs(cos(2.5 * a)))) col = uPatB;
     if (r < 0.0065) col = vec3(0.96, 0.78, 0.25);`,
+  // 牛仔布: a fine diagonal twill (faded out with distance, so it never shimmers), uneven slubbed threads running up and
+  // down, and the cloth worn paler in soft patches
+  denim: `float tw = fract((q.x + q.y) / 0.0042), aa = 1.0 - clamp(fwidth(q.x + q.y) / 0.0042 - 0.4, 0.0, 1.0);
+    col *= 1.0 + 0.09 * aa * (smoothstep(0.15, 0.5, tw) * smoothstep(0.85, 0.5, tw) - 0.5);
+    col *= 0.92 + 0.16 * patN(vec2(q.x * 220.0, q.y * 14.0));
+    col = mix(col, col * 1.3 + vec3(0.025, 0.03, 0.04), 0.45 * smoothstep(0.45, 0.85, patN(q * 7.0 + 3.1)));`,
 };
-const PATTERNS = Object.keys(PATTERN_BODY);
+const PATTERNS = Object.keys(PATTERN_BODY).filter(k => k !== 'denim');
 
 // a printed graphic on the chest (印花), as graphic tees have: one picture, the rest of the top plain. Drawn on a
 // transparent canvas, in an ink that reads on the shirt (dark on a light one, cream on a dark one) plus a few fixed
@@ -694,6 +700,7 @@ const OUTER = {
   hoodie: { w: 1.03, d: 1.04, drop: 0.03, s: 1.08, flare: 0.004 },
   jacket: { w: 1.05, d: 1.06, drop: 0, s: 1.1, flare: 0.002 },
   varsity: { w: 1.05, d: 1.06, drop: 0, s: 1.12, flare: 0.002 },
+  denim: { w: 1.05, d: 1.06, drop: 0, s: 1.1, flare: 0.002 },
   coat: { w: 1.04, d: 1.06, drop: 0.06, s: 1.06, flare: 0.012, slit: 0.55, slitTop: 0.76 },
 };
 const cutOf = (fit, style) => {
@@ -958,12 +965,13 @@ function buildBodyAt(look, seed) {
   const g = new THREE.Group();
   const shade = (c, k) => new THREE.Color(c).multiplyScalar(k);
   const skin = mat(C.skin, { roughness: 0.62 }), skinShade = mat(shade(C.skin, 0.86), { roughness: 0.62 });
-  const pattern = clothesOf(look).pattern;
+  const pattern = (p => p === 'none' && clothesOf(look).style === 'denim' ? 'denim' : p)(clothesOf(look).pattern);   // (a denim jacket plain: denim)
   const shirt = patterned(mat(C.shirt, { roughness: 0.85 }), pattern, C.shirt), shirtDark = mat(shade(C.shirt, 0.72), { roughness: 0.85 });
   const shirtIn = mat(shade(C.shirt, 0.42), { roughness: 0.9, side: THREE.BackSide });   // the shadowed inside of a sleeve
   const shirtUnder = mat(shade(C.shirt, 0.35), { roughness: 1, side: THREE.DoubleSide });   // the inside of the shirt, seen under its hem
   const inkedSkin = (style, v, low) => (style ? mat(C.skin, { roughness: 0.6, map: tattooTex(style, v, low, typeof look.tattooText === 'string' ? look.tattooText : '') }) : skin);   // skin tattooed in a style, or bare
-  const pants = mat(C.pants, { roughness: 0.9 }), pantsDark = mat(shade(C.pants, 0.78), { roughness: 0.9 });
+  const jeans = clothesOf(look).bottom === 'jeans';   // (牛仔褲: pants, in denim, with a jeans' stitching and pockets)
+  const pants = jeans ? patterned(mat(C.pants, { roughness: 0.95 }), 'denim', C.pants) : mat(C.pants, { roughness: 0.9 }), pantsDark = mat(shade(C.pants, 0.78), { roughness: 0.9 });
   // hair with a little sheen; curls more (the wet, styled look), straight hair a soft gloss along its layers
   const hairM = mat(C.hair, { roughness: hairOf(look).curl === 'curly' ? 0.45 : 0.68, metalness: 0.05, map: strands(), side: THREE.DoubleSide });
   const shoe = mat(C.shoe, { roughness: 0.55 });
@@ -985,6 +993,9 @@ function buildBodyAt(look, seed) {
   const cover = [];  // shorts' legs, gone when they come down
   const SK = socksOf(look), sockM = SK.style !== 'none' ? mat(picked(SK.color), { roughness: 0.95 }) : null, sockRib = sockM && mat(shade(picked(SK.color), 0.8), { roughness: 0.95 });
   const THIGH = 0.32, HIP_Y = 0.55 + LEG_EXTRA;
+  // 牛仔褲's stitching: a darker seam with a line of golden-orange thread beside it (gone with the pants when they come down)
+  const threadM = mat(0xc06a18, { roughness: 0.85 }), seamM = mat(shade(C.pants, 0.6), { roughness: 0.9 }), rivetM = mat(0xb8803e, { roughness: 0.3, metalness: 0.8 });
+  const jtube = (key, pts, r, m, par) => { const me = mk(geo(`jeans7:${key}`, () => new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts, false, 'centripetal'), pts.length * 2, r, 4, false)), m, 0, 0, 0, par, false); cover.push(me); return me; };
   const legs = [-0.094, 0.094].map(x => {   // close enough that the tops of the thighs meet, so the crotch is just where the legs join
     const hip = new THREE.Group(); hip.position.set(x, HIP_Y, 0); g.add(hip);
     // thigh and shin are open tubes meeting exactly at the knee at the same width, so a straight leg has no seam; a
@@ -1022,7 +1033,23 @@ function buildBodyAt(look, seed) {
     // (bare, a real calf: knee-wide at the top, rounding over the calf and in to the ankle, no kink where it meets the knee)
     if (bareLegs) mk(lathe(`calf:${RK}`, [[0.052, -0.125], [0.0595, -0.06], [0.065, 0], [0.071, 0.07], [RK, 0.125]], 16), inkedSkin(tat[x < 0 ? 'rl' : 'll'], x < 0 ? 0 : 1), 0, -0.125, 0, knee);
     else mk(flatLit(cy(RK, flare, 0.25, 16, true)), legM, 0, -0.125, 0, knee);
-    if (!bareLegs) mk(cy(flare + 0.006, flare + 0.006, 0.025, 14), pantsDark, 0, -0.225, 0, knee, false);   // turned-up hem
+    if (jeans) {
+      // the outer seam down the leg (the thigh's and the shin's), and a deep cuff turned up to show the cloth's paler inside
+      const sgn = Math.sign(x), prof = thighAt(W, straight);
+      const rT = y => { for (let k = 1; k < prof.length; k++) if (prof[k][1] >= y) { const [r0, y0] = prof[k - 1], [r1, y1] = prof[k]; return r0 + (r1 - r0) * (y - y0) / (y1 - y0); } return 0.001; };
+      const side = (r, y, da) => new THREE.Vector3(sgn * Math.cos(da) * r, y, Math.sin(da) * r);   // (round from the outside of the leg toward its front)
+      for (const [da, m, rr, k] of [[0, seamM, 0.0017, 'o'], [0.085, threadM, 0.0011, 't']]) {
+        const up = [], dn = [];
+        for (let y = -THIGH; y <= -0.03; y += 0.02) up.push(side(rT(y) + 0.0012, y, da));
+        jtube(`thighSeam${k}:${W}:${straight}:${sgn}`, up, rr, m, hip);
+        for (let y = 0; y >= -0.196; y -= 0.028) dn.push(side(RK + (flare - RK) * (-y / 0.25) + 0.0012, y, da));
+        jtube(`shinSeam${k}:${W}:${straight}:${sgn}:${fit}`, dn, rr, m, knee);
+      }
+      const cuffM = patterned(mat(new THREE.Color(C.pants).lerp(new THREE.Color(0xdfe6ee), 0.28), { roughness: 0.95 }), 'denim', C.pants);
+      mk(cy(flare + 0.008, flare + 0.007, 0.05, 16, true), cuffM, 0, -0.222, 0, knee, false);
+      const ring = (r, y, rr, m) => { const t = mk(geo(`jring:${r.toFixed(3)}:${rr}`, () => new THREE.TorusGeometry(r, rr, 4, 20)), m, 0, y, 0, knee, false); t.rotation.x = Math.PI / 2; return t; };
+      ring(flare + 0.0085, -0.197, 0.0028, cuffM); ring(flare + 0.009, -0.204, 0.001, threadM);
+    } else if (!bareLegs) mk(cy(flare + 0.006, flare + 0.006, 0.025, 14), pantsDark, 0, -0.225, 0, knee, false);   // turned-up hem
     // socks: only where they'd show, on a bare shin (a short one round the ankle, a long one up to under the knee, a
     // ribbed band at the top), and over the foot in slides
     // (in boots or high-tops only what rises above the shoe is drawn, so a short one is hidden in it altogether)
@@ -1039,6 +1066,48 @@ function buildBodyAt(look, seed) {
   // line round the tops of the legs, like briefs)
   const seat = mk(pantsTopGeo(TW, fit === 'wide' && !shorts ? 1.12 : 1), pants, 0, 0, 0);   // (baggy pants and shorts are roomy through the seat too)
   bare.push(seat);
+  if (jeans) {
+    // the seat's surface at angle a round the waist (0 the front, +pi/2 the person's left) and height y: as pantsTopGeo
+    const kk = fit === 'wide' ? 1.12 : 1, { crotch, waist, hipX, rx, rz } = PANTS_TOP, R = 0.0915 * TW;
+    const st = fit === 'wide', TP = [[(st ? 0.086 : 0.074) * W, -THIGH], [(st ? 0.086 : 0.078) * W, -0.24], [(st ? 0.087 : 0.086) * W, -0.12], [0.09 * W, -0.04], [0.088 * W, -0.005], [0.074 * W, 0.022], [0.044 * W, 0.042], [0.001, 0.05]];   // (the thigh's profile, as in the legs)
+    const thighR = y => { if (y >= 0.05) return 0; for (let k = 1; k < TP.length; k++) if (TP[k][1] >= y) { const [r0, y0] = TP[k - 1], [r1, y1] = TP[k]; return r0 + (r1 - r0) * (y - y0) / (y1 - y0); } return 0; };
+    const seatAt = (a, y, off) => {
+      const t = (y - crotch) / (waist - crotch), e = t * t * (3 - 2 * t), sx = Math.sin(a), sz = Math.cos(a), k2 = 1 + (kk - 1) * (1 - t ** 4);
+      let lb = 0.004; [-hipX, hipX].forEach(cx => { const b = sx * cx, disc = b * b - cx * cx + R * R; if (disc >= 0) lb = Math.max(lb, b + Math.sqrt(disc)); });
+      const oval = 1 / Math.sqrt((sx / (rx * k2)) ** 2 + (sz / (rz * k2)) ** 2);
+      // (or the thigh's, where it bulges out past the seat: low on the seat the backs of the thighs are the surface)
+      const rt = thighR(y - HIP_Y); let th = 0; [-hipX, hipX].forEach(cx => { const b = sx * cx, disc = b * b - cx * cx + rt * rt; if (disc >= 0) th = Math.max(th, b + Math.sqrt(disc)); });
+      const d = Math.max(lb + (oval - lb) * e, th) + off;
+      return new THREE.Vector3(sx * d, y, sz * d);
+    };
+    // a line over the seat through (a, y) points, finely resampled so it keeps to the surface
+    const seatLine = (key, pts, off, r, m, closed = false) => {
+      const all = closed ? [...pts, pts[0]] : pts, fine = [];
+      for (let i = 0; i < all.length - 1; i++) { const [a0, y0] = all[i], [a1, y1] = all[i + 1], n = Math.max(1, Math.ceil(Math.hypot((a1 - a0) * 0.16, y1 - y0) / 0.006)); for (let k = 0; k < n; k++) fine.push(seatAt(a0 + (a1 - a0) * k / n, y0 + (y1 - y0) * k / n, off)); }
+      const [a, y] = all[all.length - 1]; fine.push(seatAt(a, y, off));
+      return jtube(`${key}:${TW}:${kk}`, fine, r, m, seat);
+    };
+    const both = (key, pts, off = 0.0014) => { seatLine(key + 'o', pts, off, 0.0016, seamM); };
+    for (const s of [-1, 1]) {
+      const A = a => s * a, B = a => Math.PI + s * a;   // (round from the front, or from the back, on this side)
+      // down each hip, on to the leg's own seam
+      both(`side${s}`, [[A(Math.PI / 2), 0.72], [A(Math.PI / 2), 0.6]]);
+      seatLine(`sideT${s}`, [[A(Math.PI / 2 - 0.06), 0.72], [A(Math.PI / 2 - 0.06), 0.6]], 0.0016, 0.0011, threadM);
+      // the front pockets' curved mouths, a rivet at the bottom of each
+      const pk = [[A(0.5), 0.722], [A(0.58), 0.69], [A(0.78), 0.665], [A(1.08), 0.652], [A(1.3), 0.65]];
+      both(`pocket${s}`, pk);
+      seatLine(`pocketT${s}`, pk.map(([a, y]) => [a + s * 0.045, y - 0.006]), 0.0016, 0.0011, threadM);
+      const rv = seatAt(A(1.3), 0.652, 0.002); cover.push(mk(sp(0.0042, 8, 6), rivetM, rv.x, rv.y, rv.z, seat, false));
+      // a patch pocket either side, out over each cheek, a point at the bottom
+      const c = 0.72, hw = 0.38, P = [[B(c - hw), 0.668], [B(c + hw), 0.672], [B(c + hw * 0.9), 0.598], [B(c), 0.578], [B(c - hw * 0.9), 0.594]];
+      both(`back${s}`, P, 0.0022);
+      seatLine(`backT${s}`, P.map(([a, y]) => [Math.PI + s * (c + (s * (a - Math.PI) - c) * 0.84), 0.627 + (y - 0.627) * 0.82]), 0.0024, 0.0011, threadM, true);
+    }
+    both('backSeam', [[Math.PI, 0.72], [Math.PI, 0.63]]);
+    // the fly: its J stitched down the front
+    seatLine('fly', [[0.2, 0.722], [0.2, 0.672], [0.13, 0.655], [0.0, 0.65]], 0.0016, 0.0011, threadM);
+    both('frontSeam', [[0, 0.722], [0, 0.645]]);
+  }
   // a skirt: knee length, A-line, hanging from the waist; a pivot at the waist so it can drape over the lap when sitting.
   // Its waistband sits tucked up inside the shirt (narrower than the shirt all round, front and back too) and it only
   // flares out below the shirt's hem, so none of it shows through the shirt
@@ -1073,7 +1142,7 @@ function buildBodyAt(look, seed) {
   // straight on into the arms with no join
   // cut slim, regular or oversized (wider and deeper, hanging lower over the hips)
   const topFit = clothesOf(look).top, topStyle = clothesOf(look).style, TF = cutOf(topFit, topStyle);
-  const winter = !!OUTER[topStyle], banded = topStyle === 'hoodie' || topStyle === 'jacket' || topStyle === 'varsity';
+  const winter = !!OUTER[topStyle], banded = topStyle === 'hoodie' || topStyle === 'jacket' || topStyle === 'varsity' || topStyle === 'denim';
   // the shirt and the bare skin of the neck share one surface; the skin one doesn't take the head's shadow, so the neck
   // and chest are the same colour as the face
   const torso = mk(torsoGeo(topFit, topStyle), [shirt, hideM], 0, 0, 0);
@@ -1094,7 +1163,7 @@ function buildBodyAt(look, seed) {
   if (topStyle === 'tee') mk(neckRibGeo(topFit, topStyle), shirtDark, 0, 0, 0, g, false);   // a U neck, edged with a rolled rib (a shirt's collar sits there instead)
   // the turned-down collar: a shirt's, and (bigger, its points broader) a jacket's
   // (a blazer's collar is one piece with its lapels: built with them, below)
-  const COLLAR = { shirt: { gap: 0.2, point: 1, size: 1 }, jacket: { gap: 0.1, point: 1.15, size: 1.3 } }[topStyle];
+  const COLLAR = { shirt: { gap: 0.2, point: 1, size: 1 }, jacket: { gap: 0.1, point: 1.15, size: 1.3 }, denim: { gap: 0.13, point: 1.15, size: 1.25 } }[topStyle];
   if (COLLAR) {
     const isShirt = topStyle === 'shirt';
     // 襯衫: a button-up shirt: a collar folding down either side of the neck to two points on the chest, a placket down
@@ -1236,7 +1305,10 @@ function buildBodyAt(look, seed) {
   const trimC = picked(lightTop ? 0x1f2a44 : 0xece3cf), trimM = mat(trimC, { roughness: 0.5 });
   const sleeveCloth = topStyle === 'varsity' ? trimM : shirt;
   // knitted rib for the hem bands and cuffs of the 帽T and jackets
-  const ribM = (() => { const t = ribs().clone(); t.repeat.set(26, 1); t.needsUpdate = true; return mat(shade(C.shirt, 0.82), { roughness: 0.95, map: t, side: THREE.DoubleSide }); })();
+  const ribM = topStyle === 'denim'   // (a denim jacket's band and cuffs: its own cloth, a shade deeper, being doubled)
+    ? (() => { const m = patterned(mat(shade(C.shirt, 0.9), { roughness: 0.9 }), pattern, shade(C.shirt, 0.9)); m.side = THREE.DoubleSide; return m; })()
+    : (() => { const t = ribs().clone(); t.repeat.set(26, 1); t.needsUpdate = true; return mat(shade(C.shirt, 0.82), { roughness: 0.95, map: t, side: THREE.DoubleSide }); })();
+  const jThread = mat(0xc06a18, { roughness: 0.85 }), jButton = mat(0xa88552, { roughness: 0.3, metalness: 0.75 });   // (a denim jacket's thread, its metal buttons)
   // ---------------------------------------------------------------- the winter tops: 帽T, 夾克, 西裝外套, 棒球外套
   // (all laid on the top's own surface, as the shirt's collar and placket are: each point found from the cut's slices)
   if (winter) {
@@ -1288,7 +1360,7 @@ function buildBodyAt(look, seed) {
     };
     // a cord from a to b (a drawstring)
     const rod = (a, b, r, m) => { const d = b.clone().sub(a), c = mk(cy(r, r, 1, 6), m, 0, 0, 0, g, false); c.position.copy(a).add(b).multiplyScalar(0.5); c.scale.y = d.length(); c.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize()); return c; };
-    const bandH = 0.055;
+    const bandH = topStyle === 'denim' ? 0.045 : 0.055;
     if (banded) {
       // a ribbed band round the hem, snug, straight up and down (wide enough to take in the hem's flare under it)
       const [hx, hz] = slice(hemY), [tx, tz] = slice(hemY + bandH), bR = Math.max(hx, tx) + 0.006, bZ = (Math.max(hz, tz) + 0.006) / bR;
@@ -1385,6 +1457,46 @@ function buildBodyAt(look, seed) {
         const y0 = bandTop + 0.03;
         line(`welt${s}`, [[s * 0.11, y0], [s * 0.15, y0 + 0.1]], 0.004, 0.0042, darkLine);
         line(`yoke${s}`, [[s * 0.012, 1.1], [s * 0.16, 1.1]], 0.003, 0.0016, shirtDark);
+      }
+    }
+    if (topStyle === 'denim') {
+      // 牛仔外套: buttoned up to a turned-down collar (see COLLAR), all its seams sewn in golden-orange thread: the placket
+      // down the front, a pointed yoke across the chest, two flap pockets on it (a button on each flap), seams down from
+      // them to the band; across the back a pointed yoke and two seams down. Metal buttons; the band buttoned too
+      fillU('denim', cloth());
+      const T = (key, pts, off = 0.0045, back = 1, closed = false) => line(key, pts, off, 0.001, jThread, closed, back);
+      const button = (x, y, back = 1) => { const p = on(x, y, 0.006, back); const b = mk(cy(0.0085, 0.0085, 0.004, 12), jButton, p.x, p.y, p.z, g, false); b.rotation.x = Math.PI / 2; };
+      line('dplacket', [[0.018, UNECK.bot - 0.004], [0.018, bandTop - 0.01]], 0.003, 0.0016, darkLine);
+      T('dplacketT', [[0.011, UNECK.bot - 0.004], [0.011, bandTop + 0.004]]);
+      T('dplacketT2', [[0.026, UNECK.bot - 0.004], [0.026, bandTop + 0.004]]);
+      for (let y = UNECK.bot - 0.03; y > bandTop + 0.03; y -= 0.072) button(0, y);
+      button(0, hemY + bandH / 2 - 0.004);
+      for (const s of [-1, 1]) {
+        // the chest yoke: from the placket out to the armhole, coming down to a point over each pocket
+        const yk = [[s * 0.03, 1.11], [s * 0.09, 1.085], [s * 0.15, 1.115], [s * 0.19, 1.13]];
+        line(`dyoke${s}`, yk, 0.003, 0.0016, darkLine); T(`dyokeT${s}`, yk.map(([x, y]) => [x, y - 0.008]));
+        // the flap pocket: a pointed flap, the pocket under it
+        const fl = [[s * 0.045, 1.07], [s * 0.135, 1.07], [s * 0.135, 1.045], [s * 0.09, 1.03], [s * 0.045, 1.045]];
+        patch(`dflap${s}`, s < 0 ? fl.slice().reverse() : fl, 0.005, cloth(0.95));
+        line(`dflapE${s}`, fl, 0.0055, 0.0018, darkLine, true);
+        T(`dflapT${s}`, fl.map(([x, y]) => [s * 0.09 + (x - s * 0.09) * 0.86, 1.052 + (y - 1.052) * 0.72]), 0.0062, 1, true);
+        button(s * 0.09, 1.04);
+        line(`dpocket${s}`, [[s * 0.05, 1.045], [s * 0.05, 0.975], [s * 0.13, 0.975], [s * 0.13, 1.045]], 0.0035, 0.0014, darkLine);
+        // the seams down from the pocket to the band
+        line(`ddown${s}`, [[s * 0.1, 0.975], [s * 0.1, bandTop]], 0.003, 0.0016, darkLine);
+        T(`ddownT${s}`, [[s * 0.108, 0.975], [s * 0.108, bandTop]]);
+        // round the back: the yoke, pointed in the middle, and two seams down from it
+        const by = [[s * 0.0, 1.06], [s * 0.1, 1.09], [s * 0.2, 1.12]];
+        line(`dbyoke${s}`, by, 0.003, 0.0016, darkLine, false, -1); T(`dbyokeT${s}`, by.map(([x, y]) => [x, y - 0.008]), 0.0045, -1);
+        line(`dbdown${s}`, [[s * 0.075, 1.075], [s * 0.075, bandTop]], 0.003, 0.0016, darkLine, false, -1);
+        T(`dbdownT${s}`, [[s * 0.083, 1.077], [s * 0.083, bandTop]], 0.0045, -1);
+      }
+      // the band's top and bottom stitched round
+      for (const [y, k] of [[bandTop - 0.008, 'a'], [hemY + 0.004, 'b']]) {
+        const [bx0, bz0] = slice(y), R0 = Math.max(bx0, bz0);
+        const t = mk(geo(`dbandT:${tag}:${k}`, () => new THREE.TorusGeometry(1, 0.001 / R0, 4, 48)), jThread, 0, y, 0, g, false);
+        t.rotation.x = Math.PI / 2; const [hx, hz] = slice(hemY), [tx, tz] = slice(hemY + bandH), bR = Math.max(hx, tx) + 0.007, bZ = (Math.max(hz, tz) + 0.007) / bR;
+        t.scale.set(bR, bR * bZ, bR);
       }
     }
     if (topStyle === 'varsity') {

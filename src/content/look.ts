@@ -246,6 +246,7 @@ export const CLOTHES: Record<'style' | 'pattern' | 'bottom' | 'fit' | 'top' | 's
   style: [
     { value: 'tee', label: 'T恤' }, { value: 'shirt', label: '襯衫' },
     { value: 'hoodie', label: '帽T' }, { value: 'jacket', label: '夾克外套' }, { value: 'coat', label: '西裝外套' }, { value: 'varsity', label: '棒球外套' },
+    { value: 'denim', label: '牛仔外套' },
   ],
   // printed on the top, in shades of its own colour
   pattern: [
@@ -256,12 +257,12 @@ export const CLOTHES: Record<'style' | 'pattern' | 'bottom' | 'fit' | 'top' | 's
     { value: 'p_mountain', label: '印花・山景' }, { value: 'p_smile', label: '印花・笑臉' }, { value: 'p_wave', label: '印花・浪花' },
     { value: 'p_logo', label: '印花・字樣' },
   ],
-  bottom: [{ value: 'pants', label: '長褲' }, { value: 'shorts', label: '短褲' }, { value: 'skirt', label: '裙子' }],
+  bottom: [{ value: 'pants', label: '長褲' }, { value: 'jeans', label: '牛仔褲' }, { value: 'shorts', label: '短褲' }, { value: 'skirt', label: '裙子' }],
   fit: [{ value: 'slim', label: '窄' }, { value: 'regular', label: '一般' }, { value: 'wide', label: '寬' }],
   top: [{ value: 'slim', label: '合身' }, { value: 'regular', label: '一般' }, { value: 'oversize', label: '寬鬆' }],
   sleeve: [{ value: 'short', label: '短袖' }, { value: 'long', label: '長袖' }],
 };
-export const WINTER_TOPS = ['hoodie', 'jacket', 'coat', 'varsity'];
+export const WINTER_TOPS = ['hoodie', 'jacket', 'coat', 'varsity', 'denim'];
 export function clothesOf(look: Look): { style: string; pattern: string; bottom: string; fit: string; top: string; sleeve: string } {
   const style = pickIn(CLOTHES.style, look.topStyle, 'tee');
   return {
