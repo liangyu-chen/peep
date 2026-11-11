@@ -127,6 +127,11 @@ body:has(.admin){margin:0;background:#141218}
 .admin .panel-block .check{padding-bottom:8px}
 .admin .colors{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:end}
 .admin input[type=color]{height:38px;padding:2px 4px;cursor:pointer}
+/* (a square-cornered swatch everywhere: phones otherwise draw the picker as a big rounded oval) */
+.admin input[type=color]{-webkit-appearance:none;appearance:none;border-radius:0}
+.admin input[type=color]::-webkit-color-swatch-wrapper{padding:0}
+.admin input[type=color]::-webkit-color-swatch{border:0;border-radius:0}
+.admin input[type=color]::-moz-color-swatch{border:0;border-radius:0}
 .admin .color-field{display:grid;gap:6px;min-width:0}
 .admin .color-field label{width:96px}
 .admin .swatches{display:flex;flex-wrap:wrap;gap:4px;max-width:260px}
@@ -139,6 +144,14 @@ body:has(.admin){margin:0;background:#141218}
 .admin .game-row label:not(.check){width:180px}
 .admin .game-row .hint{margin:0 0 8px;flex:1;min-width:200px}
 /* option chips: radio buttons that look like 8-bit buttons */
+/* 飾品: one row per piece, a tick to wear it, its style and colour beside it (dimmed while it isn't worn) */
+.admin .acc-list{display:grid}
+.admin .acc-row{display:grid;grid-template-columns:72px minmax(0,1fr);gap:8px 14px;align-items:start;padding:12px 0;border-top:2px solid var(--line)}
+.admin .acc-row:last-child{padding-bottom:0}
+.admin .acc-name{padding:4px 0 0!important;color:var(--ink)!important;font-size:14px!important}
+.admin .acc-body{display:grid;gap:8px;min-width:0;transition:opacity .15s}
+.admin .acc-row:has(.acc-name input:not(:checked)) .acc-body{opacity:.4}
+@media (max-width:760px){.admin .acc-row{grid-template-columns:1fr}}
 .admin .pick{border:0;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 .admin .pick legend{float:left;width:52px;font-size:12px;color:var(--muted);padding:0}
 .admin .pick label{cursor:pointer}

@@ -19,7 +19,9 @@ export type Look = {
   hat?: string; hatColor?: number;                                             // (older looks: hairStyle 'cap'/'bucket' + cap, or beanie)
   glasses?: boolean | string; glassesShape?: string; frameColor?: number;      // (older looks: true, 'round' or 'square' black frames)
   lensColor?: number; lensOpacity?: number;                                    // 鏡片: its tint and how solid it is (0-1)
-  earL?: string; earR?: string;
+  earL?: string; earR?: string; earColor?: number;                             // 飾品: earrings (one style per ear, one metal)
+  headphones?: string; headphoneColor?: number;                                // 耳機: worn on the head or round the neck
+  watch?: string; watchColor?: number;                                         // 手錶: on which wrist, its strap's colour
   tattoos?: Record<string, string>; tattooText?: string;                       // a style per part (older looks: tattoo + tattooCover)
   companion?: string;
   topStyle?: string; topPattern?: string; topFit?: string; longSleeve?: boolean; number?: string;   // T恤, 襯衫 or a winter top, its cut, its sleeves
@@ -197,11 +199,30 @@ export const lensOf = (look: Look): { color: number; opacity: number } => {
 };
 export const sunglassesOf = lensOf;
 
-// earrings, chosen for each ear
+// 飾品: earrings (a style for each ear, all in one metal), headphones and a watch, any or all of them
 export const EARRINGS: Option[] = [
-  { value: 'none', label: '無' }, { value: 'hoop', label: '金色圈' }, { value: 'hoopSilver', label: '銀色圈' }, { value: 'stud', label: '耳釘' }, { value: 'drop', label: '垂墜' },
+  { value: 'none', label: '無' }, { value: 'hoop', label: '圈' }, { value: 'stud', label: '耳釘' }, { value: 'drop', label: '垂墜' },
 ];
-export const earringsOf = (look: Look): { left: string; right: string } => ({ left: pickIn(EARRINGS, look.earL, 'none'), right: pickIn(EARRINGS, look.earR, 'none') });
+// (older looks had a silver hoop of its own: now a hoop, in silver)
+const earOf = (v: unknown) => pickIn(EARRINGS, v === 'hoopSilver' ? 'hoop' : v, 'none');
+export const earringsOf = (look: Look): { left: string; right: string } => ({ left: earOf(look.earL), right: earOf(look.earR) });
+export const EAR_GOLD = 0xd9ad52, EAR_SILVER = 0xd4d7dc;
+// the earrings' metal: as set, or what older looks meant (gold, a silver hoop silver, studs alone silver)
+export const earColorOf = (look: Look): number => {
+  if (typeof look.earColor === 'number') return look.earColor;
+  const k = [look.earL, look.earR].filter(v => v && v !== 'none');
+  return k.includes('hoopSilver') || (k.length > 0 && k.every(v => v === 'stud')) ? EAR_SILVER : EAR_GOLD;
+};
+export const HEADPHONES: Option[] = [{ value: 'head', label: '戴在頭上' }, { value: 'neck', label: '掛在脖子' }];
+export const headphonesOf = (look: Look): { wear: string; color: number } => ({
+  wear: look.headphones === 'head' || look.headphones === 'neck' ? look.headphones : 'none',
+  color: typeof look.headphoneColor === 'number' ? look.headphoneColor : 0x1e1e22,
+});
+export const WATCHES: Option[] = [{ value: 'left', label: '左手' }, { value: 'right', label: '右手' }];
+export const watchOf = (look: Look): { wrist: string; color: number } => ({
+  wrist: look.watch === 'left' || look.watch === 'right' ? look.watch : 'none',
+  color: typeof look.watchColor === 'number' ? look.watchColor : 0x4a3222,
+});
 
 // tattoos: American traditional, in black and grey; each part of the arms and legs inked with a piece of its own, or
 // bare (the legs show under shorts or a skirt). 文字 spells the look's tattooText.
@@ -290,8 +311,12 @@ export const SKIN_TONES = [
   { value: 0xd9a27c, label: '小麥' }, { value: 0xc68a5e, label: '黝黑' }, { value: 0x8d5a3b, label: '深色' }, { value: 0x6b4430, label: '深棕' },
 ];
 // swatches next to each colour field in the editor
-export const COLOR_PRESETS: Record<'skin' | 'hair' | 'eyes' | 'clothes' | 'lens' | 'frame', { value: number; label: string }[]> = {
+export const COLOR_PRESETS: Record<'skin' | 'hair' | 'eyes' | 'clothes' | 'lens' | 'frame' | 'metal', { value: number; label: string }[]> = {
   skin: SKIN_TONES,
+  metal: [
+    { value: 0xd9ad52, label: '金' }, { value: 0xd4d7dc, label: '銀' }, { value: 0xe0a48c, label: '玫瑰金' }, { value: 0x2a2a2e, label: '黑' },
+    { value: 0xb87333, label: '銅' }, { value: 0xf2f2f2, label: '珍珠白' },
+  ],
   hair: [
     { value: 0x111111, label: '黑' }, { value: 0x2b1d14, label: '深棕' }, { value: 0x5a3a22, label: '棕' }, { value: 0x8a5a2b, label: '栗色' },
     { value: 0xc9a25a, label: '金' }, { value: 0x8a8a8a, label: '灰' }, { value: 0xe8e4dc, label: '白' }, { value: 0xa8323a, label: '紅' },
@@ -330,6 +355,10 @@ export function parseLook(get: (k: string) => string | null, prev?: Look): Look 
   const one = (k: string, opts: Option[], now: string) => pickIn(opts, get(k), now);   // a picked option, or what it was
   const face = faceOf(base, String(get('name') ?? '')), hair = hairOf(base), hat = hatOf(base), clothes = clothesOf(base);
   const shoe = shoeOf(base), socks = socksOf(base), ears = earringsOf(base), inked = tattooOf(base), sunGlass = sunglassesOf(base);
+  const phones = headphonesOf(base), watch = watchOf(base);
+  // 飾品: a tick for each (the form marks that it has the list with `acc`; without it, they stay as they were)
+  const acc = get('acc') != null, on = (k: string, was: boolean) => (acc ? get('acc_' + k) === 'on' : was);
+  const earsOn = on('earrings', ears.left !== 'none' || ears.right !== 'none');
   const lensIn = get('lensOpacity'), lensVal = lensIn != null && lensIn !== '' ? Number(lensIn) : NaN;
   const number = (get('number') ?? '').trim().slice(0, 2);
   const tatText = (get('tattooText') ?? (typeof base.tattooText === 'string' ? base.tattooText : '')).trim().slice(0, 12);
@@ -351,7 +380,9 @@ export function parseLook(get: (k: string) => string | null, prev?: Look): Look 
     frameColor: hex('frameColor', frameColorOf(base, face.glasses)),
     lensColor: hex('lensColor', sunGlass.color),
     lensOpacity: Number.isFinite(lensVal) ? Math.max(0, Math.min(1, lensVal)) : sunGlass.opacity,
-    earL: one('earL', EARRINGS, ears.left), earR: one('earR', EARRINGS, ears.right),
+    earL: earsOn ? one('earL', EARRINGS, ears.left) : 'none', earR: earsOn ? one('earR', EARRINGS, ears.right) : 'none', earColor: hex('earColor', earColorOf(base)),
+    headphones: on('headphones', phones.wear !== 'none') ? one('headphonesWear', HEADPHONES, phones.wear === 'none' ? 'head' : phones.wear) : 'none', headphoneColor: hex('headphoneColor', phones.color),
+    watch: on('watch', watch.wrist !== 'none') ? one('watchWrist', WATCHES, watch.wrist === 'none' ? 'left' : watch.wrist) : 'none', watchColor: hex('watchColor', watch.color),
     tattoos: Object.fromEntries(TATTOO_PARTS.map(p => [p.value, get('tat_' + p.value) ?? inked[p.value]] as const).filter((e): e is [string, string] => tatStyle(e[1]))),
     companion: one('companion', COMPANIONS, companionOf(base)),
     // 穿著

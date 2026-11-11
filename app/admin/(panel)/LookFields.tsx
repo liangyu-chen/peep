@@ -1,4 +1,4 @@
-import { BUILDS, buildOf, HEIGHTS, heightOf,tieColorOf, CLOTHES, COLOR_PRESETS, COMPANIONS, EARRINGS, earringsOf, FACE, frameColorOf, HAIR, HAT_STYLES, SHOE_STYLES, SOCKS, TATTOO_PARTS, TATTOO_STYLES,clothesOf, companionOf, faceOf, hairOf, hatOf, lensOf, shoeOf, socksOf, tattooOf, type Look } from '@/src/content/catalog';
+import { BUILDS, buildOf, HEIGHTS, heightOf,tieColorOf, CLOTHES, COLOR_PRESETS, COMPANIONS, EARRINGS, earringsOf, earColorOf, HEADPHONES, headphonesOf, WATCHES, watchOf, FACE, frameColorOf, HAIR, HAT_STYLES, SHOE_STYLES, SOCKS, TATTOO_PARTS, TATTOO_STYLES,clothesOf, companionOf, faceOf, hairOf, hatOf, lensOf, shoeOf, socksOf, tattooOf, type Look } from '@/src/content/catalog';
 import ColorField from './ColorField';
 import HairLengthField from './HairLengthField';
 import LensOpacityField from './LensOpacityField';
@@ -17,7 +17,8 @@ function Pick({ name, label, value, options }: { name: string; label: string; va
 // the 捏臉 fields shared by the regulars' editor and the owner's page; parseLook() reads them back
 export default function LookFields({ look, seed }: { look: Look; seed: string }) {
   const f = faceOf(look, seed);
-  const hat = hatOf(look), hair = hairOf(look), clothes = clothesOf(look), shoe = shoeOf(look), socks = socksOf(look), tattoo = tattooOf(look), ears = earringsOf(look), lens = lensOf(look);
+  const hat = hatOf(look), hair = hairOf(look), clothes = clothesOf(look), shoe = shoeOf(look), socks = socksOf(look), tattoo = tattooOf(look), ears = earringsOf(look), lens = lensOf(look), phones = headphonesOf(look), watch = watchOf(look);
+  const earsOn = ears.left !== 'none' || ears.right !== 'none';
   return (
     <>
       <section className="panel-block">
@@ -59,7 +60,7 @@ export default function LookFields({ look, seed }: { look: Look; seed: string })
       </section>
 
       <section className="panel-block look-block">
-        <h2>眼鏡與耳環</h2>
+        <h2>眼鏡</h2>
         <Pick name="glasses" label="眼鏡" value={f.glasses} options={FACE.glasses} />
         <Pick name="glassesShape" label="鏡框造型" value={f.glassesShape} options={FACE.glassesShape} />
         <div className="colors">
@@ -67,8 +68,37 @@ export default function LookFields({ look, seed }: { look: Look; seed: string })
           <ColorField name="lensColor" label="鏡片顏色" value={lens.color} presets={COLOR_PRESETS.lens} />
           <LensOpacityField value={lens.opacity} />
         </div>
-        <Pick name="earR" label="右耳耳環" value={ears.right} options={EARRINGS} />
-        <Pick name="earL" label="左耳耳環" value={ears.left} options={EARRINGS} />
+      </section>
+
+      <section className="panel-block look-block">
+        <h2>飾品</h2>
+        <p className="hint">可以同時戴好幾樣：勾選要戴的，再設定樣式和顏色。</p>
+        <div className="acc-list">
+          <input type="hidden" name="acc" value="1" />
+          <div className="acc-row">
+            <label className="check acc-name"><input type="checkbox" name="acc_earrings" defaultChecked={earsOn} /><span>耳環</span></label>
+            <div className="acc-body">
+              {/* (ticked with nothing chosen yet: a hoop in the right ear to start with) */}
+              <Pick name="earR" label="右耳" value={earsOn ? ears.right : 'hoop'} options={EARRINGS} />
+              <Pick name="earL" label="左耳" value={ears.left} options={EARRINGS} />
+              <div className="colors"><ColorField name="earColor" label="耳環顏色" value={earColorOf(look)} presets={COLOR_PRESETS.metal} /></div>
+            </div>
+          </div>
+          <div className="acc-row">
+            <label className="check acc-name"><input type="checkbox" name="acc_headphones" defaultChecked={phones.wear !== 'none'} /><span>耳機</span></label>
+            <div className="acc-body">
+              <Pick name="headphonesWear" label="戴法" value={phones.wear === 'none' ? 'head' : phones.wear} options={HEADPHONES} />
+              <div className="colors"><ColorField name="headphoneColor" label="耳機顏色" value={phones.color} presets={COLOR_PRESETS.clothes} /></div>
+            </div>
+          </div>
+          <div className="acc-row">
+            <label className="check acc-name"><input type="checkbox" name="acc_watch" defaultChecked={watch.wrist !== 'none'} /><span>手錶</span></label>
+            <div className="acc-body">
+              <Pick name="watchWrist" label="戴在" value={watch.wrist === 'none' ? 'left' : watch.wrist} options={WATCHES} />
+              <div className="colors"><ColorField name="watchColor" label="錶帶顏色" value={watch.color} presets={COLOR_PRESETS.clothes} /></div>
+            </div>
+          </div>
+        </div>
       </section>
 
       <section className="panel-block look-block">

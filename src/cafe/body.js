@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import { BufferGeometryUtils } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { mat, canvasTex } from './engine.js';
 import { PIX } from './util.js';
-import { CLEAR_LENS, faceOf, frameColorOf, hairOf, hatOf, clothesOf, shoeOf, socksOf, tattooOf, earringsOf, buildOf, heightOf, lensOf, tieColorOf } from '../content/catalog';
+import { CLEAR_LENS, faceOf, frameColorOf, hairOf, hatOf, clothesOf, shoeOf, socksOf, tattooOf, earringsOf, earColorOf, headphonesOf, watchOf, buildOf, heightOf, lensOf, tieColorOf } from '../content/catalog';
 // how much taller or shorter than standard each height is (身高)
 const HEIGHT_K = { xshort: 0.88, short: 0.94, regular: 1, tall: 1.06, xtall: 1.12 };
 // 身形: how much wider (w) and deeper (d) the body is than the standard
@@ -1627,7 +1627,7 @@ function buildBodyAt(look, seed) {
   const surf = SURF[shape] || (SURF[shape] = surfaceFor(shape));
   const at = (x, y, z) => deform(H, new THREE.Vector3(x, y, z).normalize());   // surface point in a direction
   // ears, sitting on the side of whatever head shape it is
-  const ears = earringsOf(look);
+  const ears = earringsOf(look), earM = mat(earColorOf(look), { roughness: 0.25, metalness: 0.9 });
   [-1, 1].forEach(s => {
     const p = at(s, -0.04, 0.02);
     mk(sp(0.042, 12, 10), skin, p.x + s * 0.004, p.y, p.z, head).scale.set(0.42, 1, 0.72);
@@ -1636,16 +1636,73 @@ function buildBodyAt(look, seed) {
     // stud, or a drop on a short chain
     const kind = s < 0 ? ears.right : ears.left;
     if (kind !== 'none') {
-      const lx = p.x + s * 0.014, ly = p.y - 0.036, lz = p.z + 0.006, metal = kind === 'hoopSilver' ? silverM : goldM;
-      if (kind === 'hoop' || kind === 'hoopSilver') {
+      const lx = p.x + s * 0.014, ly = p.y - 0.036, lz = p.z + 0.006, metal = earM;
+      if (kind === 'hoop') {
         const ring = mk(geo('earHoop', () => new THREE.TorusGeometry(0.011, 0.0022, 6, 20)), metal, lx, ly - 0.009, lz, head, false); ring.rotation.y = Math.PI / 2;
-      } else if (kind === 'stud') mk(sp(0.0045, 8, 6), silverM, lx, ly + 0.002, lz + 0.002, head, false);
+      } else if (kind === 'stud') mk(sp(0.0045, 8, 6), metal, lx, ly + 0.002, lz + 0.002, head, false);
       else {
-        mk(cy(0.0009, 0.0009, 0.014, 4), goldM, lx, ly - 0.007, lz, head, false);
+        mk(cy(0.0009, 0.0009, 0.014, 4), metal, lx, ly - 0.007, lz, head, false);
         mk(sp(0.005, 8, 6), metal, lx, ly - 0.017, lz, head, false).scale.set(0.8, 1.3, 0.8);
       }
     }
   });
+  // 耳機: big over-ear headphones in a clean modern style: a tall rounded-rectangle cup on each ear (anodised metal in
+  // the chosen colour, a soft knit cushion against the head), a short steel arm up out of each cup into a thin steel
+  // frame arching over the head, and under the frame, resting on the head, a wide mesh canopy. Or slipped down round
+  // the neck: the cups resting either side of the throat, the frame and canopy behind the neck
+  const phones = headphonesOf(look);
+  if (phones.wear !== 'none') {
+    const base = picked(phones.color);
+    const shellM = mat(base, { roughness: 0.32, metalness: 0.55 });
+    const softM = mat(base.clone().lerp(new THREE.Color(0xffffff), 0.18), { roughness: 0.95, side: THREE.DoubleSide });   // cushion and canopy: knit, a touch paler
+    const steelM = mat(0xc9ccd1, { roughness: 0.18, metalness: 0.95 });
+    // a rounded rectangle, `w` front to back and `h` tall, extruded `d` deep along x (bevelled all round)
+    const slab = (key, w, h, d, r) => geo(`hp:${key}`, () => {
+      const sh = new THREE.Shape(), x0 = -w / 2, y0 = -h / 2;
+      sh.moveTo(x0 + r, y0); sh.lineTo(x0 + w - r, y0); sh.quadraticCurveTo(x0 + w, y0, x0 + w, y0 + r);
+      sh.lineTo(x0 + w, y0 + h - r); sh.quadraticCurveTo(x0 + w, y0 + h, x0 + w - r, y0 + h);
+      sh.lineTo(x0 + r, y0 + h); sh.quadraticCurveTo(x0, y0 + h, x0, y0 + h - r);
+      sh.lineTo(x0, y0 + r); sh.quadraticCurveTo(x0, y0, x0 + r, y0);
+      const eg = new THREE.ExtrudeGeometry(sh, { depth: d, bevelEnabled: true, bevelThickness: 0.004, bevelSize: 0.004, bevelSegments: 3, curveSegments: 6 });
+      eg.translate(0, 0, -d / 2); eg.rotateY(Math.PI / 2); return eg;
+    });
+    // a cup, its cushion's face at the group's origin, the shell out along +s x; its arm rising from the top
+    const cup = (par, s) => {
+      const c = new THREE.Group(); par.add(c);
+      mk(slab('cushion2', 0.068, 0.086, 0.014, 0.026), softM, s * 0.007, 0, 0, c, false);
+      mk(slab('shell2', 0.076, 0.096, 0.024, 0.028), shellM, s * 0.029, 0, 0, c, false);
+      mk(cy(0.0028, 0.0028, 0.03, 8), steelM, s * 0.024, 0.06, 0, c, false);   // the arm, telescoping up into the frame
+      return c;
+    };
+    // the frame (a thin steel tube) and the canopy (a wide flat mesh strap, a little lower), along a curve through pts
+    const band = (key, pts, par, wide) => {
+      const curve = new THREE.CatmullRomCurve3(pts);
+      mk(geo(`hpFrame:${key}`, () => new THREE.TubeGeometry(curve, 48, 0.0035, 6, false)), steelM, 0, 0, 0, par, false);
+      mk(geo(`hpCanopy:${key}`, () => {
+        const N = 40, pos = [], idx = [], P = curve.getSpacedPoints(N);
+        P.forEach((p, i) => {
+          const t = i / N, sag = Math.sin(Math.PI * t) * 0.012;   // (hangs a little below the frame, most at the middle)
+          const q = p.clone().addScaledVector(p.clone().setZ(0).normalize(), -sag - 0.004);
+          pos.push(q.x, q.y, q.z - wide / 2, q.x, q.y, q.z + wide / 2);
+        });
+        for (let i = 0; i < N; i++) { const a = i * 2; idx.push(a, a + 2, a + 1, a + 1, a + 2, a + 3); }
+        const cg = new THREE.BufferGeometry(); cg.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); cg.setIndex(idx); cg.computeVertexNormals(); return cg;
+      }), softM, 0, 0, 0, par, false);
+    };
+    if (phones.wear === 'head') {
+      const ear = at(1, -0.04, 0.02), top = at(0, 1, -0.05), ex = Math.abs(ear.x) + 0.012, ey = ear.y + 0.006;
+      [-1, 1].forEach(s => cup(head, s).position.set(s * ex, ey, ear.z));
+      // over the head from the top of one arm to the other, well clear of the hair
+      const fx = ex + 0.024, fy = ey + 0.075, rise = top.y + 0.05 - fy, pts = [];
+      for (let k = 0; k <= 24; k++) { const t = -Math.PI / 2 + Math.PI * k / 24; pts.push(new THREE.Vector3(Math.sin(t) * fx, fy + Math.cos(t) * rise, ear.z)); }
+      band(`head2:${shape}`, pts, head, 0.058);
+    } else {
+      const ny = 1.25, pts = [];
+      for (let k = 0; k <= 24; k++) { const t = -0.6 * Math.PI + 1.2 * Math.PI * k / 24; pts.push(new THREE.Vector3(Math.sin(t) * 0.11, ny + 0.012, -Math.cos(t) * 0.095)); }
+      band('neck3', pts, g, 0.045);
+      [-1, 1].forEach(s => { const c = cup(g, s); c.position.set(s * 0.125, ny - 0.005, 0.04); c.rotation.set(0, -s * 0.55, s * 1.3, 'YXZ'); });   // (lying flat on the collarbones, shells up, arms in toward the neck)
+    }
+  }
   const face = new THREE.Group(); head.add(face);
   const fm = (geom, m, x, y, z, par = face) => mk(geom, m, x, y, z, par, false);
 
@@ -1973,6 +2030,16 @@ function buildBodyAt(look, seed) {
     }
     mk(sp(0.052, 12, 10), skin, 0, -0.285, 0.004, elbow).scale.set(0.82, 1.12, 0.68);              // hand
     mk(bx(0.024, 0.048, 0.028), skin, -s * 0.04, -0.27, 0.022, elbow, false).rotation.z = s * 0.45;   // thumb
+    // 手錶: on the chosen wrist (the arm at -x is the person's right), the strap round it (over the cuff of a long
+    // sleeve), its face on the back of the wrist, outward
+    const W8 = watchOf(look);
+    if (W8.wrist === (s < 0 ? 'right' : 'left')) {
+      const wy = -0.2, r = (long ? wrist + 0.003 : wrist + (0.052 * S - wrist) * 0.17) + 0.004;   // (the forearm's width there)
+      mk(cy(r, r, 0.014, 18, true), mat(picked(W8.color), { roughness: 0.6, side: THREE.DoubleSide }), 0, wy, 0, elbow, false);   // the strap
+      mk(cy(0.0135, 0.0135, 0.007, 18), silverM, s * (r + 0.002), wy, 0, elbow, false).rotation.z = Math.PI / 2;   // the case
+      mk(cy(0.0108, 0.0108, 0.002, 18), mat(0x16181c, { roughness: 0.15, metalness: 0.3 }), s * (r + 0.0056), wy, 0, elbow, false).rotation.z = Math.PI / 2;   // the dial
+      const hand2 = mk(bx(0.0012, 0.008, 0.0012), whiteM, s * (r + 0.007), wy + 0.003, 0, elbow, false); hand2.rotation.x = 0.6;   // a hand on it
+    }
     return sh;
   });
   const hand = new THREE.Object3D(); hand.position.set(0, -0.3, 0.05); elbows[1].add(hand);

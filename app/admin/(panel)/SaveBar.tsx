@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import ConfirmButton from './ConfirmButton';
 
 // Tells the save bar of the surrounding form that something changed ('dirty'),
 // or what's wrong with it right now ('problem', '' when nothing is).
@@ -42,7 +43,8 @@ export default function SaveBar({ label = '儲存', readOnly = false, children }
       </span>
       <span className="save-actions">
         {children}
-        {dirty && <button type="button" onClick={undo} disabled={saving}>復原</button>}
+        {dirty && <ConfirmButton onConfirm={undo} disabled={saving} title="復原修改"
+          message="放棄所有尚未儲存的修改，回到上次儲存的內容？" confirmLabel="復原">復原</ConfirmButton>}
         <button className="primary" disabled={readOnly || !dirty || !!problem || saving}>{saving ? '儲存中…' : label}</button>
       </span>
     </div>
