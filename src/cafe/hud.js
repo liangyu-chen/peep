@@ -266,6 +266,25 @@ export function bindHUD(root, stage) {
   };
   remote.classList.remove('open'); $('acHead')?.setAttribute('aria-expanded', 'false');
   showAc();
+  // the look: moulded plastic, or 8-bit (.px); the choice is kept on this device
+  const skinBtn = $('acSkin');
+  const setSkin = px => {
+    remote.classList.toggle('px', px);
+    skinBtn.setAttribute('aria-pressed', String(px));
+    try { localStorage.setItem('acSkin', px ? 'px' : 'real'); } catch {}
+  };
+  let savedSkin = null;
+  try { savedSkin = localStorage.getItem('acSkin'); } catch {}
+  setSkin(savedSkin === 'px');
+  // 換一隻遙控: the one in hand slides off to the right and the other one slides back in its place
+  let swapTimer;
+  on(skinBtn, 'click', () => {
+    if (remote.classList.contains('swapping')) return;
+    sfx('beep');
+    remote.classList.add('swapping');
+    clearTimeout(swapTimer);
+    swapTimer = setTimeout(() => { setSkin(!remote.classList.contains('px')); remote.classList.remove('swapping'); }, 280);
+  });
   on(remote, 'click', e => {
     if (remote.classList.contains('open')) { if (e.target.closest('#acHead')) setAcOpen(false); }
     else setAcOpen(true);

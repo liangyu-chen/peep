@@ -252,6 +252,8 @@ export default function Cafe({ content }: { content: CafeContent }) {
             <span className="acLbl" style={{ left: '50%', top: 178 }}>上下風擺</span>
           </div>
           <span className="acModel" aria-hidden="true">MODEL AC-5487</span>
+          {/* swaps in the other remote: moulded plastic or 8-bit (remembered on this device) */}
+          <button id="acSkin" className="acSkin" type="button" aria-pressed="false">換一隻遙控</button>
           <div className="acGrip" aria-hidden="true" />
         </div>
       </section>
