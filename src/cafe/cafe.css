@@ -217,7 +217,7 @@ body:has(.cafe-root){margin:0;overflow:hidden;background:#141218}
 @media (max-width:900px){
   /* on a phone the whole remote is drawn smaller (--acS scales its type, keys and outline together; square-on it's
      shifted right by what the scaling took off, so it still sits 18px from the edge) */
-  .cafe-root #acRemote{--peek:60px;--acS:.78}
+  .cafe-root #acRemote{--peek:6px;--acS:.68}
 }
 .cafe-root .tile:focus-visible{outline:3px solid #fff;outline-offset:4px}
 /* the sound switch: a pixel speaker tucked in the name panel's top right corner, crossed out and dimmed when off */
