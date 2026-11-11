@@ -16,14 +16,16 @@
   --f-pixel:"Press Start 2P","DotGothic16",ui-monospace,monospace;
   --f-dot:"DotGothic16","Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
   color-scheme:dark;
-  position:fixed;inset:0;overflow:hidden;
+  /* not position:fixed: Safari (iOS 26) stops fixed boxes at the top of its see-through bottom address bar, so the
+     root is ordinary content as tall as the screen ever gets (lvh) and runs on under the bar. --sb is how much of the
+     bottom is covered (the bar, else the home-indicator strip); everything pinned to the bottom sits above it */
+  position:absolute;top:0;left:0;width:100%;height:100vh;height:100lvh;overflow:hidden;
+  --sb:max(env(safe-area-inset-bottom,0px),calc(100lvh - 100dvh));
   background:var(--bg);color:var(--ink);font-family:var(--f-dot);font-size:14px;
 }
-html:has(.cafe-root),body:has(.cafe-root){margin:0;overflow:hidden;background:#141218}
+html:has(.cafe-root),body:has(.cafe-root){margin:0;overflow:hidden;background:#141218;overscroll-behavior:none}
 .cafe-root [hidden]{display:none!important}
-/* the 3D scene is sized to the tallest the screen gets (lvh), so it also runs on under Safari's see-through bottom
-   address bar; the HUD stays inside the visible area (the root's inset:0) so nothing you tap sits under the bar */
-.cafe-root #stage{position:fixed;top:0;left:0;right:0;height:100vh;height:100lvh}
+.cafe-root #stage{position:absolute;inset:0}
 .cafe-root #stage canvas{display:block;width:100%;height:100%;touch-action:none}
 .cafe-root #labels{position:absolute;inset:0;pointer-events:none;overflow:hidden}
 .cafe-root .tag{position:absolute;transform:translate(-50%,-100%);font-size:12px;padding:1px 6px;background:rgba(20,18,24,.85);white-space:nowrap;box-shadow:0 0 0 2px rgba(0,0,0,.6)}
@@ -219,7 +221,7 @@ html:has(.cafe-root),body:has(.cafe-root){margin:0;overflow:hidden;background:#1
 @media (max-width:900px){
   /* on a phone the whole remote is drawn smaller (--acS scales its type, keys and outline together; square-on it's
      shifted right by what the scaling took off, so it still sits 18px from the edge) */
-  .cafe-root #acRemote{--peek:6px;--acS:.68;top:77%}
+  .cafe-root #acRemote{--peek:6px;--acS:.68;top:calc((100% - var(--sb)) * .77)}
 }
 .cafe-root .tile:focus-visible{outline:3px solid #fff;outline-offset:4px}
 /* the sound switch: a pixel speaker tucked in the name panel's top right corner, crossed out and dimmed when off */
@@ -231,7 +233,7 @@ html:has(.cafe-root),body:has(.cafe-root){margin:0;overflow:hidden;background:#1
 .cafe-root .soundIcon .icoOff,.cafe-root .soundIcon.on .icoOn{display:block}
 .cafe-root .soundIcon .icoOn,.cafe-root .soundIcon.on .icoOff{display:none}
 /* a game's window, over the café with it dimmed behind; the canvas keeps its 16:9 and fits the screen */
-.cafe-root .gameSheet{position:absolute;inset:0;z-index:20;display:grid;place-items:center;background:rgba(10,8,16,.4);padding:16px}
+.cafe-root .gameSheet{position:absolute;inset:0;z-index:20;display:grid;place-items:center;background:rgba(10,8,16,.4);padding:16px 16px calc(16px + var(--sb))}
 .cafe-root .gameWin{position:relative;width:min(760px,100%);padding:12px 14px;display:grid;gap:10px;max-height:100%;overflow:auto}
 .cafe-root .gameHead{display:flex;justify-content:space-between;align-items:center;gap:8px}
 .cafe-root .gameHead h2{margin:0;font-family:var(--f-dot);font-size:18px;color:var(--gold);letter-spacing:0}
@@ -257,7 +259,7 @@ html:has(.cafe-root),body:has(.cafe-root){margin:0;overflow:hidden;background:#1
 .cafe-root .dEnd{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);display:grid;gap:10px;justify-items:center;background:var(--panel);padding:18px 26px;box-shadow:0 0 0 3px #000,6px 6px 0 #000;cursor:default}
 .cafe-root .dEnd[hidden]{display:none}
 .cafe-root .dEnd b{font-size:30px;font-weight:400;color:var(--gold)}
-.cafe-root .dHelp{position:absolute;bottom:calc(14px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);margin:0;width:max-content;max-width:calc(100% - 32px);text-align:center;
+.cafe-root .dHelp{position:absolute;bottom:calc(14px + var(--sb));left:50%;transform:translateX(-50%);margin:0;width:max-content;max-width:calc(100% - 32px);text-align:center;
   font-size:13px;color:var(--ink);background:var(--panel);padding:6px 12px;box-shadow:0 0 0 3px #000;pointer-events:none}
 /* the corner controls: one pixel panel, the speaker and a 離開 split by a black seam, lit gold / neon under the finger */
 .cafe-root .dBtns{position:absolute;top:calc(14px + env(safe-area-inset-top,0px));right:calc(14px + env(safe-area-inset-right,0px))}
@@ -299,10 +301,10 @@ html:has(.cafe-root),body:has(.cafe-root){margin:0;overflow:hidden;background:#1
 .cafe-root .adminLink{margin-left:auto;font-size:12px;color:var(--muted);padding:4px 2px;text-decoration:underline;text-underline-offset:3px}
 .cafe-root .adminLink:hover{color:var(--gold)}
 .cafe-root .adminLink:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
-.cafe-root #log{left:calc(16px + env(safe-area-inset-left,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));width:310px;padding:10px 12px}
+.cafe-root #log{left:calc(16px + env(safe-area-inset-left,0px));bottom:calc(16px + var(--sb));width:310px;padding:10px 12px}
 .cafe-root #logList{list-style:none;margin:0;padding:0;display:grid;gap:4px;font-size:13px;line-height:1.35}
 .cafe-root #logList time{font-family:var(--f-pixel);color:var(--muted);margin-right:6px;font-size:8px}
-.cafe-root #tvCard{right:calc(16px + env(safe-area-inset-right,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));width:290px;padding:10px 12px;cursor:pointer}
+.cafe-root #tvCard{right:calc(16px + env(safe-area-inset-right,0px));bottom:calc(16px + var(--sb));width:290px;padding:10px 12px;cursor:pointer}
 .cafe-root .score{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px}
 .cafe-root .score .side{display:grid;gap:3px;min-width:0}
 .cafe-root .score .side.r{text-align:right}
@@ -334,7 +336,7 @@ html:has(.cafe-root),body:has(.cafe-root){margin:0;overflow:hidden;background:#1
 @media (max-width:560px){
   .cafe-root #brand{min-width:0;padding:10px 12px;gap:6px}
   .cafe-root #brand h1{font-size:18px}
-  .cafe-root #controls{top:auto;bottom:calc(16px + env(safe-area-inset-bottom,0px));left:calc(16px + env(safe-area-inset-left,0px));right:calc(16px + env(safe-area-inset-right,0px));max-width:none;position:absolute}
+  .cafe-root #controls{top:auto;bottom:calc(16px + var(--sb));left:calc(16px + env(safe-area-inset-left,0px));right:calc(16px + env(safe-area-inset-right,0px));max-width:none;position:absolute}
   /* the panel can fold away to a tab */
   .cafe-root #ctrlFold{display:grid;place-items:center;position:absolute;bottom:100%;right:14px;width:46px;height:20px;padding:0;z-index:1;
     background:var(--panel);box-shadow:0 -4px 0 0 var(--edge),-4px 0 0 0 var(--edge),4px 0 0 0 var(--edge)}
@@ -347,13 +349,13 @@ html:has(.cafe-root),body:has(.cafe-root){margin:0;overflow:hidden;background:#1
   .cafe-root #controls.folded .row{display:none}
   .cafe-root #controls.folded #ctrlFold{position:static;width:54px;height:26px;
     box-shadow:0 -4px 0 0 var(--edge),0 4px 0 0 var(--edge),-4px 0 0 0 var(--edge),4px 0 0 0 var(--edge),8px 8px 0 0 var(--shade)}
-  .cafe-root:has(#controls.folded) #card{bottom:calc(56px + env(safe-area-inset-bottom,0px))}
+  .cafe-root:has(#controls.folded) #card{bottom:calc(56px + var(--sb))}
   .cafe-root #tvCard{bottom:auto;top:calc(16px + env(safe-area-inset-top,0px));width:150px;padding:8px 10px}
   .cafe-root #tvCard .team,.cafe-root #results,.cafe-root #tvCard h2{display:none}
   .cafe-root .gameSheet{padding:8px}
   .cafe-root .gamePad{gap:8px}
   .cafe-root .gamePad button{min-width:52px}
-  .cafe-root #card{top:auto;bottom:calc(178px + env(safe-area-inset-bottom,0px));transform:none;left:calc(16px + env(safe-area-inset-left,0px));width:auto;
+  .cafe-root #card{top:auto;bottom:calc(178px + var(--sb));transform:none;left:calc(16px + env(safe-area-inset-left,0px));width:auto;
     padding:8px 10px;gap:6px;max-height:42vh;overflow-y:auto;grid-template-columns:1fr 1fr}
   /* compact on a phone: a small picture, the details two pairs to a row, the buttons side by side */
   .cafe-root #card .head,.cafe-root #card dl,.cafe-root #card .status{grid-column:1 / -1}
@@ -369,7 +371,7 @@ html:has(.cafe-root),body:has(.cafe-root){margin:0;overflow:hidden;background:#1
 @media (prefers-reduced-motion:reduce){.cafe-root .bubble{transition:none}}
 
 /* loading screen: the two hands from the drawing closing in, inverted to white lines on black */
-.loading-hands{position:fixed;inset:0;z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;
+.loading-hands{position:absolute;top:0;left:0;width:100%;height:100vh;height:100lvh;z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;
   background:#000;color:#f2efe9;overflow:hidden;opacity:var(--fade,1);font-family:"DotGothic16","Noto Sans TC",sans-serif}
 .loading-hands .lh-stage{position:relative;width:min(94vw,640px,90vh);aspect-ratio:1179/700;transform:scale(var(--zoom,1));filter:invert(1);will-change:transform}
 .loading-hands img{position:absolute;inset:0;width:100%;height:100%;user-select:none;pointer-events:none}
