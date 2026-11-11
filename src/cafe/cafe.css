@@ -19,9 +19,11 @@
   position:fixed;inset:0;overflow:hidden;
   background:var(--bg);color:var(--ink);font-family:var(--f-dot);font-size:14px;
 }
-body:has(.cafe-root){margin:0;overflow:hidden;background:#141218}
+html:has(.cafe-root),body:has(.cafe-root){margin:0;overflow:hidden;background:#141218}
 .cafe-root [hidden]{display:none!important}
-.cafe-root #stage{position:absolute;inset:0}
+/* the 3D scene is sized to the tallest the screen gets (lvh), so it also runs on under Safari's see-through bottom
+   address bar; the HUD stays inside the visible area (the root's inset:0) so nothing you tap sits under the bar */
+.cafe-root #stage{position:fixed;top:0;left:0;right:0;height:100vh;height:100lvh}
 .cafe-root #stage canvas{display:block;width:100%;height:100%;touch-action:none}
 .cafe-root #labels{position:absolute;inset:0;pointer-events:none;overflow:hidden}
 .cafe-root .tag{position:absolute;transform:translate(-50%,-100%);font-size:12px;padding:1px 6px;background:rgba(20,18,24,.85);white-space:nowrap;box-shadow:0 0 0 2px rgba(0,0,0,.6)}
@@ -217,7 +219,7 @@ body:has(.cafe-root){margin:0;overflow:hidden;background:#141218}
 @media (max-width:900px){
   /* on a phone the whole remote is drawn smaller (--acS scales its type, keys and outline together; square-on it's
      shifted right by what the scaling took off, so it still sits 18px from the edge) */
-  .cafe-root #acRemote{--peek:6px;--acS:.68}
+  .cafe-root #acRemote{--peek:6px;--acS:.68;top:77%}
 }
 .cafe-root .tile:focus-visible{outline:3px solid #fff;outline-offset:4px}
 /* the sound switch: a pixel speaker tucked in the name panel's top right corner, crossed out and dimmed when off */

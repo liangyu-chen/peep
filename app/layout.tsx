@@ -20,7 +20,7 @@ export const metadata: Metadata = {
   twitter: { card: 'summary_large_image', title: '窺視咖啡', description: DESCRIPTION, images: [SHARE_IMAGE.url] },
 };
 
-export const viewport: Viewport = { width: 'device-width', initialScale: 1, themeColor: '#141218' };
+export const viewport: Viewport = { width: 'device-width', initialScale: 1, viewportFit: 'cover', themeColor: '#141218' };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
