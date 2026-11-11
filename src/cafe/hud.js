@@ -266,16 +266,18 @@ export function bindHUD(root, stage) {
   };
   remote.classList.remove('open'); $('acHead')?.setAttribute('aria-expanded', 'false');
   showAc();
-  // the look: moulded plastic, or 8-bit (.px); the choice is kept on this device
+  // the look: 8-bit (.px) to start with, or moulded plastic once someone swaps to it; only a swap is saved, so this
+  // device keeps what it last picked (a new key: the first version saved its starting look as if it had been picked)
+  const SKIN_KEY = 'acRemoteSkin';
   const skinBtn = $('acSkin');
-  const setSkin = px => {
+  const setSkin = (px, save) => {
     remote.classList.toggle('px', px);
     skinBtn.setAttribute('aria-pressed', String(px));
-    try { localStorage.setItem('acSkin', px ? 'px' : 'real'); } catch {}
+    if (save) try { localStorage.setItem(SKIN_KEY, px ? 'px' : 'real'); } catch {}
   };
   let savedSkin = null;
-  try { savedSkin = localStorage.getItem('acSkin'); } catch {}
-  setSkin(savedSkin === 'px');
+  try { savedSkin = localStorage.getItem(SKIN_KEY); localStorage.removeItem('acSkin'); } catch {}
+  setSkin(savedSkin !== 'real');
   // 換一隻遙控: the one in hand slides off to the right and the other one slides back in its place
   let swapTimer;
   on(skinBtn, 'click', () => {
@@ -283,7 +285,7 @@ export function bindHUD(root, stage) {
     sfx('beep');
     remote.classList.add('swapping');
     clearTimeout(swapTimer);
-    swapTimer = setTimeout(() => { setSkin(!remote.classList.contains('px')); remote.classList.remove('swapping'); }, 280);
+    swapTimer = setTimeout(() => { setSkin(!remote.classList.contains('px'), true); remote.classList.remove('swapping'); }, 280);
   });
   on(remote, 'click', e => {
     if (remote.classList.contains('open')) { if (e.target.closest('#acHead')) setAcOpen(false); }
