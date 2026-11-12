@@ -181,22 +181,31 @@ function setCam(name) {
 // closes, they leave, another view is picked, or a game starts
 let follow = null;   // { obj, name, outside }
 const followPt = new THREE.Vector3(), followUp = new THREE.Vector3(0, 0.75, 0);
-const followPoint = obj => obj.getWorldPosition(followPt).add(followUp);   // about waist high, so the head sits above the middle
+const followPoint = obj => obj.getWorldPosition(followPt).add(follow?.up || followUp);   // about waist high, so the head sits above the middle
 // where the camera sits, from them: inside, from high over the front corner the way the overview looks in (the
 // cutaway has no roof, and a low camera would be behind a wall); out under the arcade or on the street, low from the
 // street, as the porch view looks (from up high the balcony above hides them)
 const FOLLOW_IN = new THREE.Vector3(0.45, 0.75, 0.5).normalize().multiplyScalar(4.6);
 const FOLLOW_OUT = new THREE.Vector3(0, 0.33, 1).normalize().multiplyScalar(3.6);
+// something small on the floor, the cockroach: one distance, in or out, from well further off than for a person; in,
+// the same way the overview looks in, out from the street side, still low enough to look in under the balcony (much
+// more than 0.6 up and the balcony hides the porch)
+const FLOOR_DIST = 8.5;
+const FOLLOW_FLOOR_IN = FOLLOW_IN.clone().setLength(FLOOR_DIST);
+const FOLLOW_FLOOR_OUT = new THREE.Vector3(0, 0.45, 1).setLength(FLOOR_DIST);
 const isOutside = obj => obj.getWorldPosition(followPt).z > 4.6;   // past the front door (DOOR in layout.js)
 // a fly to them, from wherever the camera is now (further off on a tall, narrow phone screen)
 function followTween(dur) {
   const { camera, controls } = ctx;
-  const off = (follow.outside ? FOLLOW_OUT : FOLLOW_IN).clone().multiplyScalar(Math.sqrt(Math.max(1, 0.9 / camera.aspect)));
+  const off = (follow.floor ? (follow.outside ? FOLLOW_FLOOR_OUT : FOLLOW_FLOOR_IN) : (follow.outside ? FOLLOW_OUT : FOLLOW_IN)).clone().multiplyScalar(Math.sqrt(Math.max(1, 0.9 / camera.aspect)));
   camTween = { fp: camera.position.clone(), ft: controls.target.clone(), tp: new THREE.Vector3(), tt: new THREE.Vector3(), t: 0, dur, follow: off };
 }
-function startFollow(obj, name) {
+// (floor: something small on the floor, the cockroach: from FLOOR_DIST, so whoever's round it, and what happens next,
+// is in the picture too, looking at the floor round it. It's only a fly-over to show where it is: the first drag,
+// zoom or Esc lets the camera go)
+function startFollow(obj, name, floor) {
   if (!obj) return;
-  follow = { obj, name, outside: isOutside(obj) };
+  follow = { obj, name, outside: isOutside(obj), floor: !!floor, up: floor ? new THREE.Vector3(0, 0.3, 0) : null, loose: !!floor };
   followTween(0.8);
   document.querySelectorAll('[data-cam]').forEach(b => b.classList.remove('on'));
   const rec = $('camRec'); if (rec) rec.hidden = true;   // (the monitor's channel is only for the monitor's own views)
@@ -381,7 +390,7 @@ export function bindHUD(root, stage) {
   const musicBtn = $('musicToggle'), showMusic = () => musicBtn?.classList.toggle('on', musicOn());
   showMusic(); on(musicBtn, 'click', () => { toggleMusic(); showMusic(); });
   // the RPG menu (rpgMenu.js)
-  menu = bindMenu(root, on, off, { setCam, focusPerson });
+  menu = bindMenu(root, on, off, { setCam, focusPerson, followThing: startFollow });
   off.push(() => { menu = null; });
   // every touch, click or key wakes the sound: a finger's pointerdown doesn't count as a gesture on phones (only its
   // pointerup / touchend do), and after a hidden tab or a call the sound has to be woken again
@@ -391,8 +400,10 @@ export function bindHUD(root, stage) {
   off.push(stopMusic);
   on($('tvCard'), 'click', () => setCam('tv'));
   // a drag stops a camera move (while following someone it orbits round them instead, and the follow carries on)
-  const stopTween = () => { camTween = null; root.querySelectorAll('[data-cam]').forEach(b => b.classList.remove('on')); menu?.hideRec(); };
+  // (a loose follow, the cockroach's, lets go altogether)
+  const stopTween = () => { camTween = null; if (follow?.loose) stopFollow(); root.querySelectorAll('[data-cam]').forEach(b => b.classList.remove('on')); menu?.hideRec(); };
   ctx.controls.addEventListener('start', stopTween); off.push(() => ctx.controls.removeEventListener('start', stopTween));
+  on(window, 'keydown', e => { if (e.key === 'Escape' && follow?.loose) stopFollow(); });
 
   const canvas = ctx.renderer.domElement;
   const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();

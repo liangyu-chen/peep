@@ -36,7 +36,7 @@ export const L = (skin, hair, hairStyle, shirt, pants, extra = {}) => Object.ass
 // the regulars come from the back office; each visit to the page starts their 2K record afresh,
 // and an unset favourite team or fighting-game character is drawn at random for the visit
 export const createRegulars = () => S.content.regulars.map(r => ({
-  ...r, look: { ...r.look },
+  ...r, look: { ...r.look }, look2: r.look2 ? { ...r.look2 } : null,
   team: TEAMS[r.team] ? r.team : pick(TEAM_NAMES),
   fighter: FIGHTER_NAMES.includes(r.fighter) ? r.fighter : pick(FIGHTER_NAMES),
   regular: true, wins: randi(10, 60), losses: randi(10, 60),

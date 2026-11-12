@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { asc, eq } from 'drizzle-orm';
 import { requireAdmin } from '@/src/lib/auth';
 import { getDb, schema } from '@/src/lib/db';
-import { FIGHTER_NAMES, SEAT_PREFS, TEAM_NAMES, type Look } from '@/src/content/catalog';
+import { FIGHTER_NAMES, SEAT_PREFS, TEAM_NAMES, LOOK2, type Look } from '@/src/content/catalog';
 import { addRegular, updateRegular, deleteRegular } from '../../../actions';
 import LookPreview from '../../LookPreview';
 import LookFields from '../../LookFields';
@@ -24,6 +24,7 @@ export default async function RegularEditor({ params, searchParams }: { params: 
   const menu = await db.select({ name: schema.menuItems.name, active: schema.menuItems.active }).from(schema.menuItems).orderBy(asc(schema.menuItems.sort));
   const drinks = menu.filter(m => m.active).map(m => m.name);
   const look = row?.look ?? NEW_LOOK;
+  const look2 = row?.look2 ?? look;   // (none yet: starts as a copy of the first)
 
   return (
     <>
@@ -33,7 +34,7 @@ export default async function RegularEditor({ params, searchParams }: { params: 
 
       <form action={isNew ? addRegular : updateRegular} className="editor">
         {row && <input type="hidden" name="id" value={row.id} />}
-        <div className="editor-preview"><LookPreview initial={look} seed={row?.name ?? ''} /></div>
+        <div className="editor-preview"><LookPreview initial={look} second={look2} seed={row?.name ?? ''} /></div>
 
         <div className="editor-fields">
           <section className="panel-block">
@@ -85,7 +86,12 @@ export default async function RegularEditor({ params, searchParams }: { params: 
             </div>
           </section>
 
-          <LookFields look={look} seed={row?.name ?? ''} />
+          <div className="look-set look-set-1"><LookFields look={look} seed={row?.name ?? ''} /></div>
+          {/* 第二套捏臉: shown in place of the first when the preview's 第二套 is picked */}
+          <div className="look-set look-set-2">
+            <p className="note ok look-set-note">正在編輯<b>第二套捏臉</b>：熟客每次來店隨機用其中一套。按預覽下方的「第一套」切回去。</p>
+            <LookFields look={look2} seed={row?.name ?? ''} prefix={LOOK2} />
+          </div>
 
           <SaveBar label={isNew ? '新增熟客' : '儲存'}>
             {row && <ConfirmButton formAction={deleteRegular} className="danger" formNoValidate

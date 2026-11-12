@@ -28,6 +28,7 @@ export type SeatPref = typeof SEAT_PREFS[number]['value'];
 
 export type Regular = {
   name: string; job: string; drink: string; visits: number; quirk: string; look: Look;
+  look2?: Look | null;      // 第二套捏臉: each visit is one of the two looks at random
   plays2k: boolean; team: string; playsFight: boolean; fighter: string; playsTops: boolean;
   smokes: boolean;          // smoking is allowed outside, so smokers always head for the porch
   seatPref: SeatPref;       // '' = random each visit; a preference still loses to smoking
@@ -240,20 +241,39 @@ export const DEFAULT_REGULARS: Regular[] = [
   { name: '球哥', job: '前校隊後衛', drink: '林美如', team: '公牛', visits: 188, look: look(0xc68a5e, 0x111111, 'short', 0x111111, 0xCE1141, { number: '1' }), plays2k: true, playsFight: true, fighter: '達爾錫', playsTops: true, smokes: true, seatPref: '', quirk: '嘴上說不玩，坐下就不走' },
 ];
 
-// 快打旋風's fighters, as they're known in Taiwan; the TV draws each one in its own colours (gi, trim, hair) and skin
+// 快打旋風 6's fighters (the launch roster, then the Year 1–3 DLC), as they're known in Taiwan; the TV draws each one in
+// its SF6 default outfit's colours (gi / top, trim, hair) and skin
 export const SF_FIGHTERS: { name: string; col: [string, string, string]; skin: string }[] = [
   { name: '隆', col: ['#f4efe3', '#c0282d', '#2a1a10'], skin: '#e0ac80' },
-  { name: '肯', col: ['#c0282d', '#1f1c27', '#e8c34a'], skin: '#f1c9a5' },
-  { name: '春麗', col: ['#1c4fd6', '#ffd23f', '#2a1a10'], skin: '#f1c9a5' },
-  { name: '古烈', col: ['#4f6b3a', '#e8c34a', '#e8c34a'], skin: '#f1c9a5' },
-  { name: '桑吉爾夫', col: ['#c0282d', '#ffd23f', '#5a3a22'], skin: '#f1c9a5' },
+  { name: '肯', col: ['#1f1c27', '#c0282d', '#e8c34a'], skin: '#f1c9a5' },
+  { name: '春麗', col: ['#2a4fb8', '#f2c94c', '#2a1a10'], skin: '#f1c9a5' },
+  { name: '古烈', col: ['#4f6b3a', '#c9b27a', '#e8c34a'], skin: '#f1c9a5' },
+  { name: '桑吉爾夫', col: ['#c0282d', '#ffd23f', '#8a3a1e'], skin: '#f1c9a5' },
   { name: '達爾錫', col: ['#e8c34a', '#f08a24', '#1f1c27'], skin: '#8d5a3b' },
   { name: '本田', col: ['#1c4fd6', '#f4efe3', '#111111'], skin: '#e0ac80' },
-  { name: '布蘭卡', col: ['#3ddc97', '#f08a24', '#f08a24'], skin: '#3ddc97' },
-  { name: '拜森', col: ['#1c4fd6', '#c0282d', '#111111'], skin: '#8d5a3b' },
-  { name: '巴洛克', col: ['#9b6bff', '#c9c9c9', '#2a1a10'], skin: '#f1c9a5' },
+  { name: '布蘭卡', col: ['#3ddc97', '#5a3fa0', '#f08a24'], skin: '#3ddc97' },
+  { name: '嘉米', col: ['#3e8a4a', '#c0282d', '#e8c34a'], skin: '#f6d7bd' },
+  { name: '迪傑', col: ['#f08a24', '#ffd23f', '#1f1c27'], skin: '#6b4428' },
+  { name: '蛛俐', col: ['#7a3fbf', '#ff4f7b', '#1f1c27'], skin: '#f1c9a5' },
+  { name: '盧克', col: ['#3d4a2c', '#1f1c27', '#6b4423'], skin: '#f1c9a5' },
+  { name: '傑米', col: ['#3fb8b0', '#f4efe3', '#1f1c27'], skin: '#e0ac80' },
+  { name: '金柏莉', col: ['#f08a24', '#5a3fa0', '#1f1c27'], skin: '#8d5a3b' },
+  { name: '曼儂', col: ['#f4efe3', '#1f1c27', '#3b2618'], skin: '#c68a5e' },
+  { name: '瑪莉莎', col: ['#c0282d', '#c9a24a', '#e8c34a'], skin: '#f1c9a5' },
+  { name: 'JP', col: ['#3a2b4a', '#9b6bff', '#e8e8e8'], skin: '#e0ac80' },
+  { name: '莉莉', col: ['#1c4fd6', '#c0282d', '#1f1c27'], skin: '#c68a5e' },
+  { name: '拉希德', col: ['#f4efe3', '#3ddc97', '#2a1a10'], skin: '#d9a27c' },
+  { name: 'A.K.I.', col: ['#6a2c8a', '#3ddc97', '#1f1c27'], skin: '#f6d7bd' },
+  { name: '艾德', col: ['#2b2b33', '#e8c34a', '#e8e8e8'], skin: '#f1c9a5' },
+  { name: '豪鬼', col: ['#3a3a44', '#1f1c27', '#c0282d'], skin: '#c68a5e' },
+  { name: '維加', col: ['#8a1a1a', '#e8c34a', '#e8e8e8'], skin: '#e0ac80' },
+  { name: '泰瑞', col: ['#c0282d', '#2a4fb8', '#e8c34a'], skin: '#f1c9a5' },
+  { name: '不知火舞', col: ['#c0282d', '#f4efe3', '#5a3a22'], skin: '#f6d7bd' },
+  { name: '艾蓮娜', col: ['#f4efe3', '#3ddc97', '#f4efe3'], skin: '#6b4428' },
   { name: '沙加特', col: ['#f08a24', '#f4efe3', '#1f1c27'], skin: '#c68a5e' },
-  { name: '維加', col: ['#c0282d', '#ffd23f', '#1f1c27'], skin: '#e0ac80' },
+  { name: 'C.Viper', col: ['#1f1c27', '#c9c9c9', '#c0282d'], skin: '#f1c9a5' },
+  { name: '亞歷克斯', col: ['#4f6b3a', '#1f1c27', '#e8c34a'], skin: '#f1c9a5' },
+  { name: '英格麗', col: ['#f4efe3', '#ffd23f', '#e8a24a'], skin: '#f6d7bd' },
 ];
 export const FIGHTER_NAMES = SF_FIGHTERS.map(f => f.name);
 

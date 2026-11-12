@@ -12,7 +12,7 @@ import { updateTV, drawTV } from './tv.js';
 import { createOwner, createSteam, createSmoke, seedOpeningScene, tickShop, updateSteam, updateSmoke } from './sim.js';
 import { bindHUD, updateHUD, fillCard, updateCamera, updateLabels } from './hud.js';
 import { renderResults } from './feed.js';
-import { createStadium, updateTops } from './tops.js';
+import { createStadium, updateTops, inviteTops } from './tops.js';
 import { SMOKE_POSE, DRINK_POSE } from './people.js';
 import { buildBody } from './body.js';
 import { makeDog, makeCorgi, animateDog, followDog } from './dog.js';
@@ -22,6 +22,7 @@ import { mergeStatic } from './optimize.js';
 import { gatherWallItems, fadeWallItems } from './wallItems.js';
 import { setQuality, DEFAULT_QUALITY, highQuality, qualityPR, frameMs } from './quality.js';
 import { disposePortraits } from './portrait.js';
+import { updateRoach, tvPaused, disposeRoach, releaseRoach, raiseAlarm } from './roach.js';
 // (one café at a time: a new one waits until the one before is built and, if it was let go meanwhile, torn down)
 let queue = Promise.resolve();
 export function startCafe(root, content, onReady) {
@@ -59,9 +60,10 @@ async function build(root, content) {
   // everything that moves, for dt real seconds (sdt simulated seconds)
   function simulate(dt, sdt) {
     tickShop(sdt);
-    for (let i = S.timers.length - 1; i >= 0; i--) { const tm = S.timers[i]; tm.t -= sdt; if (tm.t <= 0) { S.timers.splice(i, 1); tm.r(); } }
+    for (let i = S.timers.length - 1; i >= 0; i--) { const tm = S.timers[i]; if (tm.who?.frozen) continue; tm.t -= sdt; if (tm.t <= 0) { S.timers.splice(i, 1); tm.r(); } }
     S.people.slice().forEach(p => p.update(sdt));
-    updateTV(sdt);
+    if (!tvPaused()) updateTV(sdt);   // (held while there's a cockroach to watch being dealt with)
+    updateRoach(sdt);
     updateSteam(sdt);
     updateSmoke(sdt);
     updateTops(sdt);
@@ -156,7 +158,7 @@ async function build(root, content) {
   raf = requestAnimationFrame(frame);
   // development only: step the simulation from the console without rendering, e.g. await __cafe.step(60)
   if (process.env.NODE_ENV !== 'production') window.__cafe = {
-    S, ctx, SMOKE_POSE, DRINK_POSE, buildBody, makeDog, makeCorgi, animateDog, followDog, THREE, step: async (secs, dt = 0.05) => {
+    S, ctx, releaseRoach, raiseAlarm, inviteTops, SMOKE_POSE, DRINK_POSE, buildBody, makeDog, makeCorgi, animateDog, followDog, THREE, step: async (secs, dt = 0.05) => {
       for (let t = 0; t < secs && !S.stopped; t += dt) { simulate(dt, dt); for (let k = 0; k < 12; k++) await null; }
       drawTV(); updateHUD();
     },
@@ -170,6 +172,7 @@ async function build(root, content) {
   return function stopCafe() {
     S.stopped = true;
     disposePortraits();
+    disposeRoach();
     INPUTS.forEach(e => window.removeEventListener(e, poke));
     cancelAnimationFrame(raf);
     clearInterval(hudTimer);

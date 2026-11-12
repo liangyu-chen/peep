@@ -271,7 +271,9 @@ const CAFE_DETAIL = 0.55;
 export class Person {
   constructor(profile, role) {
     this.p = profile; this.role = role;
-    Object.assign(this, buildBody(profile.look, profile.name, { detail: CAFE_DETAIL }));
+    // how they look this time: a regular with a second look (第二套捏臉) comes as either one, at random, each visit
+    this.look = role === 'customer' && profile.look2 && Math.random() < 0.5 ? profile.look2 : profile.look;
+    Object.assign(this, buildBody(this.look, profile.name, { detail: CAFE_DETAIL }));
     mergeParts(this.g, bodyKeep(this));
     this.faceAnim = { blinkT: Math.random() * 4 };
     this.g.traverse(o => { if (o.isMesh) o.userData.person = this; });
@@ -282,7 +284,7 @@ export class Person {
     ctx.scene.add(this.g);
     // a companion going about with them (this.bear, whichever it is): 路易斯 the bear flying at their shoulder, or 夜叉丸
     // the dog trotting at their feet; click it and it says its piece
-    const pet = profile.look?.companion;
+    const pet = this.look?.companion;
     if (pet === 'bear' || pet === 'dog' || pet === 'corgi') {
       this.bear = pet === 'dog' ? Object.assign(makeDog(), { follow: followDog, kind: 'dog' }) : pet === 'corgi' ? Object.assign(makeCorgi(), { follow: followDog, kind: 'corgi' }) : Object.assign(makeBear(), { follow: followBear, kind: 'bear', name: '路易斯', line: '愛老公', bubbleY: 0.24 }); mergeParts(this.bear.g); this.bear.g.traverse(o => { if (o.isMesh) o.userData.bearOf = this; }); ctx.scene.add(this.bear.g); moverShadows(this.bear.g);
       if (this.bear.kind !== 'bear') this.bear.g.visible = false;
@@ -421,6 +423,13 @@ export class Person {
     if (this.act === 'shoot') { armRx = -1.35; elR = -0.1; armRz = -0.05; }                          // and ripped forward
     if (this.act === 'pull') { armLx = armRx = -0.12; elL = elR = -0.25; armLz = 0.32; armRz = -0.32; bob = -Math.abs(Math.sin(this.actT * 4)) * 0.03; }   // hands at the waistband, tugging
     if (this.act === 'carry') { armLx = armRx = -0.9; elL = elR = -0.7; armLz = 0.25; armRz = -0.25; }
+    // after a cockroach: crouched over it, the slipper up high and then slapped down (the second half of the gesture)
+    if (this.act === 'swat') {
+      const down = this.actT < 0.3;
+      y = -0.2; hipL = hipR = -0.85; kL = kR = 1.15; armLx = -0.6; elL = -0.9; armLz = 0.2;
+      armRx = down ? -0.55 : -2.7; elR = down ? -0.05 : -0.9; armRz = -0.15;
+    }
+    if (this.act === 'crouch') { y = -0.28; hipL = hipR = -1.2; kL = kR = 1.5; armRx = -0.5; elR = -0.2; armLx = -0.4; elL = -0.6; }   // reaching down to the floor
     poseBody(this, { hipL, hipR, kL, kR, armLx, armLy, armLz, armRx, armRy, armRz, elL, elR });
     if (this.cup && this.cup.parent === this.cupHand)
       gripCup(this, this.act === 'sip' ? sipPose(this.cup).tilt * Math.min(1, (1.4 - this.actT) * 3) : 0);
@@ -448,5 +457,9 @@ export class Person {
   }
 }
 
-// walks a path given in plan coordinates; resolves on arrival
-export function walk(person, pts) { return new Promise(r => { person.path = pts.map(p => [p[0] * K, p[1]]); if (!pts.length) r(); else person.onArrive = r; }); }
+// walks a path given in plan coordinates; resolves on arrival. Someone frozen (run off from a cockroach, roach.js) only
+// sets off once they're back where they were
+export function walk(person, pts) {
+  return new Promise(r => { if (person.frozen) person.frozen.resume = { pts, r }; else walkNow(person, pts, r); });
+}
+export function walkNow(person, pts, r = () => {}) { person.path = pts.map(p => [p[0] * K, p[1]]); person.onArrive = null; if (!pts.length) r(); else person.onArrive = r; }

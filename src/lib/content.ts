@@ -33,8 +33,8 @@ export async function getContent(): Promise<CafeContent & { source: 'db' | 'defa
       lines[key] = lineRows.filter(r => r.category === key && r.active).map(r => r.text);
     }
     const regulars = regularRows?.length
-      ? regularRows.filter(r => r.active).map(({ name, job, drink, team, visits, quirk, look, plays2k, playsFight, fighter, playsTops, smokes, seatPref }) =>
-        ({ name, job, drink, team, visits, quirk, look, plays2k, playsFight, fighter, playsTops, smokes, seatPref: asSeatPref(seatPref) }))
+      ? regularRows.filter(r => r.active).map(({ name, job, drink, team, visits, quirk, look, look2, plays2k, playsFight, fighter, playsTops, smokes, seatPref }) =>
+        ({ name, job, drink, team, visits, quirk, look, look2, plays2k, playsFight, fighter, playsTops, smokes, seatPref: asSeatPref(seatPref) }))
       : DEFAULT_REGULARS;
     const pools = {} as RandomPools;
     for (const key of POOL_KEYS) {

@@ -16,6 +16,13 @@ export const DAYS = ['週日', '週一', '週二', '週三', '週四', '週五',
 export const closeHour = () => (S.dow === 5 || S.dow === 6) ? 22 : 20;
 
 // ---------------------------------------------------------------- owner (the one and only staff)
+// his waits are marked as his, so that when a cockroach turns up (roach.js) they can all be dropped at once: whatever
+// he was doing just stops where it is. And while he's after one (owner.hunting), any wait or walk his work asks for
+// never comes back: a wait or walk of his that happened to finish in the very same moment would otherwise carry his
+// work on, walking him off from the chase and leaving it (and everyone who ran from it) stuck
+const NEVER = new Promise(() => {});
+const os = s => S.owner.hunting ? NEVER : sleep(s, S.owner);
+const ow = pts => S.owner.hunting ? NEVER : walk(S.owner, pts);
 export function createOwner() {
   const o = S.content.owner;
   const owner = new Person({ name: o.name, job: o.job, look: o.look }, 'owner');
@@ -25,16 +32,41 @@ export function createOwner() {
   ownerLoop(owner);
 }
 
+// he drops whatever he's doing: everything he was waiting on is thrown away (that run of his loop never goes on), and
+// what he had in his hands is back where it came from at once: the ashtray on its table, the empties on theirs, a
+// drink he was making gone (the customer back at the front of the queue, to be made a fresh one)
+export function interruptOwner() {
+  const o = S.owner;
+  for (let i = S.timers.length - 1; i >= 0; i--) if (S.timers[i].who === o) S.timers.splice(i, 1);
+  o.path = []; o.onArrive = null; o.act = null; o.actT = 0;
+  S.brewing = false;
+  (o.carry || []).forEach(it => { if (it.g.parent === o.hand) { it.parent.attach(it.g); it.g.position.copy(it.pos); it.g.rotation.copy(it.rot); } });
+  o.carry = [];
+  (o.taking || []).forEach(e => {
+    if (e.sunk || !e.g.parent) return;
+    if (e.g.parent === o.hand && e.from) { e.from.parent.attach(e.g); e.g.position.copy(e.from.pos); e.g.rotation.copy(e.from.rot); }
+    e.got = false;
+    if (!S.empties.includes(e)) S.empties.push(e);
+  });
+  o.taking = null;
+  if (o.cup) { o.cup.parent?.remove(o.cup); o.cup = null; }
+  if (o.serving && !o.serving.gone) S.orderQueue.unshift(o.serving);
+  o.serving = null;
+  if (o.storeLit) { setStoreLight(false); o.storeLit = false; }
+}
+// and, once it's dealt with, back to work (anything his work picked up in the moment the chase began put back first)
+export function resumeOwner() { const o = S.owner; o.hunting = null; interruptOwner(); ownerLoop(o); }
+
 // behind the bar he walks down the middle of his lane, so his swinging arms never brush the bar or the work counter,
 // and only steps across to a spot once he's level with it and has turned to face it (turning mid-step swings a hand into the bar)
 async function ownerTo(owner, x, z, more = []) {
   const pts = [];
   if (Math.abs(owner.g.position.x / K - LANE) > 0.05) pts.push([LANE, owner.g.position.z]);
   if (z !== null) pts.push([LANE, z]);
-  if (pts.length || more.length) await walk(owner, pts.concat(more));
+  if (pts.length || more.length) await ow(pts.concat(more));
   if (z !== null && Math.abs(x - LANE) > 0.01) {
-    owner.face(x < LANE ? -Math.PI / 2 : Math.PI / 2); await sleep(0.35);
-    await walk(owner, [[x, z]]);
+    owner.face(x < LANE ? -Math.PI / 2 : Math.PI / 2); await os(0.35);
+    await ow([[x, z]]);
   }
 }
 
@@ -49,26 +81,27 @@ async function emptyAshtrays(owner, trays) {
   let zone = FRONT_OUT;
   for (const a of trays) {
     owner.status = '去戶外區收菸灰缸';
-    await walk(owner, route(zone, a.path)); zone = a.path;
-    owner.face(a.face); await sleep(0.5);
-    owner.gesture('serve', 0.6); await sleep(0.5);
+    await ow(route(zone, a.path)); zone = a.path;
+    owner.face(a.face); await os(0.5);
+    owner.gesture('serve', 0.6); await os(0.5);
     const home = a.g.parent;
+    owner.carry = [{ g: a.g, parent: home, pos: a.home.pos, rot: a.home.rot }];   // (put back at once if he has to drop it)
     owner.hand.attach(a.g); a.g.position.set(0, -0.06, 0.02); a.g.rotation.set(0, 0, 0);   // in his hand
     owner.status = '拿菸灰缸去垃圾桶倒';
     owner.gesture('serve', 60);
-    await walk(owner, route(zone, BIN)); zone = BIN;
-    owner.face(Math.PI / 2); await sleep(0.5);
-    a.g.rotation.z = -1.2; await sleep(0.9);   // tipped over the bin
-    a.n = 0; a.show(); a.g.rotation.z = 0; await sleep(0.3);
+    await ow(route(zone, BIN)); zone = BIN;
+    owner.face(Math.PI / 2); await os(0.5);
+    a.g.rotation.z = -1.2; await os(0.9);   // tipped over the bin
+    a.n = 0; a.show(); a.g.rotation.z = 0; await os(0.3);
     owner.status = '把菸灰缸放回去';
-    await walk(owner, route(zone, a.path)); zone = a.path;
-    owner.face(a.face); await sleep(0.4);
-    home.attach(a.g); a.g.position.copy(a.home.pos); a.g.rotation.copy(a.home.rot);   // back where it was
-    owner.act = null; owner.actT = 0; await sleep(0.4);
+    await ow(route(zone, a.path)); zone = a.path;
+    owner.face(a.face); await os(0.4);
+    home.attach(a.g); a.g.position.copy(a.home.pos); a.g.rotation.copy(a.home.rot); owner.carry = [];   // back where it was
+    owner.act = null; owner.actT = 0; await os(0.4);
   }
   owner.status = '回吧台';
   const back = [[LANE, rand(-1.5, 1.5)]].concat(FRONT_OUT);
-  await walk(owner, route(zone, back));
+  await ow(route(zone, back));
   owner.act = null; owner.actT = 0;
 }
 
@@ -89,10 +122,12 @@ async function clearEmpties(owner) {
     take.push(from = left.shift());
   }
   S.empties = S.empties.filter(e => e.g.parent && !take.includes(e));
+  owner.taking = take;   // (handed back to the tables if he has to drop them)
   take.sort((a, b) => (a.porch ? 1 : 0) - (b.porch ? 1 : 0));   // the outdoor ones last, all in one sweep
   owner.status = '去收空杯';
   let held = 0;
   const pick = e => {
+    e.from = { parent: e.g.parent, pos: e.g.position.clone(), rot: e.g.rotation.clone() };
     owner.hand.attach(e.g); e.g.position.set((held - 1.5) * 0.035, -0.06, 0.02); e.g.rotation.set(0, 0, 0); held++; e.got = true;
   };
   // the manga ledge's stools are right behind the bar's back end: those he reaches from there, without going round by
@@ -101,10 +136,10 @@ async function clearEmpties(owner) {
   if (ledge.length) {
     await ownerTo(owner, LANE, -2.3);
     for (const e of ledge) {
-      await walk(owner, [[Math.max(0.6, e.x), -3.55]]);   // just behind the stool
-      owner.face(Math.PI); await sleep(0.4); owner.gesture('serve', 0.6); await sleep(0.5); pick(e);
+      await ow([[Math.max(0.6, e.x), -3.55]]);   // just behind the stool
+      owner.face(Math.PI); await os(0.4); owner.gesture('serve', 0.6); await os(0.5); pick(e);
     }
-    await walk(owner, [[LANE, -2.3]]);
+    await ow([[LANE, -2.3]]);
   }
   if (take.some(e => !e.got && e.g.parent)) await ownerTo(owner, LANE, 2.9);
   let zone = FRONT_OUT, porchNow = false;
@@ -112,34 +147,35 @@ async function clearEmpties(owner) {
     if (e.got || !e.g.parent) continue;
     const full = e.path.length > 1 ? e.path.slice(1) : e.path;
     const to = e.porch && porchNow ? full.slice(0, -1) : full;   // once outside, go between the porch tables directly
-    await walk(owner, route(zone, to));
+    await ow(route(zone, to));
     zone = e.porch ? full.slice(0, -1) : full;
     porchNow = !!e.porch;
     const wp = cupAt(e);
-    owner.face(Math.atan2(wp.x - owner.g.position.x, wp.z - owner.g.position.z)); await sleep(0.4);
-    owner.gesture('serve', 0.6); await sleep(0.5);
+    owner.face(Math.atan2(wp.x - owner.g.position.x, wp.z - owner.g.position.z)); await os(0.4);
+    owner.gesture('serve', 0.6); await os(0.5);
     // this one, and any other on the list within reach of where he stands (the next table along, the same crates)
     pick(e);
-    for (const o of take) if (!o.got && o.g.parent && cupAt(o).distanceTo(owner.g.position) < 1.1) { await sleep(0.35); pick(o); }
+    for (const o of take) if (!o.got && o.g.parent && cupAt(o).distanceTo(owner.g.position) < 1.1) { await os(0.35); pick(o); }
     owner.status = '收空杯';
   }
   owner.status = '把空杯拿去水槽';
   owner.gesture('serve', 60);
-  if (take.some(e => !e.ledge)) await walk(owner, route(zone, FRONT_OUT));
-  await walk(owner, [[LANE, owner.g.position.z], [2.0, -1.55]]);
-  owner.face(-Math.PI / 2); await sleep(0.4);
+  if (take.some(e => !e.ledge)) await ow(route(zone, FRONT_OUT));
+  await ow([[LANE, owner.g.position.z], [2.0, -1.55]]);
+  owner.face(-Math.PI / 2); await os(0.4);
   take.forEach((e, i) => {
     if (e.g.parent !== owner.hand) return;
     ctx.scene.attach(e.g); const [x, z] = SINK_AT[(S.sinkN = ((S.sinkN || 0) + 1)) % SINK_AT.length];
-    e.g.position.set(x * K, 0.79, z); e.g.rotation.set(0, Math.random() * 3, 0);
+    e.g.position.set(x * K, 0.79, z); e.g.rotation.set(0, Math.random() * 3, 0); e.sunk = true;
     S.timers.push({ t: rand(40, 70), r: () => e.g.parent?.remove(e.g) });   // washed and put away
   });
-  owner.gesture('wipe', 1.6); await sleep(1.6);   // a rinse
+  owner.taking = null;
+  owner.gesture('wipe', 1.6); await os(1.6);   // a rinse
   owner.act = null; owner.actT = 0;
 }
 
 async function ownerLoop(owner) {
-  while (!S.stopped) {
+  while (!S.stopped && !owner.hunting) {
     // more than five empties out on the tables: they're cleared first, before the next order
     if ((S.empties || []).length > 5) { await clearEmpties(owner); continue; }
     if (!S.orderQueue.length) {
@@ -148,13 +184,13 @@ async function ownerLoop(owner) {
         // in at the storeroom door, the light flicked on at the switch outside it (and back off, if it was off, coming out)
         const back = [[LANE, -2.3], ...BAR_TO_BACK, [-1.85, -4.1], [-1.85, -5.8], [-0.3, -5.8]], shelf = [1.0, -5.8];
         await ownerTo(owner, LANE, null, back);
-        const wasOn = S.storeLight?.on; if (!wasOn) { setStoreLight(true); await sleep(0.3); }
-        await walk(owner, [shelf]);
-        owner.face(Math.PI); await sleep(1.5);
+        const wasOn = S.storeLight?.on; if (!wasOn) { setStoreLight(true); owner.storeLit = true; await os(0.3); }
+        await ow([shelf]);
+        owner.face(Math.PI); await os(1.5);
         owner.gesture('carry', 30);
-        await walk(owner, [back[back.length - 1]]);
-        if (!wasOn) setStoreLight(false);
-        await walk(owner, back.slice(0, -1).reverse().concat([[LANE, rand(-1.5, 2)]]));
+        await ow([back[back.length - 1]]);
+        if (!wasOn) { setStoreLight(false); owner.storeLit = false; }
+        await ow(back.slice(0, -1).reverse().concat([[LANE, rand(-1.5, 2)]]));
         owner.act = null; owner.actT = 0;
         if (Math.random() < 0.5) sayLine(owner, 'owner.beansDone');
         continue;
@@ -170,14 +206,15 @@ async function ownerLoop(owner) {
       const toBar = Math.random() < 0.5;
       await ownerTo(owner, toBar ? 2.05 : 1.95, rand(-1.6, 2.0));
       owner.face(toBar ? -Math.PI / 2 : Math.PI / 2);
-      await sleep(0.5);   // turned all the way round before his hands go out, or they sweep through the other counter
+      await os(0.5);   // turned all the way round before his hands go out, or they sweep through the other counter
       owner.gesture(Math.random() < 0.5 ? 'wipe' : 'pour', 2);
       if (Math.random() < 0.12 && !S.closing && S.customers.length) sayLine(owner, 'owner.idle');   // (no chatter to an empty shop, or while closing up)
-      for (let i = 0; i < 4 && !S.orderQueue.length; i++) await sleep(0.6);
+      for (let i = 0; i < 4 && !S.orderQueue.length; i++) await os(0.6);
       continue;
     }
     const c = S.orderQueue.shift();
     if (c.gone) continue;
+    owner.serving = c;   // (back to the front of the queue if he has to drop it)
     // a regular's usual (on the menu or not), though now and then they try something else, hidden menu and all
     const usual = drinkFor(c.p.drink), others = menuNames().filter(n => n !== usual);
     const tryOther = c.p.regular && others.length && Math.random() < 0.3;
@@ -189,33 +226,33 @@ async function ownerLoop(owner) {
     await ownerTo(owner, 1.62, c.spot.z);
     owner.face(-Math.PI / 2);
     sayLine(owner, c.p.regular ? 'owner.greetRegular' : 'owner.greetNew', greet);   // (the owner offers a regular their usual)
-    await sleep(1.6);
+    await os(1.6);
     sayLine(c, c.p.regular ? (tryOther ? 'customer.orderOther' : 'customer.orderRegular') : 'customer.orderNew', vars);
-    await sleep(1.4);
+    await os(1.4);
     owner.status = `做${c.drink}`;
     await ownerTo(owner, MACHINE[0], MACHINE[1]);
     owner.face(-Math.PI / 2); owner.gesture('brew', 2.2); S.brewing = true;
-    await sleep(2.2);
-    owner.gesture('pour', 1.6); await sleep(1.6);
+    await os(2.2);
+    owner.gesture('pour', 1.6); await os(1.6);
     S.brewing = false;
     // he takes the cup as he steps back into his lane, and serves from there, reaching it up and over onto the bar,
     // so it is never carried low into the bar's side
-    await walk(owner, [[LANE, MACHINE[1]]]);
+    await ow([[LANE, MACHINE[1]]]);
     // ordered as the shop's closing, or with nowhere left to sit: they'll be off with it, so it goes in a takeaway cup
     const togo = S.closing || !S.seats.tableSeats.some(t => !t.occ);
     const cup = togo ? makeTakeaway() : makeCup(drink, variant); owner.hold(cup);
     await ownerTo(owner, LANE, c.spot.z);
-    owner.face(-Math.PI / 2); await sleep(0.3);
-    if (c.gone) { owner.dropCup(); continue; }
+    owner.face(-Math.PI / 2); await os(0.3);
+    if (c.gone) { owner.dropCup(); owner.serving = null; continue; }
     sayLine(owner, variant === 'ice' ? 'owner.serveIced' : 'owner.serveHot', vars);
     owner.gesture('serve', 0.9);
     owner.putCup(0.85, 1.07, c.spot.z);   // clear of the clipboard and the toys
-    await sleep(0.6);
-    c.hold(cup); owner.cup = null;
+    await os(0.6);
+    c.hold(cup); owner.cup = null; owner.serving = null;
     const price = priceOf(drink, variant);
     S.revenue += price; S.cupsSold++;
     floatText('coin', `+$${price}`, new THREE.Vector3(0.6, 1.5, c.spot.z));    c.resolveServed();
-    await sleep(0.4);
+    await os(0.4);
   }
 }
 
@@ -230,6 +267,8 @@ function freeTableSeat(preferPorch) {
 
 export function trySpawn(force) {
   if ((!S.open || S.closing) && !force) return false;
+  // nobody comes in while there's a cockroach being chased round the shop, or the ones who ran from it aren't back yet
+  if (S.roach?.alarm || S.customers.some(c => c.frozen)) { if (force) log('店裡正在抓蟑螂，客人不敢進來。'); return false; }
   if (S.closing && force) { log('打烊了，明天請早。'); return false; }
   if (S.customers.length >= 14) { if (force) log('店裡坐滿了，晚點再來。'); return false; }
   const spot = S.seats.counterSpots.find(s => !s.occ);
@@ -255,14 +294,14 @@ async function leave(c, zone) {
   c.status = '準備離開';
   if (c.bear && c.bear.line === '汪！') c.say(`${c.bear.name}，走囉！`);   // calling the dog by name, who comes trotting after them
   // still holding a glass or a tea cup (watching the TV, say): the last of it, then it's left behind, not taken out
-  if (c.cup && !c.cup.userData.togo) { c.gesture('sip', 1.4); await sleep(1.4); setLevel(c.cup, 0); c.dropCup(); }
+  if (c.cup && !c.cup.userData.togo) { c.gesture('sip', 1.4); await sleep(1.4, c); setLevel(c.cup, 0); c.dropCup(); }
   await walk(c, route(zone, OUT));
   c.outside = true;
   sayLine(c, p.regular ? 'customer.leaveRegular' : 'customer.leaveNew');
   if (p.regular) c.gesture('wave', 1.5);
   if (Math.random() < 0.6) sleep(0.7).then(() => sayLine(S.owner, p.regular ? 'owner.byeRegular' : 'owner.byeNew', { name: p.name }));
   await walk(c, [[(Math.random() < 0.5 ? -1 : 1) * WALK_X, WALK_Z + rand(-0.15, 0.15)]]);   // and off along it, one way or the other
-  await sleep(0.3);
+  await sleep(0.3, c);
   log(`${p.name} 離開了`);
   S.customers.splice(S.customers.indexOf(c), 1);
   if (c === S.selected || S.selected?.owner === c) closeCard();   // (their companion's card goes with them too)
@@ -287,7 +326,7 @@ async function customerLife(c) {
   c.status = '拿到咖啡';
   let zone = zoneSpot(c.spot);
   const spot = c.spot; c.spot = null;
-  await sleep(0.5);
+  await sleep(0.5, c);
   spot.occ = null;
   zone = await stayAWhile(c, zone, 0);
   await leave(c, zone);
@@ -360,9 +399,9 @@ async function doTable(c, zone, s) {
   const stay = rand(45, 100);
   let t = 0;
   while (t < stay && !S.closing && !c.tops && !c.smokeNow) {
-    await sleep(2); t += 2;
+    await sleep(2, c); t += 2;
     if (c.tops || c.smokeNow) break;
-    if (Math.random() < 0.25) { c.pickCup(); c.gesture('sip', 1.4); await sleep(0.8); sip(c.cup); await sleep(0.6); t += 1.4; c.putCup(...s.cup); }
+    if (Math.random() < 0.25) { c.pickCup(); c.gesture('sip', 1.4); await sleep(0.8, c); sip(c.cup); await sleep(0.6, c); t += 1.4; c.putCup(...s.cup); }
     if (Math.random() < 0.08) sayLine(c, s.porch ? 'customer.chatPorch' : 'customer.chatTable', { name: c.p.name });
     // smoking is allowed outside only
     if (s.porch && c.p.smokes && !c.cig && Math.random() < 0.1) { c.lightUp(rand(30, 50)); if (Math.random() < 0.5) sayLine(c, 'customer.smoke', { name: c.p.name }); }
@@ -372,17 +411,17 @@ async function doTable(c, zone, s) {
       // up to the door, the light switched on by it, then in to the squat pan, facing the hood
       const toDoor = route(s.path, TOILET).slice(0, -2);
       await walk(c, toDoor.concat([[-1.2, -7.05]]));
-      c.face(Math.PI / 2); await sleep(0.4);
-      const lit = S.toiletLight?.on; if (!lit) { c.gesture('serve', 0.4); setToiletLight(true); await sleep(0.4); }
+      c.face(Math.PI / 2); await sleep(0.4, c);
+      const lit = S.toiletLight?.on; if (!lit) { c.gesture('serve', 0.4); setToiletLight(true); await sleep(0.4, c); }
       await walk(c, [[-1.2, -7.7], TOILET[1], TOILET[0]]); S.toiletUser = c; await walk(c, [[1.7, -7.55]]);   // inside now (hud.js: light switched off on them)
-      c.face(Math.PI); await sleep(0.6);
-      c.gesture('pull', 0.8); await sleep(0.8); c.pantsDown(true); c.pose = 'squat'; c.status = '蹲廁所';
-      await sleep(rand(6, 10));
-      c.pose = 'stand'; c.gesture('pull', 0.8); await sleep(0.8); c.pantsDown(false); c.status = '去廁所';
+      c.face(Math.PI); await sleep(0.6, c);
+      c.gesture('pull', 0.8); await sleep(0.8, c); c.pantsDown(true); c.pose = 'squat'; c.status = '蹲廁所';
+      await sleep(rand(6, 10), c);
+      c.pose = 'stand'; c.gesture('pull', 0.8); await sleep(0.8, c); c.pantsDown(false); c.status = '去廁所';
       // out of the door, the light switched off behind them if they found it off, and back to the seat
       await walk(c, [TOILET[0], TOILET[1]]); S.toiletUser = null;
       await walk(c, [[-1.2, -7.7], [-1.2, -7.05]]);
-      if (!lit) { c.face(Math.PI / 2); await sleep(0.3); setToiletLight(false); await sleep(0.2); }
+      if (!lit) { c.face(Math.PI / 2); await sleep(0.3, c); setToiletLight(false); await sleep(0.2, c); }
       await walk(c, [[TOILET[2][0], -7.05]].concat(route(TOILET.slice(2), s.path))); S.toiletBusy = false; c.busy = false;
       c.face(s.face); c.pose = 'sit'; c.status = '坐著喝咖啡'; t += 8;
     }
@@ -429,7 +468,7 @@ async function doSpectate(c, zone, s) {
   const stay = rand(25, 50);
   let t = 0;
   while (t < stay && !S.closing && !c.smokeNow) {
-    await sleep(1); t += 1;
+    await sleep(1, c); t += 1;
     if (c.smokeNow) break;
     if (canJoinTv(c) && Math.random() < 0.4) { c.invited = true; break; }
   }

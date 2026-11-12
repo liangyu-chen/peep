@@ -113,7 +113,7 @@ export async function doTops(c, zone) {
   if (i === 0) {
     c.status = '去後面搬戰鬥盤';
     await walk(c, route(zone, FETCH));
-    c.face(-Math.PI / 2); await sleep(1);   // turned to the crates
+    c.face(-Math.PI / 2); await sleep(1, c);   // turned to the crates
     carry(c); c.gesture('carry', 600);
     c.status = '把戰鬥盤搬到戶外區';
     await walk(c, route(FETCH, spot.path));
@@ -123,7 +123,7 @@ export async function doTops(c, zone) {
     await walk(c, route(zone, spot.path));
     c.face(spot.face);
     let waited = 0;
-    while (!ses.placed && !gaveUp(ses, other, waited)) { await sleep(0.4); waited += 0.4; }
+    while (!ses.placed && !gaveUp(ses, other, waited)) { await sleep(0.4, c); waited += 0.4; }
     if (ses.cancelled && !ses.placed) { c.say('不打了啦'); c.tops = null; ses.finish(); return spot.path; }
   }
   c.face(spot.face);
@@ -132,7 +132,7 @@ export async function doTops(c, zone) {
   if (i === 1) { await ses.done; c.tops = null; return spot.path; }
 
   let waited = 0;
-  while (ses.arrived < 2 && !gaveUp(ses, other, waited)) { await sleep(0.3); waited += 0.3; }
+  while (ses.arrived < 2 && !gaveUp(ses, other, waited)) { await sleep(0.3, c); waited += 0.3; }
   if (ses.arrived < 2) { c.say('對手跑掉了，收一收'); ses.finish(); }   // called off: put it away
   else await battle(ses);
   c.status = '把戰鬥盤收回去';
@@ -145,21 +145,23 @@ export async function doTops(c, zone) {
 
 async function battle(ses) {
   const [a, b] = ses.players;
+  // (held still while either of them has run off from a cockroach, roach.js)
+  if (!('frozen' in ses)) Object.defineProperty(ses, 'frozen', { get: () => ses.players.some(p => p.frozen) });
   for (const n of ['3', '2', '1']) {
     a.say(n, 0.8); b.say(n, 0.8); a.gesture('aim', 1); b.gesture('aim', 1);
-    await sleep(0.9);
+    await sleep(0.9, ses);
   }
   a.say('Go Shoot!', 1.6); b.say('Go Shoot!', 1.6); a.gesture('shoot', 0.7); b.gesture('shoot', 0.7);
   S.tops.forEach((t, i) => Object.assign(t.userData, { ang: i * Math.PI, r: 0.1, spin: 0, speed: 1, tilt: 0 }));
   S.tops.forEach(t => { t.visible = true; });
   ses.state = 'spin';
-  await sleep(rand(7, 12));
+  await sleep(rand(7, 12), ses);
   ses.loser = Math.random() < 0.5 ? 0 : 1; ses.state = 'fall';
-  await sleep(1.8);
+  await sleep(1.8, ses);
   const w = ses.players[1 - ses.loser], l = ses.players[ses.loser];
   w.gesture('cheer', 2.2); l.gesture('facepalm', 1.6);
   log(`戰鬥陀螺：${w.p.name} 贏了 ${l.p.name}`);
-  await sleep(2.4);
+  await sleep(2.4, ses);
   ses.state = 'over';
   S.tops.forEach(t => { t.visible = false; });
   ses.finish();
@@ -172,7 +174,7 @@ export function updateTops(dt) {
     if (S.topsCooldown <= 0) { S.topsCooldown = rand(30, 70); if (!S.closing) tryStart(); }
     return;
   }
-  if (ses.state !== 'spin' && ses.state !== 'fall') return;
+  if ((ses.state !== 'spin' && ses.state !== 'fall') || ses.players.some(p => p.frozen)) return;
   S.tops.forEach((t, i) => {
     const u = t.userData, falling = ses.state === 'fall' && ses.loser === i;
     if (falling) { u.speed = Math.max(0, u.speed - dt * 0.8); u.tilt = Math.min(1.3, u.tilt + dt * 1.1); u.r = Math.min(0.15, u.r + dt * 0.05); }

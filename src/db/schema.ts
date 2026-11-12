@@ -34,6 +34,7 @@ export const regulars = pgTable('regulars', {
   visits: integer('visits').notNull().default(1),
   quirk: text('quirk').notNull().default(''),
   look: jsonb('look').$type<Look>().notNull(),
+  look2: jsonb('look2').$type<Look>(),                      // 第二套捏臉: each visit they come as one of the two at random (null: only the first)
   plays2k: boolean('plays_2k').notNull().default(true),
   playsFight: boolean('plays_fight').notNull().default(false),
   fighter: text('fighter').notNull().default(''),           // '' = a random character each visit

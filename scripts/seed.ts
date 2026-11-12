@@ -2,13 +2,14 @@
 //   npm run db:seed    fills in only what's missing: an empty table, a dialogue category or random-value pool
 //                      with no rows, a missing owner. Anything already there is left alone, so it's safe to re-run
 //                      after new categories are added. (A category you emptied on purpose gets its defaults back.)
+//                      Regulars without a second look (look2) get a copy of their first.
 //   npm run db:reset   wipes every table and fills it again from the defaults
 import { config } from 'dotenv';
 config({ path: '.env.local' });
 
 import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, isNull, sql } from 'drizzle-orm';
 import * as schema from '../src/db/schema';
 import { DEFAULT_LINES, DEFAULT_MENU, DEFAULT_OWNER, DEFAULT_POOLS, DEFAULT_REGULARS, LINE_KEYS, POOL_KEYS, RENAMED_LINES } from '../src/content/catalog';
 
@@ -44,6 +45,9 @@ async function main() {
     await db.insert(schema.regulars).values(DEFAULT_REGULARS.map((r, i) => ({ ...r, sort: i })));
     console.log(`regulars: ${DEFAULT_REGULARS.length} rows`);
   }
+  // 第二套捏臉: a regular without one gets a copy of their first (edit it in the back office)
+  const copied = await db.update(schema.regulars).set({ look2: sql`${schema.regulars.look}` }).where(isNull(schema.regulars.look2)).returning({ id: schema.regulars.id });
+  if (copied.length) console.log(`regulars: second look copied from the first for ${copied.length}`);
 
   const pools = new Set((await db.select({ p: schema.randomValues.pool }).from(schema.randomValues)).map(r => r.p));
   const valueRows = POOL_KEYS.filter(k => !pools.has(k)).flatMap(pool => DEFAULT_POOLS[pool].map((value, i) => ({ pool, value, sort: i })));

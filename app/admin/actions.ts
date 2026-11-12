@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation';
 import { eq, inArray } from 'drizzle-orm';
 import { getDb, schema } from '@/src/lib/db';
 import { checkPassword, createSession, destroySession, requireAdmin } from '@/src/lib/auth';
-import { LINE_KEYS, LINE_GROUPS, POOL_KEYS, TEAM_NAMES, DEFAULT_OWNER, MENU_SECTIONS, parseLook, type Look } from '@/src/content/catalog';
+import { LINE_KEYS, LINE_GROUPS, POOL_KEYS, TEAM_NAMES, DEFAULT_OWNER, MENU_SECTIONS, parseLook, prefixed, LOOK2, type Look } from '@/src/content/catalog';
 
 // ---------------------------------------------------------------- login
 export async function login(formData: FormData) {
@@ -110,7 +110,11 @@ export async function saveLines(f: FormData) {
 }
 
 // ---------------------------------------------------------------- regulars
-const lookFrom = (f: FormData, prev?: Look) => parseLook(k => { const v = f.get(k); return v == null ? null : String(v); }, prev);
+const formGet = (f: FormData) => (k: string) => { const v = f.get(k); return v == null ? null : String(v); };
+const lookFrom = (f: FormData, prev?: Look) => parseLook(formGet(f), prev);
+// 第二套捏臉 (the l2_… fields; a regular who never had one starts from the first)
+const look2From = (f: FormData, prev: Look | null | undefined, look: Look) =>
+  f.get(LOOK2 + 'skin') == null ? prev ?? null : parseLook(prefixed(formGet(f), LOOK2), prev ?? look);
 function regularFields(f: FormData) {
   const team = str(f, 'team'), seatPref = str(f, 'seatPref');
   return {
@@ -128,7 +132,8 @@ export async function addRegular(f: FormData) {
   const fields = regularFields(f);
   if (!fields.name) done('/admin/regulars/new', '名字不能空白');
   try {
-    await db().insert(schema.regulars).values({ ...fields, look: lookFrom(f) });
+    const look = lookFrom(f);
+    await db().insert(schema.regulars).values({ ...fields, look, look2: look2From(f, null, look) });
   } catch (e) {
     if (isUniqueViolation(e)) done('/admin/regulars/new', `「${fields.name}」已經是熟客了`);
     throw e;
@@ -141,10 +146,11 @@ export async function updateRegular(f: FormData) {
   const id = Number(f.get('id')), fields = regularFields(f);
   if (!fields.name) done(`/admin/regulars/${id}`, '名字不能空白');
   const d = db();
-  const [prev] = await d.select({ look: schema.regulars.look }).from(schema.regulars).where(eq(schema.regulars.id, id));
+  const [prev] = await d.select({ look: schema.regulars.look, look2: schema.regulars.look2 }).from(schema.regulars).where(eq(schema.regulars.id, id));
+  const look = lookFrom(f, prev?.look);
   try {
     await d.update(schema.regulars)
-      .set({ ...fields, look: lookFrom(f, prev?.look), active: bool(f, 'active'), updatedAt: new Date() })
+      .set({ ...fields, look, look2: look2From(f, prev?.look2, look), active: bool(f, 'active'), updatedAt: new Date() })
       .where(eq(schema.regulars.id, id));
   } catch (e) {
     if (isUniqueViolation(e)) done(`/admin/regulars/${id}`, `「${fields.name}」已經是熟客了`);

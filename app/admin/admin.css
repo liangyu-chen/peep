@@ -279,3 +279,7 @@ body:has(.admin){margin:0;background:#141218}
   .admin .save-actions button{padding:10px 16px}
   .admin .reg-item{padding:10px 12px;gap:10px}
 }
+
+/* 熟客的第二套捏臉: the preview's 第一套 / 第二套 picks which set of fields shows (the form's data-look-set) */
+form:not([data-look-set="2"]) .look-set-2, form[data-look-set="2"] .look-set-1 { display: none; }
+.look-set { display: contents; }

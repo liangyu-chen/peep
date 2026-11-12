@@ -368,8 +368,8 @@ export function parseLook(get: (k: string) => string | null, prev?: Look): Look 
   const acc = get('acc') != null, on = (k: string, was: boolean) => (acc ? get('acc_' + k) === 'on' : was);
   const earsOn = on('earrings', ears.left !== 'none' || ears.right !== 'none');
   const lensIn = get('lensOpacity'), lensVal = lensIn != null && lensIn !== '' ? Number(lensIn) : NaN;
-  const number = (get('number') ?? '').trim().slice(0, 2);
   const tatText = (get('tattooText') ?? (typeof base.tattooText === 'string' ? base.tattooText : '')).trim().slice(0, 12);
+  const number = (get('number') ?? '').trim().slice(0, 2);
   const look: Look = {
     ...base,
     // 身形與臉
@@ -412,3 +412,9 @@ export function parseLook(get: (k: string) => string | null, prev?: Look): Look 
   delete look.beanie; delete look.cap;           // by hat / hatColor
   return look;
 }
+
+
+// 第二套捏臉: the regulars' editor holds a second whole look, its fields named l2_… (the name, which seeds the face, is
+// shared). parseLook(prefixed(get, LOOK2), prev) reads it back.
+export const LOOK2 = 'l2_';
+export const prefixed = (get: (k: string) => string | null, prefix: string) => (k: string) => get(k === 'name' ? k : prefix + k);

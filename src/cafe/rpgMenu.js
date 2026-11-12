@@ -5,12 +5,13 @@
 import { S } from './state.js';
 import { $ } from './util.js';
 import { log } from './feed.js';
+import { releaseRoach } from './roach.js';
 
 const CAM_KEYS = ['overview', 'counter', 'menu', 'tv', 'porch', 'back'];
 const CAM_NAMES = { overview: '全景', counter: '吧台', menu: '菜單', tv: '電視', porch: '戶外區', back: '後場' };
 
 // returns { closeMenu, hideRec }
-export function bindMenu(root, on, off, { setCam, focusPerson }) {
+export function bindMenu(root, on, off, { setCam, focusPerson, followThing }) {
   const btn = $('menuBtn'), cmd = $('cmdWin'), panel = $('menuPanel'), choice = $('choiceWin');
   const stack = [];   // the windows open now, the top one last
 
@@ -90,6 +91,13 @@ export function bindMenu(root, on, off, { setCam, focusPerson }) {
   const use = name => {
     if (name === 'cam') show(choice, 'cams');
     else if (name === 'speed') show(choice, 'speed');
+    else if (name === 'roach') {
+      // 小強: let go somewhere on the floor; the camera goes over to it, or nobody would know where
+      const r = releaseRoach();
+      if (typeof r === 'string') { report(r); return; }
+      closeMenu(); followThing(r.g, '蟑螂', true);
+      report('你偷偷把一隻蟑螂放到店裡的地上……');
+    }
     else if (name === 'menu') { closeMenu(); setCam('menu'); report('你湊近吧台，讀起那張邊角燒焦的菜單。'); }   // lean over the bar and read the clipboard
     else if (name === 'tag') {
       // 死神之眼: worn, everyone's name shows over their head (the name tags)

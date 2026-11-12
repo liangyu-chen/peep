@@ -34,5 +34,7 @@ export function resetState(content) {
   });
 }
 
-// waits in simulated seconds (the time-speed buttons speed it up); never resolves once the café is stopped
-export function sleep(s) { return new Promise(r => S.timers.push({ t: s, r })); }
+// waits in simulated seconds (the time-speed buttons speed it up); never resolves once the café is stopped. `who`: the
+// person whose doing it is: their waits hold still while they're frozen (run off from a cockroach, roach.js), and the
+// owner's are thrown away when he drops everything to go after one
+export function sleep(s, who) { return new Promise(r => S.timers.push({ t: s, r, who })); }

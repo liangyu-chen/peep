@@ -7,7 +7,7 @@ import LoadingHands from './LoadingHands';
 
 // the RPG menu's item icons, in colour: each letter a pixel of that palette colour, '.' see-through
 const ITEM_PAL: Record<string, string> = { k: '#14121a', w: '#f4efe3', G: '#9a98a6', g: '#55535f', r: '#ff4f7b', y: '#ffd23f',
-  b: '#9a6234', o: '#ff9a3c', c: '#7ec8ff', n: '#3ddc97' };
+  b: '#9a6234', o: '#ff9a3c', c: '#7ec8ff', n: '#3ddc97', L: '#d49a5e', B: '#5e3418', H: '#d9a46a' };
 const ICON_CAM = ['............', '.kkkkkkkkkk.', '.kGGGGGGGGk.', '.kGccccccGk.', '.kGcwcccrGk.', '.kGccccccGk.', '.kGccccccGk.',
   '.kGGGGGGGGk.', '.kkkkkkkkkk.', '....kGGk....', '..kkkkkkkk..', '............'];
 const ICON_MENU = ['...kkkkk....', '.kkbyyybkk..', '.kbbbbbbbk..', '.kbwwwwwbk..', '.kbwkkwwbk..', '.kbwwwwwbk..', '.kbwkkkwbk..',
@@ -17,6 +17,11 @@ const ICON_GLASS = ['.kkkkkkkkkk.', '.kbbbbbbbbk.', '..kwyyyywk..', '..kwyyyywk.
 // 死神之眼: a white eye with a red iris
 const ICON_EYE = ['............', '............', '...kkkkkk...', '..kwwwwwwk..', '.kwwrrrrwwk.', 'kwwrrkkrrwwk', 'kwwrrkkrrwwk',
   '.kwwrrrrwwk.', '..kwwwwwwk..', '...kkkkkk...', '............', '............'];
+// 小強: a cockroach from above, long in the body, a pale shield behind its dark head, its legs tucked back along its
+// sides and its feelers curling out and down; legs and feelers in a light tan (L), as a black outline is lost on the
+// window's dark slot (and no eyes: with them, round and leggy, it read as a spider)
+const ICON_ROACH = ['.LL......LL.', 'L..L....L..L', 'L...kkkk...L', '...kBBBBk...', '..kHHHHHHk..', '.LkHHbbHHkL.', '..kbbkkbbk..',
+  'LLkbbkkbbkLL', '..kbbkkbbk..', '.LkbbkkbbkL.', 'L..kbkkbk..L', '....kkkk....'];
 // 音效: a speaker sounding off; 音樂: two beamed notes
 const ICON_SPEAKER = ['............', '.....k......', '....kk...y..', '..kkGk....y.', '.kGGGk.y..y.', '.kGGGk..y.y.', '.kGGGk..y.y.',
   '.kGGGk.y..y.', '..kkGk....y.', '....kk...y..', '.....k......', '............'];
@@ -153,6 +158,7 @@ export default function Cafe({ content }: { content: CafeContent }) {
               <button type="button" className="slot" data-item="menu" data-desc="老闆親手用火燒過邊角的印刷菜單，帶著一股焦香。使用後湊近閱讀，看看今天有什麼喝的。"><PixelArt rows={ICON_MENU} /><span>菜單板</span></button>
               <button type="button" className="slot" data-item="speed" data-desc="裝著金色細沙的沙漏。翻轉之後，店裡的時間流速會跟著改變。"><PixelArt rows={ICON_GLASS} /><span>沙漏</span><span className="badge" id="speedBadge">1x</span></button>
               <button type="button" className="slot lit" id="tagSlot" data-item="tag" data-desc="傳說中死神的眼睛。裝備之後，能看見每個人頭上的名字。"><PixelArt rows={ICON_EYE} /><span>死神之眼</span><span className="badge" aria-label="裝備中" /></button>
+              <button type="button" className="slot" data-item="roach" data-desc="一隻油亮的大蟑螂，裝在小紙盒裡。使用後會偷偷放到店裡的地上，看看誰先發現牠……"><PixelArt rows={ICON_ROACH} /><span>小強</span></button>
               <button type="button" className="slot" data-item="none" aria-disabled="true" data-desc="還沒有取得的道具。說不定哪天會在店裡撿到……"><span className="q" aria-hidden="true">?</span><span>？？？</span></button>
             </div>
             <div className="desc"><p id="itemDesc" aria-live="polite" /><button type="button" className="opt use" id="itemUse">使用</button></div>

@@ -26,7 +26,7 @@ function makeStage() {
 export function portraitOf(person) {
   if (pictures.has(person)) return pictures.get(person);
   stage = stage || makeStage();
-  const body = buildBody(person.p.look, person.p.name);
+  const body = buildBody(person.look ?? person.p.look, person.p.name);
   stage.scene.add(body.g);
   stage.renderer.render(stage.scene, stage.camera);
   const url = stage.renderer.domElement.toDataURL('image/png');
