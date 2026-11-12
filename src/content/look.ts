@@ -26,6 +26,7 @@ export type Look = {
   tattoos?: Record<string, string>; tattooText?: string;                       // a style per part (older looks: tattoo + tattooCover)
   companion?: string;
   topStyle?: string; topPattern?: string; topFit?: string; longSleeve?: boolean; number?: string;   // T恤, 襯衫 or a winter top, its cut, its sleeves
+  coatInner?: number; necktie?: string; necktieColor?: number;                 // 西裝外套: the colour of what's worn beneath (a tee or a shirt), and the shirt's tie
   bottom?: string; pantsFit?: string;                                          // pants, shorts or a skirt (in the pants colour), and how wide
   shoeStyle?: string; shoe?: number; socks?: string; sock?: number;
   [k: string]: unknown;
@@ -270,7 +271,7 @@ export const CLOTHES: Record<'style' | 'pattern' | 'bottom' | 'fit' | 'top' | 's
   // what the top is; the winter ones (帽T and the jackets) always have long sleeves
   style: [
     { value: 'tee', label: 'T恤' }, { value: 'shirt', label: '襯衫' },
-    { value: 'hoodie', label: '帽T' }, { value: 'jacket', label: '夾克外套' }, { value: 'coat', label: '西裝外套' }, { value: 'varsity', label: '棒球外套' },
+    { value: 'hoodie', label: '帽T' }, { value: 'jacket', label: '夾克外套' }, { value: 'coat', label: '西裝外套(T恤)' }, { value: 'suit', label: '西裝外套(襯衫)' }, { value: 'varsity', label: '棒球外套' },
     { value: 'denim', label: '牛仔外套' },
   ],
   // printed on the top, in shades of its own colour
@@ -287,7 +288,19 @@ export const CLOTHES: Record<'style' | 'pattern' | 'bottom' | 'fit' | 'top' | 's
   top: [{ value: 'slim', label: '合身' }, { value: 'regular', label: '一般' }, { value: 'oversize', label: '寬鬆' }],
   sleeve: [{ value: 'short', label: '短袖' }, { value: 'long', label: '長袖' }],
 };
-export const WINTER_TOPS = ['hoodie', 'jacket', 'coat', 'varsity', 'denim'];
+export const WINTER_TOPS = ['hoodie', 'jacket', 'coat', 'suit', 'varsity', 'denim'];
+// under a blazer (西裝外套): a tee or a shirt, in one colour picked for either; left unpicked, the tee a knit dark under
+// a light blazer and pale under a dark one, the shirt white; the shirt with a tie, black unless picked otherwise
+export const NECKTIE: Option[] = [{ value: 'tie', label: '有' }, { value: 'none', label: '無' }];
+const lightHex = (hex: number) => { const r = (hex >> 16) & 255, g = (hex >> 8) & 255, b = hex & 255; return (Math.max(r, g, b) + Math.min(r, g, b)) / 510 > 0.6; };
+const coatInnerDefault = (look: Look) => (look.topStyle === 'suit' ? 0xf4f3ef : lightHex(look.shirt) ? 0x2c2c30 : 0xe6dfcf);
+export function coatInnerOf(look: Look): { color: number; tie: boolean; tieColor: number } {
+  return {
+    color: typeof look.coatInner === 'number' ? look.coatInner : coatInnerDefault(look),
+    tie: pickIn(NECKTIE, look.necktie, 'tie') === 'tie',
+    tieColor: typeof look.necktieColor === 'number' ? look.necktieColor : 0x161618,
+  };
+}
 export function clothesOf(look: Look): { style: string; pattern: string; bottom: string; fit: string; top: string; sleeve: string } {
   const style = pickIn(CLOTHES.style, look.topStyle, 'tee');
   return {
@@ -400,6 +413,12 @@ export function parseLook(get: (k: string) => string | null, prev?: Look): Look 
     shoeStyle: one('shoeStyle', SHOE_STYLES, shoe.style), shoe: hex('shoe', shoe.color),
     socks: one('socks', SOCKS, socks.style), sock: hex('sock', socks.color),
   };
+  // 西裝外套's inside: its colour kept only when picked (left at the default, it follows the blazer: see coatInnerOf)
+  const inner = coatInnerOf(base), innerIn = hex('coatInner', inner.color);
+  if (innerIn !== coatInnerDefault(base) && innerIn !== coatInnerDefault(look)) look.coatInner = innerIn; else delete look.coatInner;
+  delete look.coatTee; delete look.coatShirt;   // (by coatInner)
+  look.necktie = one('necktie', NECKTIE, inner.tie ? 'tie' : 'none');
+  look.necktieColor = hex('necktieColor', inner.tieColor);
   // the hair's length in cm, when it's been set with − / + (empty: left as the fixed length it was)
   const cmIn = get('hairCm'), cmVal = cmIn != null && cmIn !== '' ? Number(cmIn) : NaN;
   if (FIXED_CUTS.includes(look.hairLength ?? '')) delete look.hairCm;

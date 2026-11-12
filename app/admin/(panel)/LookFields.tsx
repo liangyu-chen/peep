@@ -1,4 +1,4 @@
-import { BUILDS, buildOf, HEIGHTS, heightOf,tieColorOf, CLOTHES, COLOR_PRESETS, COMPANIONS, EARRINGS, earringsOf, earColorOf, HEADPHONES, headphonesOf, WATCHES, WATCH_FACES, watchOf, FACE, frameColorOf, HAIR, HAT_STYLES, SHOE_STYLES, SOCKS, TATTOO_PARTS, TATTOO_STYLES,clothesOf, companionOf, faceOf, hairOf, hatOf, lensOf, shoeOf, socksOf, tattooOf, type Look } from '@/src/content/catalog';
+import { BUILDS, buildOf, HEIGHTS, heightOf,tieColorOf, CLOTHES, COLOR_PRESETS, COMPANIONS, EARRINGS, earringsOf, earColorOf, HEADPHONES, headphonesOf, WATCHES, WATCH_FACES, watchOf, FACE, frameColorOf, HAIR, HAT_STYLES, SHOE_STYLES, SOCKS, TATTOO_PARTS, TATTOO_STYLES, NECKTIE, coatInnerOf, clothesOf, companionOf, faceOf, hairOf, hatOf, lensOf, shoeOf, socksOf, tattooOf, type Look } from '@/src/content/catalog';
 import ColorField from './ColorField';
 import HairLengthField from './HairLengthField';
 import LensOpacityField from './LensOpacityField';
@@ -18,7 +18,7 @@ function Pick({ name, label, value, options }: { name: string; label: string; va
 // prefix: the field names' prefix (the regulars' second look, 第二套捏臉, is LOOK2)
 export default function LookFields({ look, seed, prefix: px = '' }: { look: Look; seed: string; prefix?: string }) {
   const f = faceOf(look, seed);
-  const hat = hatOf(look), hair = hairOf(look), clothes = clothesOf(look), shoe = shoeOf(look), socks = socksOf(look), tattoo = tattooOf(look), ears = earringsOf(look), lens = lensOf(look), phones = headphonesOf(look), watch = watchOf(look);
+  const hat = hatOf(look), hair = hairOf(look), clothes = clothesOf(look), shoe = shoeOf(look), socks = socksOf(look), tattoo = tattooOf(look), ears = earringsOf(look), lens = lensOf(look), phones = headphonesOf(look), watch = watchOf(look), inner = coatInnerOf(look);
   const earsOn = ears.left !== 'none' || ears.right !== 'none';
   return (
     <>
@@ -115,6 +115,11 @@ export default function LookFields({ look, seed, prefix: px = '' }: { look: Look
         <div className="colors">
           <ColorField name={px + 'shirt'} label="上衣顏色" value={look.shirt} presets={COLOR_PRESETS.clothes} />
           <label className="short">背號<input name={px + 'number'} defaultValue={look.number ?? ''} maxLength={2} placeholder="無" /></label>
+        </div>
+        <Pick name={px + 'necktie'} label="領帶（西裝外套・襯衫）" value={inner.tie ? 'tie' : 'none'} options={NECKTIE} />
+        <div className="colors">
+          <ColorField name={px + 'coatInner'} label="內裡顏色（西裝外套）" value={inner.color} presets={COLOR_PRESETS.clothes} />
+          <ColorField name={px + 'necktieColor'} label="領帶顏色" value={inner.tieColor} presets={COLOR_PRESETS.clothes} />
         </div>
       </section>
 
