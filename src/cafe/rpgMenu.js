@@ -84,7 +84,7 @@ export function bindMenu(root, on, off, { setCam, focusPerson, followThing, setA
   const report = text => {
     pop.textContent = text;
     pop.hidden = false; pop.classList.remove('in'); void pop.offsetWidth; pop.classList.add('in');   // (replay the pop-in)
-    clearTimeout(popTimer); popTimer = setTimeout(hidePop, 2200);
+    clearTimeout(popTimer); popTimer = setTimeout(hidePop, Math.max(2200, text.length * 80));   // (a longer line stays up long enough to read)
   };
   on(pop, 'click', hidePop);
   off.push(() => clearTimeout(popTimer));
@@ -102,7 +102,7 @@ export function bindMenu(root, on, off, { setCam, focusPerson, followThing, setA
     else if (name === 'tag') {
       // 死神之眼: worn, everyone's name shows over their head (the name tags)
       S.showTags = S.showTags === false; showTag();
-      report(S.showTags ? '裝備了死神之眼！每個人頭上的名字都看得見了。' : '卸下了死神之眼。名字從眼前消失了。');
+      report(S.showTags ? '「契約……成立了。」右眼深處傳來一陣灼熱。死神之眼，覺醒！店裡每個人的真名，此刻盡收眼底。' : '你用手按住右眼，強行壓下了它的力量……「還不是時候。」死神之眼，再度封印。');
       log(S.showTags ? '裝備了 死神之眼' : '卸下了 死神之眼');
       $('itemUse').textContent = useLabel('tag');
     }

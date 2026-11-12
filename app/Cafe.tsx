@@ -160,7 +160,7 @@ export default function Cafe({ content }: { content: CafeContent }) {
               <button type="button" className="slot" data-item="cam" data-desc="老闆藏在角落的監視器。使用後可以切換六個鏡頭，偷看店裡每個角落。"><PixelArt rows={ICON_CAM} /><span>監視器</span></button>
               <button type="button" className="slot" data-item="menu" data-desc="老闆親手用火燒過邊角的印刷菜單，帶著一股焦香。使用後湊近閱讀，看看今天有什麼喝的。"><PixelArt rows={ICON_MENU} /><span>菜單板</span></button>
               <button type="button" className="slot" data-item="speed" data-desc="裝著金色細沙的沙漏。翻轉之後，店裡的時間流速會跟著改變。"><PixelArt rows={ICON_GLASS} /><span>沙漏</span><span className="badge" id="speedBadge">1x</span></button>
-              <button type="button" className="slot equip lit" id="tagSlot" data-item="tag" data-desc="傳說中死神的眼睛。裝備之後，能看見每個人頭上的名字。"><PixelArt rows={ICON_EYE} /><span>死神之眼</span><span className="badge" aria-label="裝備中" /></button>
+              <button type="button" className="slot equip lit" id="tagSlot" data-item="tag" data-desc="以半數壽命為代價，向死神換來的漆黑契約之眼。據說在它的注視下，無人能隱藏自己的真名——包括那位泡咖啡的男人。"><PixelArt rows={ICON_EYE} /><span>死神之眼</span><span className="badge" aria-label="裝備中" /></button>
               <button type="button" className="slot equip" id="remoteSlot" data-item="remote" data-desc="封印著「極寒之息」的白色聖器。唯有被選中之人才能駕馭——裝備之後，它將在畫面右側顯現，號令這間店的風與溫度。"><PixelArt rows={ICON_REMOTE} /><span>冷氣遙控</span><span className="badge" aria-label="裝備中" /></button>
               <button type="button" className="slot" data-item="roach" data-desc="一隻油亮的大蟑螂，裝在小紙盒裡。使用後會偷偷放到店裡的地上，看看誰先發現牠……"><PixelArt rows={ICON_ROACH} /><span>小強</span></button>
               <button type="button" className="slot" data-item="none" aria-disabled="true" data-desc="還沒有取得的道具。說不定哪天會在店裡撿到……"><span className="q" aria-hidden="true">?</span><span>？？？</span></button>
