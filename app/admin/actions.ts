@@ -206,7 +206,9 @@ export async function updateOwner(f: FormData) {
   if (!name) done('/admin/owner', '名字不能空白');
   const d = db();
   const [prev] = await d.select().from(schema.settings).where(eq(schema.settings.key, 'owner'));
-  const value = { name, job: str(f, 'job'), look: lookFrom(f, (prev?.value ?? DEFAULT_OWNER).look) };
+  const prevOwner = prev?.value ?? DEFAULT_OWNER;
+  const look = lookFrom(f, prevOwner.look);
+  const value = { name, job: str(f, 'job'), look, look2: look2From(f, prevOwner.look2, look) };
   // the owner's dialogue on the same page is saved with it, in one batch
   const lines = parseLines(f);
   const { queries } = lines ? await lineQueries(Object.fromEntries(Object.entries(lines).filter(([k]) => k.startsWith('owner.')))) : { queries: [] };

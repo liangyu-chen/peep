@@ -271,8 +271,9 @@ const CAFE_DETAIL = 0.55;
 export class Person {
   constructor(profile, role) {
     this.p = profile; this.role = role;
-    // how they look this time: a regular with a second look (第二套捏臉) comes as either one, at random, each visit
-    this.look = role === 'customer' && profile.look2 && Math.random() < 0.5 ? profile.look2 : profile.look;
+    // how they look this time: a regular with a second look (第二套捏臉) comes as either one, at random, each visit;
+    // the owner, the same, each time the café opens
+    this.look = (role === 'customer' || role === 'owner') && profile.look2 && Math.random() < 0.5 ? profile.look2 : profile.look;
     Object.assign(this, buildBody(this.look, profile.name, { detail: CAFE_DETAIL }));
     mergeParts(this.g, bodyKeep(this));
     this.faceAnim = { blinkT: Math.random() * 4 };

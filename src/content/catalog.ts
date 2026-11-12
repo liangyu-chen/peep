@@ -33,7 +33,7 @@ export type Regular = {
   smokes: boolean;          // smoking is allowed outside, so smokers always head for the porch
   seatPref: SeatPref;       // '' = random each visit; a preference still loses to smoking
 };
-export type Owner = { name: string; job: string; look: Look };
+export type Owner = { name: string; job: string; look: Look; look2?: Look | null };   // look2: 第二套捏臉, one of the two at random each time the café opens
 
 // the values first-time customers are made from: name = surname + title (the title decides their look), plus a job
 export type RandomPools = { surname: string[]; titleF: string[]; titleM: string[]; job: string[] };

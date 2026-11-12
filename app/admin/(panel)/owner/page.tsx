@@ -1,7 +1,7 @@
 import { asc, like, eq } from 'drizzle-orm';
 import { requireAdmin } from '@/src/lib/auth';
 import { getDb, schema } from '@/src/lib/db';
-import { DEFAULT_OWNER, OWNER_LINES } from '@/src/content/catalog';
+import { DEFAULT_OWNER, OWNER_LINES, LOOK2 } from '@/src/content/catalog';
 import { updateOwner } from '../../actions';
 import LookPreview from '../LookPreview';
 import LookFields from '../LookFields';
@@ -19,6 +19,7 @@ export default async function OwnerPage({ searchParams }: { searchParams: Promis
     ])
     : [[], []];
   const owner = settingRows[0]?.value ?? DEFAULT_OWNER;
+  const look2 = owner.look2 ?? owner.look;   // (none yet: starts as a copy of the first)
   const ro = !db;
   const categories = OWNER_LINES.map(c => ({ ...c, rows: lineRows.filter(r => r.category === c.key).map(({ id, text, active }) => ({ id, text, active })) }));
 
@@ -30,7 +31,7 @@ export default async function OwnerPage({ searchParams }: { searchParams: Promis
 
       <form action={updateOwner} key={Date.now()}>
         <div className="editor">
-          <div className="editor-preview"><LookPreview initial={owner.look} seed={owner.name} /></div>
+          <div className="editor-preview"><LookPreview initial={owner.look} second={look2} seed={owner.name} /></div>
           <div className="editor-fields">
             <section className="panel-block">
               <h2>基本資料</h2>
@@ -39,7 +40,12 @@ export default async function OwnerPage({ searchParams }: { searchParams: Promis
                 <label className="wide">身分介紹<input name="job" defaultValue={owner.job} maxLength={40} disabled={ro} /></label>
               </div>
             </section>
-            <LookFields look={owner.look} seed={owner.name} />
+            <div className="look-set look-set-1"><LookFields look={owner.look} seed={owner.name} /></div>
+            {/* 第二套捏臉: shown in place of the first when the preview's 第二套 is picked */}
+            <div className="look-set look-set-2">
+              <p className="note ok look-set-note">正在編輯<b>第二套捏臉</b>：每次開店老闆隨機穿其中一套。按預覽下方的「第一套」切回去。</p>
+              <LookFields look={look2} seed={owner.name} prefix={LOOK2} />
+            </div>
           </div>
         </div>
 

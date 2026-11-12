@@ -25,7 +25,7 @@ const os = s => S.owner.hunting ? NEVER : sleep(s, S.owner);
 const ow = pts => S.owner.hunting ? NEVER : walk(S.owner, pts);
 export function createOwner() {
   const o = S.content.owner;
-  const owner = new Person({ name: o.name, job: o.job, look: o.look }, 'owner');
+  const owner = new Person({ name: o.name, job: o.job, look: o.look, look2: o.look2 }, 'owner');
   owner.setPos(1.9, 0.3); owner.heading = owner.targetHeading = -Math.PI / 2;
   owner.speed = 1.6;
   S.owner = owner;
