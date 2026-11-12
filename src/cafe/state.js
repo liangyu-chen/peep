@@ -27,6 +27,8 @@ export function resetState(content) {
     // with, so the sliding door and the front door stand open for air and the outdoor unit's fan is still
     // (index.js); mode, temp and fan are the remote's own settings, shown on its screen
     ac: { on: false, spin: 0, temp: 26, fan: 'auto', mode: 'cool', swingH: 'auto', swingV: 'auto' },
+    // whether the remote is equipped (the 冷氣遙控 item, rpgMenu.js): not to start with, so it's off screen until then
+    acGear: false,
 
     // filled in by the world builders and createSeats()
     seats: null,

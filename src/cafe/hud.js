@@ -390,7 +390,7 @@ export function bindHUD(root, stage) {
   const musicBtn = $('musicToggle'), showMusic = () => musicBtn?.classList.toggle('on', musicOn());
   showMusic(); on(musicBtn, 'click', () => { toggleMusic(); showMusic(); });
   // the RPG menu (rpgMenu.js)
-  menu = bindMenu(root, on, off, { setCam, focusPerson, followThing: startFollow });
+  menu = bindMenu(root, on, off, { setCam, focusPerson, followThing: startFollow, setAcOpen });
   off.push(() => { menu = null; });
   // every touch, click or key wakes the sound: a finger's pointerdown doesn't count as a gesture on phones (only its
   // pointerup / touchend do), and after a hidden tab or a call the sound has to be woken again

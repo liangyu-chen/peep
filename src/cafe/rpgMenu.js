@@ -11,7 +11,7 @@ const CAM_KEYS = ['overview', 'counter', 'menu', 'tv', 'porch', 'back'];
 const CAM_NAMES = { overview: '全景', counter: '吧台', menu: '菜單', tv: '電視', porch: '戶外區', back: '後場' };
 
 // returns { closeMenu, hideRec }
-export function bindMenu(root, on, off, { setCam, focusPerson, followThing }) {
+export function bindMenu(root, on, off, { setCam, focusPerson, followThing, setAcOpen }) {
   const btn = $('menuBtn'), cmd = $('cmdWin'), panel = $('menuPanel'), choice = $('choiceWin');
   const stack = [];   // the windows open now, the top one last
 
@@ -19,8 +19,8 @@ export function bindMenu(root, on, off, { setCam, focusPerson, followThing }) {
   // aside (.menuOverRemote) until the windows move off it again
   const remote = $('acRemote');
   const checkRemote = () => {
-    if (!remote) return;
-    const r = remote.getBoundingClientRect();
+    if (!remote || !S.acGear) { root.classList.remove('menuOverRemote'); return; }   // (not equipped: it's hidden anyway)
+    const r =remote.getBoundingClientRect();
     const seen = { l: Math.max(0, r.left), r: Math.min(window.innerWidth, r.right), t: Math.max(0, r.top), b: Math.min(window.innerHeight, r.bottom) };   // (only the part on screen)
     const hit = stack.some(w => { const a = w.getBoundingClientRect(); return a.left < seen.r && seen.l < a.right && a.top < seen.b && seen.t < a.bottom; });
     root.classList.toggle('menuOverRemote', hit);
@@ -62,8 +62,8 @@ export function bindMenu(root, on, off, { setCam, focusPerson, followThing }) {
   // ---- 道具: the first tap on an item picks it and tells what it is, a second tap (or 使用) uses it
   const slots = [...panel.querySelectorAll('.slot')];
   let picked = 'cam';
-  // the button under the description: 死神之眼 is worn (裝備 / 卸下), the rest are used
-  const useLabel = name => (name === 'tag' ? (S.showTags !== false ? '卸下' : '裝備') : '使用');
+  // the button under the description: 死神之眼 and 冷氣遙控 are worn (裝備 / 卸下), the rest are used
+  const useLabel = name => (name === 'tag' ? (S.showTags !== false ? '卸下' : '裝備') : name === 'remote' ? (S.acGear ? '卸下' : '裝備') : '使用');
   const pick = name => {
     // picking another item closes the small choice window the last one opened (攝影機's scenes, 沙漏's speeds)
     if (name !== picked && stack.includes(panel)) popAbove(panel);
@@ -106,9 +106,24 @@ export function bindMenu(root, on, off, { setCam, focusPerson, followThing }) {
       log(S.showTags ? '裝備了 死神之眼' : '卸下了 死神之眼');
       $('itemUse').textContent = useLabel('tag');
     }
+    else if (name === 'remote') {
+      // 冷氣遙控: worn, the remote slides in at the right edge (opened and folded as ever); taken off, it folds and goes
+      S.acGear = !S.acGear;
+      if (!S.acGear) setAcOpen?.(false, true);
+      showGear();
+      report(S.acGear ? '裝備了冷氣遙控器！一股寒氣自掌心竄起……極寒之力，聽我號令！' : '卸下了冷氣遙控器。封印再度闔上，寒氣沉睡了……');
+      log(S.acGear ? '裝備了 冷氣遙控器' : '卸下了 冷氣遙控器');
+      $('itemUse').textContent = useLabel('remote');
+    }
   };
   const showTag = () => $('tagSlot').classList.toggle('lit', S.showTags !== false);
-  showTag(); pick('cam');
+  const showGear = () => {
+    $('remoteSlot').classList.toggle('lit', !!S.acGear);
+    root.classList.toggle('acGear', !!S.acGear);
+    checkRemote();
+  };
+  off.push(() => root.classList.remove('acGear'));
+  showTag(); showGear(); pick('cam');
   slots.forEach(s => on(s, 'click', () => { if (s.classList.contains('sel')) use(s.dataset.item); else pick(s.dataset.item); }));
   on($('itemUse'), 'click', () => use(picked));
 
