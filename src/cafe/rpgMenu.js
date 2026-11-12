@@ -64,6 +64,8 @@ export function bindMenu(root, on, off, { setCam, focusPerson }) {
   // the button under the description: 死神之眼 is worn (裝備 / 卸下), the rest are used
   const useLabel = name => (name === 'tag' ? (S.showTags !== false ? '卸下' : '裝備') : '使用');
   const pick = name => {
+    // picking another item closes the small choice window the last one opened (攝影機's scenes, 沙漏's speeds)
+    if (name !== picked && stack.includes(panel)) popAbove(panel);
     picked = name;
     const s = slots.find(x => x.dataset.item === name);
     slots.forEach(x => x.classList.toggle('sel', x === s));
