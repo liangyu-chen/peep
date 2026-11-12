@@ -50,6 +50,10 @@ const darkM = mat(0x161210, { roughness: 0.4 });
 const whiteM = mat(0xfbfaf5, { roughness: 0.35 });
 const shineM = new THREE.MeshBasicMaterial({ color: 0xffffff });
 const tongueM = mat(0xd9646e, { roughness: 0.5 });
+const lipM = mat(0xc25f68, { roughness: 0.45 });
+const bracesM = mat(0xd8dce2, { roughness: 0.18, metalness: 0.95 });                // braces: wire and brackets
+const BAND_COLORS = [0x4fa3ff, 0xff5fa2, 0x7be07b, 0xffc93c, 0xb57bff, 0x3fd6d0];    // the little rubber bands on coloured braces
+const bandMs = BAND_COLORS.map(c => mat(c, { roughness: 0.4, emissive: c, emissiveIntensity: 0.35 }));   // a little glow so the tiny bands still read as coloured
 const blushM = mat(0xff8f9c, { roughness: 1, transparent: true, opacity: 0.45, depthWrite: false });
 // thin wire frames, gold or silver
 const WIRE = { metal: mat(0xd2ae62, { roughness: 0.28, metalness: 0.85 }), metalSilver: mat(0xc9ccd1, { roughness: 0.25, metalness: 0.9 }) };
@@ -1916,7 +1920,61 @@ function buildBodyAt(look, seed) {
     flat: () => fm(bx(0.046, 0.01, 0.006), darkM, 0, 0, 0, mouth),
     open: () => { fm(bx(0.044, 0.032, 0.012), darkM, 0, -0.004, 0, mouth); fm(bx(0.03, 0.01, 0.006), tongueM, 0, -0.013, 0.005, mouth); },
     jianzhi: () => { const m = new THREE.Mesh(geo('flare', () => new THREE.PlaneGeometry(0.13, 0.13)), flashM()); m.position.z = 0.04; m.renderOrder = 2; mouth.add(m); },   // the mouth hidden behind a flash of light (held out in front of the nose, so it's never cut off by it)
+    bigGrin: () => toothy('none'),
+    braces: () => toothy('steel'),
+    bracesColor: () => toothy('color'),
+    frown: () => { fm(bx(0.034, 0.01, 0.006), darkM, 0, 0, 0, mouth); [-1, 1].forEach(k => { fm(bx(0.016, 0.01, 0.006), darkM, k * 0.023, -0.005, -0.002, mouth).rotation.z = -k * 0.55; }); },
+    surprised: () => {   // a small round "o": dark inside, a soft rim of lip round it, the tip of the tongue at the bottom
+      const o = fm(cy(0.012, 0.012, 0.006, 20), darkM, 0, -0.004, 0, mouth); o.rotation.x = Math.PI / 2; o.scale.set(1, 1, 1.35);
+      fm(geo('ohRim', () => new THREE.TorusGeometry(0.0125, 0.0028, 8, 24)), lipM, 0, -0.004, 0.002, mouth).scale.set(1, 1.35, 0.7);
+      fm(sp(0.007, 10, 6), tongueM, 0, -0.0115, 0.0005, mouth).scale.set(1.3, 0.6, 0.5);
+    },
+    pout: () => { [0.006, -0.006].forEach(y => fm(sp(0.012, 12, 8), lipM, 0, y, 0.002, mouth).scale.set(1.5, 0.6, 0.8)); fm(bx(0.022, 0.003, 0.004), darkM, 0, 0, 0.009, mouth); },
+    bunny: () => {   // a small smile with two big front teeth peeking out under it
+      fm(bx(0.03, 0.008, 0.006), darkM, 0, 0, 0, mouth); [-1, 1].forEach(k => { fm(bx(0.012, 0.008, 0.006), darkM, k * 0.019, 0.004, -0.002, mouth).rotation.z = k * 0.55; });
+      [-1, 1].forEach(s => fm(bx(0.0085, 0.013, 0.005), whiteM, s * 0.0047, -0.0085, 0.002, mouth));
+    },
+    gaptooth: () => {   // a grin with one front tooth missing, just right of the middle
+      fm(bx(0.064, 0.028, 0.006), darkM, 0, 0, 0, mouth);
+      fm(bx(0.031, 0.012, 0.012), whiteM, -0.0125, 0.005, 0.002, mouth); fm(bx(0.016, 0.012, 0.012), whiteM, 0.02, 0.005, 0.002, mouth);
+    },
   }[f.mouth] || (() => fm(bx(0.038, 0.01, 0.006), darkM, 0, 0, 0, mouth)))();
+  // a big toothy smile in one smooth shape (a gently lifting top edge, a deeper curve underneath, meeting in the
+  // corners), filled mostly by a wide row of top teeth, the bottom ones peeking out behind them; with braces, a thin steel wire
+  // across the top teeth and a small bracket on each front tooth (coloured braces: a coloured band on each). Every layer is a
+  // fine mesh laid onto the face's own curve (up/down as well as sideways) a hair apart, so the skin never covers the
+  // teeth and the wire always sits on the teeth, never on the skin around the mouth.
+  function toothy(braces) {
+    const W = 0.032, N = 20, M = 6;
+    const top = x => 0.009 + 0.004 * (x / W) ** 2;                   // lifts toward the corners
+    const bot = x => 0.013 - 0.026 * (1 - (x / W) ** 2);              // the lower edge, deepest in the middle
+    const lift = Math.max(0, mouth.position.z - surf(0, MY));         // sitting on a full beard: stay on top of it
+    const onFace = (x, y, off) => surf(x, MY + y) + lift - mouth.position.z + off;   // the face's depth at (x, y), in the mouth's space
+    const xs = (w, n = N) => Array.from({ length: n + 1 }, (_, i) => -w + (2 * w * i) / n);
+    // a grid between two curves over [-w, w], each point laid onto the face `off` in front of it
+    const band = (w, upper, lower, off) => {
+      const pts = [], idx = [];
+      xs(w).forEach(x => { for (let j = 0; j <= M; j++) { const y = upper(x) + (lower(x) - upper(x)) * j / M; pts.push(x, y, onFace(x, y, off)); } });
+      for (let i = 0; i < N; i++) for (let j = 0; j < M; j++) {
+        const a = i * (M + 1) + j, b = a + M + 1;
+        idx.push(a, a + 1, b, b, a + 1, b + 1);
+      }
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3)); g.setIndex(idx); g.computeVertexNormals();
+      return g;
+    };
+    const add = (g, m) => fm(g, m, 0, 0, 0, mouth);                                   // (wound to face out)
+    add(band(W, top, bot, 0.0008), darkM);                                                                   // the open mouth
+    add(band(0.015, x => Math.min(bot(x) + 0.0055, top(x) - 0.001), x => bot(x) + 0.0008, 0.0012), whiteM); // bottom teeth, behind the top row
+    add(band(0.028, x => top(x) - 0.0006, x => Math.max(top(x) - 0.0145, bot(x) + 0.0008), 0.0016), whiteM); // top teeth: most of the mouth
+    if (braces === 'none') return;
+    const wy = x => top(x) - 0.0075;                                                                         // across the middle of the top teeth
+    fm(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(xs(0.025).map(x => new THREE.Vector3(x, wy(x), onFace(x, wy(x), 0.0021)))), 32, 0.0005, 6, false), bracesM, 0, 0, 0, mouth);   // the archwire
+    xs(0.0192, 4).forEach((x, i) => {
+      const b = fm(bx(0.0042, 0.0042, 0.0008), braces === 'color' ? bandMs[i % bandMs.length] : bracesM, x, wy(x), onFace(x, wy(x), 0.0024), mouth);
+      b.rotation.z = Math.atan(0.008 * x / W ** 2);                                                          // following the curve
+    });
+  }
   if (f.blush) [-1, 1].forEach(s => { const x = s * 0.1 * H.s[0]; fm(disc(0.026), blushM, x, -0.038, surf(x, -0.038) - 0.002).rotation.set(Math.PI / 2, 0, -s * 0.6); });
   // moustache and goatee
   if (['mustache', 'both', 'full'].includes(f.facialHair)) {

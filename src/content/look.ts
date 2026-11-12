@@ -54,7 +54,7 @@ export const FACE: Record<'faceShape' | 'eyes' | 'brows' | 'nose' | 'mouth' | 'f
     { value: 'straight', label: '一字眉' }, { value: 'short', label: '短眉' }, { value: 'unibrow', label: '連心眉' },
     { value: 'arched', label: '挑眉' }, { value: 'raised', label: '單挑眉' }, { value: 'angry', label: '劍眉' }, { value: 'worried', label: '八字眉' }, { value: 'none', label: '無' }],
   nose: [{ value: 'small', label: '小鼻子' }, { value: 'button', label: '圓鼻頭' }, { value: 'normal', label: '一般' }, { value: 'big', label: '大鼻子' }, { value: 'none', label: '無' }],
-  mouth: [{ value: 'smile', label: '微笑' }, { value: 'grin', label: '露齒笑' }, { value: 'smirk', label: '壞笑' }, { value: 'flat', label: '面無表情' }, { value: 'open', label: '張嘴' }, { value: 'jianzhi', label: '健誌嘴巴' }],
+  mouth: [{ value: 'smile', label: '微笑' }, { value: 'bigGrin', label: '露齒笑' }, { value: 'grin', label: '露齒' }, { value: 'smirk', label: '壞笑' }, { value: 'flat', label: '面無表情' }, { value: 'open', label: '張嘴' }, { value: 'jianzhi', label: '健誌嘴巴' }, { value: 'braces', label: '鋼絲牙套' }, { value: 'bracesColor', label: '彩色牙套' }, { value: 'gaptooth', label: '缺牙' }, { value: 'bunny', label: '兔牙' }, { value: 'pout', label: '嘟嘴' }, { value: 'surprised', label: '驚訝' }, { value: 'frown', label: '難過' }],
   facialHair: [{ value: 'none', label: '無' }, { value: 'stubble', label: '鬍渣' }, { value: 'mustache', label: '八字鬍' }, { value: 'goatee', label: '山羊鬍' }, { value: 'both', label: '八字鬍＋山羊鬍' }, { value: 'full', label: '落腮鬍' }],
   beard: [{ value: 'light', label: '淡' }, { value: 'normal', label: '一般' }, { value: 'thick', label: '濃' }],   // how dense the facial hair is
   // (配戴, but read with the face: the frame, and its shape on its own; 阿亮眼鏡 always its own round)
