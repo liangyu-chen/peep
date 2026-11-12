@@ -90,7 +90,11 @@ html:has(.cafe-root),body:has(.cafe-root){margin:0;overflow:hidden;background:#1
 .cafe-root .opt::before{content:"\25B6";position:absolute;left:4px;font-size:10px;opacity:0}
 .cafe-root .opt:hover,.cafe-root .opt:focus-visible{background:rgba(255,255,255,.06);outline:none}
 .cafe-root .opt:active{box-shadow:none}
-.cafe-root .opt:hover::before,.cafe-root .opt:focus-visible::before,.cafe-root .opt.sel::before{opacity:1;animation:rpgBlink .7s steps(1) infinite}
+/* one cursor at a time: the picked line (.sel) keeps a still ▶, the line under the finger or the keys blinks, and while
+   one is pointed at, the rest of that window drop theirs */
+.cafe-root .opt:hover::before,.cafe-root .opt:focus-visible::before,.cafe-root .opt.sel::before{opacity:1}
+.cafe-root .opt:hover::before,.cafe-root .opt:focus-visible::before{animation:rpgBlink .7s steps(1) infinite}
+.cafe-root .win:has(.opt:hover) .opt:not(:hover)::before{opacity:0}
 .cafe-root .opt.on{background:none;color:var(--gold);box-shadow:none}
 .cafe-root .opt.on::after{content:"\25CF";margin-left:auto;font-size:9px}
 .cafe-root .opt[data-toggle]::after{content:none}
@@ -99,6 +103,7 @@ html:has(.cafe-root),body:has(.cafe-root){margin:0;overflow:hidden;background:#1
 .cafe-root .opt .val::after{content:"OFF"}
 .cafe-root .opt.on .val{color:var(--gold)}
 .cafe-root .opt.on .val::after{content:"ON"}
+.cafe-root .opt .qval{margin-left:auto;font-size:13px;color:var(--gold)}   /* 畫質: 高 or 低 */
 /* items: three slots to a row, the picked one edged gold; what it is, and use, underneath */
 .cafe-root .slots{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
 .cafe-root .slot{position:relative;display:grid;justify-items:center;gap:4px;padding:8px 2px 6px;font-size:12px;background:#1a1722;border:2px solid #3a3648;border-radius:0;box-shadow:none}
@@ -126,6 +131,12 @@ html:has(.cafe-root),body:has(.cafe-root){margin:0;overflow:hidden;background:#1
 .cafe-root #guestList{display:grid;max-height:50vh;overflow-y:auto}
 .cafe-root #guestList .empty{margin:6px 0;font-size:13px;color:var(--muted)}
 /* the monitor's channel, and the burst of static between channels */
+/* what using an item did: a small RPG message box popping up over the middle, gone after a moment or at a tap */
+.cafe-root .itemPop{left:50%;top:44%;z-index:25;width:min(300px,calc(100vw - 48px));box-sizing:border-box;padding:14px 18px 18px;
+  font-size:15px;line-height:1.55;transform:translate(-50%,-50%);cursor:pointer}
+.cafe-root .itemPop::after{content:"BC";position:absolute;right:10px;bottom:4px;font-size:10px;color:var(--gold);animation:rpgBlink .9s steps(1) infinite}
+.cafe-root .itemPop.in{animation:rpgPop .16s steps(3) both}
+@keyframes rpgPop{from{transform:translate(-50%,-50%) scale(.6);opacity:0}to{transform:translate(-50%,-50%) scale(1);opacity:1}}
 .cafe-root #camRec{position:absolute;z-index:4;top:calc(58px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:7px;
   padding:4px 9px;background:rgba(0,0,0,.6);font-family:var(--f-pixel);font-size:9px;color:#fff;pointer-events:none}
 .cafe-root #camRec i{width:7px;height:7px;border-radius:50%;background:#ff3b3b;animation:rpgBlink 1s steps(1) infinite}
@@ -134,7 +145,7 @@ html:has(.cafe-root),body:has(.cafe-root){margin:0;overflow:hidden;background:#1
 .cafe-root .camStatic.on{display:block}
 /* the TV line ends with a blinking arrow, the way an RPG's text box waits */
 .cafe-root #tvIdle::after{content:" \25BC";color:var(--gold);font-size:10px;animation:rpgBlink .9s steps(1) infinite}
-.cafe-root #logBtn{display:none}
+
 @keyframes rpgBlink{50%{opacity:0}}
 @keyframes rpgBob{50%{transform:translateY(2px)}}
 /* the AC remote: a white handheld remote leaning out of the right edge of the screen, just the corner of its head
@@ -157,6 +168,7 @@ html:has(.cafe-root),body:has(.cafe-root){margin:0;overflow:hidden;background:#1
   --acDrop:drop-shadow(0 24px 22px rgba(0,0,0,.58))}
 /* while someone's card is up at the right edge, the remote steps aside */
 .cafe-root:has(#card:not([hidden])) #acRemote{opacity:0;pointer-events:none}
+.cafe-root.menuOverRemote #acRemote{opacity:0;pointer-events:none}   /* a menu window lies over it (rpgMenu.js) */
 /* the head: the little window that sends the signal, and a lamp that blinks once on every key press */
 .cafe-root #acHead{position:relative;flex:none;display:grid;justify-items:center;width:100%;padding:12px 16px 4px;cursor:grab;justify-items:start;
   background:none;border:0;box-shadow:none;border-radius:22px 18px 0 0;color:#3a3742}
@@ -355,7 +367,7 @@ html:has(.cafe-root),body:has(.cafe-root){margin:0;overflow:hidden;background:#1
 .cafe-root .gameSheet.onTV .gameHelp{font-size:12px}
 .cafe-root .gamePad{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
 /* playing darts on the wall board: the rest of the HUD steps aside; a pixel crosshair, the round and score along the top */
-.cafe-root.playing #labels,.cafe-root.playing #topLeft,.cafe-root.playing #logBtn,.cafe-root.playing #camRec,.cafe-root.playing #log,.cafe-root.playing #tvCard,.cafe-root.playing #hint,.cafe-root.playing #card,.cafe-root.playing #acRemote{display:none}
+.cafe-root.playing .itemPop,.cafe-root.playing #labels,.cafe-root.playing #topLeft,.cafe-root.playing #camRec,.cafe-root.playing #log,.cafe-root.playing #tvCard,.cafe-root.playing #hint,.cafe-root.playing #card,.cafe-root.playing #acRemote{display:none}
 .cafe-root .dartsHud{position:absolute;inset:0;z-index:20;cursor:none;touch-action:none;user-select:none;-webkit-user-select:none}
 .cafe-root .dTop{position:absolute;top:calc(14px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);display:flex;gap:18px;align-items:center;
   font-family:var(--f-pixel);font-size:12px;color:var(--gold);background:var(--panel);padding:8px 14px;box-shadow:0 0 0 3px #000;white-space:nowrap}
@@ -447,13 +459,6 @@ html:has(.cafe-root),body:has(.cafe-root){margin:0;overflow:hidden;background:#1
 .cafe-root #hint{position:absolute;left:50%;transform:translateX(-50%);top:calc(18px + env(safe-area-inset-top,0px));font-size:12px;color:var(--ink);background:var(--panel);padding:4px 10px;pointer-events:none;transition:opacity .6s;box-shadow:0 0 0 3px #000}
 @media (max-width:900px){
   .cafe-root #log,.cafe-root #hint{display:none}
-  /* the log behind its LOG button, in the bottom left corner (the TV panel has the right) */
-  .cafe-root #logBtn{display:grid;place-items:center;position:absolute;z-index:4;left:calc(16px + env(safe-area-inset-left,0px));bottom:calc(16px + var(--sb));
-    width:58px;height:38px;padding:0;font-family:var(--f-pixel);font-size:9px;color:var(--gold);background:var(--panel);border:3px solid var(--edge);border-radius:6px;
-    box-shadow:inset 0 0 0 2px var(--panel),inset 0 0 0 4px var(--rule),5px 5px 0 0 var(--shade)}
-  .cafe-root #logBtn.on{color:var(--panel);background:var(--gold)}
-  .cafe-root #log.shown{display:block;z-index:4;left:calc(16px + env(safe-area-inset-left,0px));right:calc(16px + env(safe-area-inset-right,0px));width:auto;
-    bottom:calc(70px + var(--sb));max-height:40vh;overflow-y:auto}
 }
 @media (max-width:560px){
   .cafe-root #brand{min-width:0;padding:10px 12px;gap:6px}
@@ -465,7 +470,7 @@ html:has(.cafe-root),body:has(.cafe-root){margin:0;overflow:hidden;background:#1
   .cafe-root .gameSheet{padding:8px}
   .cafe-root .gamePad{gap:8px}
   .cafe-root .gamePad button{min-width:52px}
-  .cafe-root #card{top:auto;bottom:calc(70px + var(--sb));transform:none;left:calc(16px + env(safe-area-inset-left,0px));width:auto;
+  .cafe-root #card{top:auto;bottom:calc(16px + var(--sb));transform:none;left:calc(16px + env(safe-area-inset-left,0px));width:auto;
     padding:8px 10px;gap:6px;max-height:42vh;overflow-y:auto;grid-template-columns:1fr 1fr}
   /* compact on a phone: a small picture, the details two pairs to a row, the buttons side by side */
   .cafe-root #card .head,.cafe-root #card dl,.cafe-root #card .status{grid-column:1 / -1}

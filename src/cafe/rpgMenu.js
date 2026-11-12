@@ -1,7 +1,7 @@
 // The RPG menu: a 選單 button under the name panel opens the commands (道具 / 客人 / 系統 / 關閉), each command a
 // window beside them, and some items a small choice window of their own. 返回 or Esc steps back a window; on a
 // keyboard the arrows move the ▶ cursor. The camera, speed, sound and quality buttons inside are wired by hud.js
-// (by their data-cam / data-speed / data-quality and ids), so this only opens and closes windows and runs the items.
+// (by their data-cam / data-speed and ids), so this only opens and closes windows and runs the items.
 import { S } from './state.js';
 import { $ } from './util.js';
 import { log } from './feed.js';
@@ -14,17 +14,32 @@ export function bindMenu(root, on, off, { setCam, focusPerson }) {
   const btn = $('menuBtn'), cmd = $('cmdWin'), panel = $('menuPanel'), choice = $('choiceWin');
   const stack = [];   // the windows open now, the top one last
 
+  // the AC remote leans in from the right edge: on a narrow screen a window may land on it, and only then it steps
+  // aside (.menuOverRemote) until the windows move off it again
+  const remote = $('acRemote');
+  const checkRemote = () => {
+    if (!remote) return;
+    const r = remote.getBoundingClientRect();
+    const seen = { l: Math.max(0, r.left), r: Math.min(window.innerWidth, r.right), t: Math.max(0, r.top), b: Math.min(window.innerHeight, r.bottom) };   // (only the part on screen)
+    const hit = stack.some(w => { const a = w.getBoundingClientRect(); return a.left < seen.r && seen.l < a.right && a.top < seen.b && seen.t < a.bottom; });
+    root.classList.toggle('menuOverRemote', hit);
+  };
+  on(window, 'resize', checkRemote);
+  off.push(() => root.classList.remove('menuOverRemote'));
+
   const focusIn = win => win.querySelector('.view.cur .opt.sel, .view.cur .slot.sel, .view.cur .opt, .view.cur .slot, .opt.sel, .opt')?.focus({ preventScroll: true });
   const show = (win, view) => {
     if (view) win.querySelectorAll('.view').forEach(v => v.classList.toggle('cur', v.dataset.view === view));
     win.hidden = false;
     if (!stack.includes(win)) stack.push(win);
     focusIn(win);
+    checkRemote();
   };
-  const popAbove = win => { while (stack.length && stack[stack.length - 1] !== win) stack.pop().hidden = true; };
+  const popAbove = win => { while (stack.length && stack[stack.length - 1] !== win) stack.pop().hidden = true; checkRemote(); };
   const back = () => {
     const w = stack.pop(); if (!w) return;
     w.hidden = true;
+    checkRemote();
     if (w === cmd) { btn.hidden = false; btn.setAttribute('aria-expanded', 'false'); btn.focus({ preventScroll: true }); return; }
     const top = stack[stack.length - 1]; if (top) focusIn(top);
   };
@@ -56,12 +71,24 @@ export function bindMenu(root, on, off, { setCam, focusPerson }) {
     $('itemUse').hidden = name === 'none';
     $('itemUse').textContent = useLabel(name);
   };
-  // what happened, in the description box, the way an RPG reports it
-  const report = text => { $('itemDesc').textContent = text; };
+  // what happened, in a small message box that pops up over the windows, the way an RPG reports it: it goes by
+  // itself after a moment, or at a tap
+  const pop = document.createElement('div');
+  pop.className = 'win itemPop'; pop.setAttribute('role', 'status'); pop.hidden = true;
+  root.appendChild(pop); off.push(() => pop.remove());
+  let popTimer = 0;
+  const hidePop = () => { clearTimeout(popTimer); pop.hidden = true; };
+  const report = text => {
+    pop.textContent = text;
+    pop.hidden = false; pop.classList.remove('in'); void pop.offsetWidth; pop.classList.add('in');   // (replay the pop-in)
+    clearTimeout(popTimer); popTimer = setTimeout(hidePop, 2200);
+  };
+  on(pop, 'click', hidePop);
+  off.push(() => clearTimeout(popTimer));
   const use = name => {
     if (name === 'cam') show(choice, 'cams');
     else if (name === 'speed') show(choice, 'speed');
-    else if (name === 'menu') { closeMenu(); setCam('menu'); }   // lean over the bar and read the clipboard
+    else if (name === 'menu') { closeMenu(); setCam('menu'); report('你湊近吧台，讀起那張邊角燒焦的菜單。'); }   // lean over the bar and read the clipboard
     else if (name === 'tag') {
       // 死神之眼: worn, everyone's name shows over their head (the name tags)
       S.showTags = S.showTags === false; showTag();

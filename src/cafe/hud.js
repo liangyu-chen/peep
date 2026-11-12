@@ -154,20 +154,24 @@ function setAcOpen(open, silent) {
 }
 
 // ---------------------------------------------------------------- camera presets
+// (phone: its own framing for a tall, narrow screen, where the wide one would show a slice of the wrong thing)
 const CAMS = {
   overview: { pos: [9, 13, 11], target: [0, 0.5, -1.5] },
   counter: { pos: [-1.9, 2.3, 2.9], target: [1.2, 1.1, -0.9] },
   menu: { pos: [0.22, 1.5, 2.3], target: [0.6, 1.06, 2.3] },   // leaning over the bar from the customer side, reading the clipboard
-  tv: { pos: [0.5, 2.9, -1.7], target: [-2.3, 0.7, -3.9] },   // over the players' heads, the TV on the purple wall and the doorway to the back beside it
-  porch: { pos: [1.6, 2.6, 4.7], target: [-1.4, 0.3, 6.2] },   // from just outside the door, high under the balcony, looking down over the crate table to the chairs along the wall
-  back: { pos: [-2.8, 4.4, -4.1], target: [-0.4, 0.2, -6.6] }   // from over the back corridor: the stadium on its crates, the toilet door, the storeroom through its doorway
+  // over the players' heads, the TV on the purple wall and the doorway to the back beside it
+  tv: { pos: [0.5, 2.9, -1.7], target: [-2.3, 0.7, -3.9], phone: { pos: [0.4, 3.0, -1.4], target: [-2.4, 1.25, -3.0] } },
+  // from just outside the door, high under the balcony, looking down over the crate table to the chairs along the wall
+  porch: { pos: [1.6, 2.6, 4.7], target: [-1.4, 0.3, 6.2], phone: { pos: [1.3, 3.0, 4.3], target: [-0.8, 0.3, 6.3] } },
+  // from over the back corridor: the stadium on its crates, the toilet door, the storeroom through its doorway
+  back: { pos: [-2.8, 4.4, -4.1], target: [-0.4, 0.2, -6.6], phone: { pos: [-2.6, 4.8, -4.1], target: [-1.0, 0.25, -7.3] } }
 };
 let camTween = null;
 let menu = null;   // the RPG menu's handles, while the HUD is bound
 function setCam(name) {
   stopFollow();
   const rec = $('camRec'); if (rec) rec.hidden = true;
-  const c = CAMS[name], { camera, controls } = ctx;
+  const { camera, controls } = ctx, c = (camera.aspect < 0.8 && CAMS[name].phone) || CAMS[name];
   camTween = { fp: camera.position.clone(), ft: controls.target.clone(), tp: new THREE.Vector3(c.pos[0] * K, c.pos[1], c.pos[2]), tt: new THREE.Vector3(c.target[0] * K, c.target[1], c.target[2]), t: 0 };
   document.querySelectorAll('[data-cam]').forEach(b => b.classList.toggle('on', b.dataset.cam === name));
   sfx('swoosh');
@@ -285,8 +289,13 @@ export function bindHUD(root, stage) {
     S.speed = +b.dataset.speed; root.querySelectorAll('[data-speed]').forEach(x => x.classList.toggle('on', x === b));
   }));
   // 畫質: 高效能 (shadows redrawn every frame, everything casting its own; the default) or 一般 (drawn once)
-  const qBtns = [...root.querySelectorAll('[data-quality]')], showQ = () => qBtns.forEach(b => b.classList.toggle('on', b.dataset.quality === (S.quality || DEFAULT_QUALITY)));
-  showQ(); qBtns.forEach(b => on(b, 'click', () => { setQuality(b.dataset.quality); showQ(); sfx('pop'); }));
+  // one switch in the menu's 系統, flipping between the two
+  const qBtn = $('qualityToggle'), showQ = () => {
+    const high = (S.quality || DEFAULT_QUALITY) === 'high';
+    $('qualityVal').textContent = high ? '高' : '低';
+    qBtn.title = high ? '高：每秒 60 張、完整解析度，影子每張重算' : '低：每秒 30 張、解析度較低，影子只算一次（省電）';
+  };
+  showQ(); on(qBtn, 'click', () => { setQuality((S.quality || DEFAULT_QUALITY) === 'high' ? 'normal' : 'high'); showQ(); });
   // the AC remote: leans out of the right edge at an angle with just the corner of its head showing; click it to
   // have it fly in square-on, click the head again to let it lean back out. Off, the doors stand open for air and
   // the outdoor unit's fan slows to a stop (index.js); mode, temp and fan are the remote's own settings, drawn on
@@ -371,11 +380,9 @@ export function bindHUD(root, stage) {
   // the background music: starts with the first touch anywhere (browsers won't play before one), and its own switch
   const musicBtn = $('musicToggle'), showMusic = () => musicBtn?.classList.toggle('on', musicOn());
   showMusic(); on(musicBtn, 'click', () => { toggleMusic(); showMusic(); });
-  // the RPG menu (rpgMenu.js), and on phones the event log behind its LOG button
+  // the RPG menu (rpgMenu.js)
   menu = bindMenu(root, on, off, { setCam, focusPerson });
   off.push(() => { menu = null; });
-  const logBtn = $('logBtn');
-  on(logBtn, 'click', () => { const shown = $('log').classList.toggle('shown'); logBtn.classList.toggle('on', shown); logBtn.setAttribute('aria-expanded', String(shown)); });
   on(root, 'pointerdown', () => startMusic());
   off.push(stopMusic);
   on($('tvCard'), 'click', () => setCam('tv'));

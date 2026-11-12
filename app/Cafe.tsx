@@ -17,8 +17,11 @@ const ICON_GLASS = ['.kkkkkkkkkk.', '.kbbbbbbbbk.', '..kwyyyywk..', '..kwyyyywk.
 // 死神之眼: a white eye with a red iris
 const ICON_EYE = ['............', '............', '...kkkkkk...', '..kwwwwwwk..', '.kwwrrrrwwk.', 'kwwrrkkrrwwk', 'kwwrrkkrrwwk',
   '.kwwrrrrwwk.', '..kwwwwwwk..', '...kkkkkk...', '............', '............'];
-const ICON_RADIO = ['.........k..', '........k...', '.......k....', '.kkkkkkkkkk.', '.kooooooook.', '.kokkkkkook.', '.kokwkwkoyk.',
-  '.kokkkkkook.', '.kokwkwkoyk.', '.kokkkkkook.', '.kooooooook.', '.kkkkkkkkkk.'];
+// 音效: a speaker sounding off; 音樂: two beamed notes
+const ICON_SPEAKER = ['............', '.....k......', '....kk...y..', '..kkGk....y.', '.kGGGk.y..y.', '.kGGGk..y.y.', '.kGGGk..y.y.',
+  '.kGGGk.y..y.', '..kkGk....y.', '....kk...y..', '.....k......', '............'];
+const ICON_NOTE = ['............', '....kkkkkkkk', '....krrrrrrk', '....kkkkkkrk', '....kr...krk', '....kr...krk', '....kr...krk',
+  '.kkkkr.kkkrk', 'krrrrrkrrrrk', 'krrrrkkrrrk.', '.kkkk..kkk..', '............'];
 const ICON_BATT = ['....kkkk....', '...kGGGGk...', '..kkkkkkkk..', '..knnnnnnk..', '..knnwnnnk..', '..knnnnnnk..', '..knnnnnnk..',
   '..kggggggk..', '..kggggggk..', '..kggggggk..', '..kggggggk..', '..kkkkkkkk..'];
 const ICON_KEY = ['............', '............', '..kkkk......', '.kyyyyk.....', 'kyyk.kyk....', 'kyk..kykkkkk', 'kyyk.kyyyyyk',
@@ -160,10 +163,10 @@ export default function Cafe({ content }: { content: CafeContent }) {
           </div>
           <div className="view" data-view="system">
             <h2>SYSTEM<button type="button" className="back" data-back>◀ 返回</button></h2>
-            <button type="button" id="sfxToggle" className="opt on" data-toggle><PixelArt rows={ICON_RADIO} />音效<span className="val" /></button>
-            <button type="button" id="musicToggle" className="opt on" data-toggle><PixelArt rows={ICON_RADIO} />音樂<span className="val" /></button>
-            <button type="button" className="opt" data-quality="high" title="每秒 60 張、完整解析度，影子每張重算"><PixelArt rows={ICON_BATT} />畫質：高</button>
-            <button type="button" className="opt" data-quality="normal" title="每秒 30 張、解析度較低，影子只算一次：省電"><PixelArt rows={ICON_BATT} />畫質：低（省電）</button>
+            <button type="button" id="sfxToggle" className="opt on" data-toggle><PixelArt rows={ICON_SPEAKER} />音效<span className="val" /></button>
+            <button type="button" id="musicToggle" className="opt on" data-toggle><PixelArt rows={ICON_NOTE} />音樂<span className="val" /></button>
+            {/* 畫質, one line that flips between 高 and 低 (hud.js) */}
+            <button type="button" id="qualityToggle" className="opt"><PixelArt rows={ICON_BATT} />畫質<span className="qval" id="qualityVal">高</span></button>
             <a href="/admin" className="opt"><PixelArt rows={ICON_KEY} />後台登入</a>
           </div>
         </section>
@@ -186,8 +189,6 @@ export default function Cafe({ content }: { content: CafeContent }) {
 
       {/* which monitor channel is showing, after the 監視器 switched to it (gone once the view is dragged) */}
       <div id="camRec" hidden><i aria-hidden="true" /><b>CAM-01</b><span>全景</span></div>
-      {/* phones: the event log is folded away behind a button */}
-      <button id="logBtn" type="button" aria-controls="log" aria-expanded="false">LOG</button>
 
       <section id="log" className="win" aria-label="店內動態">
         <h2>EVENT LOG</h2>

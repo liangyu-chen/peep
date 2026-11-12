@@ -424,7 +424,7 @@ function decor() {
   });
   // ceiling fans: one over the front end of the bar, toward the door, and one over the games corner
   ceilingFan(-0.54, 3.4);   // (near the front door, in line with the back one)
-  ceilingFan(-0.54, -3.1);
+  ceilingFan(-0.54, -3.5);   // (back clear of the track across the room at z -2.85: its blades reach 0.55 round)
 }
 
 // under the peep window, inside, after the photo: an old wooden stool with a cloth over it, a cup with a bug-eyed toy on
