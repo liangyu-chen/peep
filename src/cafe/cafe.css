@@ -323,7 +323,12 @@ html:has(.cafe-root),body:has(.cafe-root){margin:0;overflow:hidden;background:#1
 .cafe-root #acRemote.px #acScreen::after{background:repeating-linear-gradient(90deg,transparent 0 3px,rgba(0,0,0,.05) 3px 4px),
   repeating-linear-gradient(180deg,transparent 0 3px,rgba(0,0,0,.05) 3px 4px)}
 .cafe-root #acRemote.px .acLcdFoot{margin:6px -8px -4px;border-top:2px dotted currentColor}
-.cafe-root #acRemote.px .acLcdFoot>span+span{border-left:2px dotted currentColor}
+/* the rules between the cells: dots drawn as a gradient rather than a dotted border, which fades out where the
+   remote is scaled down on a phone and the line lands between pixels */
+.cafe-root #acRemote.px .acLcdFoot>span{position:relative}
+.cafe-root #acRemote.px .acLcdFoot>span+span{border-left:0}
+.cafe-root #acRemote.px .acLcdFoot>span+span::before{content:"";position:absolute;left:-1px;top:0;bottom:0;width:2px;z-index:1;
+  background:repeating-linear-gradient(180deg,currentColor 0 2px,transparent 2px 4px)}
 .cafe-root #acRemote.px .acDigit i{border-radius:0}
 .cafe-root #acRemote.px .acBatt,.cafe-root #acRemote.px .acBatt::before{border-radius:0}
 /* keys: names printed on them, in a plain grid (運轉 風量 / ▲▼ / 左右風擺 功能 / 上下風擺) */
