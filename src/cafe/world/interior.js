@@ -319,6 +319,7 @@ function cornerNook() {
 // the keyboard dark in its well, a faint glow on the screen. In true size (unsqueezed): 30 x 21 cm, 1.1 cm thin
 function macbook(x, y, z) {
   const g = new THREE.Group(); g.position.set(x, y, z); g.rotation.y = -Math.PI / 2; ctx.scene.add(g);   // square to the counter's edge
+  S.laptop = g;   // clicked, it opens the back office (hud.js); held through S, so it isn't merged into the set
   //g.scale.z = 1 / K;   // (turned side-on, its depth is what lies along the squeezed x)
   const alu = mat(0xc9cbcf, { roughness: 0.32, metalness: 0.7 }), dark = mat(0x1b1c1f, { roughness: 0.6 });
   box(0.30, 0.008, 0.21, alu, 0, 0.004, 0, g);                                   // the base

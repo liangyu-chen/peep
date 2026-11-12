@@ -404,7 +404,8 @@ export function bindHUD(root, stage) {
     (S.fanUnits || []).forEach(f => f.traverse(o => { if (o.isMesh) fans.push(o); }));
     if (S.stadium?.visible) S.stadium.traverse(o => { if (o.isMesh) stadium.push(o); });
     S.menuClip?.traverse(o => { if (o.isMesh) menu.push(o); });
-    const targets = []; S.people.forEach(p => { p.g.traverse(o => { if (o.isMesh) targets.push(o); }); p.bear?.g.traverse(o => { if (o.isMesh) targets.push(o); }); }); targets.push(S.tvScreen, S.tvFrame, S.dartboard, S.neonSwitch?.hit, S.storeLight?.hit, S.toiletLight?.hit, ...stadium, ...menu, ...fans);
+    const laptop = []; S.laptop?.traverse(o => { if (o.isMesh) laptop.push(o); });
+    const targets = []; S.people.forEach(p => { p.g.traverse(o => { if (o.isMesh) targets.push(o); }); p.bear?.g.traverse(o => { if (o.isMesh) targets.push(o); }); }); targets.push(S.tvScreen, S.tvFrame, S.dartboard, S.neonSwitch?.hit, S.storeLight?.hit, S.toiletLight?.hit, ...stadium, ...menu, ...fans, ...laptop);
     const h = ray.intersectObjects(targets.filter(Boolean), false)[0];
     if (!h) return null;
     if (h.object === S.neonSwitch?.hit) return 'neon';
@@ -412,6 +413,7 @@ export function bindHUD(root, stage) {
     if (h.object === S.toiletLight?.hit) return 'toiletLight';
     if (h.object.userData.fanBlades) return { fan: h.object.userData.fanBlades };
     if (menu.includes(h.object)) return 'menu';
+    if (laptop.includes(h.object)) return 'laptop';
     if (h.object === S.tvScreen || h.object === S.tvFrame) return 'tv';
     if (h.object === S.dartboard) return 'darts';
     if (stadium.includes(h.object)) return 'tops';
@@ -424,6 +426,7 @@ export function bindHUD(root, stage) {
     if (!downAt || Math.hypot(e.clientX - downAt[0], e.clientY - downAt[1]) > 6) return;
     const h = hit(e);
     if (h === 'menu') setCam('menu');   // the clipboard on the bar: lean over and read it
+    else if (h === 'laptop') { sfx('pop'); window.location.href = '/admin'; }   // the owner's laptop: into the back office
     else if (h === 'neon') toggleNeon();
     else if (h === 'storeLight') { setStoreLight(!S.storeLight.on); sfx('flick'); }
     else if (h === 'toiletLight') {
