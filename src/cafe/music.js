@@ -48,8 +48,8 @@ function schedule() {
 }
 
 export function startMusic() {
-  if (!on || timer) return;
-  const a = audio(); if (!a) return;
+  if (!on) return;
+  const a = audio(); if (!a || timer) return;   // (already playing: audio() still wakes a suspended context)
   if (!master) { master = a.createGain(); master.gain.value = 0.32; master.connect(a.destination); }
   next = a.currentTime + 0.1;
   timer = setInterval(schedule, 60); schedule();

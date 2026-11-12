@@ -17,7 +17,9 @@ export function audio() {
     noiseBuf = ac.createBuffer(1, ac.sampleRate, ac.sampleRate);
     const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
   }
-  if (ac.state === 'suspended') ac.resume();
+  // 'suspended' before the first touch or in a hidden tab, 'interrupted' on iOS after a call, the lock screen or another
+  // app; resume() only takes inside a touch or key press, so every one tries again
+  if (ac.state !== 'running' && ac.state !== 'closed') ac.resume().catch(() => {});
   return ac;
 }
 

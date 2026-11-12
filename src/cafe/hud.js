@@ -17,7 +17,7 @@ import { setQuality, DEFAULT_QUALITY } from './quality.js';
 import { tvGames, GAME_LABEL } from './profiles.js';
 import { openGame, closeGame } from './games.js';
 import { playWallDarts, stopWallDarts } from './wallDarts.js';
-import { sfx, sfxMuted, toggleSfx } from './sfx.js';
+import { sfx, sfxMuted, toggleSfx, audio } from './sfx.js';
 import { startMusic, stopMusic, toggleMusic, musicOn } from './music.js';
 import { TVX, TVY, TVZ } from './layout.js';
 import { bindMenu } from './rpgMenu.js';
@@ -383,7 +383,11 @@ export function bindHUD(root, stage) {
   // the RPG menu (rpgMenu.js)
   menu = bindMenu(root, on, off, { setCam, focusPerson });
   off.push(() => { menu = null; });
-  on(root, 'pointerdown', () => startMusic());
+  // every touch, click or key wakes the sound: a finger's pointerdown doesn't count as a gesture on phones (only its
+  // pointerup / touchend do), and after a hidden tab or a call the sound has to be woken again
+  const wake = () => { if (!sfxMuted()) audio(); startMusic(); };
+  ['pointerdown', 'pointerup', 'touchend'].forEach(t => on(root, t, wake));
+  on(window, 'keydown', wake);
   off.push(stopMusic);
   on($('tvCard'), 'click', () => setCam('tv'));
   // a drag stops a camera move (while following someone it orbits round them instead, and the follow carries on)
