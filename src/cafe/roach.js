@@ -94,18 +94,25 @@ export function releaseRoach() {
 const posOf = p => [p.g.position.x / K, p.g.position.z];
 const metres = (ax, az, bx, bz) => Math.hypot((ax - bx) * K, az - bz);
 // somewhere `lo` to `hi` along the floor from where it is (on its own side of the door), the way there; `score` picks
-// among them (a random one if not given)
+// among them (a random one if not given). Where the floor's spots are far apart (out on the porch, a stool's dead end)
+// there may be none that near or that far: then the nearest it can get to outside that, so it never just sits there
 function wander(r, lo, hi, score) {
-  const { d, prev } = spread(nearestNode(r.x, r.z));
-  let best = null, bs = -Infinity;
+  const from = nearestNode(r.x, r.z), { d, prev } = spread(from);
+  let best = null, bs = -Infinity, near = null, nd = Infinity;
   for (let i = 0; i < nodeCount(); i++) {
-    if (d[i] < lo || d[i] > hi || !allowed(nodeAt(i), r.zone)) continue;
+    if (i === from || d[i] < 0.05 || d[i] === Infinity || !allowed(nodeAt(i), r.zone)) continue;
     const way = wayTo(prev, i);
-    if (way.some(([x, z]) => zoneOf(z) !== r.zone || (x > 1.3 && z > -2.4 && z < 3.0))) continue;   // (not by way of behind the bar, or the other side of the door)
+    // (not by way of behind the bar, or the other side of the door; where it starts from is where it already is)
+    if (way.slice(1).some(([x, z]) => zoneOf(z) !== r.zone || (x > 1.3 && z > -2.4 && z < 3.0))) continue;
+    if (d[i] < lo || d[i] > hi) {
+      const off = d[i] < lo ? lo - d[i] : d[i] - hi;
+      if (off < nd) { nd = off; near = way; }
+      continue;
+    }
     const s = score ? score(nodeAt(i)) : Math.random();
     if (s > bs) { bs = s; best = way; }
   }
-  return best || [];
+  return best || near || [];
 }
 function scuttle(r, dt) {
   // close to the owner, it runs from him (as far from him as it can get, close by); otherwise off along the floor to
