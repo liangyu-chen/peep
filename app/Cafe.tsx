@@ -5,14 +5,33 @@ import type { CafeContent } from '@/src/content/catalog';
 import '@/src/cafe/cafe.css';
 import LoadingHands from './LoadingHands';
 
-// little pixel-art icons for the tiles: '#' is a lit pixel, drawn in the tile's text colour with hard edges
-const CUP = ['...#..#.....', '..#..#......', '...#..#.....', '............', '.#########..', '.#.......###', '.#.......#.#',
-  '.#.......#.#', '.#.......###', '..#.....#...', '...#####....', '############'];
-// a speaker, sounding or crossed out (the phone's one switch for the music and sound effects)
-const SPEAKER = ['....#.......', '...##...#...', '..###....#..', '####.#.#..#.', '####.#..#.#.', '####.#..#.#.', '####.#.#..#.',
-  '..###....#..', '...##...#...', '....#.......', '............', '............'];
-const SPEAKER_OFF = ['....#.......', '...##.......', '..###.......', '####.#.#...#', '####.#..#.#.', '####.#...#..', '####.#..#.#.',
-  '..###..#...#', '...##.......', '....#.......', '............', '............'];
+// the RPG menu's item icons, in colour: each letter a pixel of that palette colour, '.' see-through
+const ITEM_PAL: Record<string, string> = { k: '#14121a', w: '#f4efe3', G: '#9a98a6', g: '#55535f', r: '#ff4f7b', y: '#ffd23f',
+  b: '#9a6234', o: '#ff9a3c', c: '#7ec8ff', n: '#3ddc97' };
+const ICON_CAM = ['............', '.kkkkkkkkkk.', '.kGGGGGGGGk.', '.kGccccccGk.', '.kGcwcccrGk.', '.kGccccccGk.', '.kGccccccGk.',
+  '.kGGGGGGGGk.', '.kkkkkkkkkk.', '....kGGk....', '..kkkkkkkk..', '............'];
+const ICON_MENU = ['...kkkkk....', '.kkbyyybkk..', '.kbbbbbbbk..', '.kbwwwwwbk..', '.kbwkkwwbk..', '.kbwwwwwbk..', '.kbwkkkwbk..',
+  '.kbwwwwwbk..', '.kbwkkwwbk..', '.kbwwwwwbk..', '.kbbbbbbbk..', '.kkkkkkkkk..'];
+const ICON_GLASS = ['.kkkkkkkkkk.', '.kbbbbbbbbk.', '..kwyyyywk..', '..kwyyyywk..', '...kwyywk...', '....kyyk....', '....kwwk....',
+  '...kwwywk...', '..kwwyyywk..', '..kwyyyyyk..', '.kbbbbbbbbk.', '.kkkkkkkkkk.'];
+// 死神之眼: a white eye with a red iris
+const ICON_EYE = ['............', '............', '...kkkkkk...', '..kwwwwwwk..', '.kwwrrrrwwk.', 'kwwrrkkrrwwk', 'kwwrrkkrrwwk',
+  '.kwwrrrrwwk.', '..kwwwwwwk..', '...kkkkkk...', '............', '............'];
+const ICON_RADIO = ['.........k..', '........k...', '.......k....', '.kkkkkkkkkk.', '.kooooooook.', '.kokkkkkook.', '.kokwkwkoyk.',
+  '.kokkkkkook.', '.kokwkwkoyk.', '.kokkkkkook.', '.kooooooook.', '.kkkkkkkkkk.'];
+const ICON_BATT = ['....kkkk....', '...kGGGGk...', '..kkkkkkkk..', '..knnnnnnk..', '..knnwnnnk..', '..knnnnnnk..', '..knnnnnnk..',
+  '..kggggggk..', '..kggggggk..', '..kggggggk..', '..kggggggk..', '..kkkkkkkk..'];
+const ICON_KEY = ['............', '............', '..kkkk......', '.kyyyyk.....', 'kyyk.kyk....', 'kyk..kykkkkk', 'kyyk.kyyyyyk',
+  '.kyyyykkykyk', '..kkkk..k.k.', '............', '............', '............'];
+function PixelArt({ rows }: { rows: string[] }) {
+  return (
+    <svg viewBox={`0 0 ${rows[0].length} ${rows.length}`} shapeRendering="crispEdges" aria-hidden="true">
+      {rows.flatMap((r, y) => [...r].map((c, x) => (ITEM_PAL[c] ? <rect key={`${x},${y}`} x={x} y={y} width={1} height={1} fill={ITEM_PAL[c]} /> : null)))}
+    </svg>
+  );
+}
+// the monitor's channels, in the order they're numbered
+const CAM_CHANNELS: [string, string][] = [['overview', '全景'], ['counter', '吧台'], ['menu', '菜單'], ['tv', '電視'], ['porch', '戶外區'], ['back', '後場']];
 // a snowflake, for the AC remote's cooling mode
 const SNOW = ['#....#....#', '.#...#...#.', '..#..#..#..', '...#.#.#...', '###########', '...#.#.#...', '..#..#..#..', '.#...#...#.',
   '#....#....#'];
@@ -105,11 +124,6 @@ export default function Cafe({ content }: { content: CafeContent }) {
       <div id="topLeft">
       <section id="brand" className="win" aria-label="店況">
         <h1>窺視咖啡</h1>
-        {/* the music and the sound effects on one switch: a speaker in the panel's corner */}
-        <button id="soundToggle" className="soundIcon on" aria-label="聲音開關" title="聲音">
-          <PixelIcon rows={SPEAKER} className="icoOn" />
-          <PixelIcon rows={SPEAKER_OFF} className="icoOff" />
-        </button>
         <div id="clockRow"><span id="day">週五</span><b id="clock">16:00</b><span id="openPill">營業中</span></div>
         <div className="stats">
           <div><b id="sRev">0</b><span>營收(模擬)</span></div>
@@ -117,39 +131,63 @@ export default function Cafe({ content }: { content: CafeContent }) {
           <div><b id="sPeople">0</b><span>店內客人</span></div>
         </div>
       </section>
-      {/* the menu: a square tile under the name panel (the games are played by clicking the TV, the dartboard or the stadium) */}
-      <nav className="quick" aria-label="捷徑">
-        <button data-cam="menu" className="tile tileMenu" aria-label="菜單">
-          <PixelIcon rows={CUP} />
-          <span>MENU</span>
-        </button>
-      </nav>
+      {/* the RPG menu (rpgMenu.js): a 選單 button under the name panel opens the commands, each command a window beside
+          them, and the items a small choice window of their own (the games are played by clicking the TV, the
+          dartboard or the stadium) */}
+      <div id="rpgMenu">
+        <button id="menuBtn" type="button" aria-expanded="false" aria-controls="cmdWin"><b>選單</b><span className="arrow" aria-hidden="true">▼</span></button>
+        <nav id="cmdWin" className="win" hidden aria-label="選單">
+          <button type="button" className="opt" data-cmd="items">道具</button>
+          <button type="button" className="opt" data-cmd="guests">客人</button>
+          <button type="button" className="opt" data-cmd="system">系統</button>
+          <button type="button" className="opt" data-cmd="close">關閉</button>
+        </nav>
+        <section id="menuPanel" className="win" hidden>
+          <div className="view" data-view="items">
+            <h2>ITEMS<button type="button" className="back" data-back>◀ 返回</button></h2>
+            <div className="slots">
+              <button type="button" className="slot" data-item="cam" data-desc="老闆藏在角落的監視器。使用後可以切換六個鏡頭，偷看店裡每個角落。"><PixelArt rows={ICON_CAM} /><span>監視器</span></button>
+              <button type="button" className="slot" data-item="menu" data-desc="老闆親手用火燒過邊角的印刷菜單，帶著一股焦香。使用後湊近閱讀，看看今天有什麼喝的。"><PixelArt rows={ICON_MENU} /><span>菜單板</span></button>
+              <button type="button" className="slot" data-item="speed" data-desc="裝著金色細沙的沙漏。翻轉之後，店裡的時間流速會跟著改變。"><PixelArt rows={ICON_GLASS} /><span>沙漏</span><span className="badge" id="speedBadge">1x</span></button>
+              <button type="button" className="slot lit" id="tagSlot" data-item="tag" data-desc="傳說中死神的眼睛。裝備之後，能看見每個人頭上的名字。"><PixelArt rows={ICON_EYE} /><span>死神之眼</span><span className="badge" aria-label="裝備中" /></button>
+              <button type="button" className="slot" data-item="none" aria-disabled="true" data-desc="還沒有取得的道具。說不定哪天會在店裡撿到……"><span className="q" aria-hidden="true">?</span><span>？？？</span></button>
+            </div>
+            <div className="desc"><p id="itemDesc" aria-live="polite" /><button type="button" className="opt use" id="itemUse">使用</button></div>
+          </div>
+          <div className="view" data-view="guests">
+            <h2>GUESTS<button type="button" className="back" data-back>◀ 返回</button></h2>
+            <div id="guestList" />
+          </div>
+          <div className="view" data-view="system">
+            <h2>SYSTEM<button type="button" className="back" data-back>◀ 返回</button></h2>
+            <button type="button" id="sfxToggle" className="opt on" data-toggle><PixelArt rows={ICON_RADIO} />音效<span className="val" /></button>
+            <button type="button" id="musicToggle" className="opt on" data-toggle><PixelArt rows={ICON_RADIO} />音樂<span className="val" /></button>
+            <button type="button" className="opt" data-quality="high" title="每秒 60 張、完整解析度，影子每張重算"><PixelArt rows={ICON_BATT} />畫質：高</button>
+            <button type="button" className="opt" data-quality="normal" title="每秒 30 張、解析度較低，影子只算一次：省電"><PixelArt rows={ICON_BATT} />畫質：低（省電）</button>
+            <a href="/admin" className="opt"><PixelArt rows={ICON_KEY} />後台登入</a>
+          </div>
+        </section>
+        <section id="choiceWin" className="win" hidden>
+          <div className="view" data-view="cams">
+            <h2>CCTV<button type="button" className="back" data-back>◀ 返回</button></h2>
+            {CAM_CHANNELS.map(([k, name], i) => (
+              <button type="button" key={k} className={k === 'overview' ? 'opt on' : 'opt'} data-cam={k}>CAM-0{i + 1}　{name}</button>
+            ))}
+          </div>
+          <div className="view" data-view="speed">
+            <h2>TIME<button type="button" className="back" data-back>◀ 返回</button></h2>
+            <button type="button" className="opt on" data-speed="1">1x　正常</button>
+            <button type="button" className="opt" data-speed="2">2x　快一點</button>
+            <button type="button" className="opt" data-speed="4">4x　很快</button>
+          </div>
+        </section>
+      </div>
       </div>
 
-      <section id="controls" className="win" aria-label="控制">
-        {/* phones only: fold the panel away to a small tab, and back */}
-        <button id="ctrlFold" type="button" aria-label="收起控制" aria-expanded="true"><i aria-hidden="true" /></button>
-        <div className="row"><span>視角</span>
-          <button data-cam="overview" className="on">全景</button>
-          <button data-cam="counter">吧台</button>
-          <button data-cam="menu">菜單</button>
-          <button data-cam="tv">電視</button>
-          <button data-cam="porch">戶外區</button>
-          <button data-cam="back">後場</button>
-        </div>
-        <div className="row"><span>時間</span>
-          <button data-speed="1" className="on">1x</button>
-          <button data-speed="2">2x</button>
-          <button data-speed="4">4x</button>
-          <button id="tagToggle" className="on">名牌</button>
-        </div>
-        <div className="row"><span>效能</span>
-          <button data-quality="high" title="每秒 60 張、完整解析度，影子每張重算">高</button>
-          <button data-quality="normal" title="每秒 30 張、解析度較低，影子只算一次：省電">低</button>
-          <a href="/admin" className="adminLink">後台登入</a>
-        </div>
-        <div className="row soundRow"><span>聲音</span><button id="sfxToggle" className="on">音效</button><button id="musicToggle" className="on">音樂</button></div>
-      </section>
+      {/* which monitor channel is showing, after the 監視器 switched to it (gone once the view is dragged) */}
+      <div id="camRec" hidden><i aria-hidden="true" /><b>CAM-01</b><span>全景</span></div>
+      {/* phones: the event log is folded away behind a button */}
+      <button id="logBtn" type="button" aria-controls="log" aria-expanded="false">LOG</button>
 
       <section id="log" className="win" aria-label="店內動態">
         <h2>EVENT LOG</h2>

@@ -20,6 +20,7 @@ import { playWallDarts, stopWallDarts } from './wallDarts.js';
 import { sfx, sfxMuted, toggleSfx } from './sfx.js';
 import { startMusic, stopMusic, toggleMusic, musicOn } from './music.js';
 import { TVX, TVY, TVZ } from './layout.js';
+import { bindMenu } from './rpgMenu.js';
 
 export function updateHUD() {
   $('clock').textContent = fmtTime(S.minutes); $('day').textContent = DAYS[S.dow];
@@ -39,7 +40,7 @@ export function updateHUD() {
 
 // ---------------------------------------------------------------- the person card
 export function openCard(p) { setAcOpen(false, true); S.selected = p; $('card').hidden = false; fillCard(); sfx('boop'); }
-export function closeCard() { S.selected = null; const card = $('card'); if (card) card.hidden = true; }
+export function closeCard() { S.selected = null; stopFollow(); const card = $('card'); if (card) card.hidden = true; }
 // a companion's card (配件: 路易斯, 夜叉丸, 蘿蔔糕): what it is, whose it is, a line about it, what it says, what it's up to
 const PET_INFO = {
   bear: { kind: '聚酯纖維', note: '總是飛在主人的肩膀旁', make: makeBear },
@@ -75,7 +76,12 @@ export function fillCard() {
       ...(p.seatPref === 'porch' ? [['座位偏好', '戶外區']] : p.seatPref === 'inside' ? [['座位偏好', '室內']] : []),
       ['小檔案', p.quirk]];
   const dl = $('cInfo'); dl.innerHTML = '';
-  rows.forEach(([k, v]) => { const dt = document.createElement('dt'); dt.textContent = k; const dd = document.createElement('dd'); dd.textContent = v; dl.append(dt, dd); });
+  // 小檔案, the longest, gets a whole row of its own under the rest, so the card stays short
+  rows.forEach(([k, v]) => {
+    const dt = document.createElement('dt'); dt.textContent = k; const dd = document.createElement('dd'); dd.textContent = v;
+    if (k === '小檔案') { dt.className = 'wide'; dd.className = 'wide'; }
+    dl.append(dt, dd);
+  });
   $('cStatus').textContent = '現在：' + s.status;
   $('cInvite').hidden = !(s.role === 'customer' && canInviteTops(s));
   // 來根小菸: for anyone who smokes; greyed out, saying why, when they can't go just now
@@ -152,24 +158,71 @@ const CAMS = {
   overview: { pos: [9, 13, 11], target: [0, 0.5, -1.5] },
   counter: { pos: [-1.9, 2.3, 2.9], target: [1.2, 1.1, -0.9] },
   menu: { pos: [0.22, 1.5, 2.3], target: [0.6, 1.06, 2.3] },   // leaning over the bar from the customer side, reading the clipboard
-  tv: { pos: [1.0, 1.7, -1.8], target: [-2.5, 0.9, -3.5] },
-  porch: { pos: [-0.9, 1.95, 10.6], target: [-1.0, 0.7, 5.6] },   // from the street, under the lintel, looking in over both chair rows to the door
-  back: { pos: [5, 7, -1.5], target: [0.2, 0.5, -6.6] }
+  tv: { pos: [0.5, 2.9, -1.7], target: [-2.3, 0.7, -3.9] },   // over the players' heads, the TV on the purple wall and the doorway to the back beside it
+  porch: { pos: [1.6, 2.6, 4.7], target: [-1.4, 0.3, 6.2] },   // from just outside the door, high under the balcony, looking down over the crate table to the chairs along the wall
+  back: { pos: [-2.8, 4.4, -4.1], target: [-0.4, 0.2, -6.6] }   // from over the back corridor: the stadium on its crates, the toilet door, the storeroom through its doorway
 };
 let camTween = null;
+let menu = null;   // the RPG menu's handles, while the HUD is bound
 function setCam(name) {
+  stopFollow();
+  const rec = $('camRec'); if (rec) rec.hidden = true;
   const c = CAMS[name], { camera, controls } = ctx;
   camTween = { fp: camera.position.clone(), ft: controls.target.clone(), tp: new THREE.Vector3(c.pos[0] * K, c.pos[1], c.pos[2]), tt: new THREE.Vector3(c.target[0] * K, c.target[1], c.target[2]), t: 0 };
   document.querySelectorAll('[data-cam]').forEach(b => b.classList.toggle('on', b.dataset.cam === name));
   sfx('swoosh');
 }
+// ---------------------------------------------------------------- following someone: the camera flies over to them and
+// keeps them in the middle as they walk about, still free to orbit and zoom round them. It lets go when their card
+// closes, they leave, another view is picked, or a game starts
+let follow = null;   // { obj, name, outside }
+const followPt = new THREE.Vector3(), followUp = new THREE.Vector3(0, 0.75, 0);
+const followPoint = obj => obj.getWorldPosition(followPt).add(followUp);   // about waist high, so the head sits above the middle
+// where the camera sits, from them: inside, from high over the front corner the way the overview looks in (the
+// cutaway has no roof, and a low camera would be behind a wall); out under the arcade or on the street, low from the
+// street, as the porch view looks (from up high the balcony above hides them)
+const FOLLOW_IN = new THREE.Vector3(0.45, 0.75, 0.5).normalize().multiplyScalar(4.6);
+const FOLLOW_OUT = new THREE.Vector3(0, 0.33, 1).normalize().multiplyScalar(3.6);
+const isOutside = obj => obj.getWorldPosition(followPt).z > 4.6;   // past the front door (DOOR in layout.js)
+// a fly to them, from wherever the camera is now (further off on a tall, narrow phone screen)
+function followTween(dur) {
+  const { camera, controls } = ctx;
+  const off = (follow.outside ? FOLLOW_OUT : FOLLOW_IN).clone().multiplyScalar(Math.sqrt(Math.max(1, 0.9 / camera.aspect)));
+  camTween = { fp: camera.position.clone(), ft: controls.target.clone(), tp: new THREE.Vector3(), tt: new THREE.Vector3(), t: 0, dur, follow: off };
+}
+function startFollow(obj, name) {
+  if (!obj) return;
+  follow = { obj, name, outside: isOutside(obj) };
+  followTween(0.8);
+  document.querySelectorAll('[data-cam]').forEach(b => b.classList.remove('on'));
+  const rec = $('camRec'); if (rec) rec.hidden = true;   // (the monitor's channel is only for the monitor's own views)
+  sfx('swoosh');
+}
+function stopFollow() {
+  if (!follow) return;
+  follow = null;
+  if (camTween?.follow) camTween = null;
+}
+// a person's card, and the camera on them
+export function focusPerson(p) { openCard(p); startFollow(p.g, p.p.name); }
 export function updateCamera(dt) {
-  if (!camTween) return;
-  camTween.t = Math.min(1, camTween.t + dt / (camTween.dur || 1.2));
-  const e = 1 - Math.pow(1 - camTween.t, 3);
-  ctx.camera.position.lerpVectors(camTween.fp, camTween.tp, e);
-  ctx.controls.target.lerpVectors(camTween.ft, camTween.tt, e);
-  if (camTween.t >= 1) { const done = camTween.done; camTween = null; done?.(); }
+  if (follow && !follow.obj.parent) { stopFollow(); }   // gone (out of the door and off along the lane)
+  // through the front door, in or out: the camera swings round to the other angle
+  if (follow && isOutside(follow.obj) !== follow.outside) { follow.outside = !follow.outside; followTween(1.2); }
+  if (camTween) {
+    camTween.t = Math.min(1, camTween.t + dt / (camTween.dur || 1.2));
+    const e = 1 - Math.pow(1 - camTween.t, 3);
+    if (camTween.follow) { camTween.tt.copy(followPoint(follow.obj)); camTween.tp.copy(camTween.tt).add(camTween.follow); }   // they may be walking
+    ctx.camera.position.lerpVectors(camTween.fp, camTween.tp, e);
+    ctx.controls.target.lerpVectors(camTween.ft, camTween.tt, e);
+    if (camTween.t >= 1) { const done = camTween.done; camTween = null; done?.(); }
+    return;
+  }
+  if (!follow) return;
+  // keep up with them: the target eases onto them and the camera moves by the same amount, so the angle and zoom
+  // someone has orbited to are kept
+  const d = followPoint(follow.obj).sub(ctx.controls.target).multiplyScalar(1 - Math.exp(-dt * 6));
+  ctx.controls.target.add(d); ctx.camera.position.add(d);
 }
 
 // ---------------------------------------------------------------- the things you can play: the camera closes in until it fills
@@ -193,7 +246,7 @@ function playAt(kind, root) {
   else { tt = S.stadium.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0, 0.04, 0)); if (tt.z > -4.6) dir = [0, 0.85, 0.6]; }
   const tp = tt.clone().addScaledVector(new THREE.Vector3(...dir).normalize(), dist);
   const from = { p: camera.position.clone(), t: controls.target.clone() };
-  closeCard(); closeGame(); stopWallDarts(); sfx('swoosh');
+  closeCard(); closeGame(); stopWallDarts(); menu?.closeMenu(); sfx('swoosh');
   document.querySelectorAll('[data-cam]').forEach(b => b.classList.remove('on'));
   S.watch = kind === 'tv' || kind === 'darts' ? { x: tt.x, z: tt.z } : null;   // anyone between the camera and the TV or the board steps out of the picture
   controls.enabled = false;   // the camera holds still (no orbiting or zooming) until the game is closed
@@ -231,7 +284,6 @@ export function bindHUD(root, stage) {
   root.querySelectorAll('[data-speed]').forEach(b => on(b, 'click', () => {
     S.speed = +b.dataset.speed; root.querySelectorAll('[data-speed]').forEach(x => x.classList.toggle('on', x === b));
   }));
-  on($('tagToggle'), 'click', e => { S.showTags = !S.showTags; e.currentTarget.classList.toggle('on', S.showTags); });
   // 畫質: 高效能 (shadows redrawn every frame, everything casting its own; the default) or 一般 (drawn once)
   const qBtns = [...root.querySelectorAll('[data-quality]')], showQ = () => qBtns.forEach(b => b.classList.toggle('on', b.dataset.quality === (S.quality || DEFAULT_QUALITY)));
   showQ(); qBtns.forEach(b => on(b, 'click', () => { setQuality(b.dataset.quality); showQ(); sfx('pop'); }));
@@ -307,36 +359,28 @@ export function bindHUD(root, stage) {
     S.ac.mode = MODES[(MODES.indexOf(S.ac.mode) + 1) % MODES.length]; showAc(); sfx('beep'); blink();
     if (S.ac.on) { log('切換為' + MODE_NAMES[S.ac.mode]); S.owner?.say(pick(AC_LINES[S.ac.mode].to)); }
   });
-  // a soft pop for the HUD's buttons (camera moves swoosh instead; the games make their own sounds), and the sound switch
+  // a soft pop for the HUD's buttons (camera moves swoosh instead; the games make their own sounds), and the sound
+  // switches in the menu's 系統
   on(root, 'click', e => {
     const b = e.target.closest('button, a.tile');
-    if (!b || b.closest('.gamePad, .dartsHud, #acRemote') || b.matches('[data-cam], #sfxToggle, #soundToggle, .gameSound')) return;
+    if (!b || b.closest('.gamePad, .dartsHud, #acRemote') || b.matches('[data-cam], #sfxToggle, .gameSound')) return;
     sfx(b.classList.contains('on') || b.id === 'closeCard' || b.classList.contains('gameClose') ? 'popDown' : 'pop');
   });
   const sfxBtn = $('sfxToggle'), showSfx = () => sfxBtn?.classList.toggle('on', !sfxMuted());
-  showSfx(); on(sfxBtn, 'click', () => { toggleSfx(); showSfx(); showSound?.(); sfx('pop'); });
+  showSfx(); on(sfxBtn, 'click', () => { toggleSfx(); showSfx(); sfx('pop'); });
   // the background music: starts with the first touch anywhere (browsers won't play before one), and its own switch
   const musicBtn = $('musicToggle'), showMusic = () => musicBtn?.classList.toggle('on', musicOn());
-  showMusic(); on(musicBtn, 'click', () => { toggleMusic(); showMusic(); showSound(); });
-  // on a phone the two are one switch, under the menu: on if either is, and a press turns both off, or both back on
-  const soundBtn = $('soundToggle'), showSound = () => soundBtn?.classList.toggle('on', !sfxMuted() || musicOn());
-  showSound();
-  on(soundBtn, 'click', () => {
-    const turnOn = sfxMuted() && !musicOn();
-    if (sfxMuted() === turnOn) toggleSfx();
-    if (musicOn() !== turnOn) toggleMusic();
-    showSfx(); showMusic(); showSound(); if (turnOn) sfx('pop');
-  });
-  // phones: the control panel folds away to a small tab
-  const fold = $('ctrlFold');
-  on(fold, 'click', () => {
-    const c = $('controls'), folded = c.classList.toggle('folded');
-    fold.classList.toggle('folded', folded); fold.setAttribute('aria-expanded', String(!folded)); fold.setAttribute('aria-label', folded ? '展開控制' : '收起控制');
-  });
+  showMusic(); on(musicBtn, 'click', () => { toggleMusic(); showMusic(); });
+  // the RPG menu (rpgMenu.js), and on phones the event log behind its LOG button
+  menu = bindMenu(root, on, off, { setCam, focusPerson });
+  off.push(() => { menu = null; });
+  const logBtn = $('logBtn');
+  on(logBtn, 'click', () => { const shown = $('log').classList.toggle('shown'); logBtn.classList.toggle('on', shown); logBtn.setAttribute('aria-expanded', String(shown)); });
   on(root, 'pointerdown', () => startMusic());
   off.push(stopMusic);
   on($('tvCard'), 'click', () => setCam('tv'));
-  const stopTween = () => { camTween = null; root.querySelectorAll('[data-cam]').forEach(b => b.classList.remove('on')); };
+  // a drag stops a camera move (while following someone it orbits round them instead, and the follow carries on)
+  const stopTween = () => { camTween = null; root.querySelectorAll('[data-cam]').forEach(b => b.classList.remove('on')); menu?.hideRec(); };
   ctx.controls.addEventListener('start', stopTween); off.push(() => ctx.controls.removeEventListener('start', stopTween));
 
   const canvas = ctx.renderer.domElement;
@@ -377,8 +421,8 @@ export function bindHUD(root, stage) {
       const u = S.toiletUser; if (!on && u) sayLine(u, 'customer.toiletDark', { name: u.p.name }, 2.6);
     }
     else if (h && h.fan) { h.fan.userData.fan.on = !h.fan.userData.fan.on; sfx('flick'); }   // a ceiling fan: on, or coasting off
-    else if (h && h.bearOf) { h.bearOf.bearSay(h.bearOf.bear.line); openPetCard(h.bearOf); }   // a companion says its piece (路易斯 愛老公, 夜叉丸 汪！) and its card opens
-    else if (typeof h === 'string') playAt(h, root); else if (h) openCard(h); else closeCard();
+    else if (h && h.bearOf) { h.bearOf.bearSay(h.bearOf.bear.line); openPetCard(h.bearOf); startFollow(h.bearOf.bear.g, h.bearOf.bear.name); }   // a companion says its piece (路易斯 愛老公, 夜叉丸 汪！), its card opens and the camera follows it
+    else if (typeof h === 'string') playAt(h, root); else if (h) focusPerson(h); else closeCard();
   });
   on(canvas, 'pointermove', e => {
     if (e.pointerType !== 'mouse' || performance.now() - hoverT < 80) return;

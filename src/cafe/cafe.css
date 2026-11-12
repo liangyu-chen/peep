@@ -12,6 +12,7 @@
   --newbie:#7ec8ff;
   --boss:#3ddc97;
   --bubble:#f4efe3;
+  --rule:#5d586e;       /* the thin line just inside an RPG window's edge */
   --bubble-ink:#1f1c27;
   --f-pixel:"Press Start 2P","DotGothic16",ui-monospace,monospace;
   --f-dot:"DotGothic16","Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
@@ -36,8 +37,8 @@ html:has(.cafe-root),body:has(.cafe-root){margin:0;overflow:hidden;background:#1
 .cafe-root .bubble::after{content:"";position:absolute;left:50%;bottom:-9px;width:6px;height:6px;margin-left:-3px;background:var(--bubble);box-shadow:0 3px 0 var(--shade),-3px 0 0 var(--shade),3px 0 0 var(--shade)}
 .cafe-root .coin{position:absolute;transform:translate(-50%,-100%);font-family:var(--f-pixel);font-size:11px;color:var(--gold);text-shadow:2px 2px 0 #000;pointer-events:none}
 .cafe-root .bang{position:absolute;transform:translate(-50%,-100%);font-family:var(--f-pixel);font-size:16px;color:var(--gold);text-shadow:2px 2px 0 #000}
-.cafe-root .win{position:absolute;background:var(--panel);
-  box-shadow:0 -4px 0 0 var(--edge),0 4px 0 0 var(--edge),-4px 0 0 0 var(--edge),4px 0 0 0 var(--edge),8px 8px 0 0 var(--shade)}
+.cafe-root .win{position:absolute;background:var(--panel);border:3px solid var(--edge);border-radius:6px;
+  box-shadow:inset 0 0 0 2px var(--panel),inset 0 0 0 4px var(--rule),7px 7px 0 0 var(--shade)}
 .cafe-root .win h2{margin:0 0 8px;font-family:var(--f-pixel);font-size:9px;color:var(--neon);letter-spacing:.06em;font-weight:400}
 .cafe-root #brand{top:calc(16px + env(safe-area-inset-top,0px));left:calc(16px + env(safe-area-inset-left,0px));padding:12px 14px;display:grid;gap:8px;min-width:236px}
 .cafe-root #brand h1{margin:0;font-weight:400;font-size:24px;line-height:1;letter-spacing:.08em}
@@ -49,9 +50,6 @@ html:has(.cafe-root),body:has(.cafe-root){margin:0;overflow:hidden;background:#1
 .cafe-root .stats div{display:grid;gap:3px}
 .cafe-root .stats b{font-family:var(--f-pixel);font-size:12px;font-weight:400;color:var(--gold)}
 .cafe-root .stats span{font-size:11px;color:var(--muted)}
-.cafe-root #controls{top:calc(16px + env(safe-area-inset-top,0px));right:calc(16px + env(safe-area-inset-right,0px));padding:10px;display:grid;gap:8px;max-width:calc(100vw - 32px)}
-.cafe-root .row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
-.cafe-root .row > span{font-size:11px;color:var(--muted);width:28px}
 .cafe-root button{font:inherit;font-family:var(--f-dot);font-size:13px;color:var(--ink);background:#2c2838;border:0;padding:4px 9px;cursor:pointer;
   box-shadow:inset -3px -3px 0 0 #15131c,inset 3px 3px 0 0 #3d3850}
 .cafe-root button:hover{background:#373245}
@@ -59,14 +57,9 @@ html:has(.cafe-root),body:has(.cafe-root){margin:0;overflow:hidden;background:#1
 .cafe-root button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 .cafe-root button.on{background:var(--gold);color:#1f1c27;box-shadow:inset -3px -3px 0 0 #b08d10,inset 3px 3px 0 0 #fff2a8}
 .cafe-root button.primary{background:var(--neon);color:#2a0a14;box-shadow:inset -3px -3px 0 0 #a8264b,inset 3px 3px 0 0 #ff9ab3}
-/* the name panel and, under it, the menu as a square tile */
+/* the name panel and, under it, the RPG menu */
 .cafe-root #topLeft{position:absolute;top:calc(16px + env(safe-area-inset-top,0px));left:calc(16px + env(safe-area-inset-left,0px));display:grid;gap:12px;justify-items:start;z-index:3}
 .cafe-root #topLeft #brand{position:relative;top:auto;left:auto}
-.cafe-root #topLeft .quick{display:flex;flex-direction:column;gap:9px}
-/* the music and the sound effects on one switch, under the menu (their own row in the panel is gone); the panel's
-   fold tab is for phones only */
-.cafe-root #controls .soundRow,.cafe-root #ctrlFold{display:none}
-.cafe-root #brand h1{padding-right:30px}   /* (clear of the speaker) */
 /* 8-bit tiles: flat colours with hard bands, a chunky pixel bevel, pixel icons and pixel lettering; pressed, they drop */
 .cafe-root .tile{width:50px;height:40px;display:grid;place-items:center;align-content:center;gap:5px;padding:0;text-decoration:none;cursor:pointer;
   box-shadow:0 0 0 3px #000,inset -4px -4px 0 0 rgba(0,0,0,.32),inset 4px 4px 0 0 rgba(255,255,255,.45),5px 5px 0 0 #000;transition:none}
@@ -74,8 +67,76 @@ html:has(.cafe-root),body:has(.cafe-root){margin:0;overflow:hidden;background:#1
 .cafe-root .tile span{font-family:var(--f-pixel);font-size:6px;letter-spacing:.04em;line-height:1}
 .cafe-root .tile:hover{transform:translate(1px,1px);box-shadow:0 0 0 3px #000,inset -4px -4px 0 0 rgba(0,0,0,.32),inset 4px 4px 0 0 rgba(255,255,255,.45),4px 4px 0 0 #000}
 .cafe-root .tile:active,.cafe-root .tile.on{transform:translate(4px,4px);box-shadow:0 0 0 3px #000,inset 4px 4px 0 0 rgba(0,0,0,.32),inset -4px -4px 0 0 rgba(255,255,255,.25),1px 1px 0 0 #000}
-.cafe-root .tileMenu{background:#ffd23f;color:#1f1c27}
-.cafe-root .tileMenu.on{background:#ffe27a}
+/* ---- the RPG menu: a 選單 button; open, the commands in its place and a window beside them for the one picked */
+.cafe-root #rpgMenu{position:relative;min-height:56px}
+.cafe-root #rpgMenu .win{box-sizing:border-box}
+.cafe-root #menuBtn{display:grid;justify-items:center;gap:3px;min-width:72px;padding:8px 12px 6px;background:var(--panel);border:3px solid var(--edge);border-radius:6px;
+  box-shadow:inset 0 0 0 2px var(--panel),inset 0 0 0 4px var(--rule),6px 6px 0 0 var(--shade)}
+.cafe-root #menuBtn b{font-weight:400;font-size:16px;letter-spacing:.1em}
+.cafe-root #menuBtn .arrow{font-size:9px;color:var(--gold);animation:rpgBob 1s steps(2) infinite}
+.cafe-root #menuBtn:hover{background:#2c2838}
+.cafe-root #menuBtn:active{transform:translate(3px,3px);box-shadow:inset 0 0 0 2px var(--panel),inset 0 0 0 4px var(--rule),3px 3px 0 0 var(--shade)}
+.cafe-root #cmdWin{position:relative;width:96px;padding:9px 8px 9px 6px;display:grid}
+.cafe-root #menuPanel{left:108px;top:0;width:min(320px,calc(100vw - 140px - env(safe-area-inset-left,0px) - env(safe-area-inset-right,0px)));padding:10px 12px 12px}
+.cafe-root #choiceWin{left:150px;top:96px;width:min(230px,calc(100vw - 182px));padding:10px 12px;z-index:1}
+.cafe-root #rpgMenu .view{display:none}
+.cafe-root #rpgMenu .view.cur{display:grid}
+.cafe-root #rpgMenu h2{display:flex;justify-content:space-between;align-items:center;margin:0 0 6px}
+.cafe-root #rpgMenu .back{background:none;box-shadow:none;padding:2px 4px;font-size:12px;color:var(--muted);letter-spacing:0}
+.cafe-root #rpgMenu .back:hover{color:var(--ink)}
+/* a line to pick, the cursor blinking beside the one under the finger or the keys */
+.cafe-root .opt{position:relative;display:flex;align-items:center;gap:8px;width:100%;text-align:left;padding:6px 4px 6px 20px;background:none;box-shadow:none;
+  font-size:15px;line-height:1.2;color:var(--ink);text-decoration:none}
+.cafe-root .opt::before{content:"\25B6";position:absolute;left:4px;font-size:10px;opacity:0}
+.cafe-root .opt:hover,.cafe-root .opt:focus-visible{background:rgba(255,255,255,.06);outline:none}
+.cafe-root .opt:active{box-shadow:none}
+.cafe-root .opt:hover::before,.cafe-root .opt:focus-visible::before,.cafe-root .opt.sel::before{opacity:1;animation:rpgBlink .7s steps(1) infinite}
+.cafe-root .opt.on{background:none;color:var(--gold);box-shadow:none}
+.cafe-root .opt.on::after{content:"\25CF";margin-left:auto;font-size:9px}
+.cafe-root .opt[data-toggle]::after{content:none}
+.cafe-root .opt svg{width:20px;height:20px;flex:none;image-rendering:pixelated}
+.cafe-root .opt .val{margin-left:auto;font-family:var(--f-pixel);font-size:8px;color:var(--muted)}
+.cafe-root .opt .val::after{content:"OFF"}
+.cafe-root .opt.on .val{color:var(--gold)}
+.cafe-root .opt.on .val::after{content:"ON"}
+/* items: three slots to a row, the picked one edged gold; what it is, and use, underneath */
+.cafe-root .slots{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.cafe-root .slot{position:relative;display:grid;justify-items:center;gap:4px;padding:8px 2px 6px;font-size:12px;background:#1a1722;border:2px solid #3a3648;border-radius:0;box-shadow:none}
+.cafe-root .slot:hover{background:#221e2c;border-color:var(--rule)}
+.cafe-root .slot:active{box-shadow:none}
+.cafe-root .slot.sel{border-color:var(--gold);background:#2a2536}
+.cafe-root .slot svg{width:36px;height:36px;image-rendering:pixelated}
+.cafe-root .slot .q{width:36px;height:36px;display:grid;place-items:center;font-family:var(--f-pixel);font-size:20px;color:#4a4658}
+.cafe-root .slot[aria-disabled="true"]{color:#6a6578}
+.cafe-root .slot .badge{position:absolute;top:3px;right:4px;font-family:var(--f-pixel);font-size:6px;color:var(--gold)}
+/* worn equipment gets the RPG's little E in its corner */
+.cafe-root #tagSlot .badge{top:2px;right:2px;padding:2px 2px 1px;font-size:7px;color:var(--panel);background:var(--gold)}
+.cafe-root #tagSlot .badge::after{content:"E"}
+.cafe-root #tagSlot:not(.lit) .badge{display:none}
+.cafe-root .desc{display:grid;gap:4px;margin-top:8px;padding-top:8px;border-top:2px dashed #3a3648}
+.cafe-root .desc p{margin:0;min-height:2.8em;font-size:13px;line-height:1.45}
+.cafe-root .desc .use{justify-self:end;width:auto;padding-right:8px}
+/* guests */
+.cafe-root .opt.guest{display:grid;grid-template-columns:1fr auto;gap:2px 8px;border-bottom:2px dashed #2c2838}
+.cafe-root .opt.guest:last-child{border-bottom:0}
+.cafe-root .guest .nm.reg,.cafe-root .guest .nm.reg+.kind{color:var(--regular)}
+.cafe-root .guest .nm.new,.cafe-root .guest .nm.new+.kind{color:var(--newbie)}
+.cafe-root .guest .kind{font-size:11px}
+.cafe-root .guest .st{grid-column:1 / -1;font-size:12px;color:var(--muted)}
+.cafe-root #guestList{display:grid;max-height:50vh;overflow-y:auto}
+.cafe-root #guestList .empty{margin:6px 0;font-size:13px;color:var(--muted)}
+/* the monitor's channel, and the burst of static between channels */
+.cafe-root #camRec{position:absolute;z-index:4;top:calc(58px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:7px;
+  padding:4px 9px;background:rgba(0,0,0,.6);font-family:var(--f-pixel);font-size:9px;color:#fff;pointer-events:none}
+.cafe-root #camRec i{width:7px;height:7px;border-radius:50%;background:#ff3b3b;animation:rpgBlink 1s steps(1) infinite}
+.cafe-root #camRec span{font-family:var(--f-dot);font-size:13px}
+.cafe-root .camStatic{position:absolute;inset:0;z-index:15;width:100%;height:100%;image-rendering:pixelated;pointer-events:none;display:none}
+.cafe-root .camStatic.on{display:block}
+/* the TV line ends with a blinking arrow, the way an RPG's text box waits */
+.cafe-root #tvIdle::after{content:" \25BC";color:var(--gold);font-size:10px;animation:rpgBlink .9s steps(1) infinite}
+.cafe-root #logBtn{display:none}
+@keyframes rpgBlink{50%{opacity:0}}
+@keyframes rpgBob{50%{transform:translateY(2px)}}
 /* the AC remote: a white handheld remote leaning out of the right edge of the screen, just the corner of its head
    showing; click it to have it fly in square-on, click the head again to let it lean back out. A white plastic body
    with a big digital-watch LCD, a moulded rim and seam, and chunky beveled buttons. */
@@ -280,14 +341,6 @@ html:has(.cafe-root),body:has(.cafe-root){margin:0;overflow:hidden;background:#1
   .cafe-root #acRemote{--peek:6px;--acS:.68;top:calc((100% - var(--sb)) * .77)}
 }
 .cafe-root .tile:focus-visible{outline:3px solid #fff;outline-offset:4px}
-/* the sound switch: a pixel speaker tucked in the name panel's top right corner, crossed out and dimmed when off */
-.cafe-root #brand .soundIcon{position:absolute;top:8px;right:8px;width:26px;height:26px;padding:4px;display:grid;place-items:center;
-  background:none;box-shadow:none;color:var(--ink)}
-.cafe-root #brand .soundIcon:hover{background:#2c2838;color:var(--gold)}
-.cafe-root #brand .soundIcon:not(.on){color:var(--muted)}
-.cafe-root #brand .soundIcon svg{width:18px;height:18px;image-rendering:pixelated}
-.cafe-root .soundIcon .icoOff,.cafe-root .soundIcon.on .icoOn{display:block}
-.cafe-root .soundIcon .icoOn,.cafe-root .soundIcon.on .icoOff{display:none}
 /* a game's window, over the café with it dimmed behind; the canvas keeps its 16:9 and fits the screen */
 .cafe-root .gameSheet{position:absolute;inset:0;z-index:20;display:grid;place-items:center;background:rgba(10,8,16,.4);padding:16px 16px calc(16px + var(--sb))}
 .cafe-root .gameWin{position:relative;width:min(760px,100%);padding:12px 14px;display:grid;gap:10px;max-height:100%;overflow:auto}
@@ -302,7 +355,7 @@ html:has(.cafe-root),body:has(.cafe-root){margin:0;overflow:hidden;background:#1
 .cafe-root .gameSheet.onTV .gameHelp{font-size:12px}
 .cafe-root .gamePad{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
 /* playing darts on the wall board: the rest of the HUD steps aside; a pixel crosshair, the round and score along the top */
-.cafe-root.playing #labels,.cafe-root.playing #topLeft,.cafe-root.playing #controls,.cafe-root.playing #log,.cafe-root.playing #tvCard,.cafe-root.playing #hint,.cafe-root.playing #card,.cafe-root.playing #acRemote{display:none}
+.cafe-root.playing #labels,.cafe-root.playing #topLeft,.cafe-root.playing #logBtn,.cafe-root.playing #camRec,.cafe-root.playing #log,.cafe-root.playing #tvCard,.cafe-root.playing #hint,.cafe-root.playing #card,.cafe-root.playing #acRemote{display:none}
 .cafe-root .dartsHud{position:absolute;inset:0;z-index:20;cursor:none;touch-action:none;user-select:none;-webkit-user-select:none}
 .cafe-root .dTop{position:absolute;top:calc(14px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);display:flex;gap:18px;align-items:center;
   font-family:var(--f-pixel);font-size:12px;color:var(--gold);background:var(--panel);padding:8px 14px;box-shadow:0 0 0 3px #000;white-space:nowrap}
@@ -385,33 +438,34 @@ html:has(.cafe-root),body:has(.cafe-root){margin:0;overflow:hidden;background:#1
 .cafe-root #card dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:5px 12px;font-size:13px}
 .cafe-root #card dt{color:var(--muted);font-size:12px}
 .cafe-root #card dd{margin:0}
+/* 小檔案: its label, then the text right across the card underneath */
+.cafe-root #card dt.wide,.cafe-root #card dd.wide{grid-column:1 / -1}
+.cafe-root #card dt.wide{margin-top:4px;padding-top:6px;border-top:2px dashed #2c2838}
+.cafe-root #card dd.wide{line-height:1.5}
 .cafe-root #card .status{font-size:13px;padding:6px 8px;background:#2c2838}
 .cafe-root #closeCard{padding:2px 7px}
 .cafe-root #hint{position:absolute;left:50%;transform:translateX(-50%);top:calc(18px + env(safe-area-inset-top,0px));font-size:12px;color:var(--ink);background:var(--panel);padding:4px 10px;pointer-events:none;transition:opacity .6s;box-shadow:0 0 0 3px #000}
-@media (max-width:900px){ .cafe-root #log,.cafe-root #hint{display:none} }
+@media (max-width:900px){
+  .cafe-root #log,.cafe-root #hint{display:none}
+  /* the log behind its LOG button, in the bottom left corner (the TV panel has the right) */
+  .cafe-root #logBtn{display:grid;place-items:center;position:absolute;z-index:4;left:calc(16px + env(safe-area-inset-left,0px));bottom:calc(16px + var(--sb));
+    width:58px;height:38px;padding:0;font-family:var(--f-pixel);font-size:9px;color:var(--gold);background:var(--panel);border:3px solid var(--edge);border-radius:6px;
+    box-shadow:inset 0 0 0 2px var(--panel),inset 0 0 0 4px var(--rule),5px 5px 0 0 var(--shade)}
+  .cafe-root #logBtn.on{color:var(--panel);background:var(--gold)}
+  .cafe-root #log.shown{display:block;z-index:4;left:calc(16px + env(safe-area-inset-left,0px));right:calc(16px + env(safe-area-inset-right,0px));width:auto;
+    bottom:calc(70px + var(--sb));max-height:40vh;overflow-y:auto}
+}
 @media (max-width:560px){
   .cafe-root #brand{min-width:0;padding:10px 12px;gap:6px}
   .cafe-root #brand h1{font-size:18px}
-  .cafe-root #controls{top:auto;bottom:calc(16px + var(--sb));left:calc(16px + env(safe-area-inset-left,0px));right:calc(16px + env(safe-area-inset-right,0px));max-width:none;position:absolute}
-  /* the panel can fold away to a tab */
-  .cafe-root #ctrlFold{display:grid;place-items:center;position:absolute;bottom:100%;right:14px;width:46px;height:20px;padding:0;z-index:1;
-    background:var(--panel);box-shadow:0 -4px 0 0 var(--edge),-4px 0 0 0 var(--edge),4px 0 0 0 var(--edge)}
-  .cafe-root #ctrlFold:hover{background:#2c2838}
-  /* its chevron, in pixels: pointing down to fold the panel away, up to bring it back */
-  .cafe-root #ctrlFold i{width:10px;height:6px;background:var(--gold);
-    clip-path:polygon(0 0,20% 0,50% 50%,80% 0,100% 0,100% 33%,50% 100%,0 33%)}
-  .cafe-root #ctrlFold.folded i{transform:scaleY(-1)}
-  .cafe-root #controls.folded{left:auto;width:auto;padding:0;background:none;box-shadow:none}
-  .cafe-root #controls.folded .row{display:none}
-  .cafe-root #controls.folded #ctrlFold{position:static;width:54px;height:26px;
-    box-shadow:0 -4px 0 0 var(--edge),0 4px 0 0 var(--edge),-4px 0 0 0 var(--edge),4px 0 0 0 var(--edge),8px 8px 0 0 var(--shade)}
-  .cafe-root:has(#controls.folded) #card{bottom:calc(56px + var(--sb))}
+  /* the channel name drops under the TV panel, out of the way of the name panel */
+  .cafe-root #camRec{left:auto;transform:none;right:calc(16px + env(safe-area-inset-right,0px));top:calc(96px + env(safe-area-inset-top,0px))}
   .cafe-root #tvCard{bottom:auto;top:calc(16px + env(safe-area-inset-top,0px));width:150px;padding:8px 10px}
   .cafe-root #tvCard .team,.cafe-root #results,.cafe-root #tvCard h2{display:none}
   .cafe-root .gameSheet{padding:8px}
   .cafe-root .gamePad{gap:8px}
   .cafe-root .gamePad button{min-width:52px}
-  .cafe-root #card{top:auto;bottom:calc(178px + var(--sb));transform:none;left:calc(16px + env(safe-area-inset-left,0px));width:auto;
+  .cafe-root #card{top:auto;bottom:calc(70px + var(--sb));transform:none;left:calc(16px + env(safe-area-inset-left,0px));width:auto;
     padding:8px 10px;gap:6px;max-height:42vh;overflow-y:auto;grid-template-columns:1fr 1fr}
   /* compact on a phone: a small picture, the details two pairs to a row, the buttons side by side */
   .cafe-root #card .head,.cafe-root #card dl,.cafe-root #card .status{grid-column:1 / -1}
