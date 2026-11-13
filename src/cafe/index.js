@@ -130,12 +130,25 @@ async function build(root, content) {
     else res.good = 0;
     if (pr !== ctx.renderer.getPixelRatio()) ctx.renderer.setPixelRatio(pr);
   }
+  // With the boss's phone up (and not through its camera, which needs the live picture) the café behind is dimmed
+  // and mostly hidden, so it's drawn only 12 times a second; the shop still runs at its usual pace, in steps of at most
+  // 0.05 s. (一般's automatic resolution step sits this out: the slow frames are on purpose.)
+  const COVERED_MS = 1000 / 12;
+  // Meanwhile it's drawn as in 畫質 一般 (shadows drawn once, people with a round blob under them) and at 0.6 of the
+  // sharpness, whichever 畫質 was picked; closing the phone (or turning to its camera) puts that 畫質 back as it was.
+  const covered = () => { const c = root.classList; return c.contains('phoneOpen') && !c.contains('phoneCam') && !c.contains('playing'); };
+  let heldQuality = null;   // the 畫質 to go back to, while the phone has the café turned down
   function frame(now) {
     if (S.stopped) return;
-    if (now - last < (idle(now) ? 1000 / 30 : target()) - 4) { raf = requestAnimationFrame(frame); return; }
-    adapt(now - last);
-    const dt = Math.min(0.05, (now - last) / 1000); last = now;
-    simulate(dt, dt * S.speed);
+    const cov = covered();
+    if (cov && heldQuality === null) {
+      heldQuality = S.quality || DEFAULT_QUALITY;
+      setQuality('normal'); ctx.renderer.setPixelRatio(Math.max(0.5, qualityPR() * 0.6));
+    } else if (!cov && heldQuality !== null) { setQuality(heldQuality); heldQuality = null; res.sum = res.n = 0; }
+    if (now - last < (cov ? COVERED_MS : idle(now) ? 1000 / 30 : target()) - 4) { raf = requestAnimationFrame(frame); return; }
+    if (!cov) adapt(now - last);
+    const dt = Math.min(cov ? 0.25 : 0.05, (now - last) / 1000); last = now;
+    for (let left = dt; left > 1e-6; left -= 0.05) { const d = Math.min(0.05, left); simulate(d, d * S.speed); }
     if ((tvFrameN = (tvFrameN + 1) % 2) === 0) drawTV();
 
     updateCamera(dt);
