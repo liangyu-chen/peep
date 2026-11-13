@@ -27,6 +27,9 @@ export function portraitOf(person) {
   if (pictures.has(person)) return pictures.get(person);
   stage = stage || makeStage();
   const body = buildBody(person.look ?? person.p.look, person.p.name);
+  // the camera is framed on a standard height's head: someone shorter or taller (heightK, the body scaled from the feet,
+  // the head kept its size) is set up or down by as much, so their head lands in the same place
+  body.g.position.y = -((body.heightK || 1) - 1) * 1.44;
   stage.scene.add(body.g);
   stage.renderer.render(stage.scene, stage.camera);
   const url = stage.renderer.domElement.toDataURL('image/png');
