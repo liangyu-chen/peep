@@ -75,8 +75,11 @@ export function tvPaused() {
 export function releaseRoach() {
   if (S.roach) return '店裡已經有一隻蟑螂在亂跑了……';
   if (S.closing) return '店要打烊了，現在放也沒人看得到。';
-  // somewhere along any stretch of floor, each as likely as its length
-  const edges = allEdges().filter(([i, j]) => { const a = nodeAt(i), b = nodeAt(j); return zoneOf(a.z) && allowed(a, zoneOf(a.z)) && allowed(b, zoneOf(a.z)); });
+  // inside or out on the porch, even odds (the porch's seats each have a long way of their own to the door, much of
+  // it over the same floor, so by length alone it'd be out there more often than not); then somewhere along any
+  // stretch of that side's floor, each as likely as its length
+  const zone = Math.random() < 0.5 ? 'in' : 'porch';
+  const edges = allEdges().filter(([i, j]) => allowed(nodeAt(i), zone) && allowed(nodeAt(j), zone));
   let k = rand(0, edges.reduce((t, e) => t + e[2], 0)), pickE = edges[0];
   for (const e of edges) { if ((k -= e[2]) < 0) { pickE = e; break; } }
   const a = nodeAt(pickE[0]), b = nodeAt(pickE[1]), f = Math.random();
