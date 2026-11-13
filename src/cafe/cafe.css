@@ -531,7 +531,7 @@ html:has(.cafe-root),body:has(.cafe-root){margin:0;overflow:hidden;background:#1
 .cafe-root #phone.in .phBody{animation:phUp .32s steps(6) both}
 @keyframes phUp{from{transform:translateY(60vh) scale(var(--phS))}to{transform:scale(var(--phS))}}
 .cafe-root #phone button{font:inherit;color:inherit;background:none;border:0;padding:0;box-shadow:none;border-radius:0;cursor:pointer}
-.cafe-root #phone button:hover{background:none}
+.cafe-root #phone button:where(:hover){background-color:transparent}   /* (only the shop's own hover colour taken off: a photo tile keeps its size and place, a coloured button its colour) */
 .cafe-root #phone button:disabled{opacity:.4;cursor:default}
 .cafe-root #phone .nope{animation:phNope .3s steps(4)}
 @keyframes phNope{25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
