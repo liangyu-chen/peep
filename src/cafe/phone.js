@@ -192,6 +192,41 @@ const ago = mins => (mins < 1 ? '剛剛' : mins < 60 ? `${Math.round(mins)}分�
 // an account name: their own name if it's in letters, otherwise peep_ and a number of their own
 const handleOf = name => (/^[\x20-\x7e]+$/.test(name) ? name.toLowerCase().replace(/[^a-z0-9.]+/g, '_') : `peep_${[...name].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 9000, 7) + 1000}`);
 const MAX_PHOTOS = 24;
+// 陌生訊息: message requests from people the owner doesn't follow. Each time the phone's threads are made, three would-be
+// customers asking first (a reply sent gets one back) and two of the usual spam bots (reported, they're gone), drawn at
+// random from these; avatars just an initial on a colour
+const ASKERS = [
+  { name: '社恐小羊', handle: 'shy.lamb_404', color: 0xe8d9b0, ago: 35,
+    text: '你好…請問一個人去會很尷尬嗎？我社恐，只想坐角落安靜喝一杯，不想被老闆搭話（老闆你也不用回我這則）',
+    reply: '收到，我會假裝沒看到你', thanks: '謝謝……等等，你已經回了😳' },
+  { name: '柴犬阿福的媽', handle: 'afu_shiba_mom', color: 0xd98a3c, ago: 140,
+    text: '請問可以帶狗狗進去嗎？牠很乖，只是看到穿拖鞋的人會很有意見',
+    reply: '可以喔～店裡本來就有狗了，拖鞋的部分我們盡量', thanks: '阿福說他會盡量控制自己🐕' },
+  { name: '揪團失敗的小陳', handle: 'chen.party_of_one', color: 0x6b7a99, ago: 400,
+    text: '請問週六下午可以訂位嗎？我們六個人……應該六個……大概四個……好啦可能就我一個',
+    reply: '一個人也幫你留一個好位子', thanks: '謝謝老闆，我先去哭一下🥲' },
+  { name: '路過三次的上班族', handle: 'office.peeker', color: 0x8fa3b8, ago: 75,
+    text: '我每天上班都會經過你們店三次，每次都假裝在看手機其實在偷看，請問今天可以進去了嗎',
+    reply: '今天可以，明天也可以', thanks: '好，那我明天再進去（今天先繼續偷看）' },
+  { name: '減肥第87天', handle: 'diet_day_87', color: 0x9ad18b, ago: 220,
+    text: '請問有沒有喝了不會胖的飲料？甜一點的，有奶的，最好再加個鬆餅',
+    reply: '有，白開水，免費', thanks: '……謝謝老闆的誠實🥲' },
+  { name: '板橋Curry', handle: 'banqiao_curry30', color: 0xffc72c, ago: 560,
+    text: '聽說你們店裡可以打 2K？我自稱板橋 Curry，請問店裡有人敢跟我單挑嗎',
+    reply: '常客會讓你懷疑人生，歡迎來', thanks: '我先回去練個三年💪' },
+];
+const SPAMMERS = [
+  { name: '💋寂寞的Vivian💋', handle: 'vivian_0857_hot', color: 0xff5c9a, ago: 12,
+    text: '哥哥～人家今晚一個人好無聊喔🥺 看到你的咖啡好燙，人家也是🔥 點我主頁連結，前三分鐘免費陪聊💕' },
+  { name: '🔞甜心寶貝俱樂部🔞', handle: 'sweetbaby.vip_888', color: 0xb03aff, ago: 900,
+    text: '【老闆限定】辛苦一天了嗎～本週入會只要 $99🔥 真人認證・全程私密・不用出門也能喝到最濃的那一杯☕💦 回覆「+1」立即開通' },
+  { name: '🍑小桃線上陪聊🍑', handle: 'peach_chat_520', color: 0xffa07a, ago: 48,
+    text: '老闆～人家剛洗完澡🛁 頭髮還濕濕的，想找人聊聊天💗 加我 LINE：peach520，先聊先贏喔😘' },
+  { name: '💎寂寞人妻配對💎', handle: 'lonely.wives_tw', color: 0x40c4c4, ago: 1300,
+    text: '【恭喜您被選中】您附近 3 公里內有 12 位寂寞人妻正在線上👀 點擊連結立即配對，保證比你的咖啡還熱☕🔥 首次免費' },
+];
+// n of a list, at random
+const drawN = (list, n) => { const a = [...list]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a.slice(0, n); };
 
 // returns { open, close }
 export function bindPhone(root, on, off) {
@@ -217,7 +252,7 @@ export function bindPhone(root, on, off) {
   };
 
   // ---- the regulars' threads, made the first time the phone is opened this visit
-  let threads = null, myNote = '';
+  let threads = null, myNote = '', strangers = [], tab = 'main';
   const photos = S.phonePhotos || (S.phonePhotos = []);   // newest first
   const coming = new Set();   // names called in and on their way
   const inShop = r => S.customers.some(c => c.p.name === r.name && !c.outside);
@@ -229,6 +264,8 @@ export function bindPhone(root, on, off) {
     });
     threads.sort((a, b) => b.at - a.at).slice(0, Math.min(2, threads.length)).forEach(t => { t.unread = true; });
     myNote = say('phone.note', {});
+    strangers = [...drawN(ASKERS, 3), ...drawN(SPAMMERS, 2).map(x => ({ ...x, spam: true }))].map(x => ({ r: { name: x.name, look: { shirt: x.color }, noPic: true }, handle: x.handle, req: true, spam: !!x.spam,
+      reply: x.reply, thanks: x.thanks, msgs: [{ in: true, text: x.text }], at: S.minutes - x.ago, unread: true }));
   };
   const unreadCount = () => (threads ? threads.filter(t => t.unread).length : 2);
   // avatars: the picture on their card (portrait.js), drawn one at a time while the phone is open so it doesn't stall;
@@ -253,7 +290,7 @@ export function bindPhone(root, on, off) {
     if (((c >> 16 & 255) * 0.3 + (c >> 8 & 255) * 0.59 + (c & 255) * 0.11) > 170) a.classList.add('lt');
     const url = pics.get(r.name);
     if (url) showPic(a, url);
-    else if (!pics.has(r.name) && (!r.isOwner || S.owner) && !wanted.includes(r)) { wanted.push(r); if (!drawing) drawing = setTimeout(drawNext, 30); }
+    else if (!r.noPic && !pics.has(r.name) && (!r.isOwner || S.owner) && !wanted.includes(r)) { wanted.push(r); if (!drawing) drawing = setTimeout(drawNext, 30); }
     return a;
   };
   const OWNER_AV = { name: S.content?.owner?.name ?? '老闆', look: S.content?.owner?.look, isOwner: true };
@@ -322,9 +359,10 @@ export function bindPhone(root, on, off) {
   const list = views.dm;
   list.innerHTML = `<div class="igHd"><button type="button" class="igBk" data-go="home" aria-label="回主畫面">${usvg('back')}</button><b class="igMe">peep20190401</b><span class="igCaret">${usvg('back')}</span><i class="igRed"></i><button type="button" class="igPen" data-dead aria-label="新訊息">${usvg('pen')}</button></div>
     <label class="igSearch"><span aria-hidden="true">⌕</span><input type="search" placeholder="搜尋" autocomplete="off" enterkeyhint="search"></label>
-    <div class="igNotes"></div><div class="igTabs"><b>訊息</b><span>陌生訊息</span></div><div class="igRows"></div>
+    <div class="igNotes"></div><div class="igTabs"><button type="button" data-tab="main">訊息</button><button type="button" data-tab="req">陌生訊息</button></div><div class="igRows"></div>
     <nav class="igNav"><button type="button" data-go="home" aria-label="主畫面">${usvg('home')}</button><button type="button" data-dead aria-label="連續短片">${usvg('reels')}</button><button type="button" class="on" aria-label="訊息">${usvg('direct')}</button><button type="button" data-dead aria-label="搜尋">${usvg('search')}</button><button type="button" class="igMeAv" data-dead aria-label="個人檔案"></button></nav>`;
   const search = list.querySelector('input'), notes = list.querySelector('.igNotes'), rows = list.querySelector('.igRows');
+  on(list.querySelector('.igTabs'), 'click', e => { const b = e.target.closest('[data-tab]'); if (b && b.dataset.tab !== tab) { tab = b.dataset.tab; sfx('tick'); drawList(); } });
   list.querySelectorAll('[data-dead]').forEach(b => { b.onclick = () => nope(b); });
   const note = (who, text, name, onClick, ring) => {
     const n = el('div', 'igNote');
@@ -335,15 +373,21 @@ export function bindPhone(root, on, off) {
     return n;
   };
   const drawList = () => {
+    notes.hidden = tab === 'req';   // (shown again before it's refilled, so the bubbles are laid out in sight)
     notes.textContent = '';
     notes.appendChild(note(OWNER_AV, myNote || '尋求靈感……', '你的便利貼'));
     threads.filter(t => t.note).sort((a, b) => b.at - a.at).slice(0, 8).forEach(t => notes.appendChild(note(t.r, t.note, t.r.name, () => openChat(t), t.story)));
     const me = list.querySelector('.igMeAv'); me.textContent = ''; me.appendChild(avatar(OWNER_AV, 's'));
+    list.querySelectorAll('.igTabs [data-tab]').forEach(b => {
+      b.classList.toggle('on', b.dataset.tab === tab);
+      if (b.dataset.tab === 'req') b.textContent = strangers.length ? `陌生訊息 (${strangers.length})` : '陌生訊息';
+    });
     const q = search.value.trim().toLowerCase();
-    const shown = threads.filter(t => !q || t.r.name.toLowerCase().includes(q) || t.handle.includes(q))
+    const shown = (tab === 'req' ? strangers : threads).filter(t => !q || t.r.name.toLowerCase().includes(q) || t.handle.includes(q))
       .sort((a, b) => (b.unread - a.unread) || (b.at - a.at));
     rows.textContent = '';
-    if (!shown.length) { rows.appendChild(el('p', 'igEmpty', `找不到「${search.value.trim()}」……老闆的通訊錄裡沒有這個人。`)); return; }
+    if (tab === 'req' && !q) rows.appendChild(el('p', 'igReqHint', '這些訊息來自你沒有追蹤的人。除非你回覆，否則對方不會知道你已經看過。'));
+    if (!shown.length) { rows.appendChild(el('p', 'igEmpty', q ? `找不到「${search.value.trim()}」……老闆的通訊錄裡沒有這個人。` : '沒有陌生訊息，世界清靜了。')); return; }
     shown.forEach(t => {
       const row = btn('igRow' + (t.unread ? ' u' : ''));
       const av = el('span', 'igAvW' + (t.story ? ' story' : '') + (inShop(t.r) ? ' here' : '')); av.appendChild(avatar(t.r));
@@ -366,10 +410,11 @@ export function bindPhone(root, on, off) {
   chat.innerHTML = `<div class="igCh"><button type="button" class="igCirc" data-go="dm" aria-label="返回">${usvg('back')}</button><span class="igChAv"></span>
     <span class="igW"><b></b><i></i></span><button type="button" class="igCirc sm" data-dead aria-label="效果">${usvg('sticker')}</button><button type="button" class="igCirc sm" data-dead aria-label="語音通話">${usvg('call')}</button><button type="button" class="igCirc sm" data-dead aria-label="視訊通話">${usvg('video')}</button></div>
     <div class="igMsgs"></div>
-    <div class="igChips"><button type="button" class="go" data-act="call">▶ 叫他來店裡</button><button type="button" data-act="last">傳剛拍的照片</button></div>
+    <div class="igChips"><button type="button" class="go" data-act="call">▶ 叫他來店裡</button><button type="button" data-act="last">傳剛拍的照片</button><button type="button" class="go" data-act="req"></button></div>
     <div class="igInp"><button type="button" class="igCamB" data-act="shoot" aria-label="拍照傳送">${usvg('cam')}</button><span class="igPh">發送訊息……</span>
       <button type="button" data-dead aria-label="語音">${usvg('mic')}</button><button type="button" data-act="pick" aria-label="傳照片">${usvg('image')}</button><button type="button" data-dead aria-label="貼圖">${usvg('face')}</button><button type="button" data-dead aria-label="更多">${usvg('plus')}</button></div>`;
-  const msgsEl = chat.querySelector('.igMsgs'), callBtn = chat.querySelector('[data-act="call"]'), lastBtn = chat.querySelector('[data-act="last"]');
+  const msgsEl = chat.querySelector('.igMsgs'), callBtn = chat.querySelector('[data-act="call"]'), lastBtn = chat.querySelector('[data-act="last"]'),
+    reqBtn = chat.querySelector('[data-act="req"]');
   chat.querySelectorAll('[data-dead]').forEach(b => { b.onclick = () => nope(b); });
   const drawChat = () => {
     const t = chatWith; if (!t) return;
@@ -396,6 +441,10 @@ export function bindPhone(root, on, off) {
     callBtn.disabled = busy || coming.has(t.r.name);
     callBtn.textContent = coming.has(t.r.name) ? '已經在路上了' : '▶ 叫他來店裡';
     lastBtn.disabled = busy || !photos.length;
+    // a message request: no calling them in or sending photos, and nothing typed; just the one reply, or a report
+    callBtn.hidden = lastBtn.hidden = !!t.req; reqBtn.hidden = !t.req;
+    chat.querySelector('.igInp').hidden = !!t.req;
+    if (t.req) { reqBtn.textContent = t.spam ? '檢舉並刪除' : t.replied ? '已回覆' : '▶ 回覆'; reqBtn.disabled = busy || (!t.spam && t.replied); }
   };
   const openChat = t => { chatWith = t; t.unread = false; sfx('pop'); show('chat'); };
   // something sent in the owner's name: seen a moment later, then they're typing, then they write back
@@ -413,6 +462,12 @@ export function bindPhone(root, on, off) {
       t.msgs.push({ in: true, text: say(here ? 'phone.here' : closed ? 'phone.closed' : 'phone.reply', varsOf(r)) });
       if (!here && !closed) { t.msgs.push({ sys: true, text: `▶ ${r.name} 正在前往店裡……` }); summon(r); }
     });
+  });
+  on(reqBtn, 'click', () => {
+    const t = chatWith; if (!t?.req || reqBtn.disabled) return;
+    if (t.spam) { strangers.splice(strangers.indexOf(t), 1); log(`檢舉了 ${t.r.name}`); sfx('popDown'); show('dm'); return; }
+    t.replied = true;
+    send(t, { in: false, text: t.reply }, () => t.msgs.push({ in: true, text: t.thanks }));
   });
   const sendPhoto = (t, url) => send(t, { in: false, img: url }, () => t.msgs.push({ in: true, text: say('phone.photoReply', varsOf(t.r)) }));
   on(lastBtn, 'click', () => { if (chatWith && photos.length && !lastBtn.disabled) sendPhoto(chatWith, photos[0].url); });
