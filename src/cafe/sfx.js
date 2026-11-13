@@ -74,6 +74,8 @@ const SOUNDS = {
   flick: () => { noise(0.03, { freq: 3000, vol: 0.12, type: 'highpass' }); tone(1500, 900, 0.04, { type: 'triangle', vol: 0.07 }); },
   buzz: () => tone(118, 120, 0.5, { type: 'sawtooth', vol: 0.025 }),
   beep: () => tone(2093, 2093, 0.05, { type: 'sine', vol: 0.06 }),   // the AC remote's little chirp
+  shutter: () => { noise(0.04, { freq: 2600, vol: 0.16, type: 'highpass' }); noise(0.06, { freq: 1800, vol: 0.12, type: 'highpass', at: 0.07 }); },   // the phone's camera
+  get: () => tune([784, 988, 1175, 1568, 1976], 0.07, { vol: 0.07 }),   // an item picked up: the RPG's rising jingle
 };
 
 export function sfx(name) {

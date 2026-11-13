@@ -21,6 +21,7 @@ import { sfx, sfxMuted, toggleSfx, audio } from './sfx.js';
 import { startMusic, stopMusic, toggleMusic, musicOn } from './music.js';
 import { TVX, TVY, TVZ } from './layout.js';
 import { bindMenu } from './rpgMenu.js';
+import { bindPhone, phoneTargets, pickUpPhone } from './phone.js';
 
 export function updateHUD() {
   $('clock').textContent = fmtTime(S.minutes); $('day').textContent = DAYS[S.dow];
@@ -390,7 +391,8 @@ export function bindHUD(root, stage) {
   const musicBtn = $('musicToggle'), showMusic = () => musicBtn?.classList.toggle('on', musicOn());
   showMusic(); on(musicBtn, 'click', () => { toggleMusic(); showMusic(); });
   // the RPG menu (rpgMenu.js)
-  menu = bindMenu(root, on, off, { setCam, focusPerson, followThing: startFollow, setAcOpen });
+  const phone = bindPhone(root, on, off);   // 老闆的手機, once it's been picked up (phone.js)
+  menu = bindMenu(root, on, off, { setCam, focusPerson, followThing: startFollow, setAcOpen, openPhone: phone.open });
   off.push(() => { menu = null; });
   // every touch, click or key wakes the sound: a finger's pointerdown doesn't count as a gesture on phones (only its
   // pointerup / touchend do), and after a hidden tab or a call the sound has to be woken again
@@ -416,7 +418,8 @@ export function bindHUD(root, stage) {
     if (S.stadium?.visible) S.stadium.traverse(o => { if (o.isMesh) stadium.push(o); });
     S.menuClip?.traverse(o => { if (o.isMesh) menu.push(o); });
     const laptop = []; S.laptop?.traverse(o => { if (o.isMesh) laptop.push(o); });
-    const targets = []; S.people.forEach(p => { p.g.traverse(o => { if (o.isMesh) targets.push(o); }); p.bear?.g.traverse(o => { if (o.isMesh) targets.push(o); }); }); targets.push(S.tvScreen, S.tvFrame, S.dartboard, S.neonSwitch?.hit, S.storeLight?.hit, S.toiletLight?.hit, ...stadium, ...menu, ...fans, ...laptop);
+    const phone = phoneTargets();
+    const targets = []; S.people.forEach(p => { p.g.traverse(o => { if (o.isMesh) targets.push(o); }); p.bear?.g.traverse(o => { if (o.isMesh) targets.push(o); }); }); targets.push(S.tvScreen, S.tvFrame, S.dartboard, S.neonSwitch?.hit, S.storeLight?.hit, S.toiletLight?.hit, ...stadium, ...menu, ...fans, ...laptop, ...phone);
     const h = ray.intersectObjects(targets.filter(Boolean), false)[0];
     if (!h) return null;
     if (h.object === S.neonSwitch?.hit) return 'neon';
@@ -425,6 +428,7 @@ export function bindHUD(root, stage) {
     if (h.object.userData.fanBlades) return { fan: h.object.userData.fanBlades };
     if (menu.includes(h.object)) return 'menu';
     if (laptop.includes(h.object)) return 'laptop';
+    if (phone.includes(h.object)) return 'phone';
     if (h.object === S.tvScreen || h.object === S.tvFrame) return 'tv';
     if (h.object === S.dartboard) return 'darts';
     if (stadium.includes(h.object)) return 'tops';
@@ -435,9 +439,11 @@ export function bindHUD(root, stage) {
   on(canvas, 'pointerdown', e => { downAt = [e.clientX, e.clientY]; });
   on(canvas, 'pointerup', e => {
     if (!downAt || Math.hypot(e.clientX - downAt[0], e.clientY - downAt[1]) > 6) return;
+    if (root.classList.contains('phoneCam')) return;   // (through the phone's camera, a tap is just framing the shot)
     const h = hit(e);
     if (h === 'menu') setCam('menu');   // the clipboard on the bar: lean over and read it
     else if (h === 'laptop') { sfx('pop'); window.location.href = '/admin'; }   // the owner's laptop: into the back office
+    else if (h === 'phone') pickUpPhone(() => menu?.gotPhone());   // the owner's phone beside it: into the bag
     else if (h === 'neon') toggleNeon();
     else if (h === 'storeLight') { setStoreLight(!S.storeLight.on); sfx('flick'); }
     else if (h === 'toiletLight') {

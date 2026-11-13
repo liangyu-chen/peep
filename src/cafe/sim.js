@@ -265,7 +265,8 @@ function freeTableSeat(preferPorch) {
   return pick(pref.length ? pref : f);
 }
 
-export function trySpawn(force) {
+// who: a given regular (called in from the owner's phone, phone.js); otherwise a regular or a first-timer at random
+export function trySpawn(force, who) {
   if ((!S.open || S.closing) && !force) return false;
   // nobody comes in while there's a cockroach being chased round the shop, or the ones who ran from it aren't back yet
   if (S.roach?.alarm || S.customers.some(c => c.frozen)) { if (force) log('店裡正在抓蟑螂，客人不敢進來。'); return false; }
@@ -273,8 +274,9 @@ export function trySpawn(force) {
   if (S.customers.length >= 14) { if (force) log('店裡坐滿了，晚點再來。'); return false; }
   const spot = S.seats.counterSpots.find(s => !s.occ);
   if (!spot) { if (force) log('吧台前排滿了，等一下。'); return false; }
+  if (who && present(who.name)) return false;
   const pool = S.regulars.filter(r => !present(r.name));
-  const prof = pool.length && Math.random() < 0.75 ? pick(pool) : newProfile();
+  const prof = who ?? (pool.length && Math.random() < 0.75 ? pick(pool) : newProfile());
   const c = new Person(prof, 'customer');
   S.customers.push(c);
   spot.occ = c; c.spot = spot;

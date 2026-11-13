@@ -118,6 +118,22 @@ export const LINE_GROUPS: LineGroup[] = [
       { key: 'fight.rematch', label: '還要再一場' },
     ],
   },
+  {
+    // 老闆的手機 (an item picked up off the 工作台): the regulars' direct messages, and calling them in from it
+    group: '手機私訊', slug: 'phone',
+    items: [
+      { key: 'phone.dm', label: '熟客傳給老闆的訊息', vars: ['owner', 'drink'] },
+      { key: 'phone.dm2k', label: '會打 2K 的熟客傳的訊息', vars: ['team'] },
+      { key: 'phone.dmSmoke', label: '會抽菸的熟客傳的訊息' },
+      { key: 'phone.note', label: '頭像上的便利貼（很短）' },
+      { key: 'phone.call', label: '用老闆的名義叫熟客來店裡', vars: ['name'] },
+      { key: 'phone.reply', label: '熟客答應要過來', vars: ['owner'] },
+      { key: 'phone.here', label: '熟客其實已經在店裡', vars: ['owner'] },
+      { key: 'phone.closed', label: '打烊了還叫人來' },
+      { key: 'phone.ownerHuh', label: '被叫來的熟客進門時，老闆的反應', vars: ['name'] },
+      { key: 'phone.photoReply', label: '熟客看到你傳的照片', vars: ['owner', 'name'] },
+    ],
+  },
 ];
 
 // the dialogue page a category is edited on (the owner's are on the owner's page)
@@ -211,6 +227,16 @@ export const DEFAULT_LINES: Record<string, string[]> = {
   'fight.ko': ['K.O.！', '完美勝利', '再練練吧'],
   'fight.lose': ['可惡…', '角色相剋啦', '再一場！'],
   'fight.rematch': ['再一場！', '換角色再來'],
+  'phone.dm': ['{owner}今天有開嗎？', '{drink}幫我留一杯，老樣子', '今天好累，想去店裡坐坐', '昨天忘了付錢！下次補給你', '店裡今天人多嗎？', '{owner}～在忙嗎'],
+  'phone.dm2k': ['下班想過去打一場', '今天{team}輸成那樣，我要去 2K 裡討回來', '誰在店裡？想找人打 2K', '昨天那場不算，再來'],
+  'phone.dmSmoke': ['戶外區有位子嗎？想去抽一根', '打火機好像忘在店裡了'],
+  'phone.note': ['今天放假', '想喝咖啡', '加班中', '2K 誰來', '好睏', '吃飽了'],
+  'phone.call': ['{name}，店裡現在超空，快來！', '有開！要不要過來坐坐？', '{name}～今天招待你一杯，來嗎？', '來店裡，有事找你（認真）'],
+  'phone.reply': ['{owner}今天怎麼這麼熱情？好啦十分鐘到', '真的假的？馬上過去', '剛好在附近，等我', '好啊，幫我先做一杯'],
+  'phone.here': ['……我就在你面前啊？', '{owner}你是不是又在偷懶滑手機', '抬頭，我在吧台前面'],
+  'phone.closed': ['都打烊了吧？明天再去啦', '這麼晚了還開？騙人'],
+  'phone.photoReply': ['哈哈這誰拍的', '{owner}你在偷拍喔？', '店裡今天好熱鬧', '等等，照片裡那個是我嗎', '拍得好糊……', '我也要去！'],
+  'phone.ownerHuh': ['咦？{name}，我沒叫你啊……', '{name}？你怎麼知道今天有開……我的手機呢？', '……誰拿我手機傳訊息的？'],
 };
 // texts the first seed wrote before {owner} existed; `db:seed` rewrites these exact rows to the new wording
 export const RENAMED_LINES: [string, string, string][] = [

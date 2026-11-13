@@ -7,7 +7,7 @@ import LoadingHands from './LoadingHands';
 
 // the RPG menu's item icons, in colour: each letter a pixel of that palette colour, '.' see-through
 const ITEM_PAL: Record<string, string> = { k: '#14121a', w: '#f4efe3', G: '#9a98a6', g: '#55535f', r: '#ff4f7b', y: '#ffd23f',
-  b: '#9a6234', o: '#ff9a3c', c: '#7ec8ff', n: '#3ddc97', L: '#d49a5e', B: '#5e3418', H: '#d9a46a' };
+  b: '#9a6234', o: '#ff9a3c', c: '#7ec8ff', n: '#3ddc97', L: '#d49a5e', B: '#5e3418', H: '#d9a46a', P: '#3a2d6e', V: '#6b3f7c' };
 const ICON_CAM = ['............', '.kkkkkkkkkk.', '.kGGGGGGGGk.', '.kGccccccGk.', '.kGcwcccrGk.', '.kGccccccGk.', '.kGccccccGk.',
   '.kGGGGGGGGk.', '.kkkkkkkkkk.', '....kGGk....', '..kkkkkkkk..', '............'];
 const ICON_MENU = ['...kkkkk....', '.kkbyyybkk..', '.kbbbbbbbk..', '.kbwwwwwbk..', '.kbwkkwwbk..', '.kbwwwwwbk..', '.kbwkkkwbk..',
@@ -25,6 +25,9 @@ const ICON_ROACH = ['.LL......LL.', 'L..L....L..L', 'L...kkkk...L', '...kBBBBk..
 // 冷氣遙控: the white remote, its red lamp up top, the green LCD, two grey keys either side of the yellow power key
 const ICON_REMOTE = ['....kkkk....', '...kwwwwk...', '..kwwwrwwk..', '..kwnnnnwk..', '..kwnnnnwk..', '..kwwwwwwk..', '..kwGwwGwk..',
   '..kwwyywwk..', '..kwGwwGwk..', '..kwwwwwwk..', '...kwwwwk...', '....kkkk....'];
+// 老闆的手機: a black phone, its screen the lock screen's purple with the time and a message's white banner
+const ICON_PHONE = ['...kkkkkk...', '..kkkkkkkk..', '..kPPkkPPk..', '..kPwwwwPk..', '..kPPPPPPk..', '..kPwwwwPk..', '..kVVVVVVk..',
+  '..kVVVVVVk..', '..kVVVVVVk..', '..kVVwwVVk..', '..kkkkkkkk..', '...kkkkkk...'];
 // 音效: a speaker sounding off; 音樂: two beamed notes
 const ICON_SPEAKER = ['............', '.....k......', '....kk...y..', '..kkGk....y.', '.kGGGk.y..y.', '.kGGGk..y.y.', '.kGGGk..y.y.',
   '.kGGGk.y..y.', '..kkGk....y.', '....kk...y..', '.....k......', '............'];
@@ -163,7 +166,9 @@ export default function Cafe({ content }: { content: CafeContent }) {
               <button type="button" className="slot equip lit" id="tagSlot" data-item="tag" data-desc="以半數壽命為代價，向死神換來的漆黑契約之眼。據說在它的注視下，無人能隱藏自己的真名——包括那位泡咖啡的男人。"><PixelArt rows={ICON_EYE} /><span>死神之眼</span><span className="badge" aria-label="裝備中" /></button>
               <button type="button" className="slot equip" id="remoteSlot" data-item="remote" data-desc="封印著「極寒之息」的白色聖器。唯有被選中之人才能駕馭——裝備之後，它將在畫面右側顯現，號令這間店的風與溫度。"><PixelArt rows={ICON_REMOTE} /><span>冷氣遙控</span><span className="badge" aria-label="裝備中" /></button>
               <button type="button" className="slot" data-item="roach" data-desc="一隻油亮的大蟑螂，裝在小紙盒裡。使用後會偷偷放到店裡的地上，看看誰先發現牠……"><PixelArt rows={ICON_ROACH} /><span>小強</span></button>
-              <button type="button" className="slot" data-item="none" aria-disabled="true" data-desc="還沒有取得的道具。說不定哪天會在店裡撿到……"><span className="q" aria-hidden="true">?</span><span>？？？</span></button>
+              {/* 老闆的手機: picked up off the 工作台, it takes the ？？？ slot (rpgMenu.js) */}
+              <button type="button" className="slot" id="phoneSlot" data-item="phone" hidden data-desc="老闆隨手擱在筆電旁的手機，螢幕居然沒鎖。用他的名義傳個私訊，就能把熟客召喚到店裡……在他發現之前。"><PixelArt rows={ICON_PHONE} /><span>老闆的手機</span><span className="badge">NEW</span></button>
+              <button type="button" className="slot" id="noneSlot" data-item="none" aria-disabled="true" data-desc="還沒有取得的道具。說不定哪天會在店裡撿到……"><span className="q" aria-hidden="true">?</span><span>？？？</span></button>
             </div>
             <div className="desc"><p id="itemDesc" aria-live="polite" /><button type="button" className="opt use" id="itemUse">使用</button></div>
           </div>

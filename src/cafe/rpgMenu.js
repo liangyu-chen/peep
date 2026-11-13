@@ -6,12 +6,13 @@ import { S } from './state.js';
 import { $ } from './util.js';
 import { log } from './feed.js';
 import { releaseRoach } from './roach.js';
+import { sfx } from './sfx.js';
 
 const CAM_KEYS = ['overview', 'counter', 'menu', 'tv', 'porch', 'back'];
 const CAM_NAMES = { overview: '全景', counter: '吧台', menu: '菜單', tv: '電視', porch: '戶外區', back: '後場' };
 
-// returns { closeMenu, hideRec }
-export function bindMenu(root, on, off, { setCam, focusPerson, followThing, setAcOpen }) {
+// returns { closeMenu, hideRec, gotPhone }
+export function bindMenu(root, on, off, { setCam, focusPerson, followThing, setAcOpen, openPhone }) {
   const btn = $('menuBtn'), cmd = $('cmdWin'), panel = $('menuPanel'), choice = $('choiceWin');
   const stack = [];   // the windows open now, the top one last
 
@@ -46,7 +47,7 @@ export function bindMenu(root, on, off, { setCam, focusPerson, followThing, setA
   };
   const closeMenu = () => { while (stack.length) back(); };
 
-  on(btn, 'click', () => { btn.hidden = true; btn.setAttribute('aria-expanded', 'true'); show(cmd); });
+  on(btn, 'click', () => { btn.classList.remove('ping'); btn.hidden = true; btn.setAttribute('aria-expanded', 'true'); show(cmd); });
   on(cmd, 'click', e => {
     const b = e.target.closest('[data-cmd]'); if (!b) return;
     cmd.querySelectorAll('.opt').forEach(o => o.classList.toggle('sel', o === b));
@@ -68,6 +69,7 @@ export function bindMenu(root, on, off, { setCam, focusPerson, followThing, setA
     // picking another item closes the small choice window the last one opened (攝影機's scenes, 沙漏's speeds)
     if (name !== picked && stack.includes(panel)) popAbove(panel);
     picked = name;
+    if (name === 'phone') $('phoneSlot').querySelector('.badge')?.remove();   // (seen now: no longer new)
     const s = slots.find(x => x.dataset.item === name);
     slots.forEach(x => x.classList.toggle('sel', x === s));
     $('itemDesc').textContent = s.dataset.desc;
@@ -98,6 +100,7 @@ export function bindMenu(root, on, off, { setCam, focusPerson, followThing, setA
       closeMenu(); followThing(r.g, '蟑螂', true);
       report('你偷偷把一隻蟑螂放到店裡的地上……');
     }
+    else if (name === 'phone') { closeMenu(); openPhone?.(); }   // 老闆的手機: out of the bag and onto the screen (phone.js)
     else if (name === 'menu') { closeMenu(); setCam('menu'); report('你湊近吧台，讀起那張邊角燒焦的菜單。'); }   // lean over the bar and read the clipboard
     else if (name === 'tag') {
       // 死神之眼: worn, everyone's name shows over their head (the name tags)
@@ -191,5 +194,14 @@ export function bindMenu(root, on, off, { setCam, focusPerson, followThing, setA
     if (n) { e.preventDefault(); n.focus(); if (n.classList.contains('slot')) pick(n.dataset.item); }
   });
 
-  return { closeMenu, hideRec };
+  // 老闆的手機 picked up off the 工作台: it takes the ？？？ slot, and the 選單 button blinks until it's opened
+  const gotPhone = () => {
+    $('phoneSlot').hidden = false; $('noneSlot').hidden = true;
+    btn.classList.add('ping');
+    sfx('get');
+    report('獲得了「老闆的手機」！螢幕居然沒鎖……先收進包包裡！！');
+    log('獲得了 老闆的手機');
+  };
+
+  return { closeMenu, hideRec, gotPhone };
 }

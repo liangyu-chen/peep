@@ -23,6 +23,7 @@ import { gatherWallItems, fadeWallItems } from './wallItems.js';
 import { setQuality, DEFAULT_QUALITY, highQuality, qualityPR, frameMs } from './quality.js';
 import { disposePortraits } from './portrait.js';
 import { updateRoach, tvPaused, disposeRoach, releaseRoach, raiseAlarm } from './roach.js';
+import { buildPhoneProp, updatePhoneProp, disposePhoneProp } from './phone.js';
 // (one café at a time: a new one waits until the one before is built and, if it was let go meanwhile, torn down)
 let queue = Promise.resolve();
 export function startCafe(root, content, onReady) {
@@ -47,6 +48,7 @@ async function build(root, content) {
   buildWorld(); await breathe();
   gatherWallItems();                 // (what hangs on the outer walls, so it can fade with them)
   mergeStatic(); await breathe();   // the set's still parts drawn in far fewer calls
+  buildPhoneProp();   // the owner's phone by his laptop, there to be picked up (after the merge, so it stays its own)
   createStadium();
   createSteam();
   createSmoke();
@@ -64,6 +66,7 @@ async function build(root, content) {
     S.people.slice().forEach(p => p.update(sdt));
     if (!tvPaused()) updateTV(sdt);   // (held while there's a cockroach to watch being dealt with)
     updateRoach(sdt);
+    updatePhoneProp(dt);   // (its sparkle, and the jump into the bag, go by real time)
     updateSteam(sdt);
     updateSmoke(sdt);
     updateTops(sdt);
@@ -173,6 +176,7 @@ async function build(root, content) {
     S.stopped = true;
     disposePortraits();
     disposeRoach();
+    disposePhoneProp();
     INPUTS.forEach(e => window.removeEventListener(e, poke));
     cancelAnimationFrame(raf);
     clearInterval(hudTimer);
