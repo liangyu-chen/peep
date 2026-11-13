@@ -192,7 +192,13 @@ export function bindPhone(root, on, off) {
   const timers = new Set();
   const later = (fn, ms) => { const t = setTimeout(() => { timers.delete(t); fn(); }, ms); timers.add(t); };
   off.push(() => timers.forEach(clearTimeout));
-  const nope = b => { b.classList.remove('nope'); void b.offsetWidth; b.classList.add('nope'); sfx('tick'); };   // not working yet
+  // not working yet: a shake, its class taken off again once it's done (left on, the shake would play again each
+  // time the screen it's on is shown again)
+  const nope = b => {
+    b.classList.remove('nope'); void b.offsetWidth; b.classList.add('nope'); sfx('tick');
+    const done = e => { if (e.target !== b) return; b.classList.remove('nope'); b.removeEventListener('animationend', done); };
+    b.addEventListener('animationend', done);
+  };
 
   // ---- the regulars' threads, made the first time the phone is opened this visit
   let threads = null, myNote = '';
