@@ -21,7 +21,7 @@ import { sfx, sfxMuted, toggleSfx, audio } from './sfx.js';
 import { startMusic, stopMusic, toggleMusic, musicOn } from './music.js';
 import { TVX, TVY, TVZ } from './layout.js';
 import { bindMenu } from './rpgMenu.js';
-import { bindPhone, phoneTargets, pickUpPhone } from './phone.js';
+import { bindPhone, phoneTargets, pickUpPhone, setPhoneHover } from './phone.js';
 
 export function updateHUD() {
   $('clock').textContent = fmtTime(S.minutes); $('day').textContent = DAYS[S.dow];
@@ -458,8 +458,11 @@ export function bindHUD(root, stage) {
   on(canvas, 'pointermove', e => {
     if (e.pointerType !== 'mouse' || performance.now() - hoverT < 80) return;
     hoverT = performance.now();
-    canvas.style.cursor = hit(e) ? 'pointer' : '';
+    const h = hit(e);
+    canvas.style.cursor = h ? 'pointer' : '';
+    setPhoneHover(h === 'phone');   // (the owner's phone lifts and glows under the mouse)
   });
+  on(canvas, 'pointerleave', () => setPhoneHover(false));
   const resize = () => {
     const w = stage.clientWidth || window.innerWidth, h = stage.clientHeight || window.innerHeight;
     ctx.camera.aspect = w / h; ctx.camera.updateProjectionMatrix();

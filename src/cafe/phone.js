@@ -48,13 +48,23 @@ export function buildPhoneProp() {
   screen.rotation.x = -Math.PI / 2; screen.position.y = 0.0085; g.add(screen);
   const spark = new THREE.Sprite(new THREE.SpriteMaterial({ map: pixTex(SPARK), transparent: true, depthTest: false, toneMapped: false }));
   spark.scale.set(0.13, 0.13, 1); spark.position.y = 0.2; spark.renderOrder = 20; g.add(spark);
-  S.phoneProp = { outer, g, screen, spark, t: 0, lift: -1, done: null };
+  // the glow it gets with the mouse on it: a white rim hugging the case and a gold one round that, lying just under it
+  // (see-through until hovered)
+  const rim = (w, d, color, y) => {
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(w, d), new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0, depthWrite: false, toneMapped: false }));
+    m.rotation.x = -Math.PI / 2; m.position.y = y; g.add(m); return m;
+  };
+  const glow = [rim(0.107, 0.187, 0xffd23f, -0.0004), rim(0.089, 0.169, 0xffffff, -0.0002)];
+  S.phoneProp = { outer, g, screen, spark, glow, t: 0, hover: false, hv: 0, lift: -1, done: null };
 }
-// everything clickable on it (hud.js)
+// everything clickable on it (hud.js); the glow isn't, or the rim would widen what counts as the phone
 export function phoneTargets() {
-  const out = []; S.phoneProp?.g.traverse(o => { if (o.isMesh || o.isSprite) out.push(o); });
+  const p = S.phoneProp, out = [];
+  p?.g.traverse(o => { if ((o.isMesh || o.isSprite) && !p.glow.includes(o)) out.push(o); });
   return out;
 }
+// the mouse on it or off it (hud.js): it lifts a little off the wood and its rim lights up
+export function setPhoneHover(on) { if (S.phoneProp) S.phoneProp.hover = on; }
 
 // picked up: it jumps, spins and swells, then shrinks away into the bag; done() once it's gone
 export function pickUpPhone(done) {
@@ -71,11 +81,17 @@ export function updatePhoneProp(dt) {
     p.spark.position.y = 0.19 + Math.sin(p.t * 3) * 0.025;
     const tw = 0.85 + Math.sin(p.t * 7) * 0.15;
     p.spark.scale.set(0.13 * tw, 0.13 * tw, 1);
-    p.screen.material.color.setHex(p.t % 4.5 < 1.8 ? 0xffffff : 0x444444);
+    // hovered: it eases up off the wood with its screen on, the rim glowing and gently pulsing
+    p.hv += ((p.hover ? 1 : 0) - p.hv) * Math.min(1, dt * 14);
+    p.g.position.y = p.hv * 0.025;
+    p.glow[0].material.opacity = p.hv * (0.55 + Math.sin(p.t * 6) * 0.2);
+    p.glow[1].material.opacity = p.hv * 0.9;
+    p.screen.material.color.setHex(p.hover || p.t % 4.5 < 1.8 ? 0xffffff : 0x444444);
     return;
   }
   p.lift += dt;
   const k = Math.min(1, p.lift / LIFT);
+  p.glow.forEach(m => { m.material.opacity *= 0.8; });   // (the glow goes as it's picked up)
   p.screen.material.color.setHex(0xffffff);
   p.g.position.y = p.y0 + Math.sin(Math.min(1, k * 1.6) * Math.PI / 2) * 0.32;
   p.g.rotation.y += dt * 14;
