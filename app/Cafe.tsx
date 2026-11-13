@@ -37,6 +37,17 @@ const ICON_BATT = ['....kkkk....', '...kGGGGk...', '..kkkkkkkk..', '..knnnnnnk..
   '..kggggggk..', '..kggggggk..', '..kggggggk..', '..kggggggk..', '..kkkkkkkk..'];
 const ICON_KEY = ['............', '............', '..kkkk......', '.kyyyyk.....', 'kyyk.kyk....', 'kyk..kykkkkk', 'kyyk.kyyyyyk',
   '.kyyyykkykyk', '..kkkk..k.k.', '............', '............', '............'];
+// the 選單 button's scroll and the commands' icons (道具 a bag, 客人 a guest, 系統 a gear, 關閉 a cross)
+const ICON_SCROLL = ['............', '.kkkkkkkkkk.', 'kyyyyyyyyyyk', '.kkkkkkkkkk.', '..kwwwwwwk..', '..kwkkkkwk..', '..kwwwwwwk..',
+  '..kwkkkwwk..', '..kwwwwwwk..', '.kkkkkkkkkk.', 'kyyyyyyyyyyk', '.kkkkkkkkkk.'];
+const ICON_BAG = ['....kkkk....', '...kLLLLk...', '...kk..kk...', '..kkkkkkkk..', '.kLLLLLLLLk.', '.kbbbyybbbk.', '.kbbbyybbbk.',
+  '.kbbbbbbbbk.', '.kbbbbbbbbk.', '.kBBBBBBBBk.', '..kkkkkkkk..', '............'];
+const ICON_GUEST = ['....kkkk....', '...kHHHHk...', '..kHkHHkHk..', '..kHHHHHHk..', '...kHHHHk...', '....kkkk....', '..kkcccckk..',
+  '.kcccccccck.', '.kcccccccck.', '.kcccccccck.', '.kkkkkkkkkk.', '............'];
+const ICON_GEAR = ['....kkkk....', '.kk.kGGk.kk.', '.kGkkGGkkGk.', '..kGGGGGGk..', 'kkkGGkkGGkkk', 'kGGGk..kGGGk', 'kGGGk..kGGGk',
+  'kkkGGkkGGkkk', '..kGGGGGGk..', '.kGkkGGkkGk.', '.kk.kGGk.kk.', '....kkkk....'];
+const ICON_CLOSE = ['............', '.kk......kk.', 'krrk....krrk', 'krrrk..krrrk', '.krrrkkrrrk.', '..krrrrrrk..', '..krrrrrrk..',
+  '.krrrkkrrrk.', 'krrrk..krrrk', 'krrk....krrk', '.kk......kk.', '............'];
 function PixelArt({ rows }: { rows: string[] }) {
   return (
     <svg viewBox={`0 0 ${rows[0].length} ${rows.length}`} shapeRendering="crispEdges" aria-hidden="true">
@@ -149,12 +160,12 @@ export default function Cafe({ content }: { content: CafeContent }) {
           them, and the items a small choice window of their own (the games are played by clicking the TV, the
           dartboard or the stadium) */}
       <div id="rpgMenu">
-        <button id="menuBtn" type="button" aria-expanded="false" aria-controls="cmdWin"><b>選單</b><span className="arrow" aria-hidden="true">▼</span></button>
+        <button id="menuBtn" type="button" aria-expanded="false" aria-controls="cmdWin"><PixelArt rows={ICON_SCROLL} /><b>選單</b><span className="arrow" aria-hidden="true">▼</span></button>
         <nav id="cmdWin" className="win" hidden aria-label="選單">
-          <button type="button" className="opt" data-cmd="items">道具</button>
-          <button type="button" className="opt" data-cmd="guests">客人</button>
-          <button type="button" className="opt" data-cmd="system">系統</button>
-          <button type="button" className="opt" data-cmd="close">關閉</button>
+          <button type="button" className="opt" data-cmd="items"><PixelArt rows={ICON_BAG} />道具</button>
+          <button type="button" className="opt" data-cmd="guests"><PixelArt rows={ICON_GUEST} />客人</button>
+          <button type="button" className="opt" data-cmd="system"><PixelArt rows={ICON_GEAR} />系統</button>
+          <button type="button" className="opt" data-cmd="close"><PixelArt rows={ICON_CLOSE} />關閉</button>
         </nav>
         <section id="menuPanel" className="win" hidden>
           <div className="view" data-view="items">
@@ -168,7 +179,10 @@ export default function Cafe({ content }: { content: CafeContent }) {
               <button type="button" className="slot" data-item="roach" data-desc="一隻油亮的大蟑螂，裝在小紙盒裡。使用後會偷偷放到店裡的地上，看看誰先發現牠……"><PixelArt rows={ICON_ROACH} /><span>小強</span></button>
               {/* 老闆的手機: picked up off the 工作台, it takes the ？？？ slot (rpgMenu.js) */}
               <button type="button" className="slot" id="phoneSlot" data-item="phone" hidden data-desc="老闆隨手擱在筆電旁的手機，螢幕居然沒鎖。用他的名義傳個私訊，就能把熟客召喚到店裡……在他發現之前。"><PixelArt rows={ICON_PHONE} /><span>老闆的手機</span><span className="badge">NEW</span></button>
-              <button type="button" className="slot" id="noneSlot" data-item="none" aria-disabled="true" data-desc="還沒有取得的道具。說不定哪天會在店裡撿到……"><span className="q" aria-hidden="true">?</span><span>？？？</span></button>
+              {/* three ？？？ slots, for the items not found yet: each one found takes the first of them (rpgMenu.js) */}
+              {[0, 1, 2].map(n => (
+                <button type="button" key={n} className="slot" data-item="none" aria-disabled="true" data-desc="還沒有取得的道具。說不定哪天會在店裡撿到……"><span className="q" aria-hidden="true">?</span><span>？？？</span></button>
+              ))}
             </div>
             <div className="desc"><p id="itemDesc" aria-live="polite" /><button type="button" className="opt use" id="itemUse">使用</button></div>
           </div>

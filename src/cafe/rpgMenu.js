@@ -65,12 +65,12 @@ export function bindMenu(root, on, off, { setCam, focusPerson, followThing, setA
   let picked = 'cam';
   // the button under the description: 死神之眼 and 冷氣遙控 are worn (裝備 / 卸下), the rest are used
   const useLabel = name => (name === 'tag' ? (S.showTags !== false ? '卸下' : '裝備') : name === 'remote' ? (S.acGear ? '卸下' : '裝備') : '使用');
-  const pick = name => {
+  const pick = (name, el) => {
     // picking another item closes the small choice window the last one opened (攝影機's scenes, 沙漏's speeds)
     if (name !== picked && stack.includes(panel)) popAbove(panel);
     picked = name;
     if (name === 'phone') $('phoneSlot').querySelector('.badge')?.remove();   // (seen now: no longer new)
-    const s = slots.find(x => x.dataset.item === name);
+    const s = el || slots.find(x => x.dataset.item === name);   // (el: which of the ？？？ slots)
     slots.forEach(x => x.classList.toggle('sel', x === s));
     $('itemDesc').textContent = s.dataset.desc;
     $('itemUse').hidden = name === 'none';
@@ -127,7 +127,7 @@ export function bindMenu(root, on, off, { setCam, focusPerson, followThing, setA
   };
   off.push(() => root.classList.remove('acGear'));
   showTag(); showGear(); pick('cam');
-  slots.forEach(s => on(s, 'click', () => { if (s.classList.contains('sel')) use(s.dataset.item); else pick(s.dataset.item); }));
+  slots.forEach(s => on(s, 'click', () => { if (s.classList.contains('sel')) use(s.dataset.item); else pick(s.dataset.item, s); }));
   on($('itemUse'), 'click', () => use(picked));
 
   // ---- the monitor: a burst of static, then the channel's name in the corner until the view is dragged
@@ -191,12 +191,12 @@ export function bindMenu(root, on, off, { setCam, focusPerson, followThing, setA
     const cols = document.activeElement?.classList.contains('slot') ? 3 : 1;
     const d = e.key === 'ArrowUp' ? -cols : e.key === 'ArrowDown' ? cols : e.key === 'ArrowLeft' ? -1 : 1;
     const n = list[Math.max(0, Math.min(list.length - 1, i < 0 ? 0 : i + d))];
-    if (n) { e.preventDefault(); n.focus(); if (n.classList.contains('slot')) pick(n.dataset.item); }
+    if (n) { e.preventDefault(); n.focus(); if (n.classList.contains('slot')) pick(n.dataset.item, n); }
   });
 
-  // 老闆的手機 picked up off the 工作台: it takes the ？？？ slot, and the 選單 button blinks until it's opened
+  // 老闆的手機 picked up off the 工作台: it takes the first ？？？ slot, and the 選單 button blinks until it's opened
   const gotPhone = () => {
-    $('phoneSlot').hidden = false; $('noneSlot').hidden = true;
+    $('phoneSlot').hidden = false; const q = panel.querySelector('.slot[data-item="none"]:not([hidden])'); if (q) q.hidden = true;
     btn.classList.add('ping');
     sfx('get');
     report('獲得了「老闆的手機」！螢幕居然沒鎖……先收進包包裡！！');
