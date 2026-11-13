@@ -642,6 +642,7 @@ html:has(.cafe-root),body:has(.cafe-root){margin:0;overflow:hidden;background:#1
 .cafe-root .igW b{font-weight:400;font-size:14px;overflow:hidden;text-overflow:ellipsis}
 .cafe-root .igW i{font-style:normal;font-size:10px;color:#a8a8a8;overflow:hidden;text-overflow:ellipsis}
 .cafe-root .igMsgs{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:5px;padding:8px 10px;scrollbar-width:none}
+.cafe-root .igMsgs>*{flex:none}   /* (each message keeps its own height; the list scrolls instead of squeezing them) */
 .cafe-root .igTs{align-self:center;font-size:10px;color:#a8a8a8;margin:6px 0}
 .cafe-root .igIn{display:flex;align-items:flex-end;gap:6px}
 .cafe-root .igAvGap{width:26px;flex:none}
