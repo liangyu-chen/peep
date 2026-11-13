@@ -517,7 +517,8 @@ html:has(.cafe-root),body:has(.cafe-root){margin:0;overflow:hidden;background:#1
 .cafe-root #menuBtn.ping{position:relative}
 .cafe-root #menuBtn.ping::after{content:"";position:absolute;top:-5px;right:-5px;width:10px;height:10px;background:var(--neon);box-shadow:0 0 0 2px #000;animation:rpgBlink 1s steps(1) infinite}
 /* on screen: an 8-bit phone in dark mode over a dimmed café, slid up from the bottom; --phS scales it to fit */
-.cafe-root #phone{position:absolute;inset:0;z-index:30;display:grid;place-items:center}
+.cafe-root #phone{position:absolute;inset:0;z-index:30;display:grid;place-items:center;box-sizing:border-box;
+  padding:env(safe-area-inset-top,0px) 0 var(--sb)}   /* (centred in what's not under Safari's bar; the dim still covers it all) */
 .cafe-root #phone[hidden]{display:none}
 .cafe-root.playing #phone{display:none}
 .cafe-root .phDim{position:absolute;inset:0;background:rgba(10,8,16,.55)}

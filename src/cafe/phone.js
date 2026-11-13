@@ -479,7 +479,7 @@ export function bindPhone(root, on, off) {
   async function summon(r) {
     coming.add(r.name);
     log(`有人用老闆的手機傳了訊息……${r.name} 說要過來`);
-    await sleep(rand(10, 20));
+    await sleep(5);   // (out the door five seconds after the message, then along the lane from either end)
     for (let tries = 0; tries < 8 && !S.stopped; tries++) {
       if (inShop(r)) break;
       if (trySpawn(true, r)) {
@@ -586,7 +586,11 @@ export function bindPhone(root, on, off) {
     back();
   });
   // drawn to fit the screen: smaller on a phone
-  const fit = () => { body.style.setProperty('--phS', String(Math.min(1, (window.innerHeight - 28) / 640, (window.innerWidth - 20) / 320))); };
+  // (the height left once Safari's bar and the notch are kept clear: #phone's padding, cafe.css)
+  const fit = () => {
+    const cs = getComputedStyle(wrap), h = (wrap.clientHeight || window.innerHeight) - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+    body.style.setProperty('--phS', String(Math.min(1, (h - 28) / 640, (window.innerWidth - 20) / 320)));
+  };
   on(window, 'resize', fit);
   // the list keeps up with the shop (who's in, who's on their way) while it's open
   const tick = setInterval(() => {
@@ -597,7 +601,7 @@ export function bindPhone(root, on, off) {
 
   function open() {
     if (!threads) makeThreads();
-    fit(); wrap.hidden = false; root.classList.add('phoneOpen');
+    wrap.hidden = false; fit(); root.classList.add('phoneOpen');
     wrap.classList.remove('in'); void wrap.offsetWidth; wrap.classList.add('in');
     sfx('pop'); setPage(0); show('home');
   }
