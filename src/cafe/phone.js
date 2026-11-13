@@ -140,6 +140,10 @@ const UI = {
   mic: ['....####....', '...#....#...', '...#....#...', '...#....#...', '...#....#...', '.#.#....#.#.', '.#..####..#.', '..#......#..', '...######...', '.....##.....', '...######...', '............'],
   image: ['............', '############', '#..........#', '#.##.......#', '#.##.......#', '#......#...#', '#.....###..#', '#..#.#####.#', '#.###......#', '############', '............', '............'],
   face: ['.########...', '#........#..', '#.#....#..#.', '#.........#.', '#.#....#..##', '#..####...#.', '#.........#.', '#.........#.', '#........#..', '.########...', '............', '............'],
+  // (the camera's: its flash, its filters, turning the lens round)
+  bolt: ['......###...', '.....###....', '....###.....', '...###......', '..########..', '.....####...', '.....###....', '....###.....', '...###......', '..###.......', '..##........', '............'],
+  tone: ['....####....', '..##..####..', '.#....#####.', '.#....#####.', '#.....######', '#.....######', '#.....######', '#.....######', '.#....#####.', '.#....#####.', '..##..####..', '....####....'],
+  flip: ['............', '...#####....', '..#.....#.#.', '.#.......##.', '.#......###.', '.#..........', '..........#.', '.###......#.', '.##.......#.', '.#.#.....#..', '....#####...', '............'],
   plus: ['...######...', '..#......#..', '.#........#.', '#....##....#', '#....##....#', '#..######..#', '#..######..#', '#....##....#', '#....##....#', '.#........#.', '..#......#..', '...######...'],
 };
 const usvg = name => `<svg class="ui" data-n="${name}" viewBox="0 0 ${UI[name][0].length} ${UI[name].length}" shape-rendering="crispEdges" aria-hidden="true">${
@@ -257,14 +261,26 @@ export function bindPhone(root, on, off) {
   let page = 0;
   const setPage = i => { page = i; pages.style.transform = `translateX(${-50 * i}%)`; [...dots.children].forEach((d, k) => d.classList.toggle('on', k === i)); };
   setPage(0);
-  // a swipe turns the page (and isn't taken as a tap on whatever it started on)
+  // a swipe (a finger, or the mouse dragged) anywhere above the dock turns the page, the page following along while
+  // it's dragged; a drag isn't taken as a tap on whatever it started on
   let swipeX = null, swiped = false;
-  on(pages, 'pointerdown', e => { swipeX = e.clientX; swiped = false; });
-  on(pages, 'pointerup', e => {
-    if (swipeX == null) return;
-    const dx = e.clientX - swipeX; swipeX = null;
-    if (Math.abs(dx) > 30) { swiped = true; setPage(Math.max(0, Math.min(1, page + (dx < 0 ? 1 : -1)))); }
+  const dragDx = e => (e.clientX - swipeX) * (body.offsetWidth / (body.getBoundingClientRect().width || 1));   // (in the phone's own pixels, however it's scaled)
+  on(home, 'pointerdown', e => {
+    if (e.button > 0 || e.target.closest('.phDock, .phDots')) return;
+    swipeX = e.clientX; swiped = false; pages.style.transition = 'none';
   });
+  on(window, 'pointermove', e => {
+    if (swipeX == null) return;
+    const dx = dragDx(e); if (Math.abs(dx) > 6) swiped = true;
+    const edge = (page === 0 && dx > 0) || (page === 1 && dx < 0);   // (past either end it gives only a little)
+    pages.style.transform = `translateX(calc(${-50 * page}% + ${edge ? dx / 4 : dx}px))`;
+  });
+  const endSwipe = e => {
+    if (swipeX == null) return;
+    const dx = dragDx(e); swipeX = null; pages.style.transition = '';
+    setPage(Math.abs(dx) > 30 ? Math.max(0, Math.min(1, page + (dx < 0 ? 1 : -1))) : page);
+  };
+  on(window, 'pointerup', endSwipe); on(window, 'pointercancel', endSwipe);
   const drawHome = () => {
     home.querySelector('.phCalDay').textContent = DAYS[(S.dow ?? 5) % 7];
     const n = unreadCount();
@@ -282,7 +298,7 @@ export function bindPhone(root, on, off) {
 
   // ---- IG: the list
   const list = views.dm;
-  list.innerHTML = `<div class="igHd"><b class="igMe">peep20190401</b><span class="igCaret">${usvg('back')}</span><i class="igRed"></i><button type="button" class="igPen" data-dead aria-label="新訊息">${usvg('pen')}</button></div>
+  list.innerHTML = `<div class="igHd"><button type="button" class="igBk" data-go="home" aria-label="回主畫面">${usvg('back')}</button><b class="igMe">peep20190401</b><span class="igCaret">${usvg('back')}</span><i class="igRed"></i><button type="button" class="igPen" data-dead aria-label="新訊息">${usvg('pen')}</button></div>
     <label class="igSearch"><span aria-hidden="true">⌕</span><input type="search" placeholder="搜尋" autocomplete="off" enterkeyhint="search"></label>
     <div class="igNotes"></div><div class="igTabs"><b>訊息</b><span>陌生訊息</span></div><div class="igRows"></div>
     <nav class="igNav"><button type="button" data-go="home" aria-label="主畫面">${usvg('home')}</button><button type="button" data-dead aria-label="連續短片">${usvg('reels')}</button><button type="button" class="on" aria-label="訊息">${usvg('direct')}</button><button type="button" data-dead aria-label="搜尋">${usvg('search')}</button><button type="button" class="igMeAv" data-dead aria-label="個人檔案"></button></nav>`;
@@ -404,11 +420,13 @@ export function bindPhone(root, on, off) {
   // ---- the camera: its middle is see-through, the café itself behind it (drag to frame the shot); the shutter takes
   // what's there from the café's own picture and keeps it in the album, or sends it to the chat it was opened from
   const cam = views.cam;
-  cam.innerHTML = `<div class="camTop"><span>⚡</span><span class="camFor"></span><span>◐</span></div><div class="camVf"><i class="camFlash"></i></div>
+  cam.innerHTML = `<div class="camTop"><span class="camL"><button type="button" class="camBk" aria-label="返回">${usvg('back')}</button><span class="camBolt">${usvg('bolt')}</span></span>
+    <span class="camFor"></span><span class="camTone">${usvg('tone')}</span></div><div class="camVf"><i class="camFlash"></i></div>
     <div class="camBot"><div class="camModes"><span>縮時</span><span>影片</span><b>照片</b><span>人像</span></div>
-      <div class="camRow"><button type="button" class="camThumb" aria-label="相簿"></button><button type="button" class="camShut" aria-label="拍照"><i></i></button><button type="button" class="camFlip" data-dead aria-label="切換鏡頭">⟲</button></div></div>`;
+      <div class="camRow"><button type="button" class="camThumb" aria-label="相簿"></button><button type="button" class="camShut" aria-label="拍照"><i></i></button><button type="button" class="camFlip" data-dead aria-label="切換鏡頭">${usvg('flip')}</button></div></div>`;
   const vf = cam.querySelector('.camVf'), flash = cam.querySelector('.camFlash'), thumb = cam.querySelector('.camThumb');
   cam.querySelector('.camFlip').onclick = e => nope(e.currentTarget);
+  on(cam.querySelector('.camBk'), 'click', () => back());   // (to the chat it was opened from, or the home screen)
   const drawCam = () => {
     cam.querySelector('.camFor').textContent = camFor ? `拍好傳給 ${camFor.r.name}` : '';
     thumb.style.backgroundImage = photos.length ? `url(${photos[0].url})` : '';
