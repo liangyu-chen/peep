@@ -843,7 +843,10 @@ const CROP_TUCK_X = 0.925, CROP_TUCK_Z = 0.925, CROP_TUCK_TO = 0.82;
 const cutOf = (fit, style) => {
   const F = TOP_FITS[fit] || TOP_FITS.regular, O = OUTER[style];
   // (a bikini top: bare from just under the bust down, the body below it fitted into high-waisted pants as a crop top's is)
-  if (style === 'crop' || style === 'bra') return { ...F, drop: 0, flare: 0, crop: CROP };
+  // (and no cloth round the body at all: it's her bare outline all the way up, all of her waist drawn in above the crop
+  // line as below it, so no ledge stands out round her where a crop top's hem would be)
+  if (style === 'bra') return { ...F, w: Math.min(1, F.w), d: Math.min(1, F.d), sh: 0, waist: 1, bust: 1, drop: 0, flare: 0, crop: CROP };
+  if (style === 'crop') return { ...F, drop: 0, flare: 0, crop: CROP };
   // (a dress: one piece, hanging straight down from the bust, none of her waist drawn in under it)
   if (style === 'dress') return { ...F, drop: 0, waist: 0 };
   return O ? { ...F, w: F.w * O.w, d: F.d * O.d, drop: F.drop + O.drop, s: F.s * O.s, flare: F.flare + O.flare, slit: O.slit || 0, slitTop: O.slitTop || 0, waist: F.waist * 0.5, bust: F.bust * 0.75 } : F;   // (thick cloth: less of her shape shows)
@@ -1608,6 +1611,8 @@ function buildBodyAt(look, seed) {
       const outline = s > 0 ? cup.map(([x, y]) => [s * x, y]) : cup.map(([x, y]) => [s * x, y]).reverse();
       patch(`tri${s}`, outline); edge(`tri${s}`, outline);
     }
+    // (and a string across the chest between them, from one cup's inner corner to the other's)
+    mk(geo(`brabridge:${topFit}:${fem}`, () => new THREE.TubeGeometry(new THREE.CatmullRomCurve3([-0.02, -0.01, 0, 0.01, 0.02].map(x => front(x, 0.997, 0.005)), false, 'centripetal'), 16, 0.0022, 5, false)), trim, 0, 0, 0, g, false);
     // (the halter: from the point of each cup up over the collarbone and round the side of the neck to meet behind it)
     const neckBack = new THREE.Vector3(0, 1.262, -0.058);
     for (const s of [-1, 1]) {
@@ -1615,12 +1620,13 @@ function buildBodyAt(look, seed) {
       mk(geo(`brahalter:${s}:${topFit}:${fem}`, () => new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts, false, 'centripetal'), 64, 0.0022, 5, false)), trim, 0, 0, 0, g, false);
     }
     // (the band: from each cup's outer corner round the back, just under the bust, tied in the middle of the back)
-    const bandY = 0.997, [brx, brz] = slice(bandY), a0 = Math.atan2(0.128, frontZ(0.128, bandY)), band = [];
+    // (starting exactly on the corner: where round the slice its side-to-side reach is the corner's, whatever the build)
+    const bandY = 0.997, [brx, brz] = slice(bandY), a0 = Math.asin(Math.min(1, 0.124 / brx)), band = [];
     for (let k = 0; k <= 64; k++) {
       const t = a0 + (Math.PI * 2 - 2 * a0) * k / 64, x = Math.sin(t) * brx, z = Math.cos(t) * brz + (Math.cos(t) > 0 ? bustAt(x, bandY, TF, fem) : 0), out = new THREE.Vector3(x, 0, z).normalize();
       band.push(new THREE.Vector3(x, bandY, z).addScaledVector(out, 0.004));
     }
-    mk(geo(`braband2:${topFit}:${fem}`, () => new THREE.TubeGeometry(new THREE.CatmullRomCurve3(band, false, 'centripetal'), 128, 0.0026, 5, false)), trim, 0, 0, 0, g, false);
+    mk(geo(`braband3:${topFit}:${fem}`, () => new THREE.TubeGeometry(new THREE.CatmullRomCurve3(band, false, 'centripetal'), 128, 0.0026, 5, false)), trim, 0, 0, 0, g, false);
     // (the ties: a little bow behind the neck and in the middle of the back)
     for (const [p, k] of [[neckBack, 'n'], [new THREE.Vector3(0, bandY, -brz - 0.006), 'b']]) for (const s of [-1, 1]) {
       const loop = mk(geo('brabow', () => new THREE.TorusGeometry(0.009, 0.0022, 5, 12)), trim, p.x + s * 0.008, p.y, p.z - 0.002, g, false); loop.scale.set(1, 0.6, 1);
@@ -2856,15 +2862,24 @@ function buildBodyAt(look, seed) {
       if (gm) m.geometry = gm;
     }
     // (a skirt's waistband too, under the top, but nothing of it below there: its flare is meant to stand out below the hem)
-    // 三角內褲 under a crop top, a little higher-waisted: its colour carried on up the bare waist a few centimetres, a band
-    // lying on the body's own surface (under any other top its waist is hidden anyway)
-    if (briefs && clothesOf(look).style === 'crop') {
+    // 三角內褲 under a crop top or a bra, a little higher-waisted: its colour carried on up the bare waist a few centimetres,
+    // a band lying on the body's own surface (under any other top its waist is hidden anyway)
+    if (briefs && (clothesOf(look).style === 'crop' || clothesOf(look).style === 'bra')) {
       const rowsAll = new Map(), q = tgm.attributes.position;
       for (let i = 0; i < q.count; i++) { tv.fromBufferAttribute(q, i).applyMatrix4(torso.matrixWorld); if (tv.y > 0.9) continue; const c = Math.round(tv.y * 500); if (!rowsAll.has(c)) rowsAll.set(c, []); rowsAll.get(c).push([Math.atan2(tv.x, tv.z), Math.hypot(tv.x, tv.z)]); }
       const R = [...rowsAll.keys()].sort((a2, b2) => a2 - b2).map(c => [c / 500, rowsAll.get(c).sort((p2, q2) => p2[0] - q2[0])]).filter(([, p2]) => p2.length >= 8);
       const surf = (y, a) => { let j = R.findIndex(([ry]) => ry >= y); if (j <= 0) j = j < 0 ? R.length - 1 : 1; const [y0b, p0] = R[j - 1], [y1b, p1] = R[j]; return around(p0, a) + (around(p1, a) - around(p0, a)) * Math.min(1, Math.max(0, (y - y0b) / (y1b - y0b || 1))); };
-      const NA = 72, YS = [0.718, 0.728, 0.738, 0.748], pos = [], ix = [];
-      for (const y of YS) for (let i = 0; i <= NA; i++) { const a = (i / NA) * Math.PI * 2 - Math.PI, r = surf(y, a) * 1.004 + 0.0006; pos.push(Math.sin(a) * r, y, Math.cos(a) * r); }
+      // (the seat's own top edge, round the body: where it stands further out than the body, the band comes out over it and
+      // laps down just past it, so no skin shows in the gap between the two, looked at from above)
+      const NA = 72, YS = [0.712, 0.722, 0.73, 0.739, 0.748], pos = [], ix = [], rim = new Array(NA).fill(0);
+      { const sp = seat.geometry.attributes.position, sv = new THREE.Vector3(); let top = -Infinity;
+        for (let i = 0; i < sp.count; i++) top = Math.max(top, sv.fromBufferAttribute(sp, i).applyMatrix4(seat.matrixWorld).y);
+        for (let i = 0; i < sp.count; i++) { sv.fromBufferAttribute(sp, i).applyMatrix4(seat.matrixWorld); if (sv.y < top - 0.012) continue; const b2 = ((Math.round((Math.atan2(sv.x, sv.z) + Math.PI) / (2 * Math.PI) * NA) % NA) + NA) % NA; rim[b2] = Math.max(rim[b2], Math.hypot(sv.x, sv.z)); }
+        for (let i = 0; i < NA; i++) if (!rim[i]) rim[i] = Math.max(rim[(i + 1) % NA], rim[(i + NA - 1) % NA]); }
+      for (const y of YS) for (let i = 0; i <= NA; i++) {
+        const a = (i / NA) * Math.PI * 2 - Math.PI, over = Math.min(1, Math.max(0, (0.739 - y) / 0.017)), body = surf(y, a) * 1.004 + 0.0006, r = Math.max(body, (rim[i % NA] + 0.0012) * over);
+        pos.push(Math.sin(a) * r, y, Math.cos(a) * r);
+      }
       for (let r = 0; r < YS.length - 1; r++) for (let i = 0; i < NA; i++) { const a = r * (NA + 1) + i, b2 = a + NA + 1; ix.push(a, a + 1, b2, b2, a + 1, b2 + 1); }
       const bandG = new THREE.BufferGeometry(); bandG.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); bandG.setIndex(ix); bandG.computeVertexNormals();
       const band = mk(bandG, pants, 0, 0, 0, g, false); band.matrixAutoUpdate = true; cover.push(band);
