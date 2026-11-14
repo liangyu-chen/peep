@@ -749,7 +749,7 @@ const TOP_FITS = {
   // (`waist`, `bust`: how much of a woman's shape shows through it: all of it in a fitted top, little of the waist in a loose one)
   slim: { w: 0.95, d: 0.96, drop: 0, s: 0.92, len: 0.14, sh: 0, flare: 0.018, waist: 1, bust: 1 },
   regular: { w: 1, d: 1, drop: 0, s: 1, len: 0.16, sh: 0, flare: 0.013, waist: 0.75, bust: 1 },
-  oversize: { w: 1.08, d: 1.1, drop: 0.07, s: 1.35, len: 0.29, sh: 0.012, flare: 0.036, waist: 0.25, bust: 0.6 },   // the person stays the same build: only the cloth is roomier
+  oversize: { w: 1.08, d: 1.1, drop: 0.07, s: 1.35, len: 0.29, sh: 0.012, flare: 0.036, waist: 0.25, bust: 0.6, fill: 0.85 },   // the person stays the same build: only the cloth is roomier
 };
 // 身體 女: drawn in at the waist (by up to `in` side to side, `d` front to back, round `y`, easing out over `h` either way,
 // back to the full hips at the bottom of the torso: the pants and skirt start there unchanged), and a bust: out in front
@@ -791,7 +791,17 @@ const swell = (B, x, y) => {
 // how far the bust stands out at (x, y) on the front, for a cut (0 on a man's body)
 // (on a fuller build, lower: the heavier, the lower)
 // (and on the slimmer and middling builds a little fuller than first drawn, and those up to standard a little lower)
-const bustAt = (x, y, F, fem) => (fem ? swell(FEM.bust, x, y + (femK(fem) < 1 ? 0.02 + (1 - femK(fem)) * 0.05 : 0.01)) * (F.bust ?? 1) * (femK(fem) >= 0.8 ? 1.1 : 1) : 0);
+// (a man's roomy top: `fill` of the way out to a straight line down the front from his chest to the hem, where the cloth,
+// flat down his front and flared at the hem, otherwise left his belly looking hollow; fading out round to the sides)
+const DRAPE_TOP = 1.07;
+const drapeAt = (x, y, F) => {
+  const hemY = TORSO[0][0] - (F.drop || 0); if (!F.fill || y >= DRAPE_TOP || y <= hemY) return 0;
+  const rzAt = yy => { if (yy <= TORSO[0][0]) return TORSO[0][2]; for (let i = 1; i < TORSO.length; i++) if (TORSO[i][0] >= yy) return TORSO[i - 1][2] + (TORSO[i][2] - TORSO[i - 1][2]) * (yy - TORSO[i - 1][0]) / (TORSO[i][0] - TORSO[i - 1][0]); return 0; };
+  const cur = yy => rzAt(yy) * F.d + F.flare * Math.max(0, Math.min(1, (0.78 - yy) / (0.78 - hemY))) * 0.7;
+  const line = cur(DRAPE_TOP) + (cur(hemY) - cur(DRAPE_TOP)) * (DRAPE_TOP - y) / (DRAPE_TOP - hemY);
+  return Math.max(0, line - cur(y)) * F.fill * Math.exp(-((x / 0.15) ** 2));
+};
+const bustAt = (x, y, F, fem) => (fem ? swell(FEM.bust, x, y + (femK(fem) < 1 ? 0.02 + (1 - femK(fem)) * 0.05 : 0.01)) * (F.bust ?? 1) * (femK(fem) >= 0.8 ? 1.1 : 1) : drapeAt(x, y, F));
 // how much narrower a woman is across at y: through her chest and shoulders (see FEM.shoulder), none at the waist or neck
 // (everyone's shoulders a little narrower than first drawn, SHOULDER_ALL, a woman's narrower again by FEM.shoulder.k)
 const SHOULDER_ALL = 0.08;
@@ -846,7 +856,7 @@ const cutOf = (fit, style) => {
   // (and no cloth round the body at all: it's her bare outline all the way up, all of her waist drawn in above the crop
   // line as below it, so no ledge stands out round her where a crop top's hem would be)
   if (style === 'bra') return { ...F, w: Math.min(1, F.w), d: Math.min(1, F.d), sh: 0, waist: 1, bust: 1, drop: 0, flare: 0, crop: CROP };
-  if (style === 'crop') return { ...F, drop: 0, flare: 0, crop: CROP };
+  if (style === 'crop') return { ...F, fill: 0, drop: 0, flare: 0, crop: CROP };
   // (a dress: one piece, hanging straight down from the bust, none of her waist drawn in under it)
   if (style === 'dress') return { ...F, drop: 0, waist: 0 };
   return O ? { ...F, w: F.w * O.w, d: F.d * O.d, drop: F.drop + O.drop, s: F.s * O.s, flare: F.flare + O.flare, slit: O.slit || 0, slitTop: O.slitTop || 0, waist: F.waist * 0.5, bust: F.bust * 0.75 } : F;   // (thick cloth: less of her shape shows)
@@ -892,7 +902,7 @@ const torsoRows = (fit, style, fem = false) => {
 // how far round from the front the U reaches on a slice (0 below it); the slice's points are laid out so one falls
 // exactly on each side of the U, and the skin inside it is the second material
 const uAngle = (y, rx) => y < UNECK.bot - 1e-4 ? 0 : rx < 1e-4 ? Math.PI / 2 : Math.asin(Math.min(1, uHalf(y) / rx));
-const torsoGeo = (fit = 'regular', style = 'tee', fem = false) => geo(`torso38:${fit}:${style}:${fem}`, () => {
+const torsoGeo = (fit = 'regular', style = 'tee', fem = false) => geo(`torso39:${fit}:${style}:${fem}`, () => {
   const N = 48, M = 12, pos = [], idx = [], skinIdx = [];
   const rows = torsoRows(fit, style, fem), F = cutOf(fit, style);
   rows.forEach(([y, rx, rz]) => {
@@ -949,7 +959,9 @@ const PANTS_TOP = { crotch: 0.585, waist: 0.725, hipX: 0.094, rx: 0.192, rz: 0.1
 // scale by height is left on the geometry as userData.sideScale(y), for the jeans' stitching to follow)
 // (lobe: [centre, radius] of the two circles at the crotch, when the legs are set further apart or fuller than usual (a
 // man's wide trousers), so the seat comes down exactly onto them, inside and out, with no ledge where it meets them)
-const pantsTopGeo = (w, k = 1, up = null, fem = false, sideX0 = null, evenSides = false, lobe = null) => geo(`ptop58:${w}:${k}:${up ? up.key : ''}:${fem}:${sideX0}:${evenSides}:${lobe}`, () => {
+// (slant: a man's briefs: the seat drawn in from his hips to his thighs as steadily as a woman's, so the strip between his
+// legs narrows in one smooth V instead of pinching in to a little box at the crotch)
+const pantsTopGeo = (w, k = 1, up = null, fem = false, sideX0 = null, evenSides = false, lobe = null, slant = false) => geo(`ptop61:${w}:${k}:${up ? up.key : ''}:${fem}:${sideX0}:${evenSides}:${lobe}:${slant}`, () => {
   // (round a woman's fuller thighs at the crotch)
   const { crotch, waist } = PANTS_TOP, c = lobe ? lobe[0] : PANTS_TOP.hipX, N = 160, R = lobe ? lobe[1] : 0.0875 * w * thighK(crotch - (0.55 + LEG_EXTRA), fem), pos = [], idx = [];
   const ROWS = up ? 18 : 12, top = up ? up.top : waist, seatRows = up ? 12 : ROWS;
@@ -957,14 +969,22 @@ const pantsTopGeo = (w, k = 1, up = null, fem = false, sideX0 = null, evenSides 
   const lobes = (sx, sz, t = 1) => {   // how far out along (sx, sz) the two circles reach, or almost nothing between them
     // (a woman's: filled in behind between the thighs, so her seat rounds on down into them, no notch cut up into it)
     // (and a man's wide trousers, his legs set apart: filled in behind between them too, now his seat rounds out there)
-    let best = (fem || lobe) && sz < 0 ? R * FEM.under * (q => q * q * (3 - 2 * q))(Math.min(1, -sz * 1.4)) * (q => (fem ? 0.5 + 0.5 * q : q))((q => q * q * (3 - 2 * q))(Math.min(1, t / 0.45))) : 0.004;   // (fading out at the very bottom, rounding under into the gap between them; a man's all the way, as his legs part below)
+    let best = (fem || lobe || slant) && sz < 0 ? R * FEM.under * (q => q * q * (3 - 2 * q))(Math.min(1, -sz * 1.4)) * (q => (fem ? 0.5 + 0.5 * q : q))((q => q * q * (3 - 2 * q))(Math.min(1, t / 0.45))) : 0.004;   // (fading out at the very bottom, rounding under into the gap between them; a man's all the way, as his legs part below)
     [-c, c].forEach(cx => { const b = sx * cx, disc = b * b - cx * cx + R * R; if (disc >= 0) best = Math.max(best, b + Math.sqrt(disc)); });
+    // (a man's briefs: filled in across the front between his thighs too, but not level with their fronts (a flat board
+    // across him, like a skirt's front): dipping in between them in a soft valley, half as far out in the middle, as a
+    // woman's fuller thighs run into one another there, so each thigh still reads as round)
+    if (slant && sz > 0) {
+      const f = x => { const u = Math.min(1, Math.abs(x) / c); return R * (0.5 + 0.5 * u * u * (3 - 2 * u)); };
+      let d = R / sz; for (let i = 0; i < 8; i++) d = f(d * sx) / sz;
+      if (Math.abs(sx) * d <= c) best = Math.max(best, d);
+    }
     return best;
   };
   // how far out a row reaches at angle (sx, sz) round its middle, before the sides are evened out
   const rowAt = r => {
     // (high-waisted: the rows over the seat as before, the rest on up the body)
-    const t = Math.min(1, r / seatRows), e = fem ? 0.5 * (1 - (1 - t) ** 1.6) + 0.5 * t * t * (3 - 2 * t) : t * t * (3 - 2 * t);   // (a woman's slanting in steadily from her hips to meet her thighs at an angle, not curving round to stand straight above them)
+    const t = Math.min(1, r / seatRows), e = fem || slant ? 0.5 * (1 - (1 - t) ** 1.6) + 0.5 * t * t * (3 - 2 * t) : t * t * (3 - 2 * t);   // (a woman's slanting in steadily from her hips to meet her thighs at an angle, not curving round to stand straight above them)
     const y = rowY(r);
     // (the oval: the usual waist, or filling out to the body's slice from halfway up the seat)
     let { rx, rz } = PANTS_TOP;
@@ -1392,7 +1412,7 @@ function buildBodyAt(look, seed) {
   const seatLobe = pantsLike && !femS ? [legX, +(Math.max(0.09 * TW * (maleWide ? 1 - 0.12 * smooth(-0.06, 0.02, PANTS_TOP.crotch - HIP_Y) : 1), CROTCH_R) + 0.0015).toFixed(4)] : null;
   // (a man's trousers and shorts, whatever their fit: the seat in one line from the waist on down to the legs, at the
   // sides and in front and behind)
-  const seat = mk(pantsTopGeo(TW, briefs ? 1 : fit === 'wide' ? 1.12 : loose ? 1.06 : 1, skirted ? null : up, femB, maleWide || (shorts && !femS) ? legX + Math.max(0.09 * TW, CROTCH_R) : null, (fit === 'wide' || loose) && pantsLike || pantsLike && !femS, seatLobe), pants, 0, 0, 0);   // (baggy pants and shorts are roomy through the seat too)
+  const seat = mk(pantsTopGeo(TW, briefs ? 1 : fit === 'wide' ? 1.12 : loose ? 1.06 : 1, skirted ? null : up, femB, maleWide || (shorts && !femS) ? legX + Math.max(0.09 * TW, CROTCH_R) : null, (fit === 'wide' || loose) && pantsLike || pantsLike && !femS, seatLobe, briefs && !femS), pants, 0, 0, 0);   // (baggy pants and shorts are roomy through the seat too)
   if (up && !skirted) {   // (its top edge, rolled)
     const [tx, tz] = riseAt(riseTop), edge = mk(new THREE.TorusGeometry(tx, 0.0035, D(6, 3), D(40, 12)), pantsDark, 0, riseTop, 0, g, false);
     edge.rotation.x = Math.PI / 2; edge.scale.y = tz / tx; cover.push(edge);
@@ -2862,24 +2882,15 @@ function buildBodyAt(look, seed) {
       if (gm) m.geometry = gm;
     }
     // (a skirt's waistband too, under the top, but nothing of it below there: its flare is meant to stand out below the hem)
-    // 三角內褲 under a crop top or a bra, a little higher-waisted: its colour carried on up the bare waist a few centimetres,
-    // a band lying on the body's own surface (under any other top its waist is hidden anyway)
-    if (briefs && (clothesOf(look).style === 'crop' || clothesOf(look).style === 'bra')) {
+    // 三角內褲 under a crop top, a little higher-waisted: its colour carried on up the bare waist a few centimetres, a band
+    // lying on the body's own surface (under any other top its waist is hidden anyway)
+    if (briefs && clothesOf(look).style === 'crop') {
       const rowsAll = new Map(), q = tgm.attributes.position;
       for (let i = 0; i < q.count; i++) { tv.fromBufferAttribute(q, i).applyMatrix4(torso.matrixWorld); if (tv.y > 0.9) continue; const c = Math.round(tv.y * 500); if (!rowsAll.has(c)) rowsAll.set(c, []); rowsAll.get(c).push([Math.atan2(tv.x, tv.z), Math.hypot(tv.x, tv.z)]); }
       const R = [...rowsAll.keys()].sort((a2, b2) => a2 - b2).map(c => [c / 500, rowsAll.get(c).sort((p2, q2) => p2[0] - q2[0])]).filter(([, p2]) => p2.length >= 8);
       const surf = (y, a) => { let j = R.findIndex(([ry]) => ry >= y); if (j <= 0) j = j < 0 ? R.length - 1 : 1; const [y0b, p0] = R[j - 1], [y1b, p1] = R[j]; return around(p0, a) + (around(p1, a) - around(p0, a)) * Math.min(1, Math.max(0, (y - y0b) / (y1b - y0b || 1))); };
-      // (the seat's own top edge, round the body: where it stands further out than the body, the band comes out over it and
-      // laps down just past it, so no skin shows in the gap between the two, looked at from above)
-      const NA = 72, YS = [0.712, 0.722, 0.73, 0.739, 0.748], pos = [], ix = [], rim = new Array(NA).fill(0);
-      { const sp = seat.geometry.attributes.position, sv = new THREE.Vector3(); let top = -Infinity;
-        for (let i = 0; i < sp.count; i++) top = Math.max(top, sv.fromBufferAttribute(sp, i).applyMatrix4(seat.matrixWorld).y);
-        for (let i = 0; i < sp.count; i++) { sv.fromBufferAttribute(sp, i).applyMatrix4(seat.matrixWorld); if (sv.y < top - 0.012) continue; const b2 = ((Math.round((Math.atan2(sv.x, sv.z) + Math.PI) / (2 * Math.PI) * NA) % NA) + NA) % NA; rim[b2] = Math.max(rim[b2], Math.hypot(sv.x, sv.z)); }
-        for (let i = 0; i < NA; i++) if (!rim[i]) rim[i] = Math.max(rim[(i + 1) % NA], rim[(i + NA - 1) % NA]); }
-      for (const y of YS) for (let i = 0; i <= NA; i++) {
-        const a = (i / NA) * Math.PI * 2 - Math.PI, over = Math.min(1, Math.max(0, (0.739 - y) / 0.017)), body = surf(y, a) * 1.004 + 0.0006, r = Math.max(body, (rim[i % NA] + 0.0012) * over);
-        pos.push(Math.sin(a) * r, y, Math.cos(a) * r);
-      }
+      const NA = 72, YS = [0.718, 0.728, 0.738, 0.748], pos = [], ix = [];
+      for (const y of YS) for (let i = 0; i <= NA; i++) { const a = (i / NA) * Math.PI * 2 - Math.PI, r = surf(y, a) * 1.004 + 0.0006; pos.push(Math.sin(a) * r, y, Math.cos(a) * r); }
       for (let r = 0; r < YS.length - 1; r++) for (let i = 0; i < NA; i++) { const a = r * (NA + 1) + i, b2 = a + NA + 1; ix.push(a, a + 1, b2, b2, a + 1, b2 + 1); }
       const bandG = new THREE.BufferGeometry(); bandG.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); bandG.setIndex(ix); bandG.computeVertexNormals();
       const band = mk(bandG, pants, 0, 0, 0, g, false); band.matrixAutoUpdate = true; cover.push(band);
