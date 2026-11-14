@@ -1301,9 +1301,18 @@ function buildBodyAt(look, seed) {
     // the hips flow on down into the leg instead of a tube coming out from under them (profile from the knee up, faces out)
     // (a man's wide trousers keep the thigh full right up to the crotch, where the seat's sides are brought out to meet it
     // (see sideX0); above that it eases in, tucked inside the seat, so the two never fight at the surface)
-    const thighAt = (w, st = false) => [[(st ? 0.086 : 0.074) * w, -THIGH], [(st ? 0.086 : 0.078) * w, -0.24], [(st ? 0.087 : 0.086) * w, -0.12], [0.09 * w, -0.06], [0.09 * w, -0.04], [0.088 * w, -0.005], [0.074 * w, 0.022], [0.044 * w, 0.042], [0.001, 0.05]].map(([r, y]) => [r * (maleWide ? 1 - 0.12 * smooth(-0.06, 0.02, y) : 1), y]).map(([r, y]) => [y < 0 ? Math.max(r, CROTCH_R * smooth(-0.2, -0.05, y)) : r, y]);
+    const thighAt = (w, st = false) => [[(st ? 0.086 : 0.074) * w, -THIGH], [(st ? 0.086 : 0.078) * w, -0.24], [(st ? 0.087 : 0.086) * w, -0.12], [0.09 * w, -0.06], [0.09 * w, -0.04], [0.088 * w, -0.005], [0.074 * w, 0.022], [0.044 * w, 0.042], [0.001, 0.05]].map(([r, y]) => [r * (maleWide ? 1 - 0.12 * smooth(-0.06, 0.02, y) : 1), y]).flatMap(([r, y], i, all) => {
+      // (where a man's leg is slimmer than that, it draws in from the crotch's fullness to its own width in one long,
+      // even curve most of the way down the thigh, in slices close enough to follow it: not all at once just under the
+      // crotch, which left a slim leg hanging from a bulge with a corner in it)
+      const full = (rr, yy) => (yy < 0 && CROTCH_R > rr ? rr + (CROTCH_R - rr) * smooth(-0.25, -0.04, yy) : rr), next = all[i + 1];
+      if (!next || y >= -0.04 || CROTCH_R <= r) return [[full(r, y), y]];
+      const n = Math.max(1, Math.round((next[1] - y) / 0.02)), out = [];
+      for (let k = 0; k < n; k++) { const yy = y + (next[1] - y) * k / n; out.push([full(r + (next[0] - r) * k / n, yy), yy]); }
+      return out;
+    });
     // (a woman's finer round, so where it meets her seat runs smooth)
-    const thigh = mk(flatLit(lathe(`thigh6:${W}:${straight}:${CROTCH_R}:${40}`, thighAt(W, straight), 40)), legM, 0, 0, 0, hip);
+    const thigh = mk(flatLit(lathe(`thigh7:${W}:${straight}:${CROTCH_R}:${40}`, thighAt(W, straight), 40)), legM, 0, 0, 0, hip);
     if (!bareLegs) bare.push(thigh);
     let shortsLeg = null, longLeg = null, longR = null;
     // the trousers' leg over the thigh: a man's the thigh itself (above, in the pants); a woman's roomy at the top, one
@@ -1327,7 +1336,7 @@ function buildBodyAt(look, seed) {
       const hang = y => (y < -0.04 ? Math.max(rAt(y), R0 + spread * Math.min(1, (-0.04 - y) / 0.22)) : rAt(y));
       const prof = ys.map(y => [y < 0.03 ? Math.max(hang(y), skinR(y) + 0.004) : hang(y), y]), rh = prof[0][0];
       const pantsIn = pants.clone(); pantsIn.side = THREE.DoubleSide; pantsIn.shadowSide = THREE.BackSide;   // (its back faces in the shadow map: no speckled self-shadowing on it)
-      shortsLeg = mk(flatLit(lathe(`shorts14:${TW}:${fit}:${femPants}:${maleWide}`, prof, 40)), pantsIn, 0, 0, 0, hip); cover.push(shortsLeg);   // (both faces: its inside shows at the hem, in its own colour)
+      shortsLeg = mk(flatLit(lathe(`shorts15:${TW}:${fit}:${femPants}:${maleWide}`, prof, 40)), pantsIn, 0, 0, 0, hip); cover.push(shortsLeg);   // (both faces: its inside shows at the hem, in its own colour)
       cover.push(mk(cy(rh + 0.003, rh + 0.004, 0.018, 18, true), pantsDark, 0, S0 + 0.009, 0, hip, false));   // the turned-up hem
     } else if (longPants && femPants) {
       const prof = legProf();
