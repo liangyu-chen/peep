@@ -907,7 +907,8 @@ const torsoGeo = (fit = 'regular', style = 'tee', fem = false) => geo(`torso37:$
   for (let r = 0; r < rows.length - 1; r++) for (let i = 0; i < N; i++) {
     const a = r * (N + 1) + i, b = a + N + 1;
     if ((i === M / 2 - 1 || i === M / 2) && slitAngle(F, rows[r][0]) > 0) continue;   // (open)
-    ((i < M && uAngle(rows[r][0], rows[r][1]) > 0) || rows[r][0] >= UNECK.neck - 1e-4 || (F.crop && rows[r][0] < F.crop - 1e-4) ? skinIdx : idx).push(a, a + 1, b, b, a + 1, b + 1);
+    const skin = style === 'bra' || (i < M && uAngle(rows[r][0], rows[r][1]) > 0) || rows[r][0] >= UNECK.neck - 1e-4 || (F.crop && rows[r][0] < F.crop - 1e-4);
+    (skin ? skinIdx : idx).push(a, a + 1, b, b, a + 1, b + 1);
   }
   const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
   g.setIndex(idx.concat(skinIdx)); g.addGroup(0, idx.length, 0); g.addGroup(idx.length, skinIdx.length, 1);
@@ -1539,7 +1540,8 @@ function buildBodyAt(look, seed) {
   // cut slim, regular or oversized (wider and deeper, hanging lower over the hips)
   // (西裝外套(襯衫) is the same blazer, a shirt and tie worn beneath it instead of a tee)
   const fem = femS;   // (a woman's body: see FEM)
-  const topFit = clothesOf(look).top, suitShirt = clothesOf(look).style === 'suit', topStyle = suitShirt ? 'coat' : clothesOf(look).style, TF = cutOf(topFit, topStyle);
+  const suitShirt = clothesOf(look).style === 'suit', topStyle = suitShirt ? 'coat' : clothesOf(look).style, bra = topStyle === 'bra';
+  const topFit = bra ? 'regular' : clothesOf(look).top, TF = cutOf(topFit, topStyle);
   const winter = !!OUTER[topStyle], banded = topStyle === 'hoodie' || topStyle === 'jacket' || topStyle === 'varsity' || topStyle === 'denim';
   // the shirt and the bare skin of the neck share one surface; the skin one doesn't take the head's shadow, so the neck
   // and chest are the same colour as the face
@@ -1556,14 +1558,66 @@ function buildBodyAt(look, seed) {
   const hemY = cropRow ? cropRow[0] - 0.004 : 0.71 - TF.drop, hemR = hemRow[1], hemZ = hemRow[2] / hemRow[1];
   // (a blazer's hem only round the back and sides, open across the front)
   const hemGap = TF.slit || 0;
-  const hem = mk(geo(`hemroll:${hemR.toFixed(3)}:${hemGap.toFixed(3)}`, () => new THREE.TorusGeometry(hemR, 0.008, D(6, 3), D(40, 12), Math.PI * 2 - 2 * hemGap).rotateZ(Math.PI / 2 + hemGap)), shirtDark, 0, hemY + 0.004, 0, g, false);
-  hem.rotation.x = Math.PI / 2; hem.scale.y = hemZ;
+  const hem = bra ? null : mk(geo(`hemroll:${hemR.toFixed(3)}:${hemGap.toFixed(3)}`, () => new THREE.TorusGeometry(hemR, 0.008, D(6, 3), D(40, 12), Math.PI * 2 - 2 * hemGap).rotateZ(Math.PI / 2 + hemGap)), shirtDark, 0, hemY + 0.004, 0, g, false);
+  if (hem) { hem.rotation.x = Math.PI / 2; hem.scale.y = hemZ; }
   // (what goes round the hem, drawn as an oval: fitted out over the top's own shape there, its seat too, below)
-  const hemWear = [{ m: hem, rx: hemR, rz: hemR * hemZ }];
-  if (clothesOf(look).style === 'dress') hem.visible = false;   // (a dress: top and skirt one piece, no hem between them)
-  if (!TF.slit && !TF.crop) {   // (a blazer's hangs open over the legs: its lining shows instead; a crop top's over bare skin)
+  const hemWear = hem ? [{ m: hem, rx: hemR, rz: hemR * hemZ }] : [];
+  if (hem && clothesOf(look).style === 'dress') hem.visible = false;   // (a dress: top and skirt one piece, no hem between them)
+  if (!bra && !TF.slit && !TF.crop) {   // (a blazer's hangs open over the legs: its lining shows instead; a crop top's over bare skin)
     const under = mk(geo(`hemunder:${hemR.toFixed(3)}`, () => new THREE.RingGeometry(0.16, hemR, 40)), shirtUnder, 0, hemY + 0.006, 0, g, false);
     under.rotation.x = Math.PI / 2; under.scale.y = hemZ;
+  }
+  if (bra) {
+    const rows = torsoRows(topFit, topStyle, fem);
+    const slice = y => { for (let i = 1; i < rows.length; i++) if (rows[i][0] >= y) { const [y0, x0, z0] = rows[i - 1], [y1, x1, z1] = rows[i], t = (y - y0) / (y1 - y0 || 1); return [x0 + (x1 - x0) * t, z0 + (z1 - z0) * t]; } return rows[rows.length - 1].slice(1); };
+    const frontZ = (x, y) => { const [rx, rz] = slice(y); return rz * Math.sqrt(Math.max(0, 1 - (x / rx) ** 2)) + bustAt(x, y, TF, fem); };
+    const backZ = (x, y) => { const [rx, rz] = slice(y); return -rz * Math.sqrt(Math.max(0, 1 - (x / rx) ** 2)); };
+    const front = (x, y, off = 0.003) => new THREE.Vector3(x, y, frontZ(x, y) + off);
+    const back = (x, y, off = 0.003) => new THREE.Vector3(x, y, backZ(x, y) - off);
+    const cloth = patterned(mat(C.shirt, { roughness: 0.85 }), pattern, C.shirt); cloth.side = THREE.DoubleSide;
+    const trim = mat(shade(C.shirt, 0.72), { roughness: 0.9, side: THREE.DoubleSide });
+    const patch = (key, outline) => mk(geo(`brapatch:${key}:${topFit}:${fem}`, () => {
+      const tris = THREE.ShapeUtils.triangulateShape(outline.map(([x, y]) => new THREE.Vector2(x, y)), []);
+      const pos = [], idx = [], seen = new Map();
+      const vert = ([x, y]) => { const k = `${x.toFixed(4)},${y.toFixed(4)}`; if (!seen.has(k)) { seen.set(k, pos.length / 3); const p = front(x, y, 0.004); pos.push(p.x, p.y, p.z); } return seen.get(k); };
+      tris.forEach(([i, j, k]) => {
+        const A = outline[i], B = outline[j], Q = outline[k], len = (p, q) => Math.hypot(p[0] - q[0], p[1] - q[1]);
+        const n = Math.max(1, Math.ceil(Math.max(len(A, B), len(B, Q), len(Q, A)) / 0.012));
+        const P = (a, b) => { const c = n - a - b; return [(A[0] * c + B[0] * a + Q[0] * b) / n, (A[1] * c + B[1] * a + Q[1] * b) / n]; };
+        for (let a = 0; a < n; a++) for (let b = 0; b < n - a; b++) {
+          idx.push(vert(P(a, b)), vert(P(a + 1, b)), vert(P(a, b + 1)));
+          if (a + b < n - 1) idx.push(vert(P(a + 1, b)), vert(P(a + 1, b + 1)), vert(P(a, b + 1)));
+        }
+      });
+      const pg = new THREE.BufferGeometry(); pg.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); pg.setIndex(idx); pg.computeVertexNormals(); return pg;
+    }), cloth, 0, 0, 0, g, false);
+    const edge = (key, pts) => mk(geo(`braedge:${key}:${topFit}:${fem}`, () => {
+      const fine = [];
+      for (let i = 0; i < pts.length; i++) {
+        const [x0, y0] = pts[i], [x1, y1] = pts[(i + 1) % pts.length], n = Math.max(1, Math.ceil(Math.hypot(x1 - x0, y1 - y0) / 0.008));
+        for (let k = 0; k < n; k++) fine.push(front(x0 + (x1 - x0) * k / n, y0 + (y1 - y0) * k / n, 0.005));
+      }
+      return new THREE.TubeGeometry(new THREE.CatmullRomCurve3(fine, true, 'centripetal'), fine.length * 2, 0.0017, 5, true);
+    }), trim, 0, 0, 0, g, false);
+    const cup = [[0.018, 1.15], [0.118, 1.115], [0.132, 1.065], [0.078, 0.995], [0.032, 1.028]];
+    for (const s of [-1, 1]) {
+      const outline = s > 0 ? cup.map(([x, y]) => [s * x, y]) : cup.map(([x, y]) => [s * x, y]).reverse();
+      patch(`cup${s}`, outline); edge(`cup${s}`, outline);
+    }
+    const bandY = 1.005, band = [];
+    for (let k = 0; k <= 72; k++) {
+      const t = Math.PI * 2 * k / 72, [rx, rz] = slice(bandY), x = Math.sin(t) * rx, z = Math.cos(t) * rz + (Math.cos(t) > 0 ? bustAt(x, bandY, TF, fem) : 0), out = new THREE.Vector3(x, 0, z).normalize();
+      band.push(new THREE.Vector3(x, bandY, z).addScaledVector(out, 0.003));
+    }
+    mk(geo(`braband:${topFit}:${fem}`, () => new THREE.TubeGeometry(new THREE.CatmullRomCurve3(band, true, 'centripetal'), 144, 0.0032, 5, true)), trim, 0, 0, 0, g, false);
+    for (const s of [-1, 1]) {
+      const pts = [
+        front(s * 0.118, 1.115, 0.004), front(s * 0.115, 1.17, 0.004), front(s * 0.109, 1.22, 0.004), front(s * 0.105, 1.238, 0.004),
+        new THREE.Vector3(s * 0.105, 1.255, 0), back(s * 0.105, 1.238, 0.004), back(s * 0.108, 1.20, 0.004), back(s * 0.112, 1.10, 0.004), back(s * 0.12, 1.015, 0.004),
+      ];
+      mk(geo(`brastrap:${s}:${topFit}:${fem}`, () => new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts, false, 'centripetal'), 128, 0.0024, 5, false)), trim, 0, 0, 0, g, false);
+    }
+    const knot = front(0, 1.035, 0.006); mk(sp(0.008, 8, 6), trim, knot.x, knot.y, knot.z, g, false);
   }
   if (topStyle === 'tee' || topStyle === 'crop' || topStyle === 'dress') mk(neckRibGeo(topFit, topStyle), shirtDark, 0, 0, 0, g, false);   // a U neck, edged with a rolled rib (a shirt's collar sits there instead)
   // the turned-down collar: a shirt's, and (bigger, its points broader) a jacket's
@@ -2137,7 +2191,7 @@ function buildBodyAt(look, seed) {
     const ear = at(1, -0.04, 0.02), top = at(0, 1, -0.05), ey = ear.y + 0.004;
     // (over a beanie or a cap, the band goes on over it: higher and a little wider; a bucket hat, fedora or beret goes on
     // over the band instead)
-    const overHat = { beanie: 0.034, cap: 0.02 }[hatOf(look).hat] || 0;
+    const overHat = { beanie: 0.05, cap: 0.02 }[hatOf(look).hat] || 0;
     // (round the neck it springs in tighter than over the head: the cups close in either side of the throat)
     const ex = phones.wear === 'head' ? Math.abs(ear.x) + 0.016 + overHat * 0.25 : 0.078;
     const set = new THREE.Group();
@@ -2534,11 +2588,14 @@ function buildBodyAt(look, seed) {
     // (a loose cut's is fuller, its cloth reaching out over where the sleeve begins)
     // (set in from the arm's own position, which a woman's shoulders bring closer in: a fixed x left it standing out
     // past the sleeve on a narrow build)
-    const setIn = loose ? 0.003 : 0.013, capX = x - s * setIn;
-    const capM = sleeveless ? inkedSkin(tat[side + 'u'], s < 0 ? 0 : 1, true) : sleeveCloth;
-    const cap = loose ? mk(sp(1, 24, 16), capM, capX, 1.14, 0) : mk(sp(1, 24, 16), capM, capX, 1.138, 0);
-    if (loose) cap.scale.set(0.082, 0.05, 0.074); else cap.scale.set(0.066 * Math.min(TF.s, 1.12), 0.046, 0.062);
-    shoulderCaps.push({ cap, arm: sh, setIn });
+    // (sleeveless: no cap of its own: the bare shoulder is just the body and the top of the arm meeting, so no extra
+    // lump sits on it)
+    if (!sleeveless) {
+      const setIn = loose ? 0.003 : 0.013, capX = x - s * setIn;
+      const cap = loose ? mk(sp(1, 24, 16), sleeveCloth, capX, 1.14, 0) : mk(sp(1, 24, 16), sleeveCloth, capX, 1.138, 0);
+      if (loose) cap.scale.set(0.082, 0.05, 0.074); else cap.scale.set(0.066 * Math.min(TF.s, 1.12), 0.046, 0.062);
+      shoulderCaps.push({ cap, arm: sh, setIn });
+    }
     const elbow = new THREE.Group(); elbow.position.set(0, -0.27, 0); sh.add(elbow); elbows.push(elbow);
     mk(sp(0.05 * S, 14, 10), long ? sleeveCloth : skin, 0, 0, 0, elbow);                                 // fills the elbow only when it bends
     const wrist = long ? (loose ? 0.05 : 0.046) * S : 0.044;

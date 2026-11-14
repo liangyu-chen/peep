@@ -278,6 +278,7 @@ export const CLOTHES: Record<'style' | 'pattern' | 'bottom' | 'fit' | 'top' | 's
     // 短版上衣: a tee cut short, the midriff bare; 洋裝: a long dress, a tee-cut top and a straight skirt to below the
     // knee in one, in the top's colour and pattern; worn over whatever bottom is picked (三角內褲: bare legs beneath)
     { value: 'crop', label: '短版上衣' }, { value: 'dress', label: '洋裝' },
+    { value: 'bra', label: '內衣' },
     { value: 'hoodie', label: '帽T' }, { value: 'jacket', label: '夾克外套' }, { value: 'coat', label: '西裝外套(T恤)' }, { value: 'suit', label: '西裝外套(襯衫)' }, { value: 'varsity', label: '棒球外套' },
     { value: 'denim', label: '牛仔外套' },
   ],
@@ -315,7 +316,7 @@ export function clothesOf(look: Look): { style: string; pattern: string; bottom:
     style, pattern: pickIn(CLOTHES.pattern, look.topPattern, 'none'),
     // (a dress over a skirt is its old way of being stored, from when a dress always came with bare legs: bare legs still)
     bottom: (b => (style === 'dress' && b === 'skirt' ? 'briefs' : b))(pickIn(CLOTHES.bottom, look.bottom, 'pants')), fit: pickIn(CLOTHES.fit, look.pantsFit, 'regular'),
-    top: pickIn(CLOTHES.top, look.topFit, 'regular'), sleeve: look.longSleeve || WINTER_TOPS.includes(style) ? 'long' : look.sleeveless ? 'none' : 'short',
+    top: pickIn(CLOTHES.top, look.topFit, 'regular'), sleeve: style === 'bra' ? 'none' : look.longSleeve || WINTER_TOPS.includes(style) ? 'long' : look.sleeveless ? 'none' : 'short',
   };
 }
 
