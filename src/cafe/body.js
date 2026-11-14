@@ -2884,12 +2884,13 @@ function buildBodyAt(look, seed) {
       let gm = null;
       for (let i = 0; i < p.count; i++) {
         wv.fromBufferAttribute(p, i).applyMatrix4(m.matrixWorld);
-        // (the top where it covers, or a skirt's waist; just under the top's hem, a skirt's own surface rather than the easing out)
-        if (waistOnly && (wv.y < ys[0][0] + 0.002)) continue;
+        // (the top where it covers; a skirt's waist too, and just under the hem its flare is held in to the hem's own
+        // reach until it can ease out below it, so the lowest row of the flare can't cut across the shirt)
         const r1 = reach(wv.x, wv.y, wv.z, false), r2 = waistOnly ? null : reachSkirt(wv.x, wv.y, wv.z);
         const rs = r1 !== null ? (r2 !== null ? Math.max(r1, r2) : r1) : r2 !== null ? r2 : reach(wv.x, wv.y, wv.z); if (rs === null) continue;
-        // (only where it comes through by a little: a skirt flaring out under a long coat is the cut, left as it is)
-        const r = Math.hypot(wv.x, wv.z), lim = rs - 0.004; if (r <= lim || r > lim + 0.03) continue;
+        // (only where it comes through by a little: a skirt flaring out under a long coat is the cut, left as it is;
+        // a skirt's own waistband, though, is tucked all the way in under the top, however far it had flared)
+        const r = Math.hypot(wv.x, wv.z), lim = rs - 0.004; if (r <= lim || (!waistOnly && r > lim + 0.03)) continue;
         if (!gm) gm = m.geometry.clone();   // (cached geometry is shared: changed only in this person's own copy)
         const f = Math.max(0, lim) / r; wv.x *= f; wv.z *= f; wv.applyMatrix4(inv);
         gm.attributes.position.setXYZ(i, wv.x, wv.y, wv.z);
