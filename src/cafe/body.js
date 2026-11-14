@@ -961,7 +961,7 @@ const PANTS_TOP = { crotch: 0.585, waist: 0.725, hipX: 0.094, rx: 0.192, rz: 0.1
 // man's wide trousers), so the seat comes down exactly onto them, inside and out, with no ledge where it meets them)
 // (slant: a man's briefs: the seat drawn in from his hips to his thighs as steadily as a woman's, so the strip between his
 // legs narrows in one smooth V instead of pinching in to a little box at the crotch)
-const pantsTopGeo = (w, k = 1, up = null, fem = false, sideX0 = null, evenSides = false, lobe = null, slant = false) => geo(`ptop61:${w}:${k}:${up ? up.key : ''}:${fem}:${sideX0}:${evenSides}:${lobe}:${slant}`, () => {
+const pantsTopGeo = (w, k = 1, up = null, fem = false, sideX0 = null, evenSides = false, lobe = null, slant = false, fill = slant) => geo(`ptop62:${w}:${k}:${up ? up.key : ''}:${fem}:${sideX0}:${evenSides}:${lobe}:${slant}:${fill}`, () => {
   // (round a woman's fuller thighs at the crotch)
   const { crotch, waist } = PANTS_TOP, c = lobe ? lobe[0] : PANTS_TOP.hipX, N = 160, R = lobe ? lobe[1] : 0.0875 * w * thighK(crotch - (0.55 + LEG_EXTRA), fem), pos = [], idx = [];
   const ROWS = up ? 18 : 12, top = up ? up.top : waist, seatRows = up ? 12 : ROWS;
@@ -974,7 +974,7 @@ const pantsTopGeo = (w, k = 1, up = null, fem = false, sideX0 = null, evenSides 
     // (a man's briefs: filled in across the front between his thighs too, but not level with their fronts (a flat board
     // across him, like a skirt's front): dipping in between them in a soft valley, half as far out in the middle, as a
     // woman's fuller thighs run into one another there, so each thigh still reads as round)
-    if (slant && sz > 0) {
+    if (fill && sz > 0) {
       const f = x => { const u = Math.min(1, Math.abs(x) / c); return R * (0.5 + 0.5 * u * u * (3 - 2 * u)); };
       let d = R / sz; for (let i = 0; i < 8; i++) d = f(d * sx) / sz;
       if (Math.abs(sx) * d <= c) best = Math.max(best, d);
@@ -1283,7 +1283,9 @@ function buildBodyAt(look, seed) {
   // (a man's wide legs meet at the crotch, so the seat runs on down into their inner sides, and hang a little apart from
   // there (LEG_SPLAY), two legs with a gap between them rather than merging into one)
   const wideLegX = 0.094, LEG_SPLAY = femS ? 0 : 0.034;
-  const legX = fit === 'wide' && pantsLike ? wideLegX : 0.094;
+  // (a man's slim trousers: his legs set a little closer together, so slimmer thighs still meet at the crotch: the leg has
+  // less to draw in from below it and runs down from the seat in one easy line, and the crotch stays whole)
+  const legX = fit === 'wide' && pantsLike ? wideLegX : fit === 'slim' && pantsLike && !femS ? 0.085 : 0.094;
   // (a man's legs, however slim his trousers, fill out toward the top until they just meet at the crotch, as real thighs
   // do, so the seat comes down onto them with no notch cut up between them; the legs themselves hang straight)
   const CROTCH_R = pantsLike && !femS ? legX * 0.985 : 0;
@@ -1302,17 +1304,17 @@ function buildBodyAt(look, seed) {
     // (a man's wide trousers keep the thigh full right up to the crotch, where the seat's sides are brought out to meet it
     // (see sideX0); above that it eases in, tucked inside the seat, so the two never fight at the surface)
     const thighAt = (w, st = false) => [[(st ? 0.086 : 0.074) * w, -THIGH], [(st ? 0.086 : 0.078) * w, -0.24], [(st ? 0.087 : 0.086) * w, -0.12], [0.09 * w, -0.06], [0.09 * w, -0.04], [0.088 * w, -0.005], [0.074 * w, 0.022], [0.044 * w, 0.042], [0.001, 0.05]].map(([r, y]) => [r * (maleWide ? 1 - 0.12 * smooth(-0.06, 0.02, y) : 1), y]).flatMap(([r, y], i, all) => {
-      // (where a man's leg is slimmer than that, it draws in from the crotch's fullness to its own width in one long,
-      // even curve most of the way down the thigh, in slices close enough to follow it: not all at once just under the
+      // (where a man's leg is slimmer than that, it draws in from the crotch's fullness to its own width in one even
+      // curve over the top half of the thigh (slim again by mid-thigh), in slices close enough to follow it: not all at once just under the
       // crotch, which left a slim leg hanging from a bulge with a corner in it)
-      const full = (rr, yy) => (yy < 0 && CROTCH_R > rr ? rr + (CROTCH_R - rr) * smooth(-0.25, -0.04, yy) : rr), next = all[i + 1];
+      const full = (rr, yy) => (yy < 0 && CROTCH_R > rr ? rr + (CROTCH_R - rr) * smooth(-0.17, -0.03, yy) : rr), next = all[i + 1];
       if (!next || y >= -0.04 || CROTCH_R <= r) return [[full(r, y), y]];
-      const n = Math.max(1, Math.round((next[1] - y) / 0.02)), out = [];
+      const n = Math.max(1, Math.round((next[1] - y) / 0.01)), out = [];
       for (let k = 0; k < n; k++) { const yy = y + (next[1] - y) * k / n; out.push([full(r + (next[0] - r) * k / n, yy), yy]); }
       return out;
     });
     // (a woman's finer round, so where it meets her seat runs smooth)
-    const thigh = mk(flatLit(lathe(`thigh7:${W}:${straight}:${CROTCH_R}:${40}`, thighAt(W, straight), 40)), legM, 0, 0, 0, hip);
+    const thigh = mk(flatLit(lathe(`thigh11:${W}:${straight}:${CROTCH_R}:${40}`, thighAt(W, straight), 40)), legM, 0, 0, 0, hip);
     if (!bareLegs) bare.push(thigh);
     let shortsLeg = null, longLeg = null, longR = null;
     // the trousers' leg over the thigh: a man's the thigh itself (above, in the pants); a woman's roomy at the top, one
@@ -1336,7 +1338,7 @@ function buildBodyAt(look, seed) {
       const hang = y => (y < -0.04 ? Math.max(rAt(y), R0 + spread * Math.min(1, (-0.04 - y) / 0.22)) : rAt(y));
       const prof = ys.map(y => [y < 0.03 ? Math.max(hang(y), skinR(y) + 0.004) : hang(y), y]), rh = prof[0][0];
       const pantsIn = pants.clone(); pantsIn.side = THREE.DoubleSide; pantsIn.shadowSide = THREE.BackSide;   // (its back faces in the shadow map: no speckled self-shadowing on it)
-      shortsLeg = mk(flatLit(lathe(`shorts15:${TW}:${fit}:${femPants}:${maleWide}`, prof, 40)), pantsIn, 0, 0, 0, hip); cover.push(shortsLeg);   // (both faces: its inside shows at the hem, in its own colour)
+      shortsLeg = mk(flatLit(lathe(`shorts19:${TW}:${fit}:${femPants}:${maleWide}`, prof, 40)), pantsIn, 0, 0, 0, hip); cover.push(shortsLeg);   // (both faces: its inside shows at the hem, in its own colour)
       cover.push(mk(cy(rh + 0.003, rh + 0.004, 0.018, 18, true), pantsDark, 0, S0 + 0.009, 0, hip, false));   // the turned-up hem
     } else if (longPants && femPants) {
       const prof = legProf();
@@ -1421,7 +1423,8 @@ function buildBodyAt(look, seed) {
   const seatLobe = pantsLike && !femS ? [legX, +(Math.max(0.09 * TW * (maleWide ? 1 - 0.12 * smooth(-0.06, 0.02, PANTS_TOP.crotch - HIP_Y) : 1), CROTCH_R) + 0.0015).toFixed(4)] : null;
   // (a man's trousers and shorts, whatever their fit: the seat in one line from the waist on down to the legs, at the
   // sides and in front and behind)
-  const seat = mk(pantsTopGeo(TW, briefs ? 1 : fit === 'wide' ? 1.12 : loose ? 1.06 : 1, skirted ? null : up, femB, maleWide || (shorts && !femS) ? legX + Math.max(0.09 * TW, CROTCH_R) : null, (fit === 'wide' || loose) && pantsLike || pantsLike && !femS, seatLobe, briefs && !femS), pants, 0, 0, 0);   // (baggy pants and shorts are roomy through the seat too)
+  const crotchFill = (briefs && !femS) || (!!seatLobe && seatLobe[1] < seatLobe[0]);   // (his thighs don't meet at the crotch: filled in between them in front)
+  const seat = mk(pantsTopGeo(TW, briefs ? 1 : fit === 'wide' ? 1.12 : loose ? 1.06 : 1, skirted ? null : up, femB, maleWide || (shorts && !femS) ? legX + Math.max(0.09 * TW, CROTCH_R) : null, (fit === 'wide' || loose) && pantsLike || pantsLike && !femS, seatLobe, briefs && !femS, crotchFill), pants, 0, 0, 0);   // (baggy pants and shorts are roomy through the seat too)
   if (up && !skirted) {   // (its top edge, rolled)
     const [tx, tz] = riseAt(riseTop), edge = mk(new THREE.TorusGeometry(tx, 0.0035, D(6, 3), D(40, 12)), pantsDark, 0, riseTop, 0, g, false);
     edge.rotation.x = Math.PI / 2; edge.scale.y = tz / tx; cover.push(edge);
@@ -1457,6 +1460,7 @@ function buildBodyAt(look, seed) {
     const seatAt = (a, y, off) => {
       const t = (y - crotch) / (waist - crotch), tc = Math.min(1, t), e = femB ? (q => 0.5 * (1 - (1 - q) ** 1.6) + 0.5 * q * q * (3 - 2 * q))(tc) : tc * tc * (3 - 2 * tc), sx = Math.sin(a), sz = Math.cos(a), k2 = 1 + (kk - 1) * (1 - tc ** 4);
       let lb = (femB || seatLobe) && sz < 0 ? R * FEM.under * (q => q * q * (3 - 2 * q))(Math.min(1, -sz * 1.4)) * (q => (femB ? 0.5 + 0.5 * q : q))((q => q * q * (3 - 2 * q))(Math.max(0, Math.min(1, t / 0.45)))) : 0.004; [-hipX, hipX].forEach(cx => { const b = sx * cx, disc = b * b - cx * cx + R * R; if (disc >= 0) lb = Math.max(lb, b + Math.sqrt(disc)); });
+      if (crotchFill && sz > 0) { const f = x => { const u = Math.min(1, Math.abs(x) / hipX); return R * (0.5 + 0.5 * u * u * (3 - 2 * u)); }; let d = R / sz; for (let i = 0; i < 8; i++) d = f(d * sx) / sz; if (Math.abs(sx) * d <= hipX) lb = Math.max(lb, d); }   // (filled in between the thighs in front, as pantsTopGeo)
       // (high-waisted: filled out to the body as pantsTopGeo does)
       // (and a woman's hips and seat, as there too)
       let ox = rx * (1 + hipAt(y, femB)), oz = femB ? TORSO[0][2] * 0.95 : rz;
