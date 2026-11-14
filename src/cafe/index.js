@@ -71,20 +71,22 @@ async function build(root, content) {
     updateSmoke(sdt);
     updateTops(sdt);
     updateSurroundings(dt);
-    if (S.ledClock) S.ledClock();   // the corner's LED clock (redraws only when the minute changes)
+    if (S.ledClock && !S.timeStop) S.ledClock();   // the corner's LED clock (redraws only when the minute changes; held while time is stopped)
+    // what goes by real time below holds still too while time is stopped (時間停止器; the camera and the walls fading don't)
+    const wdt = S.timeStop ? 0 : dt;
     // the outdoor unit's fan spins up when the AC comes on and coasts to a stop when it goes off
-    S.ac.spin += ((S.ac.on ? 12 : 0) - S.ac.spin) * Math.min(1, dt * 1.5);
-    S.acFan.rotation.x += S.ac.spin * dt;
+    S.ac.spin += ((S.ac.on ? 12 : 0) - S.ac.spin) * Math.min(1, wdt * 1.5);
+    S.acFan.rotation.x += S.ac.spin * wdt;
     // the ceiling fans start still; a click sets one going (hud.js), and it spins up, or coasts to a stop
-    S.fans.forEach(f => { const st = f.userData.fan; st.spin += ((st.on ? 4 : 0) - st.spin) * Math.min(1, dt * 1.2); f.rotation.y += dt * st.spin; });
+    S.fans.forEach(f => { const st = f.userData.fan; st.spin += ((st.on ? 4 : 0) - st.spin) * Math.min(1, wdt * 1.2); f.rotation.y += wdt * st.spin; });
     // doors open when someone comes close; with the AC off they stand open for air instead
     const slideTarget = !S.ac.on || near(-1.84, -4.5, 1.3);
-    S.slide.open += ((slideTarget ? 1 : 0) - S.slide.open) * Math.min(1, dt * 5);
+    S.slide.open += ((slideTarget ? 1 : 0) - S.slide.open) * Math.min(1, wdt * 5);
     S.slideDoor.position.x = -1.86 - S.slide.open * 0.76;   // slides left in front of the fixed panel
-    S.toiletDoor.rotation.y += ((near(-0.8, -7.7, 1.1) ? -Math.PI / 2 : 0) - S.toiletDoor.rotation.y) * Math.min(1, dt * 5);   // swings in, flat to the toilet's front wall
+    S.toiletDoor.rotation.y += ((near(-0.8, -7.7, 1.1) ? -Math.PI / 2 : 0) - S.toiletDoor.rotation.y) * Math.min(1, wdt * 5);   // swings in, flat to the toilet's front wall
     // (held shut while someone plays darts: it swings in right across the board)
     const doorOpen = (!S.ac.on || near(-1.7, 4.0, 1.3)) && !S.darting;
-    S.frontDoor.rotation.y += ((doorOpen ? 1.45 : 0) - S.frontDoor.rotation.y) * Math.min(1, dt * 5);
+    S.frontDoor.rotation.y += ((doorOpen ? 1.45 : 0) - S.frontDoor.rotation.y) * Math.min(1, wdt * 5);
     // fade the outer walls the camera is behind
     const cp = ctx.camera.position;
     // while a visitor plays on the TV, nobody stands or walks between them and the screen (those sitting playing it stay,
@@ -148,7 +150,7 @@ async function build(root, content) {
     if (now - last < (cov ? COVERED_MS : idle(now) ? 1000 / 30 : target()) - 4) { raf = requestAnimationFrame(frame); return; }
     if (!cov) adapt(now - last);
     const dt = Math.min(cov ? 0.25 : 0.05, (now - last) / 1000); last = now;
-    for (let left = dt; left > 1e-6; left -= 0.05) { const d = Math.min(0.05, left); simulate(d, d * S.speed); }
+    for (let left = dt; left > 1e-6; left -= 0.05) { const d = Math.min(0.05, left); simulate(d, S.timeStop ? 0 : d * S.speed); }
     if ((tvFrameN = (tvFrameN + 1) % 2) === 0) drawTV();
 
     updateCamera(dt);

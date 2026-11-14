@@ -17,7 +17,7 @@ const BARS = [
 const ANSWER = [['G4', null, null, 'E4', null, 'G4', null, null], ['A4', null, null, 'E4', null, 'C5', null, null],
   ['F4', null, null, 'A4', null, 'C5', null, null], ['G4', null, 'B4', null, 'D5', null, null, null]];
 
-let on = true, master = null, timer = 0, next = 0, step = 0;
+let on = true, master = null, timer = 0, next = 0, step = 0, held = false;
 try { on = localStorage.getItem('peep.music') !== 'off'; } catch { /* private mode */ }
 export const musicOn = () => on;
 
@@ -47,8 +47,11 @@ function schedule() {
   }
 }
 
+// held (時間停止器): silent until let go, whatever wakes the sound meanwhile
+// (resume false: just let go, without starting it up again, as when the café is closed)
+export function holdMusic(h, resume = true) { held = h; if (h) stopMusic(); else if (resume) startMusic(); }
 export function startMusic() {
-  if (!on) return;
+  if (!on || held) return;
   const a = audio(); if (!a || timer) return;   // (already playing: audio() still wakes a suspended context)
   if (!master) { master = a.createGain(); master.gain.value = 0.32; master.connect(a.destination); }
   next = a.currentTime + 0.1;

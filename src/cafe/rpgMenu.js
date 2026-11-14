@@ -7,6 +7,7 @@ import { $ } from './util.js';
 import { log } from './feed.js';
 import { releaseRoach } from './roach.js';
 import { sfx } from './sfx.js';
+import { setTimeStop, clearTimeStop } from './timeStop.js';
 
 const CAM_KEYS = ['overview', 'counter', 'menu', 'tv', 'porch', 'back'];
 const CAM_NAMES = { overview: '全景', counter: '吧台', menu: '菜單', tv: '電視', porch: '戶外區', back: '後場' };
@@ -63,6 +64,13 @@ export function bindMenu(root, on, off, { setCam, focusPerson, followThing, setA
   // ---- 道具: the first tap on an item picks it and tells what it is, a second tap (or 使用) uses it
   const slots = [...panel.querySelectorAll('.slot')];
   let picked = 'cam';
+  // two tabs, 道具 (used) and 裝備 (worn), each a grid of its own; each tab remembers the slot last picked in it
+  const tabs = [...panel.querySelectorAll('.itemTabs .tab')], pages = [...panel.querySelectorAll('.tabPages .slots')];
+  const lastIn = {};
+  const showTab = t => {
+    tabs.forEach(b => { const cur = b.dataset.tab === t; b.classList.toggle('on', cur); b.setAttribute('aria-selected', String(cur)); });
+    pages.forEach(pg => pg.classList.toggle('off', pg.dataset.tab !== t));
+  };
   // the button under the description: 死神之眼 and 冷氣遙控 are worn (裝備 / 卸下), the rest are used
   const useLabel = name => (name === 'tag' ? (S.showTags !== false ? '卸下' : '裝備') : name === 'remote' ? (S.acGear ? '卸下' : '裝備') : '使用');
   const pick = (name, el) => {
@@ -72,6 +80,7 @@ export function bindMenu(root, on, off, { setCam, focusPerson, followThing, setA
     if (name === 'phone') $('phoneSlot').querySelector('.badge')?.remove();   // (seen now: no longer new)
     const s = el || slots.find(x => x.dataset.item === name);   // (el: which of the ？？？ slots)
     slots.forEach(x => x.classList.toggle('sel', x === s));
+    const t = s.closest('[data-tab]').dataset.tab; showTab(t); lastIn[t] = s;   // (its tab up front)
     $('itemDesc').textContent = s.dataset.desc;
     $('itemUse').hidden = name === 'none';
     $('itemUse').textContent = useLabel(name);
@@ -93,6 +102,15 @@ export function bindMenu(root, on, off, { setCam, focusPerson, followThing, setA
   const use = name => {
     if (name === 'cam') show(choice, 'cams');
     else if (name === 'speed') show(choice, 'speed');
+    else if (name === 'stop') {
+      // 時間停止器: an item used like any other (not worn): the whole shop holds still (timeStop.js), and used again it
+      // goes on; the menu closes so the frozen café can be looked round
+      const on = !S.timeStop;
+      setTimeStop(on);
+      if (on) closeMenu();
+      report(on ? '「喀嚓。」你按下了時間停止器——店裡的一切，連同飄在空中的煙，都靜止了。' : '「喀嚓。」再按一次，時間重新開始流動。誰都沒有發現……');
+      log(on ? '使用了 時間停止器' : '解除了 時間停止器');
+    }
     else if (name === 'roach') {
       // 小強: let go somewhere on the floor; the camera goes over to it, or nobody would know where
       const r = releaseRoach();
@@ -126,9 +144,16 @@ export function bindMenu(root, on, off, { setCam, focusPerson, followThing, setA
     checkRemote();
   };
   off.push(() => root.classList.remove('acGear'));
+  off.push(clearTimeStop);
   showTag(); showGear(); pick('cam');
   slots.forEach(s => on(s, 'click', () => { if (s.classList.contains('sel')) use(s.dataset.item); else pick(s.dataset.item, s); }));
   on($('itemUse'), 'click', () => use(picked));
+  // a tab: its grid up front, with the slot last picked there (or its first) picked again
+  tabs.forEach(b => on(b, 'click', () => {
+    const t = b.dataset.tab, pg = pages.find(x => x.dataset.tab === t);
+    const s = lastIn[t]?.isConnected && !lastIn[t].hidden ? lastIn[t] : pg.querySelector('.slot:not([hidden])');
+    pick(s.dataset.item, s); s.focus({ preventScroll: true });
+  }));
 
   // ---- the monitor: a burst of static, then the channel's name in the corner until the view is dragged
   const rec = $('camRec');
@@ -186,7 +211,7 @@ export function bindMenu(root, on, off, { setCam, focusPerson, followThing, setA
     if (e.key === 'Escape') { e.preventDefault(); back(); return; }
     if (!e.key.startsWith('Arrow')) return;
     const top = stack[stack.length - 1];
-    const list = [...top.querySelectorAll('.opt, .slot')].filter(el => el.offsetParent && !el.hidden);
+    const list = [...top.querySelectorAll('.opt, .slot')].filter(el => el.offsetParent && !el.hidden && !el.closest('.slots.off'));   // (not the other tab's)
     const i = list.indexOf(document.activeElement);
     const cols = document.activeElement?.classList.contains('slot') ? 3 : 1;
     const d = e.key === 'ArrowUp' ? -cols : e.key === 'ArrowDown' ? cols : e.key === 'ArrowLeft' ? -1 : 1;

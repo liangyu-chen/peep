@@ -21,6 +21,7 @@ import { sfx, sfxMuted, toggleSfx, audio } from './sfx.js';
 import { startMusic, stopMusic, toggleMusic, musicOn } from './music.js';
 import { TVX, TVY, TVZ } from './layout.js';
 import { bindMenu } from './rpgMenu.js';
+import { setTimeStop } from './timeStop.js';
 import { bindPhone, phoneTargets, pickUpPhone, setPhoneHover } from './phone.js';
 
 export function updateHUD() {
@@ -260,6 +261,7 @@ function playAt(kind, root) {
   else { tt = S.stadium.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0, 0.04, 0)); if (tt.z > -4.6) dir = [0, 0.85, 0.6]; }
   const tp = tt.clone().addScaledVector(new THREE.Vector3(...dir).normalize(), dist);
   const from = { p: camera.position.clone(), t: controls.target.clone() };
+  setTimeStop(false);   // (a game needs time going: 時間停止器 lets go)
   closeCard(); closeGame(); stopWallDarts(); menu?.closeMenu(); sfx('swoosh');
   document.querySelectorAll('[data-cam]').forEach(b => b.classList.remove('on'));
   S.watch = kind === 'tv' || kind === 'darts' ? { x: tt.x, z: tt.z } : null;   // anyone between the camera and the TV or the board steps out of the picture

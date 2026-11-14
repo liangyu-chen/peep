@@ -74,8 +74,8 @@ export function newProfile() {
     look: L(pick(SKINS), pick(HAIRS), 'short',
       new THREE.Color().setHSL(Math.random(), rand(0.3, 0.6), rand(0.35, 0.6)).getHex(), pick([0x2b2b2b, 0x334455, 0x5a4a3a, 0x1f2a44]),
       {
-        ...randomHair(female),
-        bottom: female && Math.random() < 0.35 ? 'skirt' : 'pants', pantsFit: pick(['slim', 'regular', 'regular', 'wide']), topFit: pick(['slim', 'regular', 'regular', 'oversize']),
+        ...randomHair(female), body: female ? 'female' : 'male',
+        bottom: female && Math.random() < 0.35 ? 'skirt' : 'pants', pantsFit: pick(['slim', 'regular', 'loose', 'loose', 'wide']), topFit: pick(['slim', 'regular', 'regular', 'oversize']),
         height: pick(['xshort', 'short', 'short', 'regular', 'regular', 'regular', 'tall', 'tall', 'xtall']),
         topStyle: (r => r < 0.22 ? 'shirt' : r < 0.42 ? pick(['hoodie', 'hoodie', 'jacket', 'coat', 'suit', 'varsity']) : 'tee')(Math.random()), topPattern: Math.random() < 0.45 ? pick(['stripe', 'plaid', 'dots', 'camo', 'floral', 'p_coffee', 'p_cat', 'p_sunset', 'p_mountain', 'p_smile', 'p_wave', 'p_logo']) : 'none',
         hat: Math.random() < 0.3 ? pick(['cap', 'cap', 'bucket', 'beanie']) : 'none', hatColor: new THREE.Color().setHSL(Math.random(), 0.5, 0.45).getHex(), longSleeve: Math.random() < 0.4,

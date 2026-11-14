@@ -107,6 +107,17 @@ html:has(.cafe-root),body:has(.cafe-root){margin:0;overflow:hidden;background:#1
 .cafe-root .opt .qval{margin-left:auto;font-size:13px;color:var(--gold)}   /* 畫質: 高 or 低 */
 /* items: three slots to a row, the picked one edged gold; what it is, and use, underneath */
 .cafe-root .slots{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+/* 道具 / 裝備: two tabs over the slots; both grids stand in one place (the other one kept invisible), so the window stays
+   the same size whichever is up */
+.cafe-root .itemTabs{display:flex;gap:4px;margin:0 0 8px;border-bottom:2px solid #3a3648}
+.cafe-root .itemTabs .tab{position:relative;bottom:-2px;width:auto;padding:5px 14px 4px;font-size:13px;color:var(--muted);background:#1a1722;
+  border:2px solid #3a3648;border-radius:0;box-shadow:none}
+.cafe-root .itemTabs .tab:hover{color:var(--ink)}
+.cafe-root .itemTabs .tab:active{box-shadow:none}
+.cafe-root .itemTabs .tab.on{color:var(--gold);background:var(--panel);border-bottom-color:var(--panel)}
+.cafe-root .tabPages{display:grid}
+.cafe-root .tabPages>.slots{grid-area:1/1;align-content:start}
+.cafe-root .tabPages>.slots.off{visibility:hidden}
 .cafe-root .slot{position:relative;display:grid;justify-items:center;gap:4px;padding:8px 2px 6px;font-size:12px;background:#1a1722;border:2px solid #3a3648;border-radius:0;box-shadow:none}
 .cafe-root .slot:hover{background:#221e2c;border-color:var(--rule)}
 .cafe-root .slot:active{box-shadow:none}
@@ -145,6 +156,26 @@ html:has(.cafe-root),body:has(.cafe-root){margin:0;overflow:hidden;background:#1
   padding:4px 9px;background:rgba(0,0,0,.6);font-family:var(--f-pixel);font-size:9px;color:#fff;pointer-events:none}
 .cafe-root #camRec i{width:7px;height:7px;border-radius:50%;background:#ff3b3b;animation:rpgBlink 1s steps(1) infinite}
 .cafe-root #camRec span{font-family:var(--f-dot);font-size:13px}
+.cafe-root #stage canvas{transition:filter .5s ease-out}
+/* 時間停止器 (timeStop.js): the café drained of colour, a cold vignette round it, a ripple going out from the middle the
+   moment it stops, and the stopwatch's STOP screen up top */
+.cafe-root #stage::before,.cafe-root #stage::after{content:"";position:absolute;pointer-events:none;z-index:1}
+.cafe-root #stage::before{inset:0;opacity:0;transition:opacity .5s;background:radial-gradient(ellipse at center,rgba(60,110,220,0) 40%,rgba(20,30,80,.5) 100%)}
+.cafe-root.timeStop #stage::before{opacity:1}
+.cafe-root.timeStop #stage canvas{filter:saturate(.1) contrast(1.15) brightness(.92)}
+.cafe-root #stage::after{left:50%;top:50%;width:40px;height:40px;margin:-20px 0 0 -20px;border-radius:50%;opacity:0;
+  border:6px solid rgba(240,246,255,.9);box-shadow:0 0 30px rgba(120,170,255,.8),inset 0 0 30px rgba(120,170,255,.6)}
+.cafe-root.timeStopIn #stage::after{animation:timeRipple .8s ease-out}
+.cafe-root.timeGoIn #stage::after{animation:timeRipple .6s ease-in reverse}
+@keyframes timeRipple{0%{transform:scale(.2);opacity:1}100%{transform:scale(60);opacity:0;border-width:1px}}
+.cafe-root #stopLcd{position:absolute;z-index:4;top:calc(14px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);display:none;
+  padding:5px;background:#e8333a;border:3px solid #14121a;border-radius:14px;box-shadow:0 4px 0 rgba(0,0,0,.35)}
+.cafe-root #stopLcd span{display:block;padding:5px 10px 4px;background:#f4efe3;border:4px solid #3b8fe0;border-radius:6px;
+  font-family:var(--f-pixel);font-size:14px;letter-spacing:2px;color:#14121a}
+.cafe-root.timeStop #stopLcd{display:block;animation:stopPop .25s steps(3)}
+@keyframes stopPop{0%{transform:translateX(-50%) scale(.4)}100%{transform:translateX(-50%) scale(1)}}
+.cafe-root.playing #stopLcd{display:none}
+@media (prefers-reduced-motion: reduce){.cafe-root #stage::after{display:none}.cafe-root #stage canvas{transition:none}}
 .cafe-root .camStatic{position:absolute;inset:0;z-index:15;width:100%;height:100%;image-rendering:pixelated;pointer-events:none;display:none}
 .cafe-root .camStatic.on{display:block}
 /* the TV line ends with a blinking arrow, the way an RPG's text box waits */

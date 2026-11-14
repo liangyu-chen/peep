@@ -1,4 +1,4 @@
-import { BUILDS, buildOf, HEIGHTS, heightOf,tieColorOf, CLOTHES, COLOR_PRESETS, COMPANIONS, EARRINGS, earringsOf, earColorOf, HEADPHONES, headphonesOf, WATCHES, WATCH_FACES, watchOf, FACE, frameColorOf, HAIR, HAT_STYLES, SHOE_STYLES, SOCKS, TATTOO_PARTS, TATTOO_STYLES, NECKTIE, coatInnerOf, clothesOf, companionOf, faceOf, hairOf, hatOf, lensOf, shoeOf, socksOf, tattooOf, type Look } from '@/src/content/catalog';
+import { BODIES, bodyOf, BUILDS, buildOf, HEIGHTS, heightOf,tieColorOf, CLOTHES, COLOR_PRESETS, COMPANIONS, EARRINGS, earringsOf, earColorOf, HEADPHONES, headphonesOf, WATCHES, WATCH_FACES, watchOf, FACE, frameColorOf, HAIR, HAT_STYLES, SHOE_STYLES, SOCKS, TATTOO_PARTS, TATTOO_STYLES, NECKTIE, coatInnerOf, clothesOf, companionOf, faceOf, hairOf, hatOf, lensOf, shoeOf, socksOf, tattooOf, type Look } from '@/src/content/catalog';
 import ColorField from './ColorField';
 import HairLengthField from './HairLengthField';
 import LensOpacityField from './LensOpacityField';
@@ -29,6 +29,7 @@ export default function LookFields({ look, seed, prefix: px = '' }: { look: Look
           <ColorField name={px + 'eyeColor'} label="瞳色" value={f.eyeColor} presets={COLOR_PRESETS.eyes} />
         </div>
         <label className="check"><input type="checkbox" name={px + 'blush'} defaultChecked={f.blush} /><span>腮紅</span></label>
+        <Pick name={px + 'body'} label="身體" value={bodyOf(look)} options={BODIES} />
         <Pick name={px + 'height'} label="身高" value={heightOf(look)} options={HEIGHTS} />
         <Pick name={px + 'build'} label="身形" value={buildOf(look)} options={BUILDS} />
         <Pick name={px + 'faceShape'} label="臉型" value={f.faceShape} options={FACE.faceShape} />

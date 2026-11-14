@@ -330,7 +330,7 @@ function updateFade(dt) {
 
 export function updateSurroundings(dt) {
   if (!env) return;
-  updateTraffic(dt * S.speed);
+  updateTraffic(S.timeStop ? 0 : dt * S.speed);
   updateFade(dt);
 }
 

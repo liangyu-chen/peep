@@ -7,13 +7,18 @@ import LoadingHands from './LoadingHands';
 
 // the RPG menu's item icons, in colour: each letter a pixel of that palette colour, '.' see-through
 const ITEM_PAL: Record<string, string> = { k: '#14121a', w: '#f4efe3', G: '#9a98a6', g: '#55535f', r: '#ff4f7b', y: '#ffd23f',
-  b: '#9a6234', o: '#ff9a3c', c: '#7ec8ff', n: '#3ddc97', L: '#d49a5e', B: '#5e3418', H: '#d9a46a', P: '#3a2d6e', V: '#6b3f7c' };
+  b: '#9a6234', o: '#ff9a3c', c: '#7ec8ff', n: '#3ddc97', L: '#d49a5e', B: '#5e3418', H: '#d9a46a', P: '#3a2d6e', V: '#6b3f7c',
+  R: '#e8333a', u: '#3b8fe0' };
 const ICON_CAM = ['............', '.kkkkkkkkkk.', '.kGGGGGGGGk.', '.kGccccccGk.', '.kGcwcccrGk.', '.kGccccccGk.', '.kGccccccGk.',
   '.kGGGGGGGGk.', '.kkkkkkkkkk.', '....kGGk....', '..kkkkkkkk..', '............'];
 const ICON_MENU = ['...kkkkk....', '.kkbyyybkk..', '.kbbbbbbbk..', '.kbwwwwwbk..', '.kbwkkwwbk..', '.kbwwwwwbk..', '.kbwkkkwbk..',
   '.kbwwwwwbk..', '.kbwkkwwbk..', '.kbwwwwwbk..', '.kbbbbbbbk..', '.kkkkkkkkk..'];
 const ICON_GLASS = ['.kkkkkkkkkk.', '.kbbbbbbbbk.', '..kwyyyywk..', '..kwyyyywk..', '...kwyywk...', '....kyyk....', '....kwwk....',
   '...kwwywk...', '..kwwyyywk..', '..kwyyyyyk..', '.kbbbbbbbbk.', '.kkkkkkkkkk.'];
+// 時間停止器: a round red stopwatch, its black crown on top and yellow buttons either side of it, a blue face with
+// STOP on a white screen, two white keys along the bottom
+const ICON_STOP = ['....kggk....', '.yykkRRkkyy.', '.ykRRRRRRky.', '.kRuuuuuuRk.', 'kRuuuuuuuuRk', 'kRuwwwwwwuRk', 'kRuwkkkkwuRk',
+  'kRuwwwwwwuRk', 'kRuuuuuuuuRk', '.kRwwuuwwRk.', '..kRRRRRRk..', '....kkkk....'];
 // 死神之眼: a white eye with a red iris
 const ICON_EYE = ['............', '............', '...kkkkkk...', '..kwwwwwwk..', '.kwwrrrrwwk.', 'kwwrrkkrrwwk', 'kwwrrkkrrwwk',
   '.kwwrrrrwwk.', '..kwwwwwwk..', '...kkkkkk...', '............', '............'];
@@ -144,6 +149,8 @@ export default function Cafe({ content }: { content: CafeContent }) {
   return (
     <div className="cafe-root" ref={root}>
       <div id="stage" />
+      {/* 時間停止器's little screen, shown while time is stopped (timeStop.js) */}
+      <div id="stopLcd" aria-hidden="true"><span>STOP</span></div>
       <div id="labels" />
 
       <div id="topLeft">
@@ -170,19 +177,34 @@ export default function Cafe({ content }: { content: CafeContent }) {
         <section id="menuPanel" className="win" hidden>
           <div className="view" data-view="items">
             <h2>ITEMS<button type="button" className="back" data-back>◀ 返回</button></h2>
-            <div className="slots">
+            {/* two tabs: 道具, used, and 裝備, worn (rpgMenu.js); both grids stand in the same place, so the window keeps
+                its size whichever is showing */}
+            <div className="itemTabs" role="tablist">
+              <button type="button" className="tab on" role="tab" aria-selected="true" data-tab="use">道具</button>
+              <button type="button" className="tab" role="tab" aria-selected="false" data-tab="gear">裝備</button>
+            </div>
+            <div className="tabPages">
+            <div className="slots" role="tabpanel" data-tab="use">
               <button type="button" className="slot" data-item="cam" data-desc="老闆藏在角落的監視器。使用後可以切換六個鏡頭，偷看店裡每個角落。"><PixelArt rows={ICON_CAM} /><span>監視器</span></button>
               <button type="button" className="slot" data-item="menu" data-desc="老闆親手用火燒過邊角的印刷菜單，帶著一股焦香。使用後湊近閱讀，看看今天有什麼喝的。"><PixelArt rows={ICON_MENU} /><span>菜單板</span></button>
               <button type="button" className="slot" data-item="speed" data-desc="裝著金色細沙的沙漏。翻轉之後，店裡的時間流速會跟著改變。"><PixelArt rows={ICON_GLASS} /><span>沙漏</span><span className="badge" id="speedBadge">1x</span></button>
-              <button type="button" className="slot equip lit" id="tagSlot" data-item="tag" data-desc="以半數壽命為代價，向死神換來的漆黑契約之眼。據說在它的注視下，無人能隱藏自己的真名——包括那位泡咖啡的男人。"><PixelArt rows={ICON_EYE} /><span>死神之眼</span><span className="badge" aria-label="裝備中" /></button>
-              <button type="button" className="slot equip" id="remoteSlot" data-item="remote" data-desc="封印著「極寒之息」的白色聖器。唯有被選中之人才能駕馭——裝備之後，它將在畫面右側顯現，號令這間店的風與溫度。"><PixelArt rows={ICON_REMOTE} /><span>冷氣遙控</span><span className="badge" aria-label="裝備中" /></button>
+              <button type="button" className="slot" id="stopSlot" data-item="stop" data-desc="紅色外殼的神祕碼錶，小小的螢幕上只寫著 STOP。按下之後，店裡的一切都會靜止，只有你能自由行動。再按一次，時間才會繼續流動。"><PixelArt rows={ICON_STOP} /><span>時間停止器</span></button>
               <button type="button" className="slot" data-item="roach" data-desc="一隻油亮的大蟑螂，裝在小紙盒裡。使用後會偷偷放到店裡的地上，看看誰先發現牠……"><PixelArt rows={ICON_ROACH} /><span>小強</span></button>
               {/* 老闆的手機: picked up off the 工作台, it takes the ？？？ slot (rpgMenu.js) */}
               <button type="button" className="slot" id="phoneSlot" data-item="phone" hidden data-desc="老闆隨手擱在筆電旁的手機，螢幕居然沒鎖。用他的名義傳個私訊，就能把熟客召喚到店裡……在他發現之前。"><PixelArt rows={ICON_PHONE} /><span>老闆的手機</span><span className="badge">NEW</span></button>
-              {/* three ？？？ slots, for the items not found yet: each one found takes the first of them (rpgMenu.js) */}
-              {[0, 1, 2].map(n => (
+              {/* four ？？？ slots, for the items not found yet: each one found takes the first of them (rpgMenu.js) */}
+              {[0, 1, 2, 3].map(n => (
                 <button type="button" key={n} className="slot" data-item="none" aria-disabled="true" data-desc="還沒有取得的道具。說不定哪天會在店裡撿到……"><span className="q" aria-hidden="true">?</span><span>？？？</span></button>
               ))}
+            </div>
+            <div className="slots off" role="tabpanel" data-tab="gear">
+              <button type="button" className="slot equip lit" id="tagSlot" data-item="tag" data-desc="以半數壽命為代價，向死神換來的漆黑契約之眼。據說在它的注視下，無人能隱藏自己的真名——包括那位泡咖啡的男人。"><PixelArt rows={ICON_EYE} /><span>死神之眼</span><span className="badge" aria-label="裝備中" /></button>
+              <button type="button" className="slot equip" id="remoteSlot" data-item="remote" data-desc="封印著「極寒之息」的白色聖器。唯有被選中之人才能駕馭——裝備之後，它將在畫面右側顯現，號令這間店的風與溫度。"><PixelArt rows={ICON_REMOTE} /><span>冷氣遙控</span><span className="badge" aria-label="裝備中" /></button>
+              {/* seven ？？？ slots, for the gear not found yet */}
+              {[0, 1, 2, 3, 4, 5, 6].map(n => (
+                <button type="button" key={n} className="slot" data-item="none" aria-disabled="true" data-desc="還沒有取得的裝備。說不定哪天會在店裡撿到……"><span className="q" aria-hidden="true">?</span><span>？？？</span></button>
+              ))}
+            </div>
             </div>
             <div className="desc"><p id="itemDesc" aria-live="polite" /><button type="button" className="opt use" id="itemUse">使用</button></div>
           </div>

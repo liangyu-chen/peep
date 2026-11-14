@@ -75,6 +75,9 @@ const SOUNDS = {
   buzz: () => tone(118, 120, 0.5, { type: 'sawtooth', vol: 0.025 }),
   beep: () => tone(2093, 2093, 0.05, { type: 'sine', vol: 0.06 }),   // the AC remote's little chirp
   shutter: () => { noise(0.04, { freq: 2600, vol: 0.16, type: 'highpass' }); noise(0.06, { freq: 1800, vol: 0.12, type: 'highpass', at: 0.07 }); },   // the phone's camera
+  // 時間停止器: the button's clack, then everything winding down to nothing (and, let go, winding back up)
+  timeStop: () => { noise(0.05, { freq: 2200, vol: 0.18 }); tone(1600, 1600, 0.04, { vol: 0.08 }); tone(880, 55, 0.9, { type: 'sawtooth', vol: 0.07, at: 0.06 }); tone(1320, 80, 0.9, { type: 'sine', vol: 0.06, at: 0.06 }); noise(0.9, { freq: 600, vol: 0.06, type: 'lowpass', at: 0.06 }); },
+  timeGo: () => { noise(0.05, { freq: 2200, vol: 0.18 }); tone(70, 880, 0.5, { type: 'sawtooth', vol: 0.06, at: 0.05 }); tone(110, 1320, 0.5, { type: 'sine', vol: 0.05, at: 0.05 }); },
   get: () => tune([784, 988, 1175, 1568, 1976], 0.07, { vol: 0.07 }),   // an item picked up: the RPG's rising jingle
 };
 

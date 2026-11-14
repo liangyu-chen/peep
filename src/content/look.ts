@@ -9,6 +9,7 @@
 // face from a stable pick by name). Anything the editor doesn't know is kept as it is.
 export type Look = {
   skin: number; hair: number; hairStyle: string; shirt: number; pants: number;
+  body?: string;                                                               // 身體: 男 or 女
   build?: string;                                                              // 身形
   height?: string;                                                             // 身高
   faceShape?: string; eyes?: string; eyeColor?: number; brows?: string; nose?: string; mouth?: string;
@@ -25,7 +26,7 @@ export type Look = {
   watchFace?: string; watchDial?: number;                                      // and its face: hands, digital or a smartwatch, and the face's colour
   tattoos?: Record<string, string>; tattooText?: string;                       // a style per part (older looks: tattoo + tattooCover)
   companion?: string;
-  topStyle?: string; topPattern?: string; topFit?: string; longSleeve?: boolean; number?: string;   // T恤, 襯衫 or a winter top, its cut, its sleeves
+  topStyle?: string; topPattern?: string; topFit?: string; longSleeve?: boolean; sleeveless?: boolean; number?: string;   // T恤, 襯衫 or a winter top, its cut, its sleeves
   coatInner?: number; necktie?: string; necktieColor?: number;                 // 西裝外套: the colour of what's worn beneath (a tee or a shirt), and the shirt's tie
   bottom?: string; pantsFit?: string;                                          // pants, shorts or a skirt (in the pants colour), and how wide
   shoeStyle?: string; shoe?: number; socks?: string; sock?: number;
@@ -39,6 +40,9 @@ const pickIn = (opts: Option[], v: unknown, fallback: string) => (isIn(opts, v) 
 
 // ================================================================ 身形與臉
 
+// 身體: a man's or a woman's (hers drawn in at the waist, with a bust); older looks, with none, a man's
+export const BODIES: Option[] = [{ value: 'male', label: '男' }, { value: 'female', label: '女' }];
+export const bodyOf = (look: Look) => pickIn(BODIES, look.body, 'male');
 // 身形: five builds, thin to heavy
 export const BUILDS: Option[] = [{ value: 'thin', label: '瘦' }, { value: 'slim', label: '偏瘦' }, { value: 'regular', label: '標準' }, { value: 'stocky', label: '壯' }, { value: 'heavy', label: '胖' }];
 export const buildOf = (look: Look) => pickIn(BUILDS, look.build, 'regular');
@@ -271,6 +275,9 @@ export const CLOTHES: Record<'style' | 'pattern' | 'bottom' | 'fit' | 'top' | 's
   // what the top is; the winter ones (帽T and the jackets) always have long sleeves
   style: [
     { value: 'tee', label: 'T恤' }, { value: 'shirt', label: '襯衫' },
+    // 短版上衣: a tee cut short, the midriff bare; 洋裝: a long dress, a tee-cut top and a straight skirt to below the
+    // knee in one, in the top's colour and pattern; worn over whatever bottom is picked (三角內褲: bare legs beneath)
+    { value: 'crop', label: '短版上衣' }, { value: 'dress', label: '洋裝' },
     { value: 'hoodie', label: '帽T' }, { value: 'jacket', label: '夾克外套' }, { value: 'coat', label: '西裝外套(T恤)' }, { value: 'suit', label: '西裝外套(襯衫)' }, { value: 'varsity', label: '棒球外套' },
     { value: 'denim', label: '牛仔外套' },
   ],
@@ -283,10 +290,11 @@ export const CLOTHES: Record<'style' | 'pattern' | 'bottom' | 'fit' | 'top' | 's
     { value: 'p_mountain', label: '印花・山景' }, { value: 'p_smile', label: '印花・笑臉' }, { value: 'p_wave', label: '印花・浪花' },
     { value: 'p_logo', label: '印花・字樣' },
   ],
-  bottom: [{ value: 'pants', label: '長褲' }, { value: 'jeans', label: '牛仔褲' }, { value: 'shorts', label: '短褲' }, { value: 'skirt', label: '裙子' }],
-  fit: [{ value: 'slim', label: '窄' }, { value: 'regular', label: '一般' }, { value: 'wide', label: '寬' }],
+  bottom: [{ value: 'pants', label: '長褲' }, { value: 'jeans', label: '牛仔褲' }, { value: 'shorts', label: '短褲' }, { value: 'skirt', label: '裙子' }, { value: 'briefs', label: '三角內褲' }],
+  // (stored values kept as they were: slim and regular now read 合身 and 窄; loose is the new 一般, between them and wide)
+  fit: [{ value: 'slim', label: '合身' }, { value: 'regular', label: '窄' }, { value: 'loose', label: '一般' }, { value: 'wide', label: '寬' }],
   top: [{ value: 'slim', label: '合身' }, { value: 'regular', label: '一般' }, { value: 'oversize', label: '寬鬆' }],
-  sleeve: [{ value: 'short', label: '短袖' }, { value: 'long', label: '長袖' }],
+  sleeve: [{ value: 'none', label: '無袖' }, { value: 'short', label: '短袖' }, { value: 'long', label: '長袖' }],
 };
 export const WINTER_TOPS = ['hoodie', 'jacket', 'coat', 'suit', 'varsity', 'denim'];
 // under a blazer (西裝外套): a tee or a shirt, in one colour picked for either; left unpicked, the tee a knit dark under
@@ -305,8 +313,9 @@ export function clothesOf(look: Look): { style: string; pattern: string; bottom:
   const style = pickIn(CLOTHES.style, look.topStyle, 'tee');
   return {
     style, pattern: pickIn(CLOTHES.pattern, look.topPattern, 'none'),
-    bottom: pickIn(CLOTHES.bottom, look.bottom, 'pants'), fit: pickIn(CLOTHES.fit, look.pantsFit, 'regular'),
-    top: pickIn(CLOTHES.top, look.topFit, 'regular'), sleeve: look.longSleeve || WINTER_TOPS.includes(style) ? 'long' : 'short',
+    // (a dress over a skirt is its old way of being stored, from when a dress always came with bare legs: bare legs still)
+    bottom: (b => (style === 'dress' && b === 'skirt' ? 'briefs' : b))(pickIn(CLOTHES.bottom, look.bottom, 'pants')), fit: pickIn(CLOTHES.fit, look.pantsFit, 'regular'),
+    top: pickIn(CLOTHES.top, look.topFit, 'regular'), sleeve: look.longSleeve || WINTER_TOPS.includes(style) ? 'long' : look.sleeveless ? 'none' : 'short',
   };
 }
 
@@ -387,7 +396,7 @@ export function parseLook(get: (k: string) => string | null, prev?: Look): Look 
     ...base,
     // 身形與臉
     skin: hex('skin', base.skin), eyeColor: hex('eyeColor', face.eyeColor), blush: get('blush') === 'on',
-    build: one('build', BUILDS, buildOf(base)), height: one('height', HEIGHTS, heightOf(base)),
+    body: one('body', BODIES, bodyOf(base)), build: one('build', BUILDS, buildOf(base)), height: one('height', HEIGHTS, heightOf(base)),
     faceShape: one('faceShape', FACE.faceShape, face.faceShape), eyes: one('eyes', FACE.eyes, face.eyes), brows: one('brows', FACE.brows, face.brows),
     nose: one('nose', FACE.nose, face.nose), mouth: one('mouth', FACE.mouth, face.mouth),
     facialHair: one('facialHair', FACE.facialHair, face.facialHair), beard: one('beard', FACE.beard, face.beard),
@@ -408,7 +417,7 @@ export function parseLook(get: (k: string) => string | null, prev?: Look): Look 
     tattoos: Object.fromEntries(TATTOO_PARTS.map(p => [p.value, get('tat_' + p.value) ?? inked[p.value]] as const).filter((e): e is [string, string] => tatStyle(e[1]))),
     companion: one('companion', COMPANIONS, companionOf(base)),
     // 穿著
-    shirt: hex('shirt', base.shirt), topStyle: one('topStyle', CLOTHES.style, clothes.style), topPattern: one('topPattern', CLOTHES.pattern, clothes.pattern), topFit: one('topFit', CLOTHES.top, clothes.top), longSleeve: one('sleeve', CLOTHES.sleeve, clothes.sleeve) === 'long',
+    shirt: hex('shirt', base.shirt), topStyle: one('topStyle', CLOTHES.style, clothes.style), topPattern: one('topPattern', CLOTHES.pattern, clothes.pattern), topFit: one('topFit', CLOTHES.top, clothes.top), longSleeve: one('sleeve', CLOTHES.sleeve, clothes.sleeve) === 'long', sleeveless: one('sleeve', CLOTHES.sleeve, clothes.sleeve) === 'none',
     pants: hex('pants', base.pants), bottom: one('bottom', CLOTHES.bottom, clothes.bottom), pantsFit: one('pantsFit', CLOTHES.fit, clothes.fit),
     shoeStyle: one('shoeStyle', SHOE_STYLES, shoe.style), shoe: hex('shoe', shoe.color),
     socks: one('socks', SOCKS, socks.style), sock: hex('sock', socks.color),
