@@ -842,7 +842,8 @@ const CROP = 0.9, CROP_EASE = 0.03;
 const CROP_TUCK_X = 0.925, CROP_TUCK_Z = 0.925, CROP_TUCK_TO = 0.82;
 const cutOf = (fit, style) => {
   const F = TOP_FITS[fit] || TOP_FITS.regular, O = OUTER[style];
-  if (style === 'crop') return { ...F, drop: 0, flare: 0, crop: CROP };
+  // (a bikini top: bare from just under the bust down, the body below it fitted into high-waisted pants as a crop top's is)
+  if (style === 'crop' || style === 'bra') return { ...F, drop: 0, flare: 0, crop: CROP };
   // (a dress: one piece, hanging straight down from the bust, none of her waist drawn in under it)
   if (style === 'dress') return { ...F, drop: 0, waist: 0 };
   return O ? { ...F, w: F.w * O.w, d: F.d * O.d, drop: F.drop + O.drop, s: F.s * O.s, flare: F.flare + O.flare, slit: O.slit || 0, slitTop: O.slitTop || 0, waist: F.waist * 0.5, bust: F.bust * 0.75 } : F;   // (thick cloth: less of her shape shows)
@@ -888,7 +889,7 @@ const torsoRows = (fit, style, fem = false) => {
 // how far round from the front the U reaches on a slice (0 below it); the slice's points are laid out so one falls
 // exactly on each side of the U, and the skin inside it is the second material
 const uAngle = (y, rx) => y < UNECK.bot - 1e-4 ? 0 : rx < 1e-4 ? Math.PI / 2 : Math.asin(Math.min(1, uHalf(y) / rx));
-const torsoGeo = (fit = 'regular', style = 'tee', fem = false) => geo(`torso37:${fit}:${style}:${fem}`, () => {
+const torsoGeo = (fit = 'regular', style = 'tee', fem = false) => geo(`torso38:${fit}:${style}:${fem}`, () => {
   const N = 48, M = 12, pos = [], idx = [], skinIdx = [];
   const rows = torsoRows(fit, style, fem), F = cutOf(fit, style);
   rows.forEach(([y, rx, rz]) => {
@@ -1375,7 +1376,8 @@ function buildBodyAt(look, seed) {
   // line round the tops of the legs, like briefs)
   // under a crop top, whatever's worn below is high-waisted: the pants' own top carried on up over the bare skin to RISE
   // above the hips, close round the body (a woman's waist too), so less of the midriff shows
-  const RISE = 0.11, highWaist = clothesOf(look).style === 'crop' && !briefs, femB = femS;
+  // (a bikini top bares the midriff just as a crop top does: worn the same way, high-waisted)
+  const RISE = 0.11, highWaist = (clothesOf(look).style === 'crop' || clothesOf(look).style === 'bra') && !briefs, femB = femS;
   const riseRows = highWaist && torsoRows(clothesOf(look).top, 'crop', femS);
   const riseAt = y => { for (let i = 1; i < riseRows.length; i++) if (riseRows[i][0] >= y) { const [ya, xa, za] = riseRows[i - 1], [yb, xb, zb] = riseRows[i], t = (y - ya) / (yb - ya || 1); return [xa + (xb - xa) * t, za + (zb - za) * t].map(r => r * 1.012 + 0.003); }
     // (below the torso's last slice: on down a woman's waist and hips, not straight)
@@ -1576,7 +1578,7 @@ function buildBodyAt(look, seed) {
     const back = (x, y, off = 0.003) => new THREE.Vector3(x, y, backZ(x, y) - off);
     const cloth = patterned(mat(C.shirt, { roughness: 0.85 }), pattern, C.shirt); cloth.side = THREE.DoubleSide;
     const trim = mat(shade(C.shirt, 0.72), { roughness: 0.9, side: THREE.DoubleSide });
-    const patch = (key, outline) => mk(geo(`brapatch:${key}:${topFit}:${fem}`, () => {
+    const patch = (key, outline) => mk(geo(`brapatch2:${key}:${topFit}:${fem}`, () => {
       const tris = THREE.ShapeUtils.triangulateShape(outline.map(([x, y]) => new THREE.Vector2(x, y)), []);
       const pos = [], idx = [], seen = new Map();
       const vert = ([x, y]) => { const k = `${x.toFixed(4)},${y.toFixed(4)}`; if (!seen.has(k)) { seen.set(k, pos.length / 3); const p = front(x, y, 0.004); pos.push(p.x, p.y, p.z); } return seen.get(k); };
@@ -1591,7 +1593,7 @@ function buildBodyAt(look, seed) {
       });
       const pg = new THREE.BufferGeometry(); pg.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); pg.setIndex(idx); pg.computeVertexNormals(); return pg;
     }), cloth, 0, 0, 0, g, false);
-    const edge = (key, pts) => mk(geo(`braedge:${key}:${topFit}:${fem}`, () => {
+    const edge = (key, pts) => mk(geo(`braedge2:${key}:${topFit}:${fem}`, () => {
       const fine = [];
       for (let i = 0; i < pts.length; i++) {
         const [x0, y0] = pts[i], [x1, y1] = pts[(i + 1) % pts.length], n = Math.max(1, Math.ceil(Math.hypot(x1 - x0, y1 - y0) / 0.008));
@@ -1599,25 +1601,30 @@ function buildBodyAt(look, seed) {
       }
       return new THREE.TubeGeometry(new THREE.CatmullRomCurve3(fine, true, 'centripetal'), fine.length * 2, 0.0017, 5, true);
     }), trim, 0, 0, 0, g, false);
-    const cup = [[0.018, 1.15], [0.118, 1.115], [0.132, 1.065], [0.078, 0.995], [0.032, 1.028]];
+    // a triangle bikini top: a soft triangle over each breast, its point up under the strap, side by side in the middle;
+    // a string from each point up round the back of the neck (a halter), and one from each outer corner round the back
+    const cup = [[0.014, 0.996], [0.128, 0.998], [0.068, 1.138]];
     for (const s of [-1, 1]) {
       const outline = s > 0 ? cup.map(([x, y]) => [s * x, y]) : cup.map(([x, y]) => [s * x, y]).reverse();
-      patch(`cup${s}`, outline); edge(`cup${s}`, outline);
+      patch(`tri${s}`, outline); edge(`tri${s}`, outline);
     }
-    const bandY = 1.005, band = [];
-    for (let k = 0; k <= 72; k++) {
-      const t = Math.PI * 2 * k / 72, [rx, rz] = slice(bandY), x = Math.sin(t) * rx, z = Math.cos(t) * rz + (Math.cos(t) > 0 ? bustAt(x, bandY, TF, fem) : 0), out = new THREE.Vector3(x, 0, z).normalize();
-      band.push(new THREE.Vector3(x, bandY, z).addScaledVector(out, 0.003));
-    }
-    mk(geo(`braband:${topFit}:${fem}`, () => new THREE.TubeGeometry(new THREE.CatmullRomCurve3(band, true, 'centripetal'), 144, 0.0032, 5, true)), trim, 0, 0, 0, g, false);
+    // (the halter: from the point of each cup up over the collarbone and round the side of the neck to meet behind it)
+    const neckBack = new THREE.Vector3(0, 1.262, -0.058);
     for (const s of [-1, 1]) {
-      const pts = [
-        front(s * 0.118, 1.115, 0.004), front(s * 0.115, 1.17, 0.004), front(s * 0.109, 1.22, 0.004), front(s * 0.105, 1.238, 0.004),
-        new THREE.Vector3(s * 0.105, 1.255, 0), back(s * 0.105, 1.238, 0.004), back(s * 0.108, 1.20, 0.004), back(s * 0.112, 1.10, 0.004), back(s * 0.12, 1.015, 0.004),
-      ];
-      mk(geo(`brastrap:${s}:${topFit}:${fem}`, () => new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts, false, 'centripetal'), 128, 0.0024, 5, false)), trim, 0, 0, 0, g, false);
+      const pts = [front(s * 0.068, 1.138, 0.005), front(s * 0.064, 1.18, 0.005), front(s * 0.06, 1.215, 0.005), new THREE.Vector3(s * 0.064, 1.252, 0.03), new THREE.Vector3(s * 0.062, 1.262, -0.022), new THREE.Vector3(s * 0.03, 1.264, -0.052), neckBack];
+      mk(geo(`brahalter:${s}:${topFit}:${fem}`, () => new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts, false, 'centripetal'), 64, 0.0022, 5, false)), trim, 0, 0, 0, g, false);
     }
-    const knot = front(0, 1.035, 0.006); mk(sp(0.008, 8, 6), trim, knot.x, knot.y, knot.z, g, false);
+    // (the band: from each cup's outer corner round the back, just under the bust, tied in the middle of the back)
+    const bandY = 0.997, [brx, brz] = slice(bandY), a0 = Math.atan2(0.128, frontZ(0.128, bandY)), band = [];
+    for (let k = 0; k <= 64; k++) {
+      const t = a0 + (Math.PI * 2 - 2 * a0) * k / 64, x = Math.sin(t) * brx, z = Math.cos(t) * brz + (Math.cos(t) > 0 ? bustAt(x, bandY, TF, fem) : 0), out = new THREE.Vector3(x, 0, z).normalize();
+      band.push(new THREE.Vector3(x, bandY, z).addScaledVector(out, 0.004));
+    }
+    mk(geo(`braband2:${topFit}:${fem}`, () => new THREE.TubeGeometry(new THREE.CatmullRomCurve3(band, false, 'centripetal'), 128, 0.0026, 5, false)), trim, 0, 0, 0, g, false);
+    // (the ties: a little bow behind the neck and in the middle of the back)
+    for (const [p, k] of [[neckBack, 'n'], [new THREE.Vector3(0, bandY, -brz - 0.006), 'b']]) for (const s of [-1, 1]) {
+      const loop = mk(geo('brabow', () => new THREE.TorusGeometry(0.009, 0.0022, 5, 12)), trim, p.x + s * 0.008, p.y, p.z - 0.002, g, false); loop.scale.set(1, 0.6, 1);
+    }
   }
   if (topStyle === 'tee' || topStyle === 'crop' || topStyle === 'dress') mk(neckRibGeo(topFit, topStyle), shirtDark, 0, 0, 0, g, false);   // a U neck, edged with a rolled rib (a shirt's collar sits there instead)
   // the turned-down collar: a shirt's, and (bigger, its points broader) a jacket's
@@ -2103,9 +2110,22 @@ function buildBodyAt(look, seed) {
     const light = new THREE.Color(look.shirt).getHSL({}).l > 0.6;
     const t = canvasTex(32, 32, (c) => { c.fillStyle = light ? '#222' : '#fff'; c.font = `16px ${PIX}`; c.textAlign = 'center'; c.fillText(look.number, 16, 24); }, true);
     const numM = new THREE.MeshBasicMaterial({ map: t, transparent: true });
-    const nz = 0.147 * TF.d + 0.004, ny = 0.98 - TF.drop * 0.3;
-    const front = new THREE.Mesh(new THREE.PlaneGeometry(0.19, 0.19), numM); front.position.set(0, ny, nz); g.add(front);
-    const back = front.clone(); back.position.z = -nz; back.rotation.y = Math.PI; back.scale.setScalar(1.3); g.add(back);
+    // (laid on the cloth itself, curving round it, out over a woman's bust in front: a flat card at a fixed depth was
+    // sunk inside her bust and hidden by it)
+    const ny = 0.98 - TF.drop * 0.3, nRows = torsoRows(topFit, topStyle, fem);
+    const nSlice = y => { for (let i = 1; i < nRows.length; i++) if (nRows[i][0] >= y) { const [y0, x0, z0] = nRows[i - 1], [y1, x1, z1] = nRows[i], t = (y - y0) / (y1 - y0 || 1); return [x0 + (x1 - x0) * t, z0 + (z1 - z0) * t]; } return nRows[nRows.length - 1].slice(1); };
+    const numPatch = (sgn, size) => {
+      const S = 10, pp = [], uv = [], ix = [];
+      for (let r = 0; r <= S; r++) for (let c = 0; c <= S; c++) {
+        const u = c / S, v = r / S, x = (u - 0.5) * size * sgn, y = ny + (v - 0.5) * size, [rx, rz] = nSlice(y), k = Math.sqrt(Math.max(0, 1 - (x / rx) ** 2));
+        const z = sgn > 0 ? rz * k + bustAt(x, y, TF, fem) + 0.004 : -rz * k - buttAt(x, y, fem) - 0.004;
+        pp.push(x, y, z); uv.push(u, v);
+      }
+      for (let r = 0; r < S; r++) for (let c = 0; c < S; c++) { const a = r * (S + 1) + c, b2 = a + S + 1; ix.push(a, a + 1, b2, a + 1, b2 + 1, b2); }
+      const ng = new THREE.BufferGeometry(); ng.setAttribute('position', new THREE.Float32BufferAttribute(pp, 3)); ng.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); ng.setIndex(ix); ng.computeVertexNormals();
+      return mk(ng, numM, 0, 0, 0, g, false);
+    };
+    const front = numPatch(1, 0.19), back = numPatch(-1, 0.19 * 1.3);
     if (bigPrint) front.visible = false;   // (a tee with a picture on its chest keeps the number on its back only)
   }
   if (look.apron) mk(bx(0.38, 0.6, 0.02), mat(picked(look.apron)), 0, 0.8, 0.15);
