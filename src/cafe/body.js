@@ -161,7 +161,12 @@ const PATTERNS = Object.keys(PATTERN_BODY).filter(k => k !== 'denim');
 // and some sportswear-style logos, played with rather than copied:
 //   p_sip 勾勾 (a coffee-spill swoosh, JUST SIP IT) · p_drip 三條線 (three bars melting: adidrip) ·
 //   p_pom 跳跳狗 (a leaping Pomeranian: POMA) · p_moth 蝴蝶 (a butterfly with noodle wings: Noodles) ·
-//   p_box 紅框字 (a red box: Superme)
+//   p_box 紅框字 (a red box: Superme) · p_nap 睡臉 (a dome of arcs, asleep: THE NAP FACE) ·
+//   p_chomp 咬一口C (a two-colour C with a bite out of it: Chomp) · p_star 星星 (a star in a ring: CONVERSATION)
+// and two from round here: p_boba 珍奶 (a cup of bubble tea) · p_cooker 電鍋 (the red rice cooker)
+// and some like a UT's (art, games and comics on a tee): p_pop 普普咖啡 (four cups, pop-art colours) ·
+//   p_dance 跳舞小人 (two bold-outlined figures dancing) · p_pixel 像素熊 (a pixel bear: PRESS START) ·
+//   p_manga 漫畫咚 (speed lines and a burst: 咚！) · p_stamp 台北郵票 (a stamp with the 101 on it)
 const PRINT_TEX = {};
 function printTex(kind, light) {
   const key = `${kind}:${light}`;
@@ -287,11 +292,124 @@ function printTex(kind, light) {
       g.fillStyle = '#d1232a'; g.fillRect(16, 92, 224, 76);
       g.fillStyle = '#ffffff'; g.font = 'italic 900 48px "Arial Black", Arial, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('Superme', cx, 132, 208);
       g.textBaseline = 'alphabetic';
+    } else if (kind === 'p_nap') {
+      // three arcs stacked into a dome, the inside one a sleeping face, and its Zz
+      g.strokeStyle = ink; g.lineWidth = 11; g.lineCap = 'butt';
+      for (const r of [84, 64, 44]) { g.beginPath(); g.arc(cx, 156, r, Math.PI, 0); g.stroke(); }
+      g.lineWidth = 4; g.lineCap = 'round';
+      for (const dx of [-14, 14]) { g.beginPath(); g.arc(cx + dx, 136, 7, 0.15 * Math.PI, 0.85 * Math.PI); g.stroke(); }   // eyes shut
+      g.fillStyle = ink; g.font = 'bold 22px "Arial Black", Arial, sans-serif'; g.textAlign = 'left'; g.fillText('z', 196, 70); g.font = 'bold 30px "Arial Black", Arial, sans-serif'; g.fillText('Z', 212, 46);
+      g.fillRect(28, 166, 200, 6);
+      text('THE NAP FACE', 210, 30);
+    } else if (kind === 'p_chomp') {
+      // a thick C, half blue half red, with a bite taken out of its top
+      g.lineCap = 'butt'; g.lineWidth = 36;
+      g.strokeStyle = '#1d428a'; g.beginPath(); g.arc(cx, 112, 62, 0.28 * Math.PI, Math.PI); g.stroke();
+      g.strokeStyle = '#d1232a'; g.beginPath(); g.arc(cx, 112, 62, Math.PI, 1.72 * Math.PI); g.stroke();
+      g.globalCompositeOperation = 'destination-out';
+      for (const [x, y] of [[164, 42], [182, 52], [194, 68]]) { g.beginPath(); g.arc(x, y, 13, 0, Math.PI * 2); g.fill(); }   // the bite
+      g.globalCompositeOperation = 'source-over';
+      g.fillStyle = ink; g.font = 'italic bold 50px Georgia, "Times New Roman", serif'; g.textAlign = 'center'; g.fillText('Chomp', cx, 230);
+    } else if (kind === 'p_star') {
+      // a red star in a ring, the words round it straight across top and bottom
+      g.strokeStyle = ink; g.lineWidth = 8; g.beginPath(); g.arc(cx, 128, 104, 0, Math.PI * 2); g.stroke();
+      g.lineWidth = 3; g.beginPath(); g.arc(cx, 128, 92, 0, Math.PI * 2); g.stroke();
+      g.fillStyle = '#d1232a'; g.beginPath();
+      for (let k = 0; k < 10; k++) { const a = -Math.PI / 2 + k * Math.PI / 5, r = k % 2 ? 22 : 54; g.lineTo(cx + Math.cos(a) * r, 130 + Math.sin(a) * r); }
+      g.fill();
+      text('ALL DAY', 70, 18); text('CONVERSATION', 202, 14);
+    } else if (kind === 'p_boba') {
+      // a cup of bubble tea: milk tea, the pearls at the bottom, a domed lid and a fat pink straw (no words)
+      g.save(); g.translate(0, 18);
+      g.strokeStyle = '#e8508a'; g.lineWidth = 14; g.lineCap = 'round'; g.beginPath(); g.moveTo(144, 76); g.lineTo(162, 14); g.stroke();
+      g.fillStyle = '#d9b48a'; g.strokeStyle = '#2a2623'; g.lineWidth = 6;
+      g.beginPath(); g.moveTo(76, 76); g.lineTo(180, 76); g.lineTo(164, 208); g.lineTo(92, 208); g.closePath(); g.fill(); g.stroke();
+      g.fillStyle = '#2a1a12';
+      for (const [x, y] of [[100, 196], [116, 198], [132, 197], [148, 196], [108, 184], [124, 186], [140, 184], [156, 186], [96, 172], [118, 174], [146, 172]]) { g.beginPath(); g.arc(x, y, 7, 0, Math.PI * 2); g.fill(); }
+      g.fillStyle = '#f3eee4'; g.beginPath(); g.ellipse(cx, 76, 56, 12, 0, 0, Math.PI * 2); g.fill(); g.stroke();
+      g.restore();
+    } else if (kind === 'p_cooker') {
+      // the red rice cooker every home has: a round body on short feet, a domed lid and its knob, side handles, the switch (no words)
+      g.save(); g.translate(0, 20);
+      g.strokeStyle = '#2a2623'; g.lineWidth = 5;
+      g.fillStyle = '#2a2623'; g.fillRect(52, 112, 14, 22); g.fillRect(190, 112, 14, 22);   // handles
+      g.fillStyle = '#c8323a'; g.beginPath(); g.moveTo(64, 98); g.lineTo(192, 98); g.lineTo(186, 190); g.quadraticCurveTo(cx, 202, 70, 190); g.closePath(); g.fill(); g.stroke();
+      g.beginPath(); g.ellipse(cx, 98, 66, 28, 0, Math.PI, 0); g.closePath(); g.fill(); g.stroke();   // the lid
+      g.fillStyle = '#2a2623'; g.beginPath(); g.ellipse(cx, 68, 14, 7, 0, 0, Math.PI * 2); g.fill();     // its knob
+      g.fillStyle = '#f3eee4'; g.fillRect(108, 136, 40, 30); g.strokeRect(108, 136, 40, 30);             // the panel
+      g.fillStyle = '#2a2623'; g.fillRect(122, 144, 12, 16);                                              // and the switch
+      g.fillRect(80, 196, 16, 8); g.fillRect(160, 196, 16, 8);                                            // feet
+      g.restore();
+    } else if (kind === 'p_pop') {
+      // four squares in loud colours, the same coffee cup in each in another
+      [['#f4d03f', '#e8508a'], ['#3fb6e8', '#f4d03f'], ['#e8508a', '#2a2623'], ['#7bd36a', '#3a49c9']].forEach(([bg, fg], i) => {
+        const x = 26 + (i % 2) * 104, y = 26 + Math.floor(i / 2) * 104;
+        g.fillStyle = bg; g.fillRect(x, y, 100, 100);
+        g.fillStyle = fg; g.strokeStyle = fg; g.lineWidth = 7;
+        g.beginPath(); g.moveTo(x + 24, y + 34); g.lineTo(x + 70, y + 34); g.lineTo(x + 64, y + 82); g.lineTo(x + 30, y + 82); g.closePath(); g.fill();
+        g.beginPath(); g.arc(x + 72, y + 54, 11, -Math.PI / 2, Math.PI / 2); g.stroke();
+        g.lineWidth = 4; for (const dx of [36, 50]) { g.beginPath(); g.moveTo(x + dx, y + 26); g.quadraticCurveTo(x + dx - 6, y + 18, x + dx, y + 10); g.stroke(); }   // steam
+      });
+    } else if (kind === 'p_dance') {
+      // two figures dancing, thick black outlines round flat colour, little lines of motion all round them
+      const fig = (x, col, flip) => {
+        const path = () => {
+          g.beginPath(); g.moveTo(x, 96); g.lineTo(x + flip * 6, 150);                              // body
+          g.moveTo(x, 106); g.lineTo(x - 32, 74); g.moveTo(x, 106); g.lineTo(x + 30 * flip, 128);   // arms, one up one out
+          g.moveTo(x + flip * 6, 150); g.lineTo(x - 22, 196); g.moveTo(x + flip * 6, 150); g.lineTo(x + 30, 186);   // legs
+        };
+        g.lineCap = 'round'; g.lineJoin = 'round';
+        g.strokeStyle = '#1a1a1a'; g.lineWidth = 26; path(); g.stroke(); g.beginPath(); g.arc(x, 72, 22, 0, Math.PI * 2); g.fillStyle = '#1a1a1a'; g.fill();
+        g.strokeStyle = col; g.lineWidth = 15; path(); g.stroke(); g.beginPath(); g.arc(x, 72, 15, 0, Math.PI * 2); g.fillStyle = col; g.fill();
+      };
+      fig(cx - 52, '#e8433a', 1); fig(cx + 52, '#f4c430', -1);
+      g.strokeStyle = ink; g.lineWidth = 5; g.lineCap = 'round';
+      for (const [x, y, a] of [[30, 50, -2.4], [40, 110, 3.1], [230, 60, -0.6], [226, 120, 0], [cx, 34, -1.57], [cx - 18, 40, -1.9], [cx + 18, 40, -1.2], [60, 220, 2.5], [200, 222, 0.6]]) {
+        g.beginPath(); g.moveTo(x, y); g.lineTo(x + Math.cos(a) * 14, y + Math.sin(a) * 14); g.stroke();
+      }
+    } else if (kind === 'p_pixel') {
+      // a bear's face in big pixels, as on an old game's title screen
+      const map = ['..XX........XX..', '.XOOX......XOOX.', '.XOOXXXXXXXXOOX.', '..XOOOOOOOOOOX..', '.XOOOOOOOOOOOOX.', '.XOOEOOOOOOEOOX.',
+        '.XOOEOOOOOOEOOX.', '.XOOOOOMMOOOOOX.', '.XOPOOMNNMOOPOX.', '.XOOOOOMMOOOOOX.', '..XOOOOOOOOOOX..', '...XXXXXXXXXX...'];
+      const col = { X: '#2a2623', O: '#c98a4b', E: '#2a2623', M: '#f3dcb8', N: '#2a2623', P: '#f08a9a' }, cell = 13, x0 = cx - 8 * cell, y0 = 34;
+      map.forEach((row, r) => [...row].forEach((ch, c) => { if (col[ch]) { g.fillStyle = col[ch]; g.fillRect(x0 + c * cell, y0 + r * cell, cell, cell); } }));
+      g.fillStyle = ink; g.font = 'bold 22px "Courier New", monospace'; g.textAlign = 'center'; g.fillText('▶ PRESS START', cx, 222);
+    } else if (kind === 'p_manga') {
+      // a comic panel: speed lines rushing in to a burst, a big sound in it
+      g.fillStyle = ink;
+      for (let k = 0; k < 40; k++) {
+        const a = k / 40 * Math.PI * 2 + (k % 3) * 0.02, r0 = 70 + (k % 4) * 8, w = 0.035;
+        g.beginPath(); g.moveTo(cx + Math.cos(a) * r0, 128 + Math.sin(a) * r0);
+        g.lineTo(cx + Math.cos(a - w) * 180, 128 + Math.sin(a - w) * 180); g.lineTo(cx + Math.cos(a + w) * 180, 128 + Math.sin(a + w) * 180); g.fill();
+      }
+      g.globalCompositeOperation = 'destination-in'; g.fillRect(14, 14, 228, 228); g.globalCompositeOperation = 'source-over';
+      g.strokeStyle = ink; g.lineWidth = 5; g.strokeRect(14, 14, 228, 228);                    // the panel's frame
+      g.fillStyle = '#f3eee4'; g.beginPath();
+      for (let k = 0; k < 24; k++) { const a = k / 24 * Math.PI * 2, r = k % 2 ? 50 : 72; g.lineTo(cx + Math.cos(a) * r * 1.15, 128 + Math.sin(a) * r * 0.9); }
+      g.closePath(); g.fill(); g.lineWidth = 4; g.stroke();
+      g.fillStyle = '#d1232a'; g.font = 'bold 56px "Microsoft JhengHei", "PingFang TC", sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.fillText('咚！', cx + 6, 130); g.textBaseline = 'alphabetic';
+    } else if (kind === 'p_stamp') {
+      // a postage stamp, perforated round its edge: a sky, the 101 standing in it, the city's name and a value
+      g.fillStyle = '#f7f2e6'; g.fillRect(40, 24, 176, 208);
+      g.globalCompositeOperation = 'destination-out';
+      for (let x = 40; x <= 216; x += 16) for (const y of [24, 232]) { g.beginPath(); g.arc(x, y, 6, 0, Math.PI * 2); g.fill(); }
+      for (let y = 24; y <= 232; y += 16) for (const x of [40, 216]) { g.beginPath(); g.arc(x, y, 6, 0, Math.PI * 2); g.fill(); }
+      g.globalCompositeOperation = 'source-over';
+      const sky = g.createLinearGradient(0, 40, 0, 190); sky.addColorStop(0, '#5fa8d8'); sky.addColorStop(1, '#f2c48a');
+      g.fillStyle = sky; g.fillRect(56, 40, 144, 150);
+      g.fillStyle = '#2f5a6e';
+      g.fillRect(122, 44, 4, 22);                                                                 // the spire
+      for (let k = 0; k < 8; k++) { const y = 66 + k * 12; g.beginPath(); g.moveTo(112, y); g.lineTo(136, y); g.lineTo(140, y + 12); g.lineTo(108, y + 12); g.closePath(); g.fill(); }   // its stacked sections
+      g.fillRect(104, 162, 40, 28);
+      g.fillStyle = '#3d6b5a'; g.fillRect(56, 172, 144, 18);                                      // the hills below
+      g.fillStyle = '#2a2623'; g.font = 'bold 20px "Arial Black", Arial, sans-serif'; g.textAlign = 'left'; g.fillText('TAIPEI', 58, 216);
+      g.textAlign = 'right'; g.fillStyle = '#d1232a'; g.fillText('5', 198, 216);
     }
   });
   return (PRINT_TEX[key] = t);
 }
-const PRINTS = ['p_coffee', 'p_cat', 'p_sunset', 'p_mountain', 'p_smile', 'p_wave', 'p_logo', 'p_sip', 'p_drip', 'p_pom', 'p_moth', 'p_box'];
+const PRINTS = ['p_coffee', 'p_cat', 'p_sunset', 'p_mountain', 'p_smile', 'p_wave', 'p_logo', 'p_sip', 'p_drip', 'p_pom', 'p_moth', 'p_box', 'p_nap', 'p_chomp', 'p_star', 'p_boba', 'p_cooker', 'p_pop', 'p_dance', 'p_pixel', 'p_manga', 'p_stamp'];
 function patterned(m, kind, base) {
   if (!PATTERN_BODY[kind]) return m;
   const c = new THREE.Color(base), hsl = c.getHSL({}), light = hsl.l > 0.62;

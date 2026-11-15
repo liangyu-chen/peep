@@ -178,6 +178,8 @@ export const HAT_PRINTS: Option[] = [
   { value: 'none', label: '無' }, { value: 'p_coffee', label: '咖啡杯' }, { value: 'p_cat', label: '貓咪' }, { value: 'p_sunset', label: '夕陽' },
   { value: 'p_mountain', label: '山景' }, { value: 'p_smile', label: '笑臉' }, { value: 'p_wave', label: '浪花' }, { value: 'p_logo', label: '字樣' },
   { value: 'p_sip', label: '勾勾' }, { value: 'p_drip', label: '三條線' }, { value: 'p_pom', label: '跳跳狗' }, { value: 'p_moth', label: '蝴蝶' }, { value: 'p_box', label: '紅框字' },
+  { value: 'p_nap', label: '睡臉' }, { value: 'p_chomp', label: '咬一口C' }, { value: 'p_star', label: '星星' }, { value: 'p_boba', label: '珍奶' }, { value: 'p_cooker', label: '電鍋' },
+  { value: 'p_pop', label: '普普咖啡' }, { value: 'p_dance', label: '跳舞小人' }, { value: 'p_pixel', label: '像素熊' }, { value: 'p_manga', label: '漫畫咚' }, { value: 'p_stamp', label: '台北郵票' },
 ];
 const HAT_COLOR: Record<string, number> = { cap: 0xf08a24, bucket: 0x2f2f2f, beanie: 0xd08a1e, fedora: 0x3a332c, beret: 0x8b1e2d };
 // the hat of a look, reading the older ways hats were stored: as a hairstyle (with its colour in `cap`, short hair
@@ -300,6 +302,12 @@ export const CLOTHES: Record<'style' | 'pattern' | 'bottom' | 'fit' | 'top' | 's
     // sportswear-style logos, played with: a coffee swoosh, melting bars, a leaping Pomeranian, noodle wings, a red box
     { value: 'p_sip', label: '印花・勾勾' }, { value: 'p_drip', label: '印花・三條線' }, { value: 'p_pom', label: '印花・跳跳狗' },
     { value: 'p_moth', label: '印花・蝴蝶' }, { value: 'p_box', label: '印花・紅框字' },
+    { value: 'p_nap', label: '印花・睡臉' }, { value: 'p_chomp', label: '印花・咬一口C' }, { value: 'p_star', label: '印花・星星' },
+    // and two from round here
+    { value: 'p_boba', label: '印花・珍奶' }, { value: 'p_cooker', label: '印花・電鍋' },
+    // and some like a UT's: pop art, a dance, a pixel game, a comic, a stamp
+    { value: 'p_pop', label: '印花・普普咖啡' }, { value: 'p_dance', label: '印花・跳舞小人' }, { value: 'p_pixel', label: '印花・像素熊' },
+    { value: 'p_manga', label: '印花・漫畫咚' }, { value: 'p_stamp', label: '印花・台北郵票' },
   ],
   bottom: [{ value: 'pants', label: '長褲' }, { value: 'jeans', label: '牛仔褲' }, { value: 'shorts', label: '短褲' }, { value: 'skirt', label: '裙子' }, { value: 'briefs', label: '三角內褲' }],
   // (stored values kept as they were: slim and regular now read 合身 and 窄; loose is the new 一般, between them and wide)
