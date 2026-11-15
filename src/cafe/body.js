@@ -1079,7 +1079,7 @@ const torsoRows = (fit, style, fem = false) => {
 // how far round from the front the U reaches on a slice (0 below it); the slice's points are laid out so one falls
 // exactly on each side of the U, and the skin inside it is the second material
 const uAngle = (y, rx) => y < UNECK.bot - 1e-4 ? 0 : rx < 1e-4 ? Math.PI / 2 : Math.asin(Math.min(1, uHalf(y) / rx));
-const torsoGeo = (fit = 'regular', style = 'tee', fem = false) => geo(`torso39:${fit}:${style}:${fem}`, () => {
+const torsoGeo = (fit = 'regular', style = 'tee', fem = false) => geo(`torso41:${fit}:${style}:${fem}`, () => {
   const N = 48, M = 12, pos = [], idx = [], skinIdx = [];
   const rows = torsoRows(fit, style, fem), F = cutOf(fit, style);
   rows.forEach(([y, rx, rz]) => {
@@ -1095,10 +1095,17 @@ const torsoGeo = (fit = 'regular', style = 'tee', fem = false) => geo(`torso39:$
       pos.push(Math.sin(t) * rx, y, Math.cos(t) * rz + (Math.cos(t) > 0 ? bustAt(Math.sin(t) * rx, y, F, fem) : -buttAt(Math.sin(t) * rx, y, fem)));
     }
   });
+  const neckRx = (rows.find(q => q[0] >= UNECK.neck - 1e-4) || rows[rows.length - 1])[1] * 1.015 * 0.92;   // (the shirt collar's ring: see COLLAR)
+  const shirtLine = x => UNECK.neck - 0.028 * Math.max(0, 1 - (x / 0.078) ** 2) * smooth(0, 0.45, Math.sqrt(Math.max(0, 1 - (x / neckRx) ** 2))) + 0.01;
   for (let r = 0; r < rows.length - 1; r++) for (let i = 0; i < N; i++) {
     const a = r * (N + 1) + i, b = a + N + 1;
     if ((i === M / 2 - 1 || i === M / 2) && slitAngle(F, rows[r][0]) > 0) continue;   // (open)
-    const skin = style === 'bra' || (i < M && uAngle(rows[r][0], rows[r][1]) > 0) || rows[r][0] >= UNECK.neck - 1e-4 || (F.crop && rows[r][0] < F.crop - 1e-4);
+    // (襯衫, buttoned to the throat: the body itself cloth right up under the collar, not the tee's bare U with patches of
+    // cloth laid over it, which left skin showing wherever a patch fell short, differently on every build: bare only
+    // above a line just under the collar's top edge, which dips under the throat and eases out to the side of the neck)
+    const xc = (pos[a * 3] + pos[(a + 1) * 3]) / 2, inU = i < M && uAngle(rows[r][0], rows[r][1]) > 0;
+    const bare = style === 'shirt' ? false : inU;   // (cloth right up to the base of the neck all round: one clean ring there, like the collar's band inside it)
+    const skin = style === 'bra' || bare || rows[r][0] >= UNECK.neck - 1e-4 || (F.crop && rows[r][0] < F.crop - 1e-4);
     (skin ? skinIdx : idx).push(a, a + 1, b, b, a + 1, b + 1);
   }
   const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
@@ -1873,13 +1880,21 @@ function buildBodyAt(look, seed) {
     // button (the collar closed up close round the neck, its points nearly meeting: see COLLAR)
     // how far the neckline dips below the neck at x across the front: most under the throat, none by the sides
     const neckDip = x => 0.028 * Math.max(0, 1 - (x / 0.078) ** 2);
+    // (how much of that dip is left at x, easing out to none by the side of the neck: the collar's own seat follows this
+    // (see `wf` below), and so does the cloth filling the neckline under it, right up to the collar all the way round, so
+    // no bare neck shows between the two beside the neck)
+    // (and no higher at x than where the shoulder is still wide enough to carry it: past that it stood off the neck in the air)
+    const onShoulder = (x, y) => { while (y > 1.2 && slice(y)[0] < Math.abs(x) * 1.002) y -= 0.0005; return y; };
+    const dipW = (x, ring = 1) => smooth(0, 0.45, Math.sqrt(Math.max(0, 1 - (x / (slice(UNECK.neck)[0] * 1.015 * ring)) ** 2)));
     if (isShirt) for (const sgn of [-1, 1]) {
       const R = 14, C = 6, fp = [], fi = [];
       for (let r = 0; r <= R; r++) {
-        const y = UNECK.bot - 0.012 + (UNECK.neck - UNECK.bot + 0.012) * r / R;   // (up to the collar)
+        // (and on up inside the collar all the way round, to just under its top edge, as the piece closing the throat is:
+        // the neckline dips in front, and the bare chest above it showed inside the collar, looked at from the side)
+        const y = UNECK.bot - 0.012 + (UNECK.neck + 0.0125 - UNECK.bot + 0.012) * r / R;
         const v = 0.002 + 0.006 * Math.max(0, (y - UNECK.bot + 0.008) / (UNECK.neck - UNECK.bot + 0.008)) ** 0.9, u = uHalf(Math.min(y, UNECK.neck)) + 0.008;
         // (each point no higher than the neckline's curve over it: above that is the throat)
-        for (let c = 0; c <= C; c++) { const x = sgn * (v + (Math.max(u, v + 0.01) - v) * c / C), yy = Math.min(y, UNECK.neck - neckDip(x)); fp.push(x, yy, surfZ(x, yy) + 0.0025); }
+        for (let c = 0; c <= C; c++) { const x = sgn * (v + (Math.max(u, v + 0.01) - v) * c / C), dw = dipW(x, COLLAR.ring || 1), ringR = slice(UNECK.neck)[0] * 1.015 * (COLLAR.ring || 1), yy = onShoulder(x, Math.min(y, UNECK.neck - neckDip(x) * dw + 0.0125 * smooth(ringR, ringR - 0.008, Math.abs(x)))); fp.push(x, yy, surfZ(x, yy) + 0.0025); }
       }
       for (let r = 0; r < R; r++) for (let c = 0; c < C; c++) { const a = r * (C + 1) + c, b = a + C + 1; fi.push(a, a + 1, b, a + 1, b + 1, b); }
       const fg = new THREE.BufferGeometry(); fg.setAttribute('position', new THREE.Float32BufferAttribute(fp, 3)); fg.setIndex(fi); fg.computeVertexNormals();
@@ -2121,12 +2136,13 @@ function buildBodyAt(look, seed) {
     const mirror = pts => pts.map(([x, y]) => [-x, y]).reverse();
     // the U neck closed up with the top's own cloth (or, under a coat, what's worn beneath): from `open(y)` out to the U's
     // edge either side, no higher than the neckline's curve
+    const onShoulder = (x, y) => { while (y > 1.2 && slice(y)[0] < Math.abs(x) * 1.002) y -= 0.0005; return y; };   // (as the shirt's: see there)
     const fillU = (key, m, open = () => 0, upto = () => Infinity) => {   // (upto(y): no further out than this)
-      for (const sgn of [-1, 1]) mk(geo(`wfillU:${key}:${sgn}:${tag}`, () => {
+      for (const sgn of [-1, 1]) mk(geo(`wfillU6:${key}:${sgn}:${tag}`, () => {
         const R = 14, Cn = 6, fp = [], fi = [];
         for (let r = 0; r <= R; r++) {
-          const y = UNECK.bot - 0.012 + (UNECK.neck - UNECK.bot + 0.012) * r / R, v = open(y), u = Math.min(upto(y), uHalf(Math.min(y, UNECK.neck)) + 0.008);
-          for (let c = 0; c <= Cn; c++) { const x = sgn * (v + (Math.max(u, v + 0.01) - v) * c / Cn), yy = Math.min(y, UNECK.neck - neckDip(x)); fp.push(x, yy, surfZ(x, yy) + 0.0025); }
+          const y = UNECK.bot - 0.012 + (UNECK.neck + 0.006 - UNECK.bot + 0.012) * r / R, v = open(y), u = Math.min(upto(y), uHalf(Math.min(y, UNECK.neck)) + 0.008);
+          for (let c = 0; c <= Cn; c++) { const x = sgn * (v + (Math.max(u, v + 0.01) - v) * c / Cn), dw = smooth(0, 0.45, Math.sqrt(Math.max(0, 1 - (x / (slice(UNECK.neck)[0] * 1.015)) ** 2))), yy = onShoulder(x, Math.min(y, UNECK.neck - neckDip(x) * dw + 0.006 * (1 - dw))); fp.push(x, yy, surfZ(x, yy) + 0.0025); }
         }
         for (let r = 0; r < R; r++) for (let c = 0; c < Cn; c++) { const a = r * (Cn + 1) + c, b = a + Cn + 1; fi.push(a, a + 1, b, a + 1, b + 1, b); }
         const fg = new THREE.BufferGeometry(); fg.setAttribute('position', new THREE.Float32BufferAttribute(fp, 3)); fg.setIndex(fi); fg.computeVertexNormals(); return fg;
