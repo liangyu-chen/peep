@@ -1736,7 +1736,13 @@ function buildBodyAt(look, seed) {
     // (a long dress, as deep as the body at the waist, rounding out lower down until it's nearly as deep as it is wide,
     // with room for the legs to step inside it)
     const hangGeo = lathe(`skirt5:${F}:${femB}:${dress}:${highWaist ? hwProf.map(p => p[0].toFixed(3)).join(',') : ''}`, hwProf, 28);
-    const hang = mk(dress ? geo(`dressDeep:${femB}`, () => { const gm = hangGeo.clone(), q = gm.attributes.position; for (let i = 0; i < q.count; i++) { const t = Math.min(1, Math.max(0, (-0.1 - q.getY(i)) / 0.22)), e = t * t * (3 - 2 * t); q.setZ(i, q.getZ(i) * (1 + (0.97 / zK - 1) * e)); } gm.computeVertexNormals(); return gm; }) : hangGeo, sm, 0, 0, 0, skirt);
+    // (a skirt is round, as wide as the hips, but the body under it is shallower front to back than it is wide: at the
+    // top it's drawn in front and back to lie on the body, then eases out to its full flare by the hem, so it comes off
+    // the hips in one smooth line rather than jutting straight out under the shirt like a shelf; the front more than
+    // the back, where the seat fills it)
+    const flat = femB ? [0.78, 0.9] : [0.9, 0.96];
+    const hang = mk(dress ? geo(`dressDeep:${femB}`, () => { const gm = hangGeo.clone(), q = gm.attributes.position; for (let i = 0; i < q.count; i++) { const t = Math.min(1, Math.max(0, (-0.1 - q.getY(i)) / 0.22)), e = t * t * (3 - 2 * t); q.setZ(i, q.getZ(i) * (1 + (0.97 / zK - 1) * e)); } gm.computeVertexNormals(); return gm; })
+      : geo(`skirtFlat:${hangGeo.uuid}:${flat}`, () => { const gm = hangGeo.clone(), q = gm.attributes.position; for (let i = 0; i < q.count; i++) { const z = q.getZ(i), t = Math.min(1, Math.max(0, (-0.07 - q.getY(i)) / 0.24)), e = t * t * (3 - 2 * t), k0 = z > 0 ? flat[0] : flat[1]; q.setZ(i, z * (k0 + (1 - k0) * e)); } gm.computeVertexNormals(); return gm; }), sm, 0, 0, 0, skirt);
     hang.scale.set(tuck, 1, zK * tuck);
     // sitting, it's swapped for the same skirt drawn on the lap (see lapSkirtGeo), made for this build's thighs
     const B0 = BUILDS[buildOf(look)], lo = v => 1 + (v - 1) * 0.7;
