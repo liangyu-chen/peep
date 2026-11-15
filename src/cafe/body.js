@@ -1079,7 +1079,7 @@ const torsoRows = (fit, style, fem = false) => {
 // how far round from the front the U reaches on a slice (0 below it); the slice's points are laid out so one falls
 // exactly on each side of the U, and the skin inside it is the second material
 const uAngle = (y, rx) => y < UNECK.bot - 1e-4 ? 0 : rx < 1e-4 ? Math.PI / 2 : Math.asin(Math.min(1, uHalf(y) / rx));
-const torsoGeo = (fit = 'regular', style = 'tee', fem = false) => geo(`torso41:${fit}:${style}:${fem}`, () => {
+const torsoGeo = (fit = 'regular', style = 'tee', fem = false) => geo(`torso42:${fit}:${style}:${fem}`, () => {
   const N = 48, M = 12, pos = [], idx = [], skinIdx = [];
   const rows = torsoRows(fit, style, fem), F = cutOf(fit, style);
   rows.forEach(([y, rx, rz]) => {
@@ -1104,7 +1104,7 @@ const torsoGeo = (fit = 'regular', style = 'tee', fem = false) => geo(`torso41:$
     // cloth laid over it, which left skin showing wherever a patch fell short, differently on every build: bare only
     // above a line just under the collar's top edge, which dips under the throat and eases out to the side of the neck)
     const xc = (pos[a * 3] + pos[(a + 1) * 3]) / 2, inU = i < M && uAngle(rows[r][0], rows[r][1]) > 0;
-    const bare = style === 'shirt' ? false : inU;   // (cloth right up to the base of the neck all round: one clean ring there, like the collar's band inside it)
+    const bare = style === 'shirt' || style === 'denim' ? false : inU;   // (cloth right up to the base of the neck all round: one clean ring there, like the collar's band inside it)
     const skin = style === 'bra' || bare || rows[r][0] >= UNECK.neck - 1e-4 || (F.crop && rows[r][0] < F.crop - 1e-4);
     (skin ? skinIdx : idx).push(a, a + 1, b, b, a + 1, b + 1);
   }
@@ -1885,7 +1885,10 @@ function buildBodyAt(look, seed) {
     // the top's U neckline is wide for a shirt: its two fronts fill it, leaving only a narrow V open down to the top
     // button (the collar closed up close round the neck, its points nearly meeting: see COLLAR)
     // how far the neckline dips below the neck at x across the front: most under the throat, none by the sides
-    const neckDip = x => 0.028 * Math.max(0, 1 - (x / 0.078) ** 2);
+    // (a shirt buttoned to the throat sits level round the neck, hardly dipping in front: dipped as an open neck's is, its
+    // front sat well below the base of the neck, and the body's cloth showed above it there as a second, round collar)
+    const DIP = isShirt || topStyle === 'denim' ? 0.006 : 0.028, RISE = 0.028 - DIP;
+    const neckDip = x => DIP * Math.max(0, 1 - (x / 0.078) ** 2);
     // (how much of that dip is left at x, easing out to none by the side of the neck: the collar's own seat follows this
     // (see `wf` below), and so does the cloth filling the neckline under it, right up to the collar all the way round, so
     // no bare neck shows between the two beside the neck)
@@ -2008,7 +2011,7 @@ function buildBodyAt(look, seed) {
     // (and nowhere does the fall's last stretch double back under the one before it, as it did at the corner where the
     // front gives way to the side: there its darker underside faced out, showing as a second edge beside the collar's
     // own. Where it turns back that sharply, it carries on the way the fall was already going instead)
-    if (isShirt) for (const c of cross) {
+    if (isShirt || topStyle === 'denim') for (const c of cross) {
       const a = c[M - 2].clone().sub(c[M - 3]), b = c[M - 1].clone().sub(c[M - 2]), la = a.length(), lb = b.length();
       if (la > 1e-5 && lb > 1e-5 && a.dot(b) < 0.5 * la * lb) c[M - 1].copy(c[M - 2]).addScaledVector(a.multiplyScalar(1 / la).multiplyScalar(0.75).addScaledVector(b, 0.25 / lb).normalize(), lb);
     }
@@ -2026,7 +2029,7 @@ function buildBodyAt(look, seed) {
     // (襯衫: the darker inside only up the stand, where one looks in at the open neck. The fall's underside in the cloth's
     // own colour, lit as its outside is: where the fall turns at the corner between the front and the side its underside
     // faces out a little, and dark it showed there as a second edge beside the collar's own)
-    if (isShirt) {
+    if (isShirt || topStyle === 'denim') {
       const split = lo => { const q = cg.clone(), ix = []; for (let i = 0; i < N; i++) for (let j = 0; j < M - 1; j++) if ((j < 3) === lo) { const a0 = i * M + j, b0 = a0 + M; ix.push(a0, b0, a0 + 1, b0, b0 + 1, a0 + 1); } q.setIndex(ix); return q; };
       mk(split(true), mat(shade(colC, 0.8), { roughness: 0.9, side: THREE.FrontSide }), 0, 0, 0, g, false);
       const under = split(false), un = under.attributes.normal; for (let i = 0; i < un.count; i++) un.setXYZ(i, -un.getX(i), -un.getY(i), -un.getZ(i));
@@ -2050,7 +2053,7 @@ function buildBodyAt(look, seed) {
         edgePaths.push(path);
       }
     }
-    edgePaths.forEach((path, k) => mk(geo(`colEdge11:${k}:${tag}:${COLLAR.gap}:${COLLAR.tip || 0}:${COLLAR.spread || 0}`, () => new THREE.TubeGeometry(new THREE.CatmullRomCurve3(path, false, 'centripetal'), path.length * 4, suitShirt ? 0.0014 : 0.0018, 5, false)), colDark, 0, 0, 0, g, false));
+    edgePaths.forEach((path, k) => mk(geo(`colEdge13:${k}:${tag}:${COLLAR.gap}:${COLLAR.tip || 0}:${COLLAR.spread || 0}`, () => new THREE.TubeGeometry(new THREE.CatmullRomCurve3(path, false, 'centripetal'), path.length * 4, suitShirt ? 0.0014 : 0.0018, 5, false)), colDark, 0, 0, 0, g, false));
     // and each front end of the collar closed, as it's sewn: otherwise one looks into the fold, through to the neck
     const capM = patterned(mat(shade(colC, colTone), { roughness: 0.85 }), colPat, shade(colC, colTone)); capM.side = THREE.DoubleSide;
     for (const e of [cross[0], cross[N]]) {
@@ -2067,21 +2070,21 @@ function buildBodyAt(look, seed) {
     // (buttoned right up, as the shirt under a blazer is: the shirt's own cloth closing the throat between the collar's
     // two ends, up to just under their top; the placket running on up to it, and a top button there)
     {
-      const TY = [1.186, 1.198, 1.21, 1.22, 1.2305], TX = [-0.0125, -0.006, 0, 0.006, 0.0125], tp = [], ti = [];
+      const TY = [1.186, 1.198, 1.21, 1.22, 1.2305].map(y => y + RISE), TX = [-0.0125, -0.006, 0, 0.006, 0.0125], tp = [], ti = [];
       for (const y of TY) for (const x of TX) { const v = on(x, y, 0.0034); tp.push(v.x, v.y, v.z); }
       for (let r = 0; r < TY.length - 1; r++) for (let c = 0; c < TX.length - 1; c++) { const a = r * TX.length + c, b = a + TX.length; ti.push(a, a + 1, b, a + 1, b + 1, b); }
       const tg = new THREE.BufferGeometry(); tg.setAttribute('position', new THREE.Float32BufferAttribute(tp, 3)); tg.setIndex(ti); tg.computeVertexNormals();
       mk(tg, colM, 0, 0, 0, g, false);
-      const tb = on(0, 1.214, 0.0062); mk(sp(0.0055, 8, 6), buttonM, tb.x, tb.y, tb.z, g, false).scale.z = 0.4;
+      const tb = on(0, 1.214 + RISE, 0.0062); mk(sp(0.0055, 8, 6), buttonM, tb.x, tb.y, tb.z, g, false).scale.z = 0.4;
     }
-    for (let y = 1.229; y > hemTop; y -= 0.04) {
+    for (let y = 1.229 + RISE; y > hemTop; y -= 0.04) {
       const a = on(0, y, 0.003), b = on(0, Math.max(hemTop, y - 0.04), 0.003), mid = a.clone().add(b).multiplyScalar(0.5);
       const strip = mk(bx(0.026, a.distanceTo(b) + 0.002, 0.003), placketM, mid.x, mid.y, mid.z, g, false);
       strip.rotation.x = Math.atan2(a.z - b.z, a.y - b.y);
     }
     for (const sgn of [-1, 1]) {
-      const st = []; for (let y = 1.229; y > hemTop - 1e-4; y -= 0.03) st.push(on(sgn * 0.0115, Math.max(hemTop, y), 0.0049));
-      seam(`placketSt2${sgn}:${tag}`, st, 0.001);
+      const st = []; for (let y = 1.229 + RISE; y > hemTop - 1e-4; y -= 0.03) st.push(on(sgn * 0.0115, Math.max(hemTop, y), 0.0049));
+      seam(`placketSt3${sgn}:${tag}`, st, 0.001);
     }
     // round the back: the yoke's seam across the shoulder blades (dipping a little to the middle), and under it a short
     // box pleat down the centre
@@ -2262,10 +2265,13 @@ function buildBodyAt(look, seed) {
       fillU('denim', cloth());
       const T = (key, pts, off = 0.0045, back = 1, closed = false) => line(key, pts, off, 0.001, jThread, closed, back);
       const button = (x, y, back = 1) => { const p = on(x, y, 0.006, back); const b = mk(cy(0.0085, 0.0085, 0.004, 12), jButton, p.x, p.y, p.z, g, false); b.rotation.x = Math.PI / 2; };
-      line('dplacket', [[0.018, UNECK.bot - 0.004], [0.018, bandTop - 0.01]], 0.003, 0.0016, darkLine);
-      T('dplacketT', [[0.011, UNECK.bot - 0.004], [0.011, bandTop + 0.004]]);
-      T('dplacketT2', [[0.026, UNECK.bot - 0.004], [0.026, bandTop + 0.004]]);
-      for (let y = UNECK.bot - 0.03; y > bandTop + 0.03; y -= 0.072) button(0, y);
+      // (buttoned right up, as the shirt is: the placket carried on up to the collar, a top button between its two ends)
+      patch('dthroat', [[-0.012, 1.2525], [0.012, 1.2525], [0.014, 1.2], [-0.014, 1.2]], 0.0034, cloth());   // (the cloth closing the throat between the collar's two ends, up to just under their top)
+      line('dplacketC', [[0.018, 1.249], [0.018, bandTop - 0.01]], 0.003, 0.0016, darkLine);
+      button(0, 1.235);
+      T('dplacketTC', [[0.011, 1.249], [0.011, bandTop + 0.004]]);
+      T('dplacketT2C', [[0.026, 1.249], [0.026, bandTop + 0.004]]);
+      for (let y = UNECK.bot - 0.06; y > bandTop + 0.03; y -= 0.072) button(0, y);
       button(0, hemY + bandH / 2 - 0.004);
       for (const s of [-1, 1]) {
         // the chest yoke: from the placket out to the armhole, coming down to a point over each pocket
