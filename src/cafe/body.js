@@ -1671,7 +1671,7 @@ function buildBodyAt(look, seed) {
   // (西裝外套(襯衫): the shirt's own collar, worn under the blazer's, in the colour of what's worn beneath: a little
   // smaller so it sits inside the blazer's collar, and buttoned up close round the neck (`ring`: how much tighter than
   // the neckline it closes); its points closing over the tie's knot)
-  const COLLAR = { shirt: { gap: 0.04, point: 1, size: 1, ring: 0.92 }, jacket: { gap: 0.1, point: 1.15, size: 1.3 }, denim: { gap: 0.13, point: 1.15, size: 1.25 }, suitShirt: { gap: 0.05, point: 0.95, size: 0.82, ring: 0.88 } }[suitShirt ? 'suitShirt' : topStyle];
+  const COLLAR = { shirt: { gap: 0.11, point: 1, size: 1, ring: 0.92 }, jacket: { gap: 0.1, point: 1.15, size: 1.3 }, denim: { gap: 0.13, point: 1.15, size: 1.25 }, suitShirt: { gap: 0.15, point: 0.95, size: 0.82, ring: 0.88, tip: 0.034, spread: 0.038 } }[suitShirt ? 'suitShirt' : topStyle];
   if (COLLAR) {
     const isShirt = topStyle === 'shirt';
     // (the collar's cloth: the top's own, or under a blazer the shirt's, plain)
@@ -1687,7 +1687,7 @@ function buildBodyAt(look, seed) {
     // the collar: one piece all the way round the neck, as a shirt's is: a stand rising from the neckline, folding over
     // and down outward onto the shoulders and back, and at the front coming down either side of the top button into two
     // points on the chest (a little gap between them). Each cross-section: up from the neckline, over, and down
-    const N = 48, cross = [];
+    const N = suitShirt ? 96 : 48, cross = [], fronts = [];
     // the height of the shirt's surface over a point (x, z): the highest slice that still takes it in
     // (the shirt's own rows only: those above the neckline are the neck flaring up into the head)
     const shirtTop = rows.findIndex(r => r[0] >= UNECK.neck - 1e-4);
@@ -1708,19 +1708,22 @@ function buildBodyAt(look, seed) {
       const fg = new THREE.BufferGeometry(); fg.setAttribute('position', new THREE.Float32BufferAttribute(fp, 3)); fg.setIndex(fi); fg.computeVertexNormals();
       mk(fg, colM, 0, 0, 0, g, false);
     }
-    const gap = COLLAR.gap;   // (the two ends parted over the open top button: the neckline's V, the throat showing)
+    const gap = COLLAR.gap, TIP = COLLAR.tip || 0, SPREAD = COLLAR.spread || 0;   // (the two ends parted over the open top button: the neckline's V, the throat showing)
     for (let i = 0; i <= N; i++) {
       const phi = gap + (Math.PI * 2 - 2 * gap) * i / N, sx = Math.sin(phi), sz = Math.cos(phi);
       // how near the front end this is: the points grow there, falling off evenly (a straight outer edge back from
       // each tip, so the points are sharp triangles, as a spread collar's are, not rounded)
       const fromFront = (phi <= Math.PI ? phi : Math.PI * 2 - phi) - gap;
-      const front = COLLAR.point * Math.max(0, 1 - fromFront / 0.95);
+      const front = COLLAR.point * Math.max(0, 1 - fromFront / 0.95); fronts.push(front);
       const back = Math.min(1, Math.max(0, 0.35 - sz) / 1.1) ** 0.8;   // and how much it's round the back
       // on the neckline: level round the back and sides, and in front curving down in a U under the throat (the way a
       // shirt's neck is cut), sat on the chest's own surface there
       const ring = COLLAR.ring || 1, [rx, rz] = slice(UNECK.neck), bx0 = sx * rx * 1.015 * ring;
-      const yb = sz > 0 ? UNECK.neck - neckDip(bx0) : UNECK.neck;
-      const bz0 = (sz > 0 ? Math.max(surfZ(bx0, yb), sz * rz) * 1.015 : sz * rz * 1.015) * ring;
+      // (the front's dipped neckline and its seat on the chest eased in from the side of the neck round to the front, not
+      // switched on the moment it passes the side: there the collar jumped forward several centimetres from one slice to
+      // the next, the stretch bridging the jump standing edge-on at each side of the neck as a stray flap)
+      const wf = smooth(0, 0.45, sz), yb = UNECK.neck - neckDip(bx0) * wf;
+      const bz0 = (sz * rz + (Math.max(surfZ(bx0, yb), sz * rz) - sz * rz) * wf) * 1.015 * ring;
       const Z = COLLAR.size, at = (k, dy, ox = 0) => new THREE.Vector3(bx0 * (1 + (k - 1) * Z) + Math.sign(sx) * ox * Z, yb + dy * Z, bz0 * (1 + (k - 1) * Z));
       // a stand up from the neckline all the way round (taller round the back of the neck, as a shirt's is, but seen in
       // front too, wrapping the throat), a rounded fold over its top, and the fall turned down outside it, hiding the
@@ -1731,11 +1734,13 @@ function buildBodyAt(look, seed) {
       // drawn toward the chest, sitting a little off it, not pressed flat)
       const f1 = Math.min(1, front * 1.4), wF = f1 * f1 * (3 - 2 * f1) * 0.8;
       const lay = v => {
-        const lifted = Math.max(v.y, surfY(v.x, v.z) + 0.01);
+        // (under a blazer the fall isn't lifted out over the shoulders: round the sides and back it stays short and close,
+        // down inside the blazer's own collar, only the stand showing above it; see `tuck` for the front)
+        const lifted = suitShirt ? v.y : Math.max(v.y, surfY(v.x, v.z) + 0.01);
         v.y += (lifted - v.y) * (1 - wF);
-        v.z += (surfZ(v.x, v.y) + 0.024 - v.z) * wF;
+        v.z += (surfZ(v.x, v.y) + (suitShirt ? 0.015 : 0.024) - v.z) * wF;
         // and wherever it ends up, never inside the shirt: out from its slice by at least the cloth's thickness
-        if (v.y < UNECK.neck) {
+        if (v.y < UNECK.neck && !suitShirt) {
           const [ex, ez] = slice(v.y), e = Math.sqrt((v.x / ex) ** 2 + (v.z / ez) ** 2), need = 1 + 0.009 / Math.min(ex, ez);
           if (e < need) { const s = need / Math.max(e, 1e-3); v.x *= s; v.z *= s; }
         }
@@ -1751,7 +1756,25 @@ function buildBodyAt(look, seed) {
       // (a shirt's stand never inside the neck or the shoulders beneath it: each point out from the slice at its height
       // by at least the cloth's thickness, so no skin shows through between the collar and the shirt)
       const clear = pts => { if (isShirt) for (let j = 1; j < 4; j++) { const v = pts[j], [ex, ez] = slice(v.y), e = Math.sqrt((v.x / ex) ** 2 + (v.z / ez) ** 2), need = 1 + 0.006 / Math.min(ex, ez); if (e < need) { const k = need / Math.max(e, 1e-3); v.x *= k; v.z *= k; } } return pts; };
-      cross.push(clear(outward([
+      // (西裝外套(襯衫): in front the shirt's collar goes in under the blazer's lapels, as a real one does: lying just off
+      // the shirt in the open V, and as it nears each lapel's inner edge drawn down flat beneath it, so the lapel covers
+      // its outer part and the points run in under the lapels)
+      // (and once in under a lapel it stops there: no higher than the lapel's top corner, where it would stick out above
+      // it beside the neck. `tk` marks how far under each point is, for the edge seam below, which is only drawn where
+      // the collar shows)
+      const tuck = pts => {
+        if (suitShirt) for (let j = 4; j < pts.length; j++) {
+          const v = pts[j]; if (sz <= 0) { v.tk = 1; continue; }
+          const edge = 0.066 * Math.min(1, Math.max(0, (v.y - 0.94) / (1.236 - 0.94))), d = smooth(edge - 0.016, edge - 0.004, Math.abs(v.x));
+          v.tk = d;
+          v.y += (Math.min(v.y, 1.228) - v.y) * d;   // (eased in with how far under it is: no crease where it starts)
+          if (v.y >= UNECK.neck) continue;
+          const z0 = surfZ(v.x, v.y);
+          v.z = Math.min(Math.max(v.z, z0 + 0.0042), z0 + 0.03 + (0.0042 - 0.03) * d);
+        }
+        return pts;
+      };
+      cross.push(tuck(clear(outward([
         // (a blazer's roll low and flat too, so it lies down round the neck into the lapels rather than standing up)
         // (a shirt's foot always out over the neckline, so no skin shows between it and the shirt, however close `ring`
         // draws the rest of it in round the neck; under a blazer it's out of sight, and set out like that it would poke
@@ -1759,12 +1782,39 @@ function buildBodyAt(look, seed) {
         isShirt ? new THREE.Vector3(bx0 / ring * 1.07, yb - 0.004, bz0 / ring * 1.07) : at(1, -0.008), at(1.0, s), at(1.018, s + 0.009 * (COLLAR.stand || 1)), at(1.05, s + 0.012 * (COLLAR.stand || 1)),
         // (in front, the drop from the roll down to the point an even curve)
         // (small points: not much longer or wider than the fall round the sides)
-        lay(at(1.08 + 0.01 * front, s + 0.003 - 0.006 * front, 0.002 * front)),
-        lay(at(1.105 + 0.03 * front, s - 0.013 - 0.006 * front, 0.007 * front)),
-        lay(at(1.13 + 0.05 * front, s - 0.027 - 0.006 * front, 0.016 * front)),
-      ])));
+        // (`tip`, `spread`: a dress shirt's under a blazer: its points longer and sharper, angled out a little either side
+        // of the tie's knot, the lower edge running straight back up from each tip, as a spread collar's does)
+        lay(at(1.08 + 0.01 * front, s + 0.003 - (0.006 + TIP * 0.15) * front, (0.002 + SPREAD * 0.2) * front)),
+        lay(at(1.105 + 0.03 * front, s - 0.013 - (0.006 + TIP * 0.55) * front, (0.007 + SPREAD * 0.6) * front)),
+        lay(at(1.13 + 0.05 * front, s - 0.027 - (0.006 + TIP) * front, (0.016 + SPREAD) * front)),
+      ]))));
     }
-    const pos = [], idx = [], M = cross[0].length;
+    const M = cross[0].length;
+    // (襯衫: each front's lower edge one straight line from where the collar turns down at the side of the neck to its
+    // point: wherever the fall hung below that line (rounding out in a belly before the point), drawn up to it, each
+    // slice's fall shortened in proportion and kept at its own distance off the chest)
+    // (the line starts from the bottom of the edge's run down the side of the neck, not the top of it: that run stays as
+    // it is, hanging over where the collar's sewn to the neckline, which a line from higher up would lay bare)
+    if (isShirt) for (const [end, step] of [[0, 1], [N, -1]]) {
+      let i0 = end; for (let n = 1; n < N / 2; n++) { i0 = end + step * n; if (fronts[i0] <= 0) break; }
+      let maxX = 0; for (let i = end; i !== i0 + step; i += step) maxX = Math.max(maxX, Math.abs(cross[i][M - 1].x));
+      let ic = i0; for (let i = end; i !== i0 + step; i += step) { const o = cross[i][M - 1]; if (Math.abs(o.x) >= maxX - 0.004 && o.y < cross[ic][M - 1].y) ic = i; }
+      const T = cross[end][M - 1], S = cross[ic][M - 1], span = (Math.abs(S.x) - Math.abs(T.x)) || 1, zAt = (x, y) => surfZ(x, Math.min(y, UNECK.neck - 1e-3));
+      for (let i = end + step; i !== ic; i += step) {
+        const c = cross[i], o = c[M - 1], yl = T.y + (S.y - T.y) * Math.min(1, Math.max(0, (Math.abs(o.x) - Math.abs(T.x)) / span));
+        if (o.y >= yl) continue;
+        const top = c[3].y, k = (top - yl) / ((top - o.y) || 1);
+        for (let j = 4; j < M; j++) { const v = c[j], y1 = top - (top - v.y) * k; v.z += zAt(v.x, y1) - zAt(v.x, v.y); v.y = y1; }
+      }
+    }
+    // (and nowhere does the fall's last stretch double back under the one before it, as it did at the corner where the
+    // front gives way to the side: there its darker underside faced out, showing as a second edge beside the collar's
+    // own. Where it turns back that sharply, it carries on the way the fall was already going instead)
+    if (isShirt) for (const c of cross) {
+      const a = c[M - 2].clone().sub(c[M - 3]), b = c[M - 1].clone().sub(c[M - 2]), la = a.length(), lb = b.length();
+      if (la > 1e-5 && lb > 1e-5 && a.dot(b) < 0.5 * la * lb) c[M - 1].copy(c[M - 2]).addScaledVector(a.multiplyScalar(1 / la).multiplyScalar(0.75).addScaledVector(b, 0.25 / lb).normalize(), lb);
+    }
+    const pos = [], idx = [];
     cross.forEach(c => c.forEach(v => pos.push(v.x, v.y, v.z)));
     for (let i = 0; i < N; i++) for (let j = 0; j < M - 1; j++) { const a0 = i * M + j, b0 = a0 + M; idx.push(a0, b0, a0 + 1, b0, b0 + 1, a0 + 1); }
     const cg = new THREE.BufferGeometry(); cg.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); cg.setIndex(idx); cg.computeVertexNormals();
@@ -1775,7 +1825,16 @@ function buildBodyAt(look, seed) {
     const colTone = topStyle === 'coat' && !suitShirt ? 0.92 : 1;
     const colOut = patterned(mat(shade(colC, colTone), { roughness: 0.85 }), colPat, shade(colC, colTone)); colOut.side = THREE.BackSide;
     mk(cg, colOut, 0, 0, 0, g, false);
-    mk(cg, mat(shade(colC, 0.8), { roughness: 0.9, side: THREE.FrontSide }), 0, 0, 0, g, false);
+    // (襯衫: the darker inside only up the stand, where one looks in at the open neck. The fall's underside in the cloth's
+    // own colour, lit as its outside is: where the fall turns at the corner between the front and the side its underside
+    // faces out a little, and dark it showed there as a second edge beside the collar's own)
+    if (isShirt) {
+      const split = lo => { const q = cg.clone(), ix = []; for (let i = 0; i < N; i++) for (let j = 0; j < M - 1; j++) if ((j < 3) === lo) { const a0 = i * M + j, b0 = a0 + M; ix.push(a0, b0, a0 + 1, b0, b0 + 1, a0 + 1); } q.setIndex(ix); return q; };
+      mk(split(true), mat(shade(colC, 0.8), { roughness: 0.9, side: THREE.FrontSide }), 0, 0, 0, g, false);
+      const under = split(false), un = under.attributes.normal; for (let i = 0; i < un.count; i++) un.setXYZ(i, -un.getX(i), -un.getY(i), -un.getZ(i));
+      const underM = patterned(mat(shade(colC, colTone), { roughness: 0.85 }), colPat, shade(colC, colTone)); underM.side = THREE.FrontSide;
+      mk(under, underM, 0, 0, 0, g, false);
+    } else mk(cg, mat(shade(colC, 0.8), { roughness: 0.9, side: THREE.FrontSide }), 0, 0, 0, g, false);
     // its edges drawn in a thin darker seam (round the fall, and down each front to its point), so the turned-down collar
     // reads against the shirt beneath it
     const seam = (key, ptsList, r = 0.0022) => mk(geo(key, () => new THREE.TubeGeometry(new THREE.CatmullRomCurve3(ptsList), ptsList.length * 3, r, 5, false)), colDark, 0, 0, 0, g, false);
@@ -1783,7 +1842,17 @@ function buildBodyAt(look, seed) {
     // (one unbroken line: up one front from the roll to its point, round the whole outer edge, and back up the other
     // front, so the points' corners join and it's the same weight all the way; centripetal, so it doesn't loop at them)
     const edgePath = [...cross[0].slice(3), ...cross.slice(1, N).map(c => c[M - 1]), ...cross[N].slice(3).reverse()];
-    mk(geo(`colEdge2:${tag}`, () => new THREE.TubeGeometry(new THREE.CatmullRomCurve3(edgePath, false, 'centripetal'), edgePath.length * 4, 0.0018, 5, false)), colDark, 0, 0, 0, g, false);
+    // (under a blazer: only each front's own edge and round its point, as far as where it goes in under the lapel)
+    const edgePaths = [edgePath];
+    if (suitShirt) {
+      edgePaths.length = 0;
+      for (const [end, step] of [[0, 1], [N, -1]]) {
+        const path = [...cross[end].slice(3)];
+        for (let i = end + step, n = 0; n < N / 2; i += step, n++) { const v = cross[i][M - 1]; if (v.tk > 0.2) break; path.push(v); }   // (stopping short of the lapel: no stub of it left lying along the lapel's edge)
+        edgePaths.push(path);
+      }
+    }
+    edgePaths.forEach((path, k) => mk(geo(`colEdge11:${k}:${tag}:${COLLAR.gap}:${COLLAR.tip || 0}:${COLLAR.spread || 0}`, () => new THREE.TubeGeometry(new THREE.CatmullRomCurve3(path, false, 'centripetal'), path.length * 4, suitShirt ? 0.0014 : 0.0018, 5, false)), colDark, 0, 0, 0, g, false));
     // and each front end of the collar closed, as it's sewn: otherwise one looks into the fold, through to the neck
     const capM = patterned(mat(shade(colC, colTone), { roughness: 0.85 }), colPat, shade(colC, colTone)); capM.side = THREE.DoubleSide;
     for (const e of [cross[0], cross[N]]) {
@@ -1797,14 +1866,24 @@ function buildBodyAt(look, seed) {
     // the placket: the shirt's own cloth (a touch deeper, being doubled), in short lengths following the curve of the
     // front, a line of stitching down each edge, as a real one is, rather than a dark band
     const placketM = patterned(mat(shade(C.shirt, 0.93), { roughness: 0.85 }), pattern, shade(C.shirt, 0.93));
-    for (let y = 1.2; y > hemTop; y -= 0.04) {
+    // (buttoned right up, as the shirt under a blazer is: the shirt's own cloth closing the throat between the collar's
+    // two ends, up to just under their top; the placket running on up to it, and a top button there)
+    {
+      const TY = [1.186, 1.198, 1.21, 1.22, 1.2305], TX = [-0.0125, -0.006, 0, 0.006, 0.0125], tp = [], ti = [];
+      for (const y of TY) for (const x of TX) { const v = on(x, y, 0.0034); tp.push(v.x, v.y, v.z); }
+      for (let r = 0; r < TY.length - 1; r++) for (let c = 0; c < TX.length - 1; c++) { const a = r * TX.length + c, b = a + TX.length; ti.push(a, a + 1, b, a + 1, b + 1, b); }
+      const tg = new THREE.BufferGeometry(); tg.setAttribute('position', new THREE.Float32BufferAttribute(tp, 3)); tg.setIndex(ti); tg.computeVertexNormals();
+      mk(tg, colM, 0, 0, 0, g, false);
+      const tb = on(0, 1.214, 0.0062); mk(sp(0.0055, 8, 6), buttonM, tb.x, tb.y, tb.z, g, false).scale.z = 0.4;
+    }
+    for (let y = 1.229; y > hemTop; y -= 0.04) {
       const a = on(0, y, 0.003), b = on(0, Math.max(hemTop, y - 0.04), 0.003), mid = a.clone().add(b).multiplyScalar(0.5);
       const strip = mk(bx(0.026, a.distanceTo(b) + 0.002, 0.003), placketM, mid.x, mid.y, mid.z, g, false);
       strip.rotation.x = Math.atan2(a.z - b.z, a.y - b.y);
     }
     for (const sgn of [-1, 1]) {
-      const st = []; for (let y = 1.2; y > hemTop - 1e-4; y -= 0.03) st.push(on(sgn * 0.0115, Math.max(hemTop, y), 0.0049));
-      seam(`placketSt${sgn}:${tag}`, st, 0.001);
+      const st = []; for (let y = 1.229; y > hemTop - 1e-4; y -= 0.03) st.push(on(sgn * 0.0115, Math.max(hemTop, y), 0.0049));
+      seam(`placketSt2${sgn}:${tag}`, st, 0.001);
     }
     // round the back: the yoke's seam across the shoulder blades (dipping a little to the middle), and under it a short
     // box pleat down the centre
@@ -2096,6 +2175,11 @@ function buildBodyAt(look, seed) {
       mk(geo(`wblazerCollarEdge2:${tag}`, () => new THREE.TubeGeometry(new THREE.CatmullRomCurve3(rowsC.map(r => r[Qc].clone().multiply(new THREE.Vector3(1.004, 1, 1.004)).add(new THREE.Vector3(0, 0.0006, 0))), false, 'centripetal'), rowsC.length * 3, 0.0016, 5, false)), shirtDark, 0, 0, 0, g, false);
       line('front', [[0, vB], [0, hemY + 0.004]], 0.003, 0.0016, shirtDark);   // (the fronts meeting all the way down to the hem)
       if (suitShirt) {
+        // (the shirt closed up to the throat between the collar's two ends: its own cloth there, under the tie's knot or
+        // the top button, so no bare throat shows in the opening)
+        // (up to just under the top of the collar's ends: any higher and it stands up above them as a little tab, any lower
+        // and the throat shows between them)
+        patch('suitThroat5', [[-0.0115, 1.2305], [0.0115, 1.2305], [0.016, 1.212], [0.014, 1.196], [-0.014, 1.196], [-0.016, 1.212]], 0.004, innerM);
         // 西裝外套(襯衫) (its collar: see COLLAR): a tie (black unless picked otherwise) knotted at the throat between the
         // collar's points and running down the V to the button, (its tip hidden under the
         // buttoned fronts); or, without a tie, the shirt's buttons down the middle
@@ -2103,15 +2187,18 @@ function buildBodyAt(look, seed) {
         if (inner0.tie) {
           const tieC = picked(inner0.tieColor), tieM = mat(tieC, { roughness: 0.55, side: THREE.DoubleSide });
           // (right up to the top of the collar, so none of the throat shows between the collar's points)
-          const knot = [[-0.015, 1.226], [0.015, 1.226], [0.009, 1.185], [-0.009, 1.185]];
+          // (a neat wedge, wider than the opening between the collar's two ends, so its sides run in under them; and lying
+          // well below the collar's own surface, so where the two overlap neither shows through the other)
+          const knot = [[-0.0165, 1.2325], [0.0165, 1.2325], [0.0085, 1.184], [-0.0085, 1.184]];   // (its top just under the top of the collar's ends, not standing above them)
           // (the knot tucked under the collar's points, which close over its sides, only its middle showing between them;
           // the blade coming out from under it down onto the shirt)
-          patch('tieKnot', knot, 0.012, tieM);
-          const bladeOff = (x, y) => 0.0052 + 0.0068 * Math.max(0, Math.min(1, (y - 1.1) / 0.085)) ** 1.5;
-          patch('tieBlade', [[-0.009, 1.185], [0.009, 1.185], [0.016, 1.04], [0.006, vB + 0.025], [-0.006, vB + 0.025], [-0.016, 1.04]], bladeOff, tieM);
+          patch('tieKnot6', knot, 0.008, tieM);
+          const bladeOff = (x, y) => 0.0052 + 0.0022 * Math.max(0, Math.min(1, (y - 1.1) / 0.085)) ** 1.5;
+          patch('tieBlade4', [[-0.0085, 1.186], [0.0085, 1.186], [0.016, 1.04], [0.006, vB + 0.025], [-0.006, vB + 0.025], [-0.016, 1.04]], bladeOff, tieM);
         } else {
-          line('shirtPlacket', [[0, 1.2], [0, vB + 0.01]], 0.0035, 0.0012, shirtEdge);
-          for (const y of [1.17, 1.08, 0.99]) { const p = on(0, y, 0.004); mk(sp(0.005, 8, 5), shirtEdge, p.x, p.y, p.z, g, false).scale.z = 0.4; }
+          // (buttoned right up: the placket running on up to the collar, its top button between the collar's two ends)
+          line('shirtPlacket4', [[0, 1.227], [0, vB + 0.01]], 0.0048, 0.0012, shirtEdge);
+          for (const y of [1.214, 1.15, 1.08, 0.99]) { const p = on(0, y, 0.0052); mk(sp(0.005, 8, 5), shirtEdge, p.x, p.y, p.z, g, false).scale.z = 0.4; }
         }
       }
       const btnM = mat(shade(C.shirt, 0.35), { roughness: 0.4 });
