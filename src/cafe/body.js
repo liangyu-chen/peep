@@ -158,6 +158,10 @@ const PATTERNS = Object.keys(PATTERN_BODY).filter(k => k !== 'denim');
 // transparent canvas, in an ink that reads on the shirt (dark on a light one, cream on a dark one) plus a few fixed
 // colours of its own:
 //   p_coffee 咖啡杯 · p_cat 貓咪 · p_sunset 夕陽 · p_mountain 山景 · p_smile 笑臉 · p_wave 浪花 · p_logo 字樣
+// and some sportswear-style logos, played with rather than copied:
+//   p_sip 勾勾 (a coffee-spill swoosh, JUST SIP IT) · p_drip 三條線 (three bars melting: adidrip) ·
+//   p_pom 跳跳狗 (a leaping Pomeranian: POMA) · p_moth 蝴蝶 (a butterfly with noodle wings: Noodles) ·
+//   p_box 紅框字 (a red box: Superme)
 const PRINT_TEX = {};
 function printTex(kind, light) {
   const key = `${kind}:${light}`;
@@ -228,11 +232,66 @@ function printTex(kind, light) {
       text('PEEP', 128, 54); text('COFFEE', 172, 34);
       g.fillStyle = '#c8703c'; for (const dx of [-60, 60]) { g.beginPath(); g.arc(cx + dx, 160, 6, 0, Math.PI * 2); g.fill(); }
       text('★  ★  ★', 205, 16, ink, '');
+    } else if (kind === 'p_sip') {
+      // a fat swoosh of spilt coffee, a drop falling off its start, and the slogan under it
+      g.fillStyle = '#b8642f'; g.beginPath();
+      g.moveTo(58, 104); g.quadraticCurveTo(34, 170, 96, 166); g.quadraticCurveTo(168, 156, 232, 82);
+      g.quadraticCurveTo(156, 134, 104, 140); g.quadraticCurveTo(70, 144, 58, 104); g.fill();
+      g.beginPath(); g.moveTo(66, 176); g.quadraticCurveTo(56, 194, 66, 200); g.quadraticCurveTo(78, 194, 66, 176); g.fill();   // the drip
+      g.fillStyle = '#f3eee4'; g.beginPath(); g.ellipse(140, 140, 14, 4, -0.3, 0, Math.PI * 2); g.fill();   // the shine on it
+      g.fillStyle = ink; g.font = 'italic 900 34px "Arial Black", Arial, sans-serif'; g.textAlign = 'center'; g.fillText('JUST SIP IT.', cx, 236);
+    } else if (kind === 'p_drip') {
+      // three slanted bars, short to tall, melting at the bottom, over a lowercase name
+      g.fillStyle = ink;
+      [[70, 60], [118, 92], [166, 124]].forEach(([x, h]) => {
+        g.save(); g.translate(x, 160); g.transform(1, 0, -0.45, 1, 0, 0); g.fillRect(-18, -h, 36, h); g.restore();
+        // the drips hanging off each bar's foot
+        for (const [dx, len] of [[-10, 14], [4, 24], [13, 9]]) {
+          g.fillRect(x + dx - 4, 158, 8, len); g.beginPath(); g.arc(x + dx, 158 + len, 4, 0, Math.PI * 2); g.fill();
+        }
+      });
+      g.font = 'bold 50px "Arial Black", Arial, sans-serif'; g.textAlign = 'center'; g.fillText('adidrip', cx, 232);
+    } else if (kind === 'p_pom') {
+      // a fluffy Pomeranian in mid-leap, up and to the right, over its name
+      g.fillStyle = ink; g.strokeStyle = ink;
+      g.save(); g.translate(124, 104); g.rotate(-0.32);
+      g.beginPath(); g.ellipse(0, 0, 54, 30, 0, 0, Math.PI * 2); g.fill();
+      for (let k = 0; k < 14; k++) { const a = k / 14 * Math.PI * 2; g.beginPath(); g.arc(Math.cos(a) * 50, Math.sin(a) * 26, 13, 0, Math.PI * 2); g.fill(); }   // the fluff
+      g.lineWidth = 12;
+      g.beginPath(); g.moveTo(40, 18); g.lineTo(84, 34); g.stroke(); g.beginPath(); g.moveTo(30, 22); g.lineTo(70, 46); g.stroke();      // front legs reaching
+      g.beginPath(); g.moveTo(-40, 18); g.lineTo(-86, 30); g.stroke(); g.beginPath(); g.moveTo(-30, 24); g.lineTo(-74, 44); g.stroke();  // back legs kicked out
+      for (const [x, y, r] of [[-56, -34, 16], [-44, -46, 12], [-66, -50, 11]]) { g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill(); }   // the curled tail
+      g.beginPath(); g.arc(62, -26, 26, 0, Math.PI * 2); g.fill();                                     // the head
+      g.beginPath(); g.moveTo(46, -42); g.lineTo(48, -68); g.lineTo(64, -48); g.fill();                // ears
+      g.beginPath(); g.moveTo(68, -48); g.lineTo(80, -70); g.lineTo(86, -42); g.fill();
+      g.beginPath(); g.ellipse(88, -18, 12, 8, 0, 0, Math.PI * 2); g.fill();                            // the snout
+      g.fillStyle = light ? '#f3eee4' : '#2a2623'; g.beginPath(); g.arc(70, -30, 3.5, 0, Math.PI * 2); g.fill();   // its eye
+      g.restore();
+      g.fillStyle = ink; g.font = 'bold 62px "Arial Black", Arial, sans-serif'; g.textAlign = 'center'; g.fillText('POMA', cx, 228);
+    } else if (kind === 'p_moth') {
+      // a butterfly whose wings are made of noodles, over a name in script
+      const wing = '#7b3fa6', noodle = '#f2d27a';
+      for (const s of [-1, 1]) {
+        g.fillStyle = wing; g.beginPath(); g.ellipse(cx + s * 44, 82, 42, 50, s * -0.5, 0, Math.PI * 2); g.fill();
+        g.beginPath(); g.ellipse(cx + s * 34, 140, 28, 32, s * 0.5, 0, Math.PI * 2); g.fill();
+        g.save(); g.beginPath(); g.ellipse(cx + s * 44, 82, 37, 45, s * -0.5, 0, Math.PI * 2); g.ellipse(cx + s * 34, 140, 23, 27, s * 0.5, 0, Math.PI * 2); g.clip();
+        g.strokeStyle = noodle; g.lineWidth = 4;
+        for (let row = 0; row < 9; row++) { g.beginPath(); for (let x = 0; x <= 90; x += 3) { const px = cx + s * x, py = 40 + row * 15 + Math.sin(x / 6 + row) * 5; x ? g.lineTo(px, py) : g.moveTo(px, py); } g.stroke(); }
+        g.restore();
+      }
+      g.fillStyle = ink; g.beginPath(); g.ellipse(cx, 110, 7, 46, 0, 0, Math.PI * 2); g.fill();       // its body
+      g.strokeStyle = ink; g.lineWidth = 3; for (const s of [-1, 1]) { g.beginPath(); g.moveTo(cx, 68); g.quadraticCurveTo(cx + s * 10, 46, cx + s * 22, 40); g.stroke(); }   // feelers
+      g.font = 'italic bold 52px Georgia, "Times New Roman", serif'; g.textAlign = 'center'; g.fillText('Noodles', cx, 226);
+    } else if (kind === 'p_box') {
+      // a red box with a name across it in white
+      g.fillStyle = '#d1232a'; g.fillRect(16, 92, 224, 76);
+      g.fillStyle = '#ffffff'; g.font = 'italic 900 48px "Arial Black", Arial, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('Superme', cx, 132, 208);
+      g.textBaseline = 'alphabetic';
     }
   });
   return (PRINT_TEX[key] = t);
 }
-const PRINTS = ['p_coffee', 'p_cat', 'p_sunset', 'p_mountain', 'p_smile', 'p_wave', 'p_logo'];
+const PRINTS = ['p_coffee', 'p_cat', 'p_sunset', 'p_mountain', 'p_smile', 'p_wave', 'p_logo', 'p_sip', 'p_drip', 'p_pom', 'p_moth', 'p_box'];
 function patterned(m, kind, base) {
   if (!PATTERN_BODY[kind]) return m;
   const c = new THREE.Color(base), hsl = c.getHSL({}), light = hsl.l > 0.62;
@@ -3155,7 +3214,7 @@ function buildHair(hairParts, shape, head, hairM, mk, at, look) {
   const TILT = 0.66;                                    // the old tipped crown, still used to spread spikes
 
   // the hat this person wears, worked out first so the hair can keep out from under it
-  const { hat: hatStyle, color: hatColor } = hatOf(look);
+  const { hat: hatStyle, color: hatColor, print: hatPrint } = hatOf(look);
   const H = HATS[hatStyle];
   const hatN = H ? crown(H.tilt) : null, hatA = H ? coverFor(H.tilt, H.elev) : 0;
   const underHat = (u, margin) => !!H && Math.acos(Math.max(-1, Math.min(1, u.dot(hatN)))) < hatA + margin;
@@ -3392,7 +3451,14 @@ function buildHair(hairParts, shape, head, hairM, mk, at, look) {
   // (headphones worn under a bucket hat, fedora or beret: the hat a little roomier, sat over their band)
   const phonesUnder = headphonesOf(look).wear === 'head' && ['bucket', 'fedora', 'beret'].includes(hatStyle);
   const steps = (n, f) => Array.from({ length: n }, (_, k) => f(k / (n - 1)));
+  // where a print (帽子印花) goes on each hat: `a`, the angle down from the hat's crown direction to its middle; `psi`,
+  // how far round from straight in front (π/2: on the wearer's left side); `size`, how big it is across (set in each
+  // hat's branch below, once its shape is known). A cap and a bucket hat wear it in front, the rest on the side
+  const SIDE = Math.PI / 2;
+  const hatStart = head.children.length;
+  let printAim = null;
   if (hatStyle === 'cap') {
+    printAim = { a: A * 0.76, size: 0.075 };   // (on the front panels, just above the peak)
     // a six-panel cap: rounded crown, and a peak at the front only, curving down a little, with an underside
     const capM = mat(picked(hatColor), { roughness: 0.8, side: THREE.DoubleSide });
     mk(hatGeo(shape, `cap:${T.toFixed(3)}`, hatN, fr => [
@@ -3405,6 +3471,7 @@ function buildHair(hairParts, shape, head, hairM, mk, at, look) {
     const top = at(0, 1, -0.25), up = new THREE.Vector3(0, 1, -0.25).normalize();
     mk(sp(0.014, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2), capM, top.x + up.x * T, top.y + up.y * T - 0.002, top.z + up.z * T, head);   // the button, sitting on the crown
   } else if (hatStyle === 'bucket') {
+    printAim = { a: A * 0.7, size: 0.072 };
     // a bucket hat: soft crown, the brim turning out and down all the way round, with an underside and a rolled edge
     const capM = mat(picked(hatColor), { roughness: 0.9, side: THREE.DoubleSide });
     const TB = T + (phonesUnder ? 0.026 : 0);
@@ -3427,7 +3494,11 @@ function buildHair(hairParts, shape, head, hairM, mk, at, look) {
     const rb = ring.reduce((s, p) => s + p.distanceTo(c), 0) / ring.length + 0.004 + (phonesUnder ? 0.014 : 0);   // the hat's opening, round the head
     const hat = new THREE.Group(); hat.position.copy(c); hat.quaternion.copy(q); head.add(hat);
     const hm = mat(picked(hatColor), { roughness: hatStyle === 'beret' ? 0.95 : 0.75, side: THREE.DoubleSide });
+    // (in the hat's own frame its base ring is round c, rb across, along hatN: the angle from the head's centre to a
+    // point on its front at height y over that ring)
+    const aimAt = (r, y) => Math.atan2(r, c.length() + y);
     if (hatStyle === 'fedora') {
+      printAim = { a: aimAt(rb, 0.085), psi: SIDE, size: 0.066 };   // (on the crown's side, above its band)
       // 紳士帽: a felt fedora, as worn now: a tall crown narrowing a little upward, a long crease down the middle of the top
       // and the front pinched in either side (a teardrop seen from above), a dark band round its base, and a wide flat
       // brim, its edge bound in a lighter tape
@@ -3498,17 +3569,58 @@ function buildHair(hairParts, shape, head, hairM, mk, at, look) {
       }
       body.computeVertexNormals();
       mk(body, hm, 0, 0, 0, hat);
+      printAim = { a: aimAt(rb * 1.12, h * 0.4), psi: SIDE, size: 0.06 };   // (on the roll at its side)
       // (no stalk on top: it only read as a bump)
     }  } else {
     // a beanie: knitted, long, with no pompom: the crown standing up off the head and slouching back a little, in a
     // broad round dome (not a point), the cuff rolled up thick at the bottom
     const bm = new THREE.MeshStandardMaterial({ color: picked(hatColor), map: ribs(), roughness: 1, side: THREE.DoubleSide });
+    printAim = { a: A - 0.5, psi: SIDE, size: 0.05 };   // (on the knit at the side, clear above the cuff)
     mk(hatGeo(shape, `beanie4:${T.toFixed(3)}`, hatN, () => [
       [0, T + 0.042, 0, 0], ...steps(11, t => [0.05 + t * (A - 0.32), T + 0.042 * Math.max(0, 1 - t * t) ** 0.7 + 0.003 * (1 - t), 0, 0]),
       [A - 0.22, T + 0.002, 0, 0], [A - 0.18, T + 0.007, 0, 0], [A - 0.1, T + 0.009, 0, 0], [A - 0.03, T + 0.008, 0, 0], [A, T + 0.003, 0, 0.002],   // the cuff, hugging the head
       tuck,
     ]), bm, 0, 0, 0, head);
   }
+  if (printAim && PRINTS.includes(hatPrint)) hatPrintOn(head, shape, hatStart, hatN, T, printAim, hatPrint, hatColor, mk);
+}
+
+// 帽子印花: one of the tops' printed pictures laid on the front of the hat, on its own surface whatever the hat's shape
+// (each point of it found by casting out from the middle of the head to the outside of the hat), sized `size` across
+// and up however that surface curves or slopes
+function hatPrintOn(head, shape, hatStart, hatN, T, { a: a0, psi: p0 = 0, size }, kind, hatColor, mk) {
+  const targets = [];
+  head.children.slice(hatStart).forEach(c => c.traverse(o => { if (o.isMesh) targets.push(o); }));
+  if (!targets.length) return;
+  head.updateMatrixWorld(true);
+  const q = new THREE.Quaternion().setFromUnitVectors(UP, hatN), ray = new THREE.Raycaster();
+  const O = head.localToWorld(new THREE.Vector3()), W = new THREE.Vector3();
+  const dirAt = (a, psi) => new THREE.Vector3(Math.sin(a) * Math.sin(psi), Math.cos(a), Math.sin(a) * Math.cos(psi)).applyQuaternion(q);
+  // the outside of the hat along a direction from the head's middle (the furthest it's met), in the head's own space
+  const hitAt = d => {
+    W.copy(d); head.localToWorld(W).sub(O).normalize(); ray.set(O, W);
+    const hits = ray.intersectObjects(targets, false);
+    if (!hits.length) return null;
+    return head.worldToLocal(hits[hits.length - 1].point.clone()).addScaledVector(d, 0.0025);
+  };
+  const mid = hitAt(dirAt(a0, p0));
+  if (!mid) return;
+  // the spans (in angle, down and round) that make it `size` tall and wide where it sits, measured and set right once
+  const R = mid.length();
+  let spanA = size / R, spanP = size / (R * Math.sin(a0));
+  const span = (p, q2) => (p && q2 ? p.distanceTo(q2) : size);
+  spanA *= size / span(hitAt(dirAt(a0 - spanA / 2, p0)), hitAt(dirAt(a0 + spanA / 2, p0)));
+  spanP *= size / span(hitAt(dirAt(a0, p0 - spanP / 2)), hitAt(dirAt(a0, p0 + spanP / 2)));
+  const S = 12, pp = [], uv = [], ix = [];
+  for (let r = 0; r <= S; r++) for (let c = 0; c <= S; c++) {
+    const u = c / S, v = r / S, d = dirAt(a0 + (0.5 - v) * spanA, p0 + (u - 0.5) * spanP);   // (v up: toward the crown)
+    const p = hitAt(d) || deform(HEADS[shape], d.clone()).addScaledVector(d, T + 0.0025);
+    pp.push(p.x, p.y, p.z); uv.push(u, v);
+  }
+  for (let r = 0; r < S; r++) for (let c = 0; c < S; c++) { const a = r * (S + 1) + c, b = a + S + 1; ix.push(a, a + 1, b, a + 1, b + 1, b); }
+  const pg = new THREE.BufferGeometry(); pg.setAttribute('position', new THREE.Float32BufferAttribute(pp, 3)); pg.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); pg.setIndex(ix); pg.computeVertexNormals();
+  const light = new THREE.Color(hatColor).getHSL({}).l > 0.6;
+  mk(pg, new THREE.MeshStandardMaterial({ map: printTex(kind, light), transparent: true, roughness: 0.9, polygonOffset: true, polygonOffsetFactor: -2, side: THREE.DoubleSide }), 0, 0, 0, head, false);
 }
 
 // blinking now and then, and the mouth moving while a speech bubble is up; st keeps the timers

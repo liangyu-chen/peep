@@ -1,4 +1,4 @@
-import { BODIES, bodyOf, BUILDS, buildOf, HEIGHTS, heightOf,tieColorOf, CLOTHES, COLOR_PRESETS, COMPANIONS, EARRINGS, earringsOf, earColorOf, HEADPHONES, headphonesOf, WATCHES, WATCH_FACES, watchOf, FACE, frameColorOf, HAIR, HAT_STYLES, SHOE_STYLES, SOCKS, TATTOO_PARTS, TATTOO_STYLES, NECKTIE, coatInnerOf, clothesOf, companionOf, faceOf, hairOf, hatOf, lensOf, shoeOf, socksOf, tattooOf, type Look } from '@/src/content/catalog';
+import { BODIES, bodyOf, BUILDS, buildOf, HEIGHTS, heightOf,tieColorOf, CLOTHES, COLOR_PRESETS, COMPANIONS, EARRINGS, earringsOf, earColorOf, HEADPHONES, headphonesOf, WATCHES, WATCH_FACES, watchOf, FACE, frameColorOf, HAIR, HAT_STYLES, HAT_PRINTS, SHOE_STYLES, SOCKS, TATTOO_PARTS, TATTOO_STYLES, NECKTIE, coatInnerOf, clothesOf, companionOf, faceOf, hairOf, hatOf, lensOf, shoeOf, socksOf, tattooOf, type Look } from '@/src/content/catalog';
 import ColorField from './ColorField';
 import HairLengthField from './HairLengthField';
 import LensOpacityField from './LensOpacityField';
@@ -56,6 +56,7 @@ export default function LookFields({ look, seed, prefix: px = '' }: { look: Look
       <section className="panel-block look-block">
         <h2>帽子</h2>
         <Pick name={px + 'hat'} label="帽子" value={hat.hat} options={HAT_STYLES} />
+        <Pick name={px + 'hatPrint'} label="帽子印花" value={hat.print} options={HAT_PRINTS} />
         <div className="colors">
           <ColorField name={px + 'hatColor'} label="帽子顏色" value={hat.color} presets={COLOR_PRESETS.clothes} />
         </div>

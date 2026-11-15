@@ -18,6 +18,7 @@ export type Look = {
   hairCm?: number;   // set with the length's − / +: how far it hangs below the head, in cm (0 is 短髮); its band sets hairLength
   tieColor?: number;                                                           // the ponytail's hair tie
   hat?: string; hatColor?: number;                                             // (older looks: hairStyle 'cap'/'bucket' + cap, or beanie)
+  hatPrint?: string;                                                           // 帽子印花: one of the tops' printed pictures (in front, or on the side)
   glasses?: boolean | string; glassesShape?: string; frameColor?: number;      // (older looks: true, 'round' or 'square' black frames)
   lensColor?: number; lensOpacity?: number;                                    // 鏡片: its tint and how solid it is (0-1)
   earL?: string; earR?: string; earColor?: number;                             // 飾品: earrings (one style per ear, one metal)
@@ -172,17 +173,23 @@ export const HAT_STYLES: Option[] = [
   { value: 'none', label: '不戴' }, { value: 'cap', label: '棒球帽' }, { value: 'bucket', label: '漁夫帽' }, { value: 'beanie', label: '毛帽' },
   { value: 'fedora', label: '紳士帽' }, { value: 'beret', label: '貝雷帽' },
 ];
+// 帽子印花: the same printed pictures a top can wear (印花・…), one on the hat (a cap's or bucket hat's front, the others' side)
+export const HAT_PRINTS: Option[] = [
+  { value: 'none', label: '無' }, { value: 'p_coffee', label: '咖啡杯' }, { value: 'p_cat', label: '貓咪' }, { value: 'p_sunset', label: '夕陽' },
+  { value: 'p_mountain', label: '山景' }, { value: 'p_smile', label: '笑臉' }, { value: 'p_wave', label: '浪花' }, { value: 'p_logo', label: '字樣' },
+  { value: 'p_sip', label: '勾勾' }, { value: 'p_drip', label: '三條線' }, { value: 'p_pom', label: '跳跳狗' }, { value: 'p_moth', label: '蝴蝶' }, { value: 'p_box', label: '紅框字' },
+];
 const HAT_COLOR: Record<string, number> = { cap: 0xf08a24, bucket: 0x2f2f2f, beanie: 0xd08a1e, fedora: 0x3a332c, beret: 0x8b1e2d };
 // the hat of a look, reading the older ways hats were stored: as a hairstyle (with its colour in `cap`, short hair
 // under it) or as a beanie colour
-export function hatOf(look: Look): { hat: string; color: number } {
+export function hatOf(look: Look): { hat: string; color: number; print: string } {
   const hat = isIn(HAT_STYLES, look.hat) ? look.hat
     : look.hairStyle === 'cap' || look.hairStyle === 'bucket' ? look.hairStyle
     : typeof look.beanie === 'number' ? 'beanie' : 'none';
   const color = typeof look.hatColor === 'number' ? look.hatColor
     : look.hat == null && (look.hairStyle === 'cap' || look.hairStyle === 'bucket') && typeof look.cap === 'number' ? look.cap
     : look.hat == null && typeof look.beanie === 'number' ? look.beanie : HAT_COLOR[hat] ?? 0xd08a1e;
-  return { hat, color };
+  return { hat, color, print: pickIn(HAT_PRINTS, look.hatPrint, 'none') };
 }
 
 // (glasses: FACE.glasses and FACE.glassesShape, read by faceOf)
@@ -290,6 +297,9 @@ export const CLOTHES: Record<'style' | 'pattern' | 'bottom' | 'fit' | 'top' | 's
     { value: 'p_coffee', label: '印花・咖啡杯' }, { value: 'p_cat', label: '印花・貓咪' }, { value: 'p_sunset', label: '印花・夕陽' },
     { value: 'p_mountain', label: '印花・山景' }, { value: 'p_smile', label: '印花・笑臉' }, { value: 'p_wave', label: '印花・浪花' },
     { value: 'p_logo', label: '印花・字樣' },
+    // sportswear-style logos, played with: a coffee swoosh, melting bars, a leaping Pomeranian, noodle wings, a red box
+    { value: 'p_sip', label: '印花・勾勾' }, { value: 'p_drip', label: '印花・三條線' }, { value: 'p_pom', label: '印花・跳跳狗' },
+    { value: 'p_moth', label: '印花・蝴蝶' }, { value: 'p_box', label: '印花・紅框字' },
   ],
   bottom: [{ value: 'pants', label: '長褲' }, { value: 'jeans', label: '牛仔褲' }, { value: 'shorts', label: '短褲' }, { value: 'skirt', label: '裙子' }, { value: 'briefs', label: '三角內褲' }],
   // (stored values kept as they were: slim and regular now read 合身 and 窄; loose is the new 一般, between them and wide)
@@ -406,7 +416,7 @@ export function parseLook(get: (k: string) => string | null, prev?: Look): Look 
     hairLength: one('hairLength', HAIR.length, hair.length), hairCurl: one('hairCurl', HAIR.curl, hair.curl),
     hairFront: one('hairFront', HAIR.front, hair.front), hairTie: one('hairTie', HAIR.tie, hair.tie),
     // 配戴
-    hat: one('hat', HAT_STYLES, hat.hat), hatColor: hex('hatColor', hat.color),
+    hat: one('hat', HAT_STYLES, hat.hat), hatColor: hex('hatColor', hat.color), hatPrint: one('hatPrint', HAT_PRINTS, hat.print),
     glasses: one('glasses', FACE.glasses, face.glasses), glassesShape: one('glassesShape', FACE.glassesShape, face.glassesShape),
     frameColor: hex('frameColor', frameColorOf(base, face.glasses)),
     lensColor: hex('lensColor', sunGlass.color),
