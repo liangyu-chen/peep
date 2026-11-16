@@ -3599,8 +3599,9 @@ function buildHair(hairParts, shape, head, hairM, mk, at, look) {
   const steps = (n, f) => Array.from({ length: n }, (_, k) => f(k / (n - 1)));
   // where a print (帽子印花) goes on each hat: `a`, the angle down from the hat's crown direction to its middle; `psi`,
   // how far round from straight in front (π/2: on the wearer's left side); `size`, how big it is across (set in each
-  // hat's branch below, once its shape is known). A cap and a bucket hat wear it in front, the rest on the side
-  const SIDE = Math.PI / 2;
+  // hat's branch below, once its shape is known). A cap and a bucket hat wear it in front, the rest on the side: on
+  // the front half of the left side (π/4), not right over the ear, where from in front it was seen edge-on and lost
+  const SIDE = Math.PI / 4;
   const hatStart = head.children.length;
   let printAim = null;
   if (hatStyle === 'cap') {
@@ -3644,7 +3645,7 @@ function buildHair(hairParts, shape, head, hairM, mk, at, look) {
     // point on its front at height y over that ring)
     const aimAt = (r, y) => Math.atan2(r, c.length() + y);
     if (hatStyle === 'fedora') {
-      printAim = { a: aimAt(rb, 0.085), psi: SIDE, size: 0.066 };   // (on the crown's side, above its band)
+      printAim = { a: aimAt(rb, 0.085), psi: SIDE, size: 0.07 };   // (on the crown's side, above its band)
       // 紳士帽: a felt fedora, as worn now: a tall crown narrowing a little upward, a long crease down the middle of the top
       // and the front pinched in either side (a teardrop seen from above), a dark band round its base, and a wide flat
       // brim, its edge bound in a lighter tape
@@ -3715,13 +3716,13 @@ function buildHair(hairParts, shape, head, hairM, mk, at, look) {
       }
       body.computeVertexNormals();
       mk(body, hm, 0, 0, 0, hat);
-      printAim = { a: aimAt(rb * 1.12, h * 0.4), psi: SIDE, size: 0.06 };   // (on the roll at its side)
+      printAim = { a: aimAt(rb * 1.12, h * 0.4), psi: SIDE, size: 0.07 };   // (on the roll at its side)
       // (no stalk on top: it only read as a bump)
     }  } else {
     // a beanie: knitted, long, with no pompom: the crown standing up off the head and slouching back a little, in a
     // broad round dome (not a point), the cuff rolled up thick at the bottom
     const bm = new THREE.MeshStandardMaterial({ color: picked(hatColor), map: ribs(), roughness: 1, side: THREE.DoubleSide });
-    printAim = { a: A - 0.5, psi: SIDE, size: 0.05 };   // (on the knit at the side, clear above the cuff)
+    printAim = { a: A - 0.5, psi: SIDE, size: 0.065 };   // (on the knit at the side, clear above the cuff)
     mk(hatGeo(shape, `beanie4:${T.toFixed(3)}`, hatN, () => [
       [0, T + 0.042, 0, 0], ...steps(11, t => [0.05 + t * (A - 0.32), T + 0.042 * Math.max(0, 1 - t * t) ** 0.7 + 0.003 * (1 - t), 0, 0]),
       [A - 0.22, T + 0.002, 0, 0], [A - 0.18, T + 0.007, 0, 0], [A - 0.1, T + 0.009, 0, 0], [A - 0.03, T + 0.008, 0, 0], [A, T + 0.003, 0, 0.002],   // the cuff, hugging the head
