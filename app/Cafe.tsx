@@ -1,9 +1,16 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import dynamic from 'next/dynamic';
 import type { CafeContent } from '@/src/content/catalog';
+import type { Look } from '@/src/content/look';
 import '@/src/cafe/cafe.css';
 import LoadingHands from './LoadingHands';
+
+// 蜘蛛驚魂, fetched only the first time it is opened
+const BattleClient = dynamic(() => import('@/src/battle/BattleClient'), { ssr: false });
+type CafeModule = typeof import('@/src/cafe/index.js');
+type BattleOwner = { name: string; look: Look };
 
 // the RPG menu's item icons, in colour: each letter a pixel of that palette colour, '.' see-through
 const ITEM_PAL: Record<string, string> = { k: '#14121a', w: '#f4efe3', G: '#9a98a6', g: '#55535f', r: '#ff4f7b', y: '#ffd23f',
@@ -27,6 +34,8 @@ const ICON_EYE = ['............', '............', '...kkkkkk...', '..kwwwwwwk..'
 // window's dark slot (and no eyes: with them, round and leggy, it read as a spider)
 const ICON_ROACH = ['.LL......LL.', 'L..L....L..L', 'L...kkkk...L', '...kBBBBk...', '..kHHHHHHk..', '.LkHHbbHHkL.', '..kbbkkbbk..',
   'LLkbbkkbbkLL', '..kbbkkbbk..', '.LkbbkkbbkL.', 'L..kbkkbk..L', '....kkkk....'];
+const ICON_SPIDER = ['............', '..k......k..', '...k....k...', '..k.kkkk.k..', '.k.kbbbbk.k.', '..kbrbbrbk..',
+  '.k.kbbbbk.k.', '..kbbbbbbk..', '..k.kkkk.k..', '...k....k...', '..k......k..', '............'];
 // 冷氣遙控: the white remote, its red lamp up top, the green LCD, two grey keys either side of the yellow power key
 const ICON_REMOTE = ['....kkkk....', '...kwwwwk...', '..kwwwrwwk..', '..kwnnnnwk..', '..kwnnnnwk..', '..kwwwwwwk..', '..kwGwwGwk..',
   '..kwwyywwk..', '..kwGwwGwk..', '..kwwwwwwk..', '...kwwwwk...', '....kkkk....'];
@@ -135,18 +144,35 @@ export default function Cafe({ content }: { content: CafeContent }) {
   const [ready, setReady] = useState(false);     // the scene is built and has drawn its first frames
   const [loading, setLoading] = useState(true);  // the loading screen is still up
   const done = useCallback(() => setLoading(false), []);
+  const cafe = useRef<CafeModule | null>(null);
+  // 蜘蛛驚魂 laid over the café on this same page: the café is paused underneath (nothing in it runs or draws), and
+  // when the fight ends the layer goes and the café carries on from where it stopped, with no reload
+  const [battle, setBattle] = useState<BattleOwner | null>(null);
 
   useEffect(() => {
     let stop: (() => void) | null = null;
     let cancelled = false;
-    import('@/src/cafe/index.js').then(({ startCafe }) => {
+    import('@/src/cafe/index.js').then((mod) => {
       if (cancelled || !root.current) return;
-      stop = startCafe(root.current, content, () => requestAnimationFrame(() => requestAnimationFrame(() => { if (!cancelled) setReady(true); })));
+      cafe.current = mod;
+      stop = mod.startCafe(root.current, content, () => requestAnimationFrame(() => requestAnimationFrame(() => { if (!cancelled) setReady(true); })));
     });
     return () => { cancelled = true; stop?.(); };
   }, [content]);
 
+  const openBattle = useCallback(() => {
+    root.current?.querySelector<HTMLButtonElement>('[data-cmd="close"]')?.click();   // (the menu put away first)
+    const seen = cafe.current?.cafeOwner();
+    cafe.current?.setCafePaused(true);
+    setBattle({ name: seen?.name || content.owner.name, look: (seen?.look as Look | undefined) || content.owner.look });
+  }, [content]);
+  const closeBattle = useCallback(() => {
+    setBattle(null);
+    cafe.current?.setCafePaused(false);
+  }, []);
+
   return (
+    <>
     <div className="cafe-root" ref={root}>
       <div id="stage" />
       {/* 時間停止器's little screen, shown while time is stopped (timeStop.js) */}
@@ -218,6 +244,7 @@ export default function Cafe({ content }: { content: CafeContent }) {
             <button type="button" id="musicToggle" className="opt on" data-toggle><PixelArt rows={ICON_NOTE} />音樂<span className="val" /></button>
             {/* 畫質, one line that flips between 高 and 低 (hud.js) */}
             <button type="button" id="qualityToggle" className="opt"><PixelArt rows={ICON_BATT} />畫質<span className="qval" id="qualityVal">高</span></button>
+            <button type="button" className="opt battleOpt" onClick={openBattle}><PixelArt rows={ICON_SPIDER} />蜘蛛驚魂<span className="devTag">規劃中</span></button>
             <a href="/admin" className="opt"><PixelArt rows={ICON_KEY} />後台登入</a>
           </div>
         </section>
@@ -349,5 +376,7 @@ export default function Cafe({ content }: { content: CafeContent }) {
       </section>
       {loading && <LoadingHands ready={ready} onDone={done} />}
     </div>
+    {battle && <BattleClient owner={battle} onExit={closeBattle} />}
+    </>
   );
 }

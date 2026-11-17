@@ -24,6 +24,7 @@ import { setQuality, DEFAULT_QUALITY, highQuality, qualityPR, frameMs } from './
 import { disposePortraits } from './portrait.js';
 import { updateRoach, tvPaused, disposeRoach, releaseRoach, raiseAlarm } from './roach.js';
 import { buildPhoneProp, updatePhoneProp, disposePhoneProp } from './phone.js';
+import { holdMusic } from './music.js';
 // (one café at a time: a new one waits until the one before is built and, if it was let go meanwhile, torn down)
 let queue = Promise.resolve();
 export function startCafe(root, content, onReady) {
@@ -33,6 +34,15 @@ export function startCafe(root, content, onReady) {
     stop = s; if (cancelled) s(); else onReady?.();
   }).catch(err => console.error(err));
   return () => { cancelled = true; stop?.(); };
+}
+// Paused (a battle laid over the café, app/Cafe.tsx): nothing in the shop runs and nothing is drawn, not even the
+// camera, so the 3D costs nothing meanwhile; unpaused, it carries on from the very moment it stopped.
+let pauseHook = null;
+export function setCafePaused(on) { pauseHook?.(on); }
+// the owner as the café is showing him today (his look is one of two picked at random when it opens)
+export function cafeOwner() {
+  const o = S.owner;
+  return o ? { name: o.p?.name, look: o.look } : null;
 }
 // a moment for the page to draw between the heavy steps of building
 const breathe = () => new Promise(r => setTimeout(r, 0));
@@ -141,7 +151,7 @@ async function build(root, content) {
   const covered = () => { const c = root.classList; return c.contains('phoneOpen') && !c.contains('phoneCam') && !c.contains('playing'); };
   let heldQuality = null;   // the 畫質 to go back to, while the phone has the café turned down
   function frame(now) {
-    if (S.stopped) return;
+    if (S.stopped || S.paused) return;
     const cov = covered();
     if (cov && heldQuality === null) {
       heldQuality = S.quality || DEFAULT_QUALITY;
@@ -161,7 +171,19 @@ async function build(root, content) {
     raf = requestAnimationFrame(frame);
   }
 
-  const hudTimer = setInterval(() => { updateHUD(); updateLighting(); if (S.selected) fillCard(); }, 100);
+  const hudTimer = setInterval(() => { if (S.paused) return; updateHUD(); updateLighting(); if (S.selected) fillCard(); }, 100);
+  pauseHook = on => {
+    on = !!on;
+    if (S.stopped || !!S.paused === on) return;
+    S.paused = on;
+    root.classList.toggle('paused', on);
+    if (on) { cancelAnimationFrame(raf); holdMusic(true); }
+    else {
+      last = performance.now();   // (no catching up on the time spent away)
+      raf = requestAnimationFrame(frame);
+      if (!S.timeStop) holdMusic(false);   // (時間停止器 keeps it quiet if time was stopped before)
+    }
+  };
   drawTV(); updateHUD(); updateLighting();
   if (document.fonts) Promise.all([document.fonts.load(`20px ${PIX}`), document.fonts.load('20px "DotGothic16"', '窺視珈琲五金')])
     .then(() => { if (!S.stopped) S.fontTex.forEach(t => t.redraw()); }).catch(() => {});
@@ -189,6 +211,8 @@ async function build(root, content) {
 
   return function stopCafe() {
     S.stopped = true;
+    S.paused = false;
+    pauseHook = null;
     disposePortraits();
     disposeRoach();
     disposePhoneProp();

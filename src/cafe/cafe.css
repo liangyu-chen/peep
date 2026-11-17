@@ -105,6 +105,10 @@ html:has(.cafe-root),body:has(.cafe-root){margin:0;overflow:hidden;background:#1
 .cafe-root .opt.on .val{color:var(--gold)}
 .cafe-root .opt.on .val::after{content:"ON"}
 .cafe-root .opt .qval{margin-left:auto;font-size:13px;color:var(--gold)}   /* 畫質: 高 or 低 */
+/* a link line (蜘蛛驚魂, 後台登入) sizes like the button lines, padding inside its 100% width, so its tag stays in the window */
+.cafe-root a.opt{box-sizing:border-box}
+.cafe-root .opt .devTag{margin-left:auto;padding:1px 6px;border:2px solid var(--rule);font-size:11px;line-height:1.2;color:var(--muted);white-space:nowrap}
+.cafe-root .opt.battleOpt:hover .devTag,.cafe-root .opt.battleOpt:focus-visible .devTag{color:var(--gold);border-color:var(--gold)}
 /* items: three slots to a row, the picked one edged gold; what it is, and use, underneath */
 .cafe-root .slots{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
 /* 道具 / 裝備: two tabs over the slots; both grids stand in one place (the other one kept invisible), so the window stays
