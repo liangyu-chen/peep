@@ -291,23 +291,45 @@ export function trySpawn(force, who) {
 // far along it they go out of sight
 const WALK_Z = 10.55, WALK_X = 16;
 const OUT = [[-1.75, WALK_Z]].concat(DOOR.slice(1));   // out of the door to the lane
-async function leave(c, zone) {
+async function leave(c, zone, quiet = false) {
   const p = c.p;
   c.status = '準備離開';
-  if (c.bear && c.bear.line === '汪！') c.say(`${c.bear.name}，走囉！`);   // calling the dog by name, who comes trotting after them
+  if (!quiet && c.bear && c.bear.line === '汪！') c.say(`${c.bear.name}，走囉！`);   // calling the dog by name, who comes trotting after them
   // still holding a glass or a tea cup (watching the TV, say): the last of it, then it's left behind, not taken out
   if (c.cup && !c.cup.userData.togo) { c.gesture('sip', 1.4); await sleep(1.4, c); setLevel(c.cup, 0); c.dropCup(); }
   await walk(c, route(zone, OUT));
   c.outside = true;
-  sayLine(c, p.regular ? 'customer.leaveRegular' : 'customer.leaveNew');
-  if (p.regular) c.gesture('wave', 1.5);
-  if (Math.random() < 0.6) sleep(0.7).then(() => sayLine(S.owner, p.regular ? 'owner.byeRegular' : 'owner.byeNew', { name: p.name }));
+  if (!quiet) {
+    sayLine(c, p.regular ? 'customer.leaveRegular' : 'customer.leaveNew');
+    if (p.regular) c.gesture('wave', 1.5);
+    if (Math.random() < 0.6) sleep(0.7).then(() => sayLine(S.owner, p.regular ? 'owner.byeRegular' : 'owner.byeNew', { name: p.name }));
+  }
   await walk(c, [[(Math.random() < 0.5 ? -1 : 1) * WALK_X, WALK_Z + rand(-0.15, 0.15)]]);   // and off along it, one way or the other
   await sleep(0.3, c);
   log(`${p.name} 離開了`);
   S.customers.splice(S.customers.indexOf(c), 1);
   if (c === S.selected || S.selected?.owner === c) closeCard();   // (their companion's card goes with them too)
   c.remove();
+}
+
+export function kickOut(c) {
+  if (!c || c.gone || c.outside) return;
+  for (let i = S.timers.length - 1; i >= 0; i--) if (S.timers[i].who === c) S.timers.splice(i, 1);
+  if (c.tops) { c.tops.cancelled = true; c.tops = null; }
+  if (S.toiletUser === c) { S.toiletUser = null; S.toiletBusy = false; }
+  const qi = S.orderQueue.indexOf(c);
+  if (qi >= 0) S.orderQueue.splice(qi, 1);
+  c.smokeNow = false;
+  c.silent = true;
+  c.bubble.style.opacity = 0; c.bubbleT = 0;
+  c.busy = false;
+  c.pose = 'stand';
+  c.path = [];
+  c.onArrive = null;
+  const zone = c.seat ? [[c.seat.x, c.seat.z], [HUBX, c.seat.z]] : [[c.g.position.x / K, c.g.position.z], [HUBX, c.g.position.z]];
+  if (c.seat) { c.seat.occ = null; c.seat = null; }
+  c.spot = null;
+  leave(c, zone, true);
 }
 
 async function customerLife(c) {

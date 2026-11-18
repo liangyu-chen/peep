@@ -23,6 +23,7 @@ import { TVX, TVY, TVZ } from './layout.js';
 import { bindMenu } from './rpgMenu.js';
 import { setTimeStop } from './timeStop.js';
 import { bindPhone, phoneTargets, pickUpPhone, setPhoneHover } from './phone.js';
+import { CLOUD_SVG } from './mood.js';
 
 export function updateHUD() {
   $('clock').textContent = fmtTime(S.minutes); $('day').textContent = DAYS[S.dow];
@@ -86,6 +87,10 @@ export function fillCard() {
   });
   $('cStatus').textContent = '現在：' + s.status;
   $('cInvite').hidden = !(s.role === 'customer' && canInviteTops(s));
+  const mood = $('cMood');
+  mood.hidden = !(s.role === 'customer' && s.mood);
+  if (s.mood.mode === 'kind') mood.innerHTML = `${CLOUD_SVG}<span>關心客人</span>`;
+  else mood.textContent = '❗ 處理奧客';
   // 來根小菸: for anyone who smokes; greyed out, saying why, when they can't go just now
   const smoke = $('cSmoke'), st = s.role === 'customer' && p.smokes ? smokeState(s) : null;
   smoke.hidden = !st;
@@ -286,6 +291,7 @@ export function bindHUD(root, stage) {
 
   on($('closeCard'), 'click', closeCard);
   on($('cSmoke'), 'click', () => { const sel = S.selected; if (sel) { sendOutToSmoke(sel); fillCard(); } });
+  on($('cMood'), 'click', () => { const sel = S.selected; if (sel?.mood) S.openCustomerBattle?.(sel); });
   on($('cInvite'), 'click', () => {
     const sel = S.selected; if (!sel) return;
     // invited to spin tops (the TV's nearly always full): with whoever else is sitting down

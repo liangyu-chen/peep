@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
 import dynamic from 'next/dynamic';
 import type { CafeContent } from '@/src/content/catalog';
 import type { Look } from '@/src/content/look';
@@ -11,6 +11,22 @@ import LoadingHands from './LoadingHands';
 const BattleClient = dynamic(() => import('@/src/battle/BattleClient'), { ssr: false });
 type CafeModule = typeof import('@/src/cafe/index.js');
 type BattleOwner = { name: string; look: Look };
+type CafePerson = {
+  gone?: boolean;
+  p?: { name?: string };
+  look?: Look;
+  mood?: { mode: 'rude' | 'kind'; type: string };
+};
+type CustomerBattle = {
+  owner: BattleOwner;
+  customer: BattleOwner;
+  mode: 'rude' | 'kind';
+  type: string;
+  person: CafePerson;
+};
+type BattleEntry = 'close' | 'open';
+const ENTRY_CLOSE_MS = 960;   // flashes, then the bars closing in (cafe.css .battleEntry)
+const ENTRY_OPEN_MS = 520;    // the bars sweeping off the fight
 
 // the RPG menu's item icons, in colour: each letter a pixel of that palette colour, '.' see-through
 const ITEM_PAL: Record<string, string> = { k: '#14121a', w: '#f4efe3', G: '#9a98a6', g: '#55535f', r: '#ff4f7b', y: '#ffd23f',
@@ -145,9 +161,13 @@ export default function Cafe({ content }: { content: CafeContent }) {
   const [loading, setLoading] = useState(true);  // the loading screen is still up
   const done = useCallback(() => setLoading(false), []);
   const cafe = useRef<CafeModule | null>(null);
-  // 蜘蛛驚魂 laid over the café on this same page: the café is paused underneath (nothing in it runs or draws), and
-  // when the fight ends the layer goes and the café carries on from where it stopped, with no reload
-  const [battle, setBattle] = useState<BattleOwner | null>(null);
+  const openCustomerRef = useRef<(person: CafePerson) => void>(() => {});
+  // the battle layer over the café: the café is paused underneath and carries on from where it stopped when it closes
+  const [battle, setBattle] = useState<BattleOwner | CustomerBattle | null>(null);
+  const [entry, setEntry] = useState<BattleEntry | null>(null);
+  const entryTimer = useRef<number | null>(null);
+
+  useEffect(() => () => { if (entryTimer.current !== null) window.clearTimeout(entryTimer.current); }, []);
 
   useEffect(() => {
     let stop: (() => void) | null = null;
@@ -155,21 +175,60 @@ export default function Cafe({ content }: { content: CafeContent }) {
     import('@/src/cafe/index.js').then((mod) => {
       if (cancelled || !root.current) return;
       cafe.current = mod;
-      stop = mod.startCafe(root.current, content, () => requestAnimationFrame(() => requestAnimationFrame(() => { if (!cancelled) setReady(true); })));
+      stop = mod.startCafe(root.current, content, () => {
+        mod.setCustomerBattleHandler((person: CafePerson) => openCustomerRef.current(person));
+        requestAnimationFrame(() => requestAnimationFrame(() => { if (!cancelled) setReady(true); }));
+      });
     });
-    return () => { cancelled = true; stop?.(); };
+    return () => { cancelled = true; cafe.current = null; stop?.(); };
   }, [content]);
 
+  // one entrance for every fight: the café flashes twice, bars of black sweep in over it, the fight is put up
+  // underneath, and the bars sweep off again to show it
+  const enterBattle = useCallback((next: BattleOwner | CustomerBattle) => {
+    if (entryTimer.current !== null) window.clearTimeout(entryTimer.current);
+    setEntry('close');
+    entryTimer.current = window.setTimeout(() => {
+      setBattle(next);
+      setEntry('open');
+      entryTimer.current = window.setTimeout(() => {
+        setEntry(null);
+        entryTimer.current = null;
+      }, ENTRY_OPEN_MS);
+    }, ENTRY_CLOSE_MS);
+  }, []);
+  const ownerNow = useCallback((): BattleOwner => {
+    const seen = cafe.current?.cafeOwner();
+    return { name: seen?.name || content.owner.name, look: (seen?.look as Look | undefined) || content.owner.look };
+  }, [content]);
   const openBattle = useCallback(() => {
     root.current?.querySelector<HTMLButtonElement>('[data-cmd="close"]')?.click();   // (the menu put away first)
-    const seen = cafe.current?.cafeOwner();
     cafe.current?.setCafePaused(true);
-    setBattle({ name: seen?.name || content.owner.name, look: (seen?.look as Look | undefined) || content.owner.look });
-  }, [content]);
+    enterBattle(ownerNow());
+  }, [enterBattle, ownerNow]);
+  const openCustomerBattle = useCallback((person: CafePerson) => {
+    if (!person?.mood || person.gone || !person.look) return;
+    root.current?.querySelector<HTMLButtonElement>('[data-cmd="close"]')?.click();
+    cafe.current?.setCafePaused(true);
+    enterBattle({
+      owner: ownerNow(),
+      customer: { name: person.p?.name || '客人', look: person.look },
+      mode: person.mood.mode,
+      type: person.mood.type,
+      person,
+    });
+  }, [enterBattle, ownerNow]);
+  openCustomerRef.current = openCustomerBattle;
   const closeBattle = useCallback(() => {
+    if (entryTimer.current !== null) window.clearTimeout(entryTimer.current);
+    entryTimer.current = null;
+    setEntry(null);
     setBattle(null);
     cafe.current?.setCafePaused(false);
   }, []);
+
+  const customerBattle = battle && 'mode' in battle ? (battle as CustomerBattle) : null;
+  const battleOwner = (customerBattle ? customerBattle.owner : battle) as BattleOwner | null;
 
   return (
     <>
@@ -291,6 +350,7 @@ export default function Cafe({ content }: { content: CafeContent }) {
         <dl id="cInfo"></dl>
         <div className="status" id="cStatus">-</div>
         <button id="cInvite" className="primary" hidden>▶ 邀去打陀螺</button>
+        <button id="cMood" className="primary" hidden>❗ 處理奧客</button>
         <button id="cSmoke" hidden>來根小菸</button>
       </aside>
 
@@ -376,7 +436,26 @@ export default function Cafe({ content }: { content: CafeContent }) {
       </section>
       {loading && <LoadingHands ready={ready} onDone={done} />}
     </div>
-    {battle && <BattleClient owner={battle} onExit={closeBattle} />}
+    {entry && (
+      <div className={`battleEntry ${entry}`} aria-hidden="true">
+        <div className="entryFlash" />
+        <div className="entryBars">
+          {Array.from({ length: 10 }, (_, i) => <i key={i} style={{ '--i': i } as CSSProperties} />)}
+        </div>
+      </div>
+    )}
+    {battleOwner && (
+      <BattleClient
+        owner={battleOwner}
+        onExit={closeBattle}
+        mode={customerBattle?.mode}
+        type={customerBattle?.type}
+        customer={customerBattle?.customer}
+        onResult={(kind) => {
+          if (customerBattle) cafe.current?.resolveCustomerBattle(customerBattle.person, kind);
+        }}
+      />
+    )}
     </>
   );
 }

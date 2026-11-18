@@ -107,6 +107,27 @@ body:has(.battle-root) {
   color: #b8aecb;
 }
 
+.battleType {
+  display: inline-block;
+  margin: -2px 0 6px;
+  padding: 1px 6px;
+  border: 1px solid currentColor;
+  border-radius: 3px;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+}
+
+.battleType[data-type="一般"] { color: #ded3b8; }
+.battleType[data-type="熱"] { color: #ff9a62; }
+.battleType[data-type="蟲"] { color: #a6e05a; }
+.battleType[data-type="毒"] { color: #cf8bff; }
+.battleType[data-type="蠻橫"] { color: #ff6b5e; }
+.battleType[data-type="小氣"] { color: #ffd23f; }
+.battleType[data-type="吵鬧"] { color: #ff9a62; }
+.battleType[data-type="悲傷"] { color: #8de2ff; }
+.battleType[data-type="焦慮"] { color: #cf8bff; }
+.battleType[data-type="疲累"] { color: #b8aecb; }
+
 .hpWrap {
   display: flex;
   align-items: center;
@@ -303,6 +324,10 @@ body:has(.battle-root) {
   opacity: 1;
 }
 
+.battleBtn.armed {
+  box-shadow: inset -3px -3px 0 #191520, inset 3px 3px 0 #574e70, 0 0 0 2px #8de2ff;
+}
+
 .battleBtn:active {
   transform: translateY(1px);
 }
@@ -375,6 +400,13 @@ body:has(.battle-root) {
 .moveMeta i[data-type="毒"] {
   color: #cf8bff;
 }
+
+.moveMeta i[data-type="蠻橫"] { color: #ff6b5e; }
+.moveMeta i[data-type="小氣"] { color: #ffd23f; }
+.moveMeta i[data-type="吵鬧"] { color: #ff9a62; }
+.moveMeta i[data-type="悲傷"] { color: #8de2ff; }
+.moveMeta i[data-type="焦慮"] { color: #cf8bff; }
+.moveMeta i[data-type="疲累"] { color: #b8aecb; }
 
 .moveMeta b {
   color: #ffd23f;

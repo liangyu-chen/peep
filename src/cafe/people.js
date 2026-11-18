@@ -9,6 +9,7 @@ import { KERB, RISE, BACK_DROP, inBackHall } from './layout.js';
 import { makeBear, followBear } from './bear.js';
 import { makeDog, makeCorgi, followDog } from './dog.js';
 import { moverShadows, highQuality } from './quality.js';
+import { createMoodPlan, removeMood } from './mood.js';
 
 const teaCupM = mat(0xf2f0ea, { roughness: 0.3 });
 const coffeeM = mat(0x5a3220, { roughness: 0.3 });
@@ -271,6 +272,7 @@ const CAFE_DETAIL = 0.55;
 export class Person {
   constructor(profile, role) {
     this.p = profile; this.role = role;
+    this.moodPlan = role === 'customer' ? createMoodPlan(profile) : null;
     // how they look this time: a regular with a second look (第二套捏臉) comes as either one, at random, each visit;
     // the owner, the same, each time the café opens
     this.look = (role === 'customer' || role === 'owner') && profile.look2 && Math.random() < 0.5 ? profile.look2 : profile.look;
@@ -294,7 +296,7 @@ export class Person {
     }
     this.path = []; this.onArrive = null; this.speed = 1.4; this.heading = 0; this.targetHeading = 0;
     this.pose = 'stand'; this.walkPhase = Math.random() * 10; this.act = null; this.actT = 0;
-    this.cup = null; this.status = '剛進門'; this.seat = null; this.gone = false;
+    this.cup = null; this.status = '剛進門'; this.seat = null; this.gone = false; this.silent = false;
     this.tag = document.createElement('div');
     this.tag.className = 'tag ' + (role === 'owner' ? 'boss' : profile.regular ? 'reg' : 'new');
     this.tag.innerHTML = `<span></span><i>${role === 'owner' ? '老闆' : profile.regular ? '熟客' : '新客'}</i>`;
@@ -307,7 +309,7 @@ export class Person {
   setPos(x, z) { this.g.position.set(x * K, 0, z); }
   face(a) { this.targetHeading = a; }
   bearSay(text, dur = 2.4) { const b = this.bear; if (!b) return; b.bubble.textContent = text; b.bubble.style.opacity = 1; b.bubbleT = dur; }
-  say(text, dur = 2.8) { this.bubble.textContent = text; this.bubble.style.opacity = 1; this.bubbleT = dur; }
+  say(text, dur = 2.8) { if (this.silent) return; this.bubble.textContent = text; this.bubble.style.opacity = 1; this.bubbleT = dur; }
   hold(cup) { this.cup = cup; moverShadows(cup); this.cupHand.add(cup); cup.position.set(0, -0.05, 0); cup.rotation.set(0, 0, 0); cup.scale.set(1, 1, 1); }
   putCup(x, y, z) { if (!this.cup) return; ctx.scene.attach(this.cup); this.cup.position.set(x * K, y, z); this.cup.rotation.set(0, 0, 0); this.cup.scale.set(1, 1, 1); }
   pickCup() { if (this.cup) this.hold(this.cup); }
@@ -356,7 +358,7 @@ export class Person {
     burn(this.cig, Math.max(0.12, k.life / k.dur), k.phase === 'drag' || k.phase === 'light' ? Math.min(1, (1.2 - k.t) * 2) : 0);
   }
   remove() {
-    this.gone = true; ctx.scene.remove(this.g);
+    this.gone = true; removeMood(this); ctx.scene.remove(this.g);
     [this.g, this.bear?.g].forEach(r => r?.traverse(o => { if (o.userData.merged) o.geometry.dispose(); })); if (this.bear) { ctx.scene.remove(this.bear.g); this.bear.bubble.remove(); } this.dropCup(); this.putOut(); this.tag.remove(); this.bubble.remove();
     S.people.splice(S.people.indexOf(this), 1);
   }

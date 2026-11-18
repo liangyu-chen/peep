@@ -52,7 +52,7 @@ function ownerInfo(look = {}, name = '') {
     lensSolid: lens.opacity >= 0.4,
     pal: {
       k: '#0b0910',
-      skin: toHex(skin), skinL: tint(skin, 1.16), skinD: tint(skin, 0.76),
+      skin: toHex(skin), skinL: tint(skin, 1.16), skinD: tint(skin, 0.76), skinF: tint(skin, 1.35),
       hair: toHex(hairColor), hairL: tint(hairColor, 1.25), hairD: tint(hairColor, 0.66),
       shirt: toHex(shirt), shirtL: tint(shirt, 1.18), shirtD: tint(shirt, 0.72),
       inner: toHex(innerColor), innerD: tint(innerColor, 0.76),
@@ -136,56 +136,60 @@ function drawSpider(g, P) {
   box(g, 19, 26, 1, 1, P.b);
 }
 
-function faceRow(shape, i, h, w) {
+function faceRow(shape, i, h) {
   if (shape === 'round') {
-    if (i === 0 || i === h - 1) return [2, w - 2];
-    if (i === 1 || i === h - 2) return [1, w - 1];
-    return [0, w];
+    if (i === 0 || i === h - 1) return [4, 4];
+    if (i === 1 || i === h - 2) return [2, 2];
+    if (i === 2 || i === h - 3) return [1, 1];
+    return [0, 0];
   }
   if (shape === 'oval') {
-    if (i === 0) return [2, w - 2];
-    if (i >= h - 2) {
-      const inset = 2 + (i - (h - 2));
-      return [inset, w - inset];
-    }
-    return [0, w];
+    if (i === 0 || i === h - 1) return [5, 5];
+    if (i === 1 || i === h - 2) return [3, 3];
+    if (i === 2 || i === h - 3) return [1, 1];
+    return [0, 0];
   }
   if (shape === 'heart') {
-    if (i < 2) return [1, w - 1];
-    if (i >= h - 3) {
-      const inset = Math.max(1, 3 - (h - 1 - i));
-      return [inset, w - inset];
-    }
-    return [0, w];
+    if (i === 0) return [3, 3];
+    if (i === 1) return [2, 2];
+    if (i === 2) return [1, 1];
+    if (i >= h - 3) return [Math.max(1, h - i - 1), Math.max(1, h - i - 1)];
+    return [0, 0];
   }
   if (shape === 'long') {
-    if (i === h - 1) return [1, w - 1];
-    return [0, w];
+    if (i === 0 || i === h - 1) return [2, 2];
+    return [1, 1];
   }
-  return [0, w];
+  return [0, 0];
 }
 
+const SPRITE_H = 60;
+
 function drawOwner(g, P, O) {
+  // proportions taken from the 3D body (cafe/body.js): hips at 0.63 of a 1.64 figure, shoulders at 1.25, a head 0.39
+  // across, so the legs run about as long as the torso, and the two thighs side by side fill the hips' width
   const cx = 22;
-  const legs = { xshort: 7, short: 8, regular: 10, tall: 12, xtall: 14 }[O.height] ?? 10;
-  const soleY = 55;
+  const legs = { xshort: 10, short: 12, regular: 14, tall: 16, xtall: 18 }[O.height] ?? 14;
+  const soleY = SPRITE_H - 1;
   const shoeH = O.shoes.style === 'boots' ? 5 : 4;
   const shoeTop = soleY - shoeH + 1;
   const legTop = shoeTop - legs;
   const torsoH = 17;
   const torsoTop = legTop - torsoH;
   const headH = O.face.faceShape === 'long' ? 13 : 12;
-  const headW = O.face.faceShape === 'square' ? 17 : 16;
+  const headW = O.face.faceShape === 'square' ? 18 : 16;
   const headX = cx - (headW >> 1);
   const headBottom = torsoTop - 2;
   const headTop = headBottom - headH + 1;
-  const torsoW = { thin: 17, slim: 18, regular: 20, stocky: 22, heavy: 24 }[O.build] ?? 20;
+  const torsoW = { thin: 15, slim: 16, regular: 18, stocky: 20, heavy: 22 }[O.build] ?? 18;
   const tx = cx - (torsoW >> 1);
   const bottom = O.clothes.style === 'dress' ? 'dress' : O.clothes.bottom;
-  const legW = { thin: 3, slim: 4, regular: 4, stocky: 5, heavy: 6 }[O.build] ?? 4;
-  const legGap = O.build === 'heavy' ? 1 : 2;
-  const lx = cx - legGap - legW;
-  const rx = cx + legGap;
+  // each leg half the hips, less a pixel of gap between them, so together they are as wide as the body above
+  const legW = (torsoW - 2) >> 1;
+  const lx = cx - 1 - legW;
+  const rx = cx + 1;
+  // the shin a pixel slimmer than the thigh on its outer side, from the knee down
+  const knee = Math.round(legTop + (shoeTop - legTop) * 0.5);
   const skinBottom = bottom === 'shorts' || bottom === 'skirt' || bottom === 'dress' || bottom === 'briefs';
   const hairLen = { bald: -1, buzz: 0, mushroom: 1, azhi: 1, spiky: 0, pompadour: 0, short: 1, bob: 4, medium: 8, long: 12 }[O.hair.length] ?? 1;
   const sleeve = O.clothes.sleeve;
@@ -200,8 +204,9 @@ function drawOwner(g, P, O) {
     box(g, headX - 1, headTop + 1, headW + 2, 4, P.hairD);
     box(g, headX, headTop, headW, 3, P.hair);
   }
-  if (hairLen > 1 && !(back && tiedUp)) {
+  if (hairLen > 1 && !tiedUp) {
     const hairBottom = Math.min(torsoTop + hairLen + 2, legTop - 2);
+    box(g, headX - 1, headTop + 3, headW + 2, Math.max(0, hairBottom - headTop - 3), P.hairD);
     for (const side of [-1, 1]) {
       const hx2 = side < 0 ? headX - 2 : headX + headW;
       box(g, hx2, headTop + 2, 3, hairBottom - headTop - 2, P.hair);
@@ -234,15 +239,34 @@ function drawOwner(g, P, O) {
   }
 
   const legBase = skinBottom ? P.skin : P.pants;
-  for (const x of [lx, rx]) {
-    box(g, x, legTop, legW, shoeTop - legTop, legBase);
-    box(g, x, legTop, 1, shoeTop - legTop, skinBottom ? P.skinD : P.pantsD);
-    box(g, x + legW - 1, legTop, 1, shoeTop - legTop, skinBottom ? P.skinD : P.pantsD);
-  }
-  if (bottom === 'shorts') {
-    for (const x of [lx, rx]) box(g, x, legTop, legW, Math.min(5, shoeTop - legTop), P.pants);
-  } else if (bottom === 'briefs') {
-    for (const x of [lx, rx]) box(g, x, legTop, legW, 2, P.pants);
+  const legShade = skinBottom ? P.skinD : P.pantsD;
+  const drawLeg = (x, side, top, bottomY, fill, shade) => {
+    // side: -1 the left leg (its outer edge on the left), 1 the right
+    const outer = side < 0 ? x : x + legW - 1;
+    const inner = side < 0 ? x + legW - 1 : x;
+    box(g, x - 1, top, legW + 2, bottomY - top, P.k);
+    box(g, x, top, legW, bottomY - top, fill);
+    // lit from the front-left: the inner edge and the outer edge's lower half in shade, a crease down the middle
+    box(g, inner, top, 1, bottomY - top, shade);
+    if (knee < bottomY) {
+      const k0 = Math.max(top, knee);
+      box(g, outer, k0, 1, bottomY - k0, P.k);
+      box(g, side < 0 ? outer + 1 : outer - 1, k0, 1, bottomY - k0, shade);
+    }
+  };
+  drawLeg(lx, -1, legTop, shoeTop, legBase, legShade);
+  drawLeg(rx, 1, legTop, shoeTop, legBase, legShade);
+  if (bottom === 'shorts' || bottom === 'briefs') {
+    const hem = bottom === 'shorts' ? Math.min(6, knee - legTop) : 2;
+    // the seat across both legs, then the hems
+    box(g, lx - 1, legTop, rx + legW + 1 - (lx - 1), hem + 1, P.k);
+    box(g, lx, legTop, rx + legW - lx, hem, P.pants);
+    box(g, cx - 1, legTop + 2, 2, hem - 2, P.pantsD);
+    box(g, lx, legTop + hem - 1, rx + legW - lx, 1, P.pantsD);
+  } else if (!skinBottom) {
+    // trousers: the seat joining the legs at the top, so they read as one garment
+    box(g, cx - 1, legTop, 2, 3, P.pants);
+    box(g, cx - 1, legTop + 2, 2, 1, P.pantsD);
   }
   if (bottom === 'skirt' || bottom === 'dress') {
     const skirtColor = bottom === 'dress' ? P.shirt : P.pants;
@@ -262,8 +286,8 @@ function drawOwner(g, P, O) {
     }
   }
   const drawShoe = (x) => {
-    const sw = legW + 2;
-    const sx = x - 1;
+    const sw = legW + 1;
+    const sx = x < cx ? x - 1 : x;
     if (O.shoes.style === 'slides') {
       box(g, sx, shoeTop + 1, sw, 3, P.shoeD);
       box(g, sx, shoeTop, sw, 1, P.shoe);
@@ -400,9 +424,10 @@ function drawOwner(g, P, O) {
   }
   }
 
-  const armW = 3;
+  const armW = O.build === 'stocky' || O.build === 'heavy' ? 4 : 3;
   const armTop = torsoTop + 2;
-  const armBottom = legTop - 2;
+  // hanging down to the top of the thighs, as the 3D figure's do
+  const armBottom = legTop + 1;
   const armH = armBottom - armTop;
   const sleeveColor = style === 'varsity' ? P.inner : P.shirt;
   const sleeveCut = sleeve === 'long' ? armH : sleeve === 'short' ? Math.max(4, Math.floor(armH * 0.45)) : 0;
@@ -427,10 +452,10 @@ function drawOwner(g, P, O) {
 
   box(g, headX - 2, headTop + 6, 2, 3, P.skin);
   box(g, headX + headW, headTop + 6, 2, 3, P.skin);
-  box(g, headX - 1, headTop, headW + 2, headH, P.k);
   for (let i = 0; i < headH; i++) {
     const [a, b] = faceRow(O.face.faceShape, i, headH, headW);
-    box(g, headX + a, headTop + i, headW - a - b, 1, P.skin);
+    box(g, headX + a - 1, headTop + i, headW - a - b + 2, 1, P.k);
+    box(g, headX + a, headTop + i, headW - a - b, 1, P.skinF);
   }
   if (back) {
     drawBackHead();
@@ -456,8 +481,11 @@ function drawOwner(g, P, O) {
       box(g, headX + 1, headTop, headW - 2, 2, P.hair);
       box(g, headX + 4, headTop - 1, headW - 6, 1, P.hair);
     } else {
-      box(g, headX + 1, headTop, headW - 2, 2, P.hair);
-      box(g, headX, headTop + 2, headW, 1, P.hairD);
+      for (let i = 0; i < 3; i++) {
+        const [a, b] = faceRow(O.face.faceShape, i, headH, headW);
+        const l = Math.max(a, 1), r = Math.max(b, 1);
+        box(g, headX + l, headTop + i, headW - l - r, 1, i === 2 ? P.hairD : P.hair);
+      }
     }
     if (O.hair.front === 'bangs') {
       box(g, headX + 1, headTop + 2, headW - 2, 1, P.hair);
@@ -475,47 +503,41 @@ function drawOwner(g, P, O) {
   if (brows !== 'none') {
     const thick = brows === 'thick' || brows === 'bushy' ? 2 : 1;
     if (brows === 'unibrow') {
-      box(g, headX + 3, browY, headW - 6, thick, P.hairD);
+      box(g, cx - 6, browY, 12, thick, P.hairD);
     } else {
-      box(g, headX + 3, browY, 3, thick, P.hairD);
-      box(g, headX + headW - 6, browY, 3, thick, P.hairD);
+      box(g, cx - 6, browY, 3, thick, P.hairD);
+      box(g, cx + 4, browY, 3, thick, P.hairD);
       if (brows === 'angry') {
-        box(g, headX + 4, browY + 1, 2, 1, P.hairD);
-        box(g, headX + headW - 6, browY + 1, 2, 1, P.hairD);
+        box(g, cx - 5, browY + 1, 2, 1, P.hairD);
+        box(g, cx + 4, browY + 1, 2, 1, P.hairD);
       } else if (brows === 'worried') {
-        box(g, headX + 3, browY + 1, 1, 1, P.hairD);
-        box(g, headX + headW - 4, browY + 1, 1, 1, P.hairD);
+        box(g, cx - 6, browY + 1, 1, 1, P.hairD);
+        box(g, cx + 6, browY + 1, 1, 1, P.hairD);
       }
     }
   }
 
-  const eyeY = headTop + 6;
+  const eyeY = headTop + 5;
+  const eyeXs = [cx - 5, cx + 2];
   if (!O.lensSolid) {
     const eyes = O.face.eyes;
-    if (eyes === 'narrow' || eyes === 'sleepy' || eyes === 'deadpan' || eyes === 'smile') {
-      box(g, headX + 4, eyeY + 1, 2, 1, P.eye);
-      box(g, headX + 11, eyeY + 1, 2, 1, P.eye);
-    } else if (eyes === 'dot') {
-      box(g, headX + 4, eyeY + 1, 1, 1, P.eye);
-      box(g, headX + 12, eyeY + 1, 1, 1, P.eye);
-    } else if (eyes === 'wink') {
-      box(g, headX + 4, eyeY, 2, 2, P.eye);
-      box(g, headX + 11, eyeY + 1, 2, 1, P.eye);
-    } else {
-      box(g, headX + 4, eyeY, 2, 2, P.eye);
-      box(g, headX + 11, eyeY, 2, 2, P.eye);
-      if (eyes === 'big' || eyes === 'sparkle') {
-        box(g, headX + 4, eyeY, 1, 1, P.skinL);
-        box(g, headX + 11, eyeY, 1, 1, P.skinL);
+    const slim = ['narrow', 'sleepy', 'deadpan', 'smile'].includes(eyes);
+    for (const x of eyeXs) {
+      if (slim) box(g, x, eyeY + 1, 3, 1, P.eye);
+      else if (eyes === 'dot') box(g, x, eyeY + 1, 2, 2, P.eye);
+      else {
+        box(g, x, eyeY, 3, 2, P.eye);
+        box(g, x, eyeY, 1, 1, P.skinL);
       }
     }
+    if (eyes === 'wink') box(g, eyeXs[1], eyeY + 1, 3, 1, P.eye);
   }
 
   const glasses = O.face.glasses;
   if (glasses !== 'none') {
     const lensY = headTop + 4;
-    const lLens = headX + 2;
-    const rLens = headX + 9;
+    const lLens = eyeXs[0] - 1;
+    const rLens = eyeXs[1] - 1;
     const shape = O.face.glassesShape;
     const frame = glasses === 'rimless' ? P.skinD : P.frame;
     const drawLens = (x) => {
@@ -540,7 +562,7 @@ function drawOwner(g, P, O) {
   }
 
   box(g, cx, headTop + 8, 1, 1, P.skinD);
-  box(g, cx - 1, headTop + 10, 3, 1, P.skinD);
+  box(g, cx - 1, headTop + 9, 3, 1, P.eye);
 
   const facial = O.face.facialHair;
   const beardColor = O.face.beard === 'light' ? P.hairD : P.hair;
@@ -793,8 +815,8 @@ let spiderSprites = null;
 function getSpiderSprites() {
   if (!spiderSprites) {
     spiderSprites = {
-      spider: makeSprite(44, 36, drawSpider, SPIDER_PAL),
-      spiderWhite: makeSprite(44, 36, drawSpider, whiten(SPIDER_PAL)),
+      sprite: makeSprite(44, 36, drawSpider, SPIDER_PAL),
+      white: makeSprite(44, 36, drawSpider, whiten(SPIDER_PAL)),
     };
   }
   return spiderSprites;
@@ -1506,22 +1528,115 @@ function drawSprite(ctx, base, white, at, scale, reveal, faintedAt, hitFx, now, 
 // ---- Move effects: chunky 8-bit pieces on the same grid as the sprites -------
 const FX_PAL = {
   B: '#7a4a2c', b: '#4a2c18', S: '#f4efe3', K: '#14121a', R: '#d0503e', G: '#9aa3a0', g: '#6c7471',
-  L: '#a6e05a', C: '#c08a5a', c: '#5a341f', W: '#fff7e0', H: '#ff5f8f', h: '#c8325a',
+  L: '#a6e05a', C: '#c08a5a', c: '#5a341f', W: '#fff7e0', H: '#ff5f8f', h: '#c8325a', U: '#8de2ff',
+  u: '#4f9fc7', E: '#f2b98c', e: '#c4805a', A: '#4a5a86', a: '#2f3a5e', P: '#ff9fc0',
 };
 const SLIPPER_GRID = ['.bbbbbbbbb.', 'bBSSBBBBBBb', 'BSSSSBBBBBB', 'bBSSBBBBBBb', '.bbbbbbbbb.'];
 const CAN_GRID = ['.KK.', '.RR.', 'GGGG', 'GLLG', 'GLLG', 'GLLG', 'gggg'];
 const CUP_GRID = ['SSSSS.', 'ScccS.', 'ScccSSS', 'ScccS.S', 'SSSSSSS', '.SSS...'];
 const LATTE_GRID = [
-  '..SSSSS..',
-  '.SCCCCCS.',
-  'SCWWCWWCS',
-  'SCWWWWWCS',
-  'SCCWWWCCS',
-  'SCCCWCCCS',
-  '.SCCCCCS.',
-  '..SSSSS..',
+  '..SSSSSSS....',
+  '.SCCCCCCCS...',
+  'SCWWWWWWWCS..',
+  'SCWCWWCWWCS..',
+  'SCWWWWWWWCS..',
+  'SCCWWWWWCCS..',
+  'SCCWWCWWCCS..',
+  'SCCWWWWWCCS..',
+  '.SCCCCCCCSSS.',
+  '..SSSSSSS.SSS',
+  '...KKKKK.....',
+  '..KKKKKKK....',
 ];
-const HEART_GRID = ['.HH.HH.', 'HHHHHHH', 'HHHHHHH', '.HHHHH.', '..HHH..', '...H...'];
+const HEAL_GRID = ['..L..', '..L..', 'LLLLL', '..L..', '..L..'];
+const BROOM_GRID = ['...bb...', '...bb...', '...bb...', '...bb...', '..bBBb..', '..RRRR..', '.bBBBBb.', 'bBBBBBBb'];
+const NOTE_GRID = ['.....KK..', '....KKK..', '....K.K..', '....K.K..', '....K.K..', '....K.K..', '.KKK.K...', 'KKKKKK...', 'KKKKK....', '.KK......'];
+const CAKE_GRID = ['..R...', '.WWW..', 'CCCCCC', 'CCWWCC', 'CCCCCC', 'KKKKKK'];
+const ANGER_GRID = ['R...R', '.R.R.', '..R..', '.R.R.', 'R...R'];
+
+const DOTS_GRID = ['..W..', '..W..', '..W..'];
+// an ear from the side (someone facing right): flat where it meets the head on the right, its rim rounding over the
+// top and down the back to the lobe, the fold inside it in shade, and the dark opening toward the face
+const EAR_GRID = [
+  '...KKKKK..',
+  '..KEEEEEKK',
+  '.KEEeeeeEK',
+  'KEEeEEEEeK',
+  'KEeEEEEEEK',
+  'KEeEEeeEEK',
+  'KEeEeKKeEK',
+  'KEeEeKKEEK',
+  'KEEeEeeEEK',
+  '.KEEeEEEK.',
+  '.KEEEeEEK.',
+  '..KEEEEK..',
+  '..KEEEK...',
+  '...KKK....',
+];
+const STAR_GRID = ['.....KK.....', '....KWWK....', '....KWWK....', 'KKKKWWWWKKKK', '.KWWWWWWWWK.', '..KWWWWWWK..', '..KWWWWWWK..', '.KWWK..KWWK.', 'KWWK....KWWK', '.KK......KK.'];
+const TABLE_GRID = ['KKKKKKKKKKKK', 'KGGGGGGGGGGK', 'KGGGGGGGGGGK', 'KKKKKKKKKKKK', '..KK....KK..', '..KK....KK..'];
+// 拍桌的拳頭, a ✊ turned over to come down knuckles first: the sleeve and wrist above, the back of the hand, the
+// thumb folded across the front, and the four fingers' knuckles side by side at the bottom
+const FIST_GRID = [
+  '..KAAAAAAAK..',
+  '..KAAAAAAaK..',
+  '..KaaaaaaaK..',
+  '.KKEEEEEEEKK.',
+  '.KEEEEEEEEEK.',
+  'KEEEEEEEEEEEK',
+  'KKKKKKKKKEEEK',
+  'KEEEEEEEEKEEK',
+  'KeeeeeeeeKEEK',
+  'KKKKKKKKKKEEK',
+  'KEEKEEKEEKEEK',
+  'KEEKEEKEEKEEK',
+  'KEeKEeKEeKEeK',
+  '.KK.KK.KK.KK.',
+];
+// 抽取式面紙: a flat box, flowers on its side, the oval slot in its top with a sheet standing up out of it
+const TISSUE_GRID = [
+  '.......KK.......',
+  '......KWWK......',
+  '.....KWWSWK.....',
+  '....KWWWSWWK....',
+  '....KWWWWSWK....',
+  '.KKKKKWWWWKKKKK.',
+  'KUUUUKSSSSKUUUUK',
+  'KUUUUUKKKKUUUUUK',
+  'KKKKKKKKKKKKKKKK',
+  'KuuuPuuuuuuPuuuK',
+  'KuuPPPuuuuPPPuuK',
+  'KuuuPuuuuuuPuuuK',
+  'KuuuuuuuuuuuuuuK',
+  'KKKKKKKKKKKKKKKK',
+];
+// one sheet pulled free, drifting
+const SHEET_GRID = ['..KKKK..', '.KWWWWK.', 'KWWSWWWK', 'KWWWSWWK', '.KWWWWSK', '..KWWWK.', '...KKK..'];
+// 店規立牌: a board on a pointed stake (the words are written onto the board when it is drawn)
+const SIGN_GRID = [
+  'KKKKKKKKKKKKKKKKKK',
+  'KBBBBBBBBBBBBBBBBK',
+  'KBWWWWWWWWWWWWWWBK',
+  'KBWWWWWWWWWWWWWWBK',
+  'KBWWWWWWWWWWWWWWBK',
+  'KBWWWWWWWWWWWWWWBK',
+  'KBWWWWWWWWWWWWWWBK',
+  'KBWWWWWWWWWWWWWWBK',
+  'KBSSSSSSSSSSSSSSBK',
+  'KBbbbbbbbbbbbbbbBK',
+  'KKKKKKKKKKKKKKKKKK',
+  '.......KBbK.......',
+  '.......KBbK.......',
+  '.......KBbK.......',
+  '.......KBbK.......',
+  '.......KBbK.......',
+  '.......KBbK.......',
+  '.......KBbK.......',
+  '.......KBbK.......',
+  '........Kb........',
+  '........KK........',
+];
+const SIGN_SUNK = 3;   // rows of the stake driven into the floor
 
 function fxPixel(L) {
   return Math.max(2, Math.round(L.scale * 4));
@@ -1545,6 +1660,34 @@ function drawGrid(ctx, grid, cx, cy, px, k = 1, pal = FX_PAL, rows = grid.length
 function block(ctx, x, y, size, px, color) {
   ctx.fillStyle = color;
   ctx.fillRect(Math.round(x / px) * px - size / 2, Math.round(y / px) * px - size / 2, size, size);
+}
+
+function healSparks(ctx, at, p, s, count = 6) {
+  ctx.save();
+  ctx.fillStyle = '#89ffb9';
+  for (let i = 0; i < count; i++) {
+    const q = (p + i / count) % 1;
+    const x = at.x + Math.sin(i * 2.4 + q * 4) * 54 * s;
+    const y = at.y - 20 * s - q * 100 * s;
+    ctx.globalAlpha = 1 - q;
+    ctx.fillRect(x - s, y - 4 * s, 2 * s, 8 * s);
+    ctx.fillRect(x - 4 * s, y - s, 8 * s, 2 * s);
+  }
+  ctx.restore();
+}
+
+function calmAura(ctx, at, p, s) {
+  ctx.save();
+  ctx.strokeStyle = '#89ffb9';
+  ctx.lineWidth = 3 * s;
+  ctx.globalAlpha = 1 - p;
+  ctx.beginPath();
+  ctx.arc(at.x, at.y, (44 + p * 34) * s, -Math.PI * 0.85, Math.PI * 0.15);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(at.x, at.y, (58 + p * 40) * s, Math.PI * 0.15, Math.PI * 0.85);
+  ctx.stroke();
+  ctx.restore();
 }
 
 // a starburst of blocks flying out from (cx, cy)
@@ -1574,6 +1717,59 @@ function popText(ctx, text, x, y, q, s, color) {
   ctx.fillStyle = color;
   ctx.fillText(text, 0, 0);
   ctx.restore();
+}
+
+function flyText(ctx, text, from, to, p, s, color) {
+  const q = Math.min(1, p);
+  const arc = Math.sin(q * Math.PI) * 70 * s;
+  const x = from.x + (to.x - from.x) * Math.min(1, q * 1.15);
+  const y = from.y + (to.y - from.y) * Math.min(1, q * 1.15) - 40 * s - arc;
+  popText(ctx, text, x, y, q, s, color);
+}
+
+function scatterSymbols(ctx, text, at, p, s, color) {
+  const chars = [...text];
+  for (let i = 0; i < chars.length; i++) {
+    const q = (p + i / chars.length) % 1;
+    const ang = i * 2.1 + q * 1.6;
+    const r = (34 + (i % 3) * 16) * s;
+    popText(ctx, chars[i], at.x + Math.cos(ang) * r, at.y - 30 * s - q * 76 * s, q, s, color);
+  }
+}
+
+function flyGrid(ctx, grid, from, to, p, s, px, k = 2, offsetY = 0) {
+  const arc = Math.sin(Math.min(1, p) * Math.PI) * 70 * s;
+  const x = from.x + (to.x - from.x) * Math.min(1, p * 1.15);
+  const y = from.y + (to.y - from.y) * Math.min(1, p * 1.15) - 40 * s - arc + offsetY * s;
+  drawGrid(ctx, grid, x, y, px, k);
+}
+
+function sweepBroom(ctx, from, to, p, s, px) {
+  const q = Math.min(1, p / 0.65);
+  const x = from.x + (to.x - from.x) * q;
+  const y = from.y - 30 * s + (to.y - from.y) * q;
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(-0.9 + q * 1.8);
+  drawGrid(ctx, BROOM_GRID, 0, 0, px, 3);
+  ctx.restore();
+}
+
+function fallGrid(ctx, grid, to, p, s, px, k = 3) {
+  const y = to.y - 130 * s + 100 * s * Math.min(1, p * 1.5);
+  drawGrid(ctx, grid, to.x, y, px, k);
+}
+
+function floatMarks(ctx, grid, to, p, s, px, count = 5) {
+  for (let i = 0; i < count; i++) {
+    const q = (p + i / count) % 1;
+    const x = to.x + Math.sin(i * 2.1 + q * 5) * 46 * s;
+    const y = to.y - 20 * s - q * 90 * s;
+    ctx.save();
+    ctx.globalAlpha = 1 - q;
+    drawGrid(ctx, grid, x, y, px, 1);
+    ctx.restore();
+  }
 }
 
 function fxSlipper(ctx, from, to, p, s, px) {
@@ -1685,32 +1881,139 @@ function fxCoffee(ctx, from, to, p, s, px) {
 }
 
 function fxLatte(ctx, from, to, p, s, px) {
-  const top = { x: to.x, y: to.y - 95 * s };
   if (p < 0.68) {
-    // a cup appears over the spider and the heart is poured in, row by row
-    const q = p / 0.68;
-    const grow = Math.min(1, q * 3);
-    drawGrid(ctx, LATTE_GRID, top.x, top.y, px, grow < 0.5 ? 2 : 3, FX_PAL, Math.ceil(LATTE_GRID.length * Math.min(1, q * 1.4)));
-    for (let i = 0; i < 4; i++) {
-      const ang = q * 8 + i * (Math.PI / 2);
-      block(ctx, top.x + Math.cos(ang) * 50 * s, top.y + Math.sin(ang) * 36 * s, px * (1 + (i % 2)), px, '#fff7d6');
-    }
+    flyGrid(ctx, LATTE_GRID, from, to, p / 0.68, s, px, 4);
     return;
   }
   const q = (p - 0.68) / 0.32;
-  // the heart drops onto the spider and bursts into little hearts
-  const y = top.y + (to.y - top.y) * Math.min(1, q * 3);
-  if (q < 0.4) drawGrid(ctx, HEART_GRID, to.x, y, px, 3);
-  burst(ctx, to.x, to.y, q, px, { rays: 12, len: 85 * s, colors: ['#ff5f8f', '#fff7d6', '#ffd23f'], size: 2, spin: 0.26 });
-  for (let i = 0; i < 5; i++) {
-    const hx = to.x + (i - 2) * 26 * s;
-    const hy = to.y - 30 * s - q * (60 + i * 8) * s;
+  if (q < 0.4) drawGrid(ctx, HEAL_GRID, to.x, to.y - 40 * s, px, 3);
+  burst(ctx, to.x, to.y, q, px, { rays: 10, len: 90 * s, colors: ['#fff7d6', '#89ffb9'], size: 2, spin: 0.2 });
+  healSparks(ctx, to, q, s, 6);
+  popText(ctx, '＋', to.x + 40 * s, to.y - 68 * s, q, s, '#89ffb9');
+}
+
+function fxTissue(ctx, from, to, p, s, px) {
+  if (p < 0.55) {
+    flyGrid(ctx, TISSUE_GRID, from, { x: to.x - 84 * s, y: to.y + 40 * s }, p / 0.55, s, px, 2);
+    return;
+  }
+  // the box lands on the floor beside them, and a sheet is drawn up out of it and floats over to them
+  const q = (p - 0.55) / 0.45;
+  const boxX = to.x - 84 * s;
+  const boxY = to.y + 55 * s - (TISSUE_GRID.length * px * 2) / 2;   // (targetPoint is 55 up from their feet)
+  const land = Math.min(1, q / 0.15);
+  drawGrid(ctx, TISSUE_GRID, boxX, boxY - Math.sin(land * Math.PI) * 6 * s, px, 2);
+  if (q > 0.15) {
+    const r = (q - 0.15) / 0.85;
     ctx.save();
-    ctx.globalAlpha = 1 - q;
-    drawGrid(ctx, HEART_GRID, hx, hy, px, 1);
+    ctx.globalAlpha = r > 0.75 ? 1 - (r - 0.75) / 0.25 : 1;
+    drawGrid(ctx, SHEET_GRID, boxX + r * 60 * s + Math.sin(r * Math.PI * 3) * 10 * s, boxY - 40 * s - r * 50 * s, px, 2);
     ctx.restore();
   }
-  popText(ctx, '♥', to.x + 40 * s, to.y - 68 * s, q, s, '#ff5f8f');
+  popText(ctx, '擦一擦吧', to.x + 52 * s, to.y - 86 * s, q, s, '#fff7d6');
+}
+
+// the sign, standing on the floor at (x, ground): drop moves it up (negative) off the floor, tilt leans it about the
+// foot of its stake; nothing below the floor is drawn, so the stake's point is buried
+function drawStandSign(ctx, x, ground, px, s, { drop = 0, tilt = 0, flash = 0, alpha = 1 } = {}) {
+  const cell = px * 2;
+  const cols = SIGN_GRID[0].length;
+  const rows = SIGN_GRID.length;
+  ctx.save();
+  ctx.globalAlpha *= alpha;
+  ctx.translate(Math.round(x / px) * px, Math.round(ground / px) * px);
+  ctx.beginPath();
+  ctx.rect(-cols * cell * 2, -4000, cols * cell * 4, 4000);
+  ctx.clip();
+  // its shadow on the floor, once it is down
+  if (drop > -cell) {
+    ctx.fillStyle = 'rgba(0,0,0,.35)';
+    ctx.fillRect(-cell * 3, -cell * 0.5, cell * 6, cell * 0.5);
+  }
+  ctx.translate(0, Math.round(drop / px) * px);
+  ctx.rotate(tilt);
+  const x0 = (-cols * cell) / 2;
+  const y0 = SIGN_SUNK * cell - rows * cell;
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const key = SIGN_GRID[r][c];
+      const col = FX_PAL[key];
+      if (!col) continue;
+      ctx.fillStyle = flash > 0 && key !== 'K' ? '#ffffff' : col;
+      ctx.fillRect(x0 + c * cell, y0 + r * cell, cell, cell);
+    }
+  }
+  if (flash <= 0) {
+    ctx.font = `bold ${Math.round(cell * 5.4)}px "DotGothic16", monospace`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#c8325a';
+    ctx.fillText('店規', 0, y0 + cell * 5.2);
+  }
+  ctx.restore();
+}
+
+// where the sign stands: on the floor just in front of the owner, toward the other side
+function signSpot(L) {
+  return { x: L.player.x + 128 * L.scale, ground: L.player.y - 4 * L.scale };
+}
+
+// 立起店規立牌: it drops out of the sky and its stake drives into the floor, throwing up dust, then rocks to a stop
+function fxSign(ctx, L, p, px) {
+  const s = L.scale;
+  const { x, ground } = signSpot(L);
+  const FALL = 0.28;
+  if (p < FALL) {
+    const q = p / FALL;
+    drawStandSign(ctx, x, ground, px, s, { drop: -(1 - q * q) * (ground + 40 * s) - 6 * s });
+    return;
+  }
+  const q = (p - FALL) / (1 - FALL);
+  const rock = Math.sin(q * Math.PI * 5) * 0.09 * Math.max(0, 1 - q * 1.6);
+  const bounce = q < 0.08 ? -Math.sin((q / 0.08) * Math.PI) * 4 * s : 0;
+  drawStandSign(ctx, x, ground, px, s, { drop: bounce, tilt: rock });
+  // dust kicked out along the floor either side, and cracks where it went in
+  if (q < 0.6) {
+    const d = q / 0.6;
+    ctx.save();
+    ctx.globalAlpha = 1 - d;
+    for (let i = 0; i < 7; i++) {
+      for (const side of [-1, 1]) {
+        const dx = side * (14 + d * (40 + i * 10)) * s;
+        const dy = -Math.sin(d * Math.PI) * (10 + (i % 3) * 8) * s;
+        block(ctx, x + dx, ground + dy - i * 2 * s, px * (i % 2 ? 2 : 3), px, i % 2 ? '#a89f90' : '#d8cfc0');
+      }
+    }
+    ctx.restore();
+  }
+  ctx.save();
+  ctx.globalAlpha = Math.max(0, 1 - q * 0.9);
+  for (const side of [-1, 1]) {
+    for (let i = 0; i < 4; i++) block(ctx, x + side * (px * 3 + i * px * 2), ground + (i % 2) * px, px, px, '#14121a');
+  }
+  ctx.restore();
+  if (q < 0.25) {
+    // the jolt of it landing
+    ctx.save();
+    ctx.globalAlpha = 0.35 * (1 - q / 0.25);
+    ctx.fillStyle = '#fff7e0';
+    ctx.fillRect(0, 0, L.w, L.h);
+    ctx.restore();
+  }
+  popText(ctx, '咚！', x + 70 * s, ground - 150 * s, Math.min(1, q * 1.4), s, '#ffd23f');
+}
+
+// the sign taking the blow meant for the owner: it flashes and shakes, then falls over backward and is gone
+function fxSignBlock(ctx, L, p, px) {
+  const s = L.scale;
+  const { x, ground } = signSpot(L);
+  if (p < 0.35) {
+    const shake = Math.sin(p * 90) * 4 * s;
+    drawStandSign(ctx, x + shake, ground, px, s, { flash: Math.sin(p * 60) > 0 ? 1 : 0 });
+    return;
+  }
+  const q = (p - 0.35) / 0.65;
+  drawStandSign(ctx, x, ground, px, s, { tilt: -q * q * 1.4, alpha: 1 - q });
 }
 
 function drawMoveFx(ctx, fx, p, L) {
@@ -1730,6 +2033,9 @@ function drawMoveFx(ctx, fx, p, L) {
       break;
     case 'latte':
       fxLatte(ctx, from, to, p, s, fxPixel(L));
+      break;
+    case 'tissue':
+      fxTissue(ctx, from, to, p, s, fxPixel(L));
       break;
     case 'bite': {
       ctx.save();
@@ -1795,6 +2101,151 @@ function drawMoveFx(ctx, fx, p, L) {
       ctx.restore();
       break;
     }
+    case 'broom':
+      if (p < 0.65) sweepBroom(ctx, from, to, p, s, fxPixel(L));
+      if (p > 0.55) {
+        burst(ctx, to.x, to.y, (p - 0.55) / 0.45, fxPixel(L), { rays: 10, len: 80 * s, colors: ['#fff7d6', '#ffd23f'], size: 3 });
+        popText(ctx, '啪！', to.x + 38 * s, to.y - 68 * s, (p - 0.55) / 0.45, s, '#ffd23f');
+      }
+      break;
+    case 'calc': {
+      const formula = '120 x 2 = 240';
+      const drawFormula = (x, y, text, alpha = 1) => {
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.translate(x, y);
+        ctx.font = `bold ${Math.max(22, Math.round(34 * s))}px "DotGothic16", monospace`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.lineWidth = Math.max(4, 6 * s);
+        ctx.strokeStyle = '#14121a';
+        ctx.strokeText(text, 0, 0);
+        ctx.fillStyle = '#a6e05a';
+        ctx.fillText(text, 0, 0);
+        ctx.restore();
+      };
+      if (p < 0.45) {
+        const q = p / 0.45;
+        const x = from.x + 60 * s;
+        const y = from.y - 60 * s - Math.sin(q * Math.PI) * 14 * s;
+        drawFormula(x, y, formula.slice(0, Math.floor(q * (formula.length + 1))));
+      } else {
+        const q = (p - 0.45) / 0.55;
+        const t = Math.min(1, q * 1.15);
+        const arc = Math.sin(t * Math.PI) * 70 * s;
+        const x = from.x + (to.x - from.x) * t;
+        const y = from.y + (to.y - from.y) * t - 40 * s - arc;
+        drawFormula(x, y - 10 * s, formula, 1 - Math.max(0, q - 0.9) / 0.1);
+        if (q > 0.22) popText(ctx, '結帳！', to.x + 38 * s, to.y - 66 * s, (q - 0.22) / 0.78, s, '#ff4f7b');
+      }
+      break;
+    }
+    case 'chant':
+      for (let i = 0; i < 2; i++) {
+        const q = Math.min(1, Math.max(0, p * 1.15 - i * 0.22));
+        if (q > 0) flyGrid(ctx, NOTE_GRID, from, to, q, s, fxPixel(L), 2, i === 0 ? -16 : 20);
+      }
+      if (p > 0.6) popText(ctx, '♫', to.x + 42 * s, to.y - 70 * s, (p - 0.6) / 0.4, s, '#8de2ff');
+      break;
+    case 'cake':
+      fallGrid(ctx, CAKE_GRID, to, p, s, fxPixel(L));
+      if (p > 0.55) {
+        const q = (p - 0.55) / 0.45;
+        healSparks(ctx, to, q, s, 6);
+        popText(ctx, '＋', to.x + 40 * s, to.y - 70 * s, q, s, '#89ffb9');
+      }
+      break;
+    case 'listen': {
+      // an ear turned toward them, and what they say coming into it in rings
+      const px = fxPixel(L);
+      const earAt = { x: to.x - 70 * s, y: to.y + 40 * s };
+      flyGrid(ctx, EAR_GRID, from, earAt, Math.min(1, p / 0.45), s, px, 3);
+      if (p > 0.4) {
+        const q = (p - 0.4) / 0.6;
+        const ex = earAt.x + 6 * s;
+        const ey = earAt.y - 40 * s;
+        ctx.save();
+        ctx.strokeStyle = '#bff2ff';
+        ctx.lineWidth = px;
+        for (let i = 0; i < 3; i++) {
+          const r = 1 - ((q * 2 + i / 3) % 1);
+          ctx.globalAlpha = Math.min(1, (1 - r) * 3) * (q > 0.85 ? (1 - q) / 0.15 : 1);
+          ctx.beginPath();
+          ctx.arc(ex, ey, (26 + r * 46) * s, -Math.PI * 0.28, Math.PI * 0.28);
+          ctx.stroke();
+        }
+        ctx.restore();
+        if (p > 0.6) healSparks(ctx, to, (p - 0.6) / 0.4, s, 5);
+        popText(ctx, '嗯嗯', to.x + 44 * s, to.y - 62 * s, q, s, '#bff2ff');
+      }
+      break;
+    }
+    case 'rage':
+      scatterSymbols(ctx, '＠＃＄％＠＄％＃＄％', from, p, s, '#89ffb9');
+      calmAura(ctx, from, p, s);
+      if (p > 0.5) popText(ctx, '同感！', to.x + 44 * s, to.y - 68 * s, (p - 0.5) / 0.5, s, '#89ffb9');
+      break;
+    case 'slam': {
+      const tableY = to.y + 26 * s;
+      const hit = Math.min(1, p / 0.42);
+      const px = fxPixel(L);
+      drawGrid(ctx, TABLE_GRID, to.x, tableY, px, 3);
+      const fistY = tableY - 26 * s - (1 - hit) * 72 * s;
+      const flat = p > 0.42 ? 1 - 0.35 * ((p - 0.42) / 0.58) : 1;
+      ctx.save();
+      ctx.translate(to.x, fistY);
+      ctx.scale(1 + (1 - flat) * 0.4, flat);
+      drawGrid(ctx, FIST_GRID, 0, 0, px, 3);
+      ctx.restore();
+      if (p > 0.42) {
+        ctx.save();
+        ctx.strokeStyle = '#ffd23f';
+        ctx.lineWidth = 2 * s;
+        for (const side of [-1, 1]) {
+          for (const dy of [-10, 10]) {
+            ctx.beginPath();
+            ctx.moveTo(to.x + side * 22 * s, tableY + dy * s);
+            ctx.lineTo(to.x + side * (38 + (p - 0.42) * 16) * s, tableY + dy * s);
+            ctx.stroke();
+          }
+        }
+        ctx.restore();
+        popText(ctx, '砰！', to.x + 34 * s, tableY - 60 * s, (p - 0.42) / 0.58, s, '#ffd23f');
+      }
+      break;
+    }
+    case 'shout':
+      flyText(ctx, '！＃＄％＠＃＄＠＃＄', from, to, p, s, '#ff4f7b');
+      if (p > 0.6) popText(ctx, '！？', to.x + 42 * s, to.y - 70 * s, (p - 0.6) / 0.4, s, '#ff4f7b');
+      break;
+    case 'boss':
+      flyText(ctx, '叫你們老闆出來', from, to, p, s, '#ffd23f');
+      floatMarks(ctx, ANGER_GRID, to, p, s, fxPixel(L), 4);
+      if (p > 0.45) popText(ctx, '我就是老闆！', to.x, to.y - 92 * s, (p - 0.45) / 0.55, s, '#ff9a62');
+      break;
+    case 'review':
+      flyGrid(ctx, STAR_GRID, from, to, p, s, fxPixel(L), 2);
+      if (p > 0.6) popText(ctx, '★', to.x + 42 * s, to.y - 70 * s, (p - 0.6) / 0.4, s, '#cf8bff');
+      break;
+    case 'sigh':
+      flyText(ctx, '唉……', from, to, p, s, '#8de2ff');
+      break;
+    case 'grumble':
+      flyText(ctx, '＃＄％＠＃＄＠＃＄', from, to, p, s, '#ff9a62');
+      break;
+    case 'cry':
+      for (let i = 0; i < 8; i++) {
+        const q = (p + i / 8) % 1;
+        ctx.save();
+        ctx.globalAlpha = 1 - q;
+        block(ctx, to.x + (i - 3.5) * 12 * s, to.y - 10 * s + q * 70 * s, fxPixel(L), fxPixel(L), '#8de2ff');
+        ctx.restore();
+      }
+      flyText(ctx, '嗚……', from, to, p, s, '#8de2ff');
+      break;
+    case 'remember':
+      flyText(ctx, '又想起那件事……', from, to, p, s, '#cf8bff');
+      break;
     default: {
       ctx.fillStyle = '#ffd23f';
       ctx.beginPath();
@@ -1808,7 +2259,20 @@ function drawMoveFx(ctx, fx, p, L) {
 function drawHitFx(ctx, fx, p, L) {
   const at = targetPoint(L, fx.target);
   const s = L.scale;
-  if (p < 0.4) {
+  if (fx.heal) {
+    ctx.save();
+    ctx.globalAlpha = 1 - Math.max(0, p - 0.6) / 0.4;
+    ctx.fillStyle = '#89ffb9';
+    for (let i = 0; i < 6; i++) {
+      const a = i * 1.05 + p * 2;
+      const r = (14 + (i % 3) * 9) * s;
+      const x = at.x + Math.cos(a) * r;
+      const y = at.y - 20 * s - p * 50 * s + Math.sin(a) * 10 * s;
+      ctx.fillRect(x - s, y - 4 * s, 2 * s, 8 * s);
+      ctx.fillRect(x - 4 * s, y - s, 8 * s, 2 * s);
+    }
+    ctx.restore();
+  } else if (p < 0.4) {
     const px = fxPixel(L);
     const strong = fx.crit || fx.eff > 1;
     burst(ctx, at.x, at.y, p / 0.4, px, {
@@ -1829,8 +2293,8 @@ function drawHitFx(ctx, fx, p, L) {
   ctx.scale(grow, grow);
   ctx.lineWidth = 5;
   ctx.strokeStyle = '#0b0910';
-  ctx.fillStyle = fx.crit ? '#ff4f7b' : '#fff7d6';
-  const text = `-${fx.amount}`;
+  ctx.fillStyle = fx.heal ? '#89ffb9' : fx.crit ? '#ff4f7b' : '#fff7d6';
+  const text = `${fx.heal ? '+' : '-'}${fx.amount}`;
   ctx.strokeText(text, 0, 0);
   ctx.fillText(text, 0, 0);
   ctx.restore();
@@ -1844,6 +2308,16 @@ function drawFx(ctx, st, L, now) {
       drawMoveFx(ctx, fx, p, L);
     } else if (fx.kind === 'hit') {
       drawHitFx(ctx, fx, p, L);
+    } else if (fx.kind === 'reflect') {
+      const at = targetPoint(L, fx.target);
+      ctx.save();
+      ctx.globalAlpha = 1 - p;
+      ctx.strokeStyle = '#ffe27a';
+      ctx.lineWidth = 3 * s;
+      ctx.beginPath();
+      ctx.arc(at.x, at.y - 20 * s, (30 + p * 42) * s, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
     } else if (fx.kind === 'miss') {
       const at = targetPoint(L, fx.target);
       ctx.save();
@@ -1866,6 +2340,14 @@ function drawFx(ctx, st, L, now) {
         ctx.fillRect(x - 8 * s, y - 2 * s, 16 * s, 4 * s);
       }
       ctx.restore();
+    } else if (fx.kind === 'tissue') {
+      const from = targetPoint(L, fx.from ?? 'player');
+      const to = targetPoint(L, fx.target ?? 'enemy');
+      fxTissue(ctx, from, to, p, s, fxPixel(L));
+    } else if (fx.kind === 'sign') {
+      fxSign(ctx, L, p, fxPixel(L));
+    } else if (fx.kind === 'signBlock') {
+      fxSignBlock(ctx, L, p, fxPixel(L));
     } else if (fx.kind === 'guard') {
       const at = targetPoint(L, 'player');
       ctx.save();
@@ -1880,6 +2362,20 @@ function drawFx(ctx, st, L, now) {
       ctx.arc(at.x, at.y, 46 * s, -Math.PI * 0.8, Math.PI * 0.8);
       ctx.stroke();
       ctx.restore();
+    } else if (fx.kind === 'cheer') {
+      const at = targetPoint(L, 'enemy');
+      ctx.save();
+      ctx.fillStyle = '#89ffb9';
+      for (let i = 0; i < 8; i++) {
+        const q = (p + i / 8) % 1;
+        const x = at.x + Math.sin(i * 2.4 + q * 4) * 54 * s;
+        const y = at.y - 20 * s - q * 100 * s;
+        ctx.globalAlpha = 1 - q;
+        ctx.fillRect(x - s, y - 4 * s, 2 * s, 8 * s);
+        ctx.fillRect(x - 4 * s, y - s, 8 * s, 2 * s);
+      }
+      ctx.restore();
+      popText(ctx, '♪', at.x + 46 * s, at.y - 76 * s, p, s, '#89ffb9');
     } else if (fx.kind === 'roach') {
       const x = L.player.x - 140 * s + p * 300 * s;
       const y = L.bottom - 16 * s;
@@ -1916,11 +2412,11 @@ function drawFx(ctx, st, L, now) {
   }
 }
 
-function getOwnerSprites(look, name) {
-  const owner = { ...ownerInfo(look, name), back: true };
+function getPersonSprites(look, name, back) {
+  const info = { ...ownerInfo(look, name), back };
   return {
-    owner: makeSprite(44, 56, (g, pal) => drawOwner(g, pal, owner), owner.pal),
-    ownerWhite: makeSprite(44, 56, (g, pal) => drawOwner(g, pal, owner), whiten(owner.pal)),
+    sprite: makeSprite(44, SPRITE_H, (g, pal) => drawOwner(g, pal, info), info.pal),
+    white: makeSprite(44, SPRITE_H, (g, pal) => drawOwner(g, pal, info), whiten(info.pal)),
   };
 }
 
@@ -2024,10 +2520,17 @@ function drawRoomPixel(ctx, w, h, t, L) {
   drawNeonText(ctx, neon.nx, neon.ny, neon.nr);
 }
 
-export function createScene({ owner } = {}) {
+export function createScene({ owner, customer, mode } = {}) {
+  const isCustomer = mode === 'rude' || mode === 'kind';
+  const enemyArt = isCustomer && customer?.look
+    ? getPersonSprites(customer.look, customer.name, false)
+    : getSpiderSprites();
+  const ownerArt = getPersonSprites(owner?.look, owner?.name, true);
   const art = {
-    ...getSpiderSprites(),
-    ...getOwnerSprites(owner?.look, owner?.name),
+    spider: enemyArt.sprite,
+    spiderWhite: enemyArt.white,
+    owner: ownerArt.sprite,
+    ownerWhite: ownerArt.white,
   };
   return {
     draw(ctx, w, h, st) {
@@ -2039,7 +2542,7 @@ export function createScene({ owner } = {}) {
       let sx = 0;
       let sy = 0;
       for (const fx of st.fx) {
-        if (fx.kind !== 'hit') continue;
+        if (fx.kind !== 'hit' || fx.heal) continue;
         const p = (now - fx.t0) / fx.dur;
         if (p >= 0.4) continue;
         const amp = (fx.crit ? 16 : fx.eff > 1 ? 12 : 7) * L.scale * (1 - p / 0.4);
@@ -2070,10 +2573,10 @@ export function createScene({ owner } = {}) {
 
 
       const enemyHit = st.fx.find(
-        (fx) => fx.kind === 'hit' && fx.target === 'enemy' && now - fx.t0 < fx.dur
+        (fx) => fx.kind === 'hit' && !fx.heal && fx.target === 'enemy' && now - fx.t0 < fx.dur
       );
       const playerHit = st.fx.find(
-        (fx) => fx.kind === 'hit' && fx.target === 'player' && now - fx.t0 < fx.dur
+        (fx) => fx.kind === 'hit' && !fx.heal && fx.target === 'player' && now - fx.t0 < fx.dur
       );
 
       drawSprite(
@@ -2081,7 +2584,7 @@ export function createScene({ owner } = {}) {
         art.spider,
         art.spiderWhite,
         lunge('enemy'),
-        L.scale * 3.4,
+        L.scale * (isCustomer ? 3.9 : 3.4),
         st.reveal.enemy,
         st.fainted.enemy,
         enemyHit,
@@ -2093,7 +2596,7 @@ export function createScene({ owner } = {}) {
         art.owner,
         art.ownerWhite,
         lunge('player'),
-        L.scale * 4.3,
+        L.scale * 4.1,
         st.reveal.player,
         st.fainted.player,
         playerHit,
@@ -2101,11 +2604,34 @@ export function createScene({ owner } = {}) {
         1
       );
 
+      // the sign stays planted in front of the owner until it takes a hit (its drop and its fall are effects of their own)
+      if (st.itemGuard && !st.fx.some((fx) => fx.kind === 'sign')) {
+        const { x, ground } = signSpot(L);
+        drawStandSign(ctx, x, ground, px, L.scale);
+      }
       drawFx(ctx, st, L, now);
+      if (st.guard || st.soften) {
+        const at = targetPoint(L, 'player');
+        const pulse = 0.85 + Math.sin(now * 0.008) * 0.15;
+        const aura = st.soften ? '#fff7d6' : '#ffd23f';
+        ctx.save();
+        ctx.globalAlpha = pulse;
+        ctx.strokeStyle = aura;
+        ctx.lineWidth = 4 * L.scale;
+        ctx.beginPath();
+        ctx.arc(at.x, at.y, 54 * L.scale, -Math.PI * 0.9, Math.PI * 0.9);
+        ctx.stroke();
+        ctx.strokeStyle = st.soften ? 'rgba(255,247,214,.75)' : 'rgba(191,242,255,.7)';
+        ctx.lineWidth = 2 * L.scale;
+        ctx.beginPath();
+        ctx.arc(at.x, at.y, 46 * L.scale, -Math.PI * 0.8, Math.PI * 0.8);
+        ctx.stroke();
+        ctx.restore();
+      }
       ctx.restore();
 
       for (const fx of st.fx) {
-        if (fx.kind === 'hit') {
+        if (fx.kind === 'hit' && !fx.heal) {
           const p = (now - fx.t0) / fx.dur;
           if (p < 0.25) {
             const a = (fx.crit || fx.eff > 1 ? 0.26 : 0.15) * (1 - p / 0.25);

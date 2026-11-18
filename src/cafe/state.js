@@ -15,7 +15,7 @@ export function resetState(content) {
     // people
     people: [], customers: [], orderQueue: [], floaters: [],
     owner: null, selected: null, showTags: true, toiletBusy: false, toiletUser: null,
-    labelsEl: null,
+    labelsEl: null, openCustomerBattle: null,
 
     // the game on the TV
     tv: { match: null, game: null, startDelay: 1.5, results: [], attract: 0, flash: null },   // game: 'nba' | 'fight' while someone sits at it

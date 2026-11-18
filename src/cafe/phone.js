@@ -47,7 +47,7 @@ export function buildPhoneProp() {
   const screen = new THREE.Mesh(new THREE.PlaneGeometry(0.066, 0.142), screenM);
   screen.rotation.x = -Math.PI / 2; screen.position.y = 0.0085; g.add(screen);
   const spark = new THREE.Sprite(new THREE.SpriteMaterial({ map: pixTex(SPARK), transparent: true, depthTest: false, toneMapped: false }));
-  spark.scale.set(0.13, 0.13, 1); spark.position.y = 0.2; spark.renderOrder = 20; g.add(spark);
+  spark.scale.set(0.22, 0.22, 1); spark.position.y = 0.24; spark.renderOrder = 20; g.add(spark);
   // the glow it gets with the mouse on it: a white rim hugging the case and a gold one round that, lying just under it
   // (see-through until hovered)
   const rim = (w, d, color, y) => {
@@ -78,9 +78,9 @@ export function updatePhoneProp(dt) {
   p.t += dt;
   if (p.lift < 0) {
     // waiting to be noticed: the sparkle bobs and twinkles; the screen lights up with a message every few seconds
-    p.spark.position.y = 0.19 + Math.sin(p.t * 3) * 0.025;
+    p.spark.position.y = 0.24 + Math.sin(p.t * 3) * 0.03;
     const tw = 0.85 + Math.sin(p.t * 7) * 0.15;
-    p.spark.scale.set(0.13 * tw, 0.13 * tw, 1);
+    p.spark.scale.set(0.22 * tw, 0.22 * tw, 1);
     // hovered: it eases up off the wood with its screen on, the rim glowing and gently pulsing
     p.hv += ((p.hover ? 1 : 0) - p.hv) * Math.min(1, dt * 14);
     p.g.position.y = p.hv * 0.025;
@@ -99,7 +99,7 @@ export function updatePhoneProp(dt) {
   const s = k < 0.55 ? 1 + k * 1.6 : Math.max(0.001, 1.88 * (1 - (k - 0.55) / 0.45));
   p.g.scale.setScalar(s);
   p.spark.material.opacity = 1 - k;
-  p.spark.scale.setScalar(0.13 + k * 0.4);
+  p.spark.scale.setScalar(0.22 + k * 0.4);
   if (k >= 1) { const done = p.done; disposePhoneProp(); done?.(); }
 }
 export function disposePhoneProp() {

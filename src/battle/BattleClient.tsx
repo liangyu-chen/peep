@@ -10,6 +10,8 @@ type OwnerInfo = {
   look: Look;
 };
 
+type BattleMode = 'rude' | 'kind';
+
 type Move = {
   name: string;
   type: string;
@@ -34,13 +36,17 @@ type BattleState = {
     maxHp: number;
     moves: Move[];
   };
-  enemy: {
-    name: string;
-    level: number;
-    hp: number;
-    maxHp: number;
-  };
+    enemy: {
+      name: string;
+      level: number;
+      type: string;
+      hp: number;
+      maxHp: number;
+    };
   items: Item[];
+  guard?: boolean;
+  itemGuard?: boolean;
+  soften?: boolean;
   result: {
     kind: 'win' | 'lose' | 'flee';
     title: string;
@@ -54,6 +60,7 @@ type BattleApi = {
   move: (index: number) => void;
   item: (index: number) => void;
   back: () => void;
+  advance: () => void;
   destroy: () => void;
 };
 
@@ -62,7 +69,11 @@ const startBattle = createBattle as unknown as (
   options: {
     onState?: (state: BattleState) => void;
     onExit?: () => void;
+    onResult?: (kind: 'win' | 'lose' | 'flee') => void;
     owner?: OwnerInfo;
+    customer?: OwnerInfo;
+    mode?: BattleMode;
+    type?: string;
   }
 ) => BattleApi;
 
@@ -98,14 +109,31 @@ const COMMANDS = ['攻擊', '道具', '防禦', '逃跑'];
 
 // onExit: what happens when the fight is over. Laid over the café it closes the layer and the café carries on;
 // on its own page (/battle) it goes back to the café.
-export default function BattleClient({ owner, onExit }: { owner: OwnerInfo; onExit?: () => void }) {
+export default function BattleClient({
+  owner,
+  onExit,
+  onResult,
+  mode,
+  type,
+  customer,
+}: {
+  owner: OwnerInfo;
+  onExit?: () => void;
+  onResult?: (kind: 'win' | 'lose' | 'flee') => void;
+  mode?: BattleMode;
+  type?: string;
+  customer?: OwnerInfo;
+}) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const exitRef = useRef(onExit);
   exitRef.current = onExit;
+  const resultRef = useRef(onResult);
+  resultRef.current = onResult;
   const apiRef = useRef<BattleApi | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const [snap, setSnap] = useState<BattleState | null>(null);
   const [cursor, setCursor] = useState(0);
+  const [armed, setArmed] = useState<number | null>(null);
   const [typed, setTyped] = useState('');
 
   useEffect(() => {
@@ -114,8 +142,14 @@ export default function BattleClient({ owner, onExit }: { owner: OwnerInfo; onEx
     let active = true;
     const api = startBattle(canvas, {
       owner,
+      mode,
+      type,
+      customer,
       onState: (next) => {
         if (active) setSnap(next);
+      },
+      onResult: (kind) => {
+        if (active) resultRef.current?.(kind);
       },
       onExit: () => {
         if (exitRef.current) exitRef.current();
@@ -129,12 +163,13 @@ export default function BattleClient({ owner, onExit }: { owner: OwnerInfo; onEx
       api.destroy();
       apiRef.current = null;
     };
-  }, [owner]);
+  }, [owner, mode, type, customer]);
 
   const phase = snap?.phase || 'intro';
 
   useEffect(() => {
-    setCursor(0);
+    setCursor(phase === 'moves' || phase === 'bag' ? -1 : 0);
+    setArmed(null);
   }, [phase]);
 
   useEffect(() => {
@@ -162,22 +197,53 @@ export default function BattleClient({ owner, onExit }: { owner: OwnerInfo; onEx
       const key = event.key;
       const lower = key.toLowerCase();
 
+      if (snap.result) {
+        if (key === 'Enter' || key === ' ' || lower === 'z') {
+          event.preventDefault();
+          api.advance();
+          return;
+        }
+      }
+
+      if (snap.phase === 'busy' || snap.phase === 'intro') {
+        if (key === 'Enter' || key === ' ' || lower === 'z') {
+          event.preventDefault();
+          api.advance();
+          return;
+        }
+      }
+
       if (snap.phase === 'command' || snap.phase === 'moves') {
         const length = snap.phase === 'command' ? COMMANDS.length : snap.player.moves.length;
         if (key.startsWith('Arrow')) {
           event.preventDefault();
-          setCursor((current) => gridCursor(current, key, length));
+          setCursor((current) => (current < 0 ? 0 : gridCursor(current, key, length)));
+          setArmed(null);
           return;
         }
         if (key === 'Enter' || key === ' ' || lower === 'z') {
           event.preventDefault();
-          if (snap.phase === 'command') api.command(cursor);
-          else api.move(cursor);
+          if (snap.phase === 'command') {
+            if (cursor === 0 || cursor === 1) setCursor(-1);
+            api.command(cursor);
+          } else {
+            const index = cursor < 0 ? 0 : cursor;
+            if (armed === index) {
+              api.move(index);
+              setArmed(null);
+            } else {
+              setCursor(index);
+              setArmed(index);
+            }
+          }
           return;
         }
         if (key === 'Escape' || lower === 'x') {
           event.preventDefault();
-          if (snap.phase === 'moves') api.back();
+          if (snap.phase === 'moves') {
+            setArmed(null);
+            api.back();
+          }
           return;
         }
       }
@@ -185,16 +251,25 @@ export default function BattleClient({ owner, onExit }: { owner: OwnerInfo; onEx
       if (snap.phase === 'bag') {
         if (key === 'ArrowUp' || key === 'ArrowDown') {
           event.preventDefault();
-          setCursor((current) => listCursor(current, key, snap.items.length));
+          setCursor((current) => (current < 0 ? 0 : listCursor(current, key, snap.items.length)));
+          setArmed(null);
           return;
         }
         if (key === 'Enter' || key === ' ' || lower === 'z') {
           event.preventDefault();
-          api.item(cursor);
+          const index = cursor < 0 ? 0 : cursor;
+          if (armed === index) {
+            api.item(index);
+            setArmed(null);
+          } else {
+            setCursor(index);
+            setArmed(index);
+          }
           return;
         }
         if (key === 'Escape' || lower === 'x') {
           event.preventDefault();
+          setArmed(null);
           api.back();
         }
       }
@@ -202,14 +277,30 @@ export default function BattleClient({ owner, onExit }: { owner: OwnerInfo; onEx
 
     window.addEventListener('keydown', onKey, true);
     return () => window.removeEventListener('keydown', onKey, true);
-  }, [snap, cursor]);
+  }, [snap, cursor, armed]);
 
   const player = snap?.player;
   const enemy = snap?.enemy;
   const done = !snap?.message || typed.length >= snap.message.length;
+  const armedMove = phase === 'moves' && armed !== null ? snap?.player.moves[armed] : null;
+  const armedItem = phase === 'bag' && armed !== null ? snap?.items[armed] : null;
+  const armedText = armedMove
+    ? `${armedMove.name}：${armedMove.desc}`
+    : armedItem
+      ? `${armedItem.name}：${armedItem.desc}`
+      : '';
 
   return (
-    <div className="battle-root" ref={rootRef} tabIndex={-1}>
+    <div
+      className="battle-root"
+      ref={rootRef}
+      tabIndex={-1}
+      onClick={() => {
+        if (snap?.result) apiRef.current?.advance();
+        else if (!done) setTyped(snap?.message || '');
+        else apiRef.current?.advance();
+      }}
+    >
       <canvas ref={canvasRef} className="battleCanvas" aria-hidden="true" />
 
       <div className="battleHud">
@@ -219,6 +310,7 @@ export default function BattleClient({ owner, onExit }: { owner: OwnerInfo; onEx
               <span className="battleName">{enemy?.name || '蜘蛛'}</span>
               <span className="battleLv">Lv.{enemy?.level ?? 5}</span>
             </div>
+            {enemy?.type && <span className="battleType" data-type={enemy.type}>{enemy.type}</span>}
             <HpBar hp={enemy?.hp ?? 22} max={enemy?.maxHp ?? 22} />
           </section>
 
@@ -240,7 +332,7 @@ export default function BattleClient({ owner, onExit }: { owner: OwnerInfo; onEx
         <div className="battleDock">
           <section className="battleDialogue battleBox" aria-live="polite">
             <p>
-              {typed || ' '}
+              {armedText || typed || ' '}
               {done && <span className="more">▼</span>}
             </p>
           </section>
@@ -248,12 +340,16 @@ export default function BattleClient({ owner, onExit }: { owner: OwnerInfo; onEx
           <aside className="battleMenu battleBox" aria-label="戰鬥指令">
             {phase === 'command' && (
               <div className="commandGrid">
-                {COMMANDS.map((label, index) => (
+                {(mode === 'kind' ? ['關心', ...COMMANDS.slice(1)] : COMMANDS).map((label, index) => (
                   <button
                     key={label}
                     type="button"
                     className={`battleBtn ${cursor === index ? 'sel' : ''}`}
-                    onClick={() => apiRef.current?.command(index)}
+                    onClick={() => {
+                      if (index === 0 || index === 1) setCursor(-1);
+                      setArmed(null);
+                      apiRef.current?.command(index);
+                    }}
                   >
                     {label}
                   </button>
@@ -268,20 +364,30 @@ export default function BattleClient({ owner, onExit }: { owner: OwnerInfo; onEx
                     <button
                       key={move.name}
                       type="button"
-                      className={`battleBtn moveBtn ${cursor === index ? 'sel' : ''}`}
+                      className={`battleBtn moveBtn ${cursor === index ? 'sel' : ''} ${armed === index ? 'armed' : ''}`}
                       disabled={move.pp <= 0}
-                      title={move.desc}
-                      onClick={() => apiRef.current?.move(index)}
+                      onClick={() => {
+                        if (armed === index) {
+                          apiRef.current?.move(index);
+                          setArmed(null);
+                        } else {
+                          setCursor(index);
+                          setArmed(index);
+                        }
+                      }}
                     >
                       <span className="moveName">{move.name}</span>
                       <span className="moveMeta">
-                        <i data-type={move.type}>{move.type}</i>
                         <b>{move.pp}/{move.maxPp}</b>
                       </span>
                     </button>
                   ))}
                 </div>
-                <button type="button" className="backBtn" onClick={() => apiRef.current?.back()}>
+                <button type="button" className="backBtn" onClick={() => {
+                  setArmed(null);
+                  setCursor(0);
+                  apiRef.current?.back();
+                }}>
                   ◀ 返回
                 </button>
               </>
@@ -294,9 +400,17 @@ export default function BattleClient({ owner, onExit }: { owner: OwnerInfo; onEx
                     <button
                       key={item.name}
                       type="button"
-                      className={`battleBtn bagBtn ${cursor === index ? 'sel' : ''}`}
+                      className={`battleBtn bagBtn ${cursor === index ? 'sel' : ''} ${armed === index ? 'armed' : ''}`}
                       disabled={item.qty <= 0}
-                      onClick={() => apiRef.current?.item(index)}
+                      onClick={() => {
+                        if (armed === index) {
+                          apiRef.current?.item(index);
+                          setArmed(null);
+                        } else {
+                          setCursor(index);
+                          setArmed(index);
+                        }
+                      }}
                     >
                       <span className="bagName">
                         {item.name}
@@ -306,7 +420,11 @@ export default function BattleClient({ owner, onExit }: { owner: OwnerInfo; onEx
                     </button>
                   ))}
                 </div>
-                <button type="button" className="backBtn" onClick={() => apiRef.current?.back()}>
+                <button type="button" className="backBtn" onClick={() => {
+                  setArmed(null);
+                  setCursor(0);
+                  apiRef.current?.back();
+                }}>
                   ◀ 返回
                 </button>
               </>
@@ -326,10 +444,7 @@ export default function BattleClient({ owner, onExit }: { owner: OwnerInfo; onEx
             {snap.result.lines.map((line, index) => (
               <p key={`${line}-${index}`}>{line}</p>
             ))}
-            <p className="resultBack">準備回到店裡……</p>
-            <div className="resultBar">
-              <i />
-            </div>
+            <p className="resultBack">▼</p>
           </div>
         </div>
       )}

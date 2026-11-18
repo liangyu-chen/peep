@@ -5,11 +5,11 @@ import { ctx, createEngine, disposeEngine } from './engine.js';
 import { S, resetState } from './state.js';
 import { K, PIX } from './util.js';
 import { createSeats } from './layout.js';
-import { createRegulars } from './profiles.js';
+import { createRegulars, newProfile } from './profiles.js';
 import { buildWorld } from './world/index.js';
 import { updateLighting } from './world/lights.js';
 import { updateTV, drawTV } from './tv.js';
-import { createOwner, createSteam, createSmoke, seedOpeningScene, tickShop, updateSteam, updateSmoke } from './sim.js';
+import { createOwner, createSteam, createSmoke, seedOpeningScene, tickShop, trySpawn, kickOut, updateSteam, updateSmoke } from './sim.js';
 import { bindHUD, updateHUD, fillCard, updateCamera, updateLabels } from './hud.js';
 import { renderResults } from './feed.js';
 import { createStadium, updateTops, inviteTops } from './tops.js';
@@ -25,6 +25,7 @@ import { disposePortraits } from './portrait.js';
 import { updateRoach, tvPaused, disposeRoach, releaseRoach, raiseAlarm } from './roach.js';
 import { buildPhoneProp, updatePhoneProp, disposePhoneProp } from './phone.js';
 import { holdMusic } from './music.js';
+import { updateMoods, makeRude, resolveBattle } from './mood.js';
 // (one café at a time: a new one waits until the one before is built and, if it was let go meanwhile, torn down)
 let queue = Promise.resolve();
 export function startCafe(root, content, onReady) {
@@ -43,6 +44,12 @@ export function setCafePaused(on) { pauseHook?.(on); }
 export function cafeOwner() {
   const o = S.owner;
   return o ? { name: o.p?.name, look: o.look } : null;
+}
+export function setCustomerBattleHandler(fn) { S.openCustomerBattle = fn; }
+export function resolveCustomerBattle(person, kind) {
+  const wasRude = person?.mood?.mode === 'rude';
+  resolveBattle(person, kind);
+  if (wasRude && kind === 'win') kickOut(person);
 }
 // a moment for the page to draw between the heavy steps of building
 const breathe = () => new Promise(r => setTimeout(r, 0));
@@ -67,13 +74,14 @@ async function build(root, content) {
   const unbind = bindHUD(root, stage);
   renderResults();
 
-  let last = performance.now(), tvFrameN = 0, raf = 0;
+  let last = performance.now(), tvFrameN = 0, raf = 0, rudeAt = last;
   const near = (x, z, r) => S.people.some(p => Math.hypot(p.g.position.x - x * K, p.g.position.z - z) < r);
   // everything that moves, for dt real seconds (sdt simulated seconds)
   function simulate(dt, sdt) {
     tickShop(sdt);
     for (let i = S.timers.length - 1; i >= 0; i--) { const tm = S.timers[i]; if (tm.who?.frozen) continue; tm.t -= sdt; if (tm.t <= 0) { S.timers.splice(i, 1); tm.r(); } }
     S.people.slice().forEach(p => p.update(sdt));
+    updateMoods();
     if (!tvPaused()) updateTV(sdt);   // (held while there's a cockroach to watch being dealt with)
     updateRoach(sdt);
     updatePhoneProp(dt);   // (its sparkle, and the jump into the bag, go by real time)
@@ -152,6 +160,13 @@ async function build(root, content) {
   let heldQuality = null;   // the 畫質 to go back to, while the phone has the café turned down
   function frame(now) {
     if (S.stopped || S.paused) return;
+    if (now - rudeAt >= 10000) {
+      rudeAt = now;
+      if (trySpawn(true, newProfile())) {
+        const c = S.customers[S.customers.length - 1];
+        if (c && !c.p?.regular) makeRude(c);
+      }
+    }
     const cov = covered();
     if (cov && heldQuality === null) {
       heldQuality = S.quality || DEFAULT_QUALITY;

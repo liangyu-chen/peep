@@ -9,7 +9,13 @@ export const metadata: Metadata = {
 
 export const dynamic = 'force-dynamic';
 
-export default async function BattlePage() {
+// /battle is the spider; /battle?mode=rude or ?mode=kind (and &type=…) previews a customer fight, the owner standing in
+// for the customer too
+export default async function BattlePage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const { owner } = await getContent();
-  return <BattleClient owner={{ name: owner.name, look: owner.look }} />;
+  const query = await searchParams;
+  const mode = query.mode === 'rude' || query.mode === 'kind' ? query.mode : undefined;
+  const type = typeof query.type === 'string' ? query.type : undefined;
+  const self = { name: owner.name, look: owner.look };
+  return <BattleClient owner={self} mode={mode} type={type} customer={mode ? { name: '客人', look: owner.look } : undefined} />;
 }
