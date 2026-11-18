@@ -153,6 +153,11 @@ html:has(.cafe-root),body:has(.cafe-root){margin:0;overflow:hidden;background:#1
 .cafe-root .guest .nm.reg,.cafe-root .guest .nm.reg+.kind{color:var(--regular)}
 .cafe-root .guest .nm.new,.cafe-root .guest .nm.new+.kind{color:var(--newbie)}
 .cafe-root .guest .kind{font-size:11px}
+.cafe-root .guest .nm{display:inline-flex;align-items:center;gap:5px;min-width:0}
+.cafe-root .guest .guestMood{display:inline-flex;align-items:center;justify-content:center;flex:none;width:18px;height:20px;font-size:15px;font-weight:normal}
+.cafe-root .guest .guestMood svg{width:18px;height:20px}
+.cafe-root .guest .guestMood.rude{color:var(--newbie)}
+.cafe-root .guest .guestMood.kind{color:var(--regular)}
 .cafe-root .guest .st{grid-column:1 / -1;font-size:12px;color:var(--muted)}
 .cafe-root #guestList{display:grid;max-height:50vh;overflow-y:auto}
 .cafe-root #guestList .empty{margin:6px 0;font-size:13px;color:var(--muted)}

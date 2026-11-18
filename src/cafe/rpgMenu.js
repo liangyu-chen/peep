@@ -5,6 +5,7 @@
 import { S } from './state.js';
 import { $ } from './util.js';
 import { log } from './feed.js';
+import { CLOUD_SVG } from './mood.js';
 import { releaseRoach } from './roach.js';
 import { sfx } from './sfx.js';
 import { setTimeStop, clearTimeStop } from './timeStop.js';
@@ -196,7 +197,15 @@ export function bindMenu(root, on, off, { setCam, focusPerson, followThing, setA
     if (!here.length) { const p = document.createElement('p'); p.className = 'empty'; p.textContent = '店裡現在沒有客人。'; list.appendChild(p); return; }
     here.forEach(c => {
       const b = document.createElement('button'); b.type = 'button'; b.className = 'opt guest';
-      const nm = document.createElement('span'); nm.className = `nm ${c.p.regular ? 'reg' : 'new'}`; nm.textContent = c.p.name;
+      const nm = document.createElement('span'); nm.className = `nm ${c.p.regular ? 'reg' : 'new'}`;
+      if (c.mood) {
+        const mi = document.createElement('b');
+        mi.className = `guestMood ${c.mood.mode}`;
+        mi.title = c.mood.mode === 'rude' ? '奧客' : '有心事';
+        if (c.mood.mode === 'kind') mi.innerHTML = CLOUD_SVG;
+        else mi.textContent = c.mood.icon || '❗';
+        nm.append(mi, document.createTextNode(c.p.name));
+      } else nm.textContent = c.p.name;
       const kind = document.createElement('span'); kind.className = 'kind'; kind.textContent = c.p.regular ? '熟客' : '新客';
       const st = document.createElement('span'); st.className = 'st'; st.textContent = c.status || '';
       b.append(nm, kind, st);

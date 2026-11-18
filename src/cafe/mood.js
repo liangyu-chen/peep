@@ -7,9 +7,13 @@ export const CLOUD_SVG = '<svg viewBox="0 0 10 11" width="10" height="11" aria-h
 const moodText = (mode) => (mode === 'rude' ? '感到不開心' : '有心事');
 const rudePicked = new WeakSet();
 
-export function createMoodPlan() {
-  if (Math.random() >= 0.5) return null;
-  return { mode: 'kind', type: pick(KIND_TYPES), icon: '☁' };
+export function createMoodPlan(profile = {}) {
+  // the dice is rolled once, as the customer comes in: 80% of new customers have a mood, split evenly between the two
+  if (profile.regular) return Math.random() < 0.5 ? { mode: 'kind', type: pick(KIND_TYPES), icon: '☁' } : null;
+  if (Math.random() >= 0.8) return null;
+  return Math.random() < 0.5
+    ? { mode: 'rude', type: pick(RUDE_TYPES), icon: '❗' }
+    : { mode: 'kind', type: pick(KIND_TYPES), icon: '☁' };
 }
 
 function ensureIcon(p) {

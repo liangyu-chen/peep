@@ -336,7 +336,7 @@ async function customerLife(c) {
   const p = c.p;
   if (p.regular) p.visits++;
   c.status = '走進店裡';
-  log(p.regular ? `熟客 ${p.name} 來了（第 ${p.visits} 次）` : `新客人 ${p.name} 推門進來`);
+  log(p.regular ? `熟客 ${p.name} 來了（第 ${p.visits} 次）` : `新客人 ${p.name} 進入店裡`);
   if (c.fromLane) await walk(c, [[-1.75, WALK_Z]]);   // along the lane to the door
   floatText('bang', '!', new THREE.Vector3(c.g.position.x / K, 2.1, c.g.position.z), 1);
   await walk(c, route(DOOR, zoneSpot(c.spot)));
