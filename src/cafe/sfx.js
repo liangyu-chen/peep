@@ -60,6 +60,7 @@ const SOUNDS = {
   money: () => { noise(0.28, { freq: 4000, vol: 0.12, q: 0.5 }); tune([1047, 1319, 1568, 2093], 0.06, { vol: 0.08 }); },
   rim: () => { tone(520, 480, 0.09, { vol: 0.12 }); tone(260, 240, 0.12, { vol: 0.1, at: 0.05 }); },
   buzzer: () => tone(180, 170, 0.7, { type: 'sawtooth', vol: 0.09 }),
+  siren: () => { for (let i = 0; i < 4; i++) { tone(620, 940, 0.24, { type: 'sawtooth', vol: 0.045, at: i * 0.24 }); tone(940, 620, 0.24, { type: 'sawtooth', vol: 0.045, at: i * 0.24 + 0.12 }); } },
   tick: () => tone(1200, 1200, 0.03, { vol: 0.06 }),
   launch: () => { tone(180, 1400, 0.4, { vol: 0.1 }); noise(0.3, { freq: 2000, vol: 0.08 }); },
   clash: () => { noise(0.06, { freq: 3500, vol: 0.18 }); tone(1800, 700, 0.08, { vol: 0.08 }); },

@@ -273,16 +273,17 @@ function carModel() {
   bx(g, 0.4, 0.12, 0.02, mat(0xf2f2f2), 0, 0.45, 1.96, false);                // plate
   return { g, len: 4.0, vmax: 4.2 };
 }
-function riderModel() {
-  const g = scooterModel(pick(SCOOTER_COLS));
-  const shirt = mat(pick([0x3a5f8f, 0xd9d4c8, 0x8f3a3a, 0x3d6b4f, 0x2b2b2b]), { roughness: 0.8 });
-  bx(g, 0.4, 0.55, 0.26, shirt, 0, 1.05, -0.2);                             // rider
-  bx(g, 0.34, 0.45, 0.4, mat(0x2f3540), 0, 0.72, 0.0).rotation.x = -0.3;     // legs
-  const helmet = new THREE.Mesh(new THREE.SphereGeometry(0.16, 12, 10), mat(pick([0xf2f2ef, 0xd23a2e, 0x1f6fd1, 0xf0c419]), { roughness: 0.3 }));
-  helmet.position.set(0, 1.5, -0.18); helmet.castShadow = true; g.add(helmet);
-  bx(g, 0.3, 0.1, 0.06, mat(0xd9b38c), 0, 1.4, -0.08, false);               // face under the visor
-  [-1, 1].forEach(s => { bx(g, 0.08, 0.08, 0.45, shirt, s * 0.22, 1.12, 0.12, false).rotation.x = -0.4; });   // arms out to the bars
-  return { g, len: 1.6, vmax: 5.5 };
+export function riderModel(o = {}) {
+  const g = scooterModel(o.body ?? pick(SCOOTER_COLS));
+  const rider = new THREE.Group(); g.add(rider);
+  const shirt = mat(o.shirt ?? pick([0x3a5f8f, 0xd9d4c8, 0x8f3a3a, 0x3d6b4f, 0x2b2b2b]), { roughness: 0.8 });
+  bx(rider, 0.4, 0.55, 0.26, shirt, 0, 1.05, -0.2);                             // rider
+  bx(rider, 0.34, 0.45, 0.4, mat(0x2f3540), 0, 0.72, 0.0).rotation.x = -0.3;     // legs
+  const helmet = new THREE.Mesh(new THREE.SphereGeometry(0.16, 12, 10), mat(o.helmet ?? pick([0xf2f2ef, 0xd23a2e, 0x1f6fd1, 0xf0c419]), { roughness: 0.3 }));
+  helmet.position.set(0, 1.5, -0.18); helmet.castShadow = true; rider.add(helmet);
+  bx(rider, 0.3, 0.1, 0.06, mat(o.face ?? 0xd9b38c), 0, 1.4, -0.08, false);               // face under the visor
+  [-1, 1].forEach(s => { bx(rider, 0.08, 0.08, 0.45, shirt, s * 0.22, 1.12, 0.12, false).rotation.x = -0.4; });   // arms out to the bars
+  return { g, rider, len: 1.6, vmax: 5.5 };
 }
 const traffic = [];
 let nextT = 5;

@@ -23,6 +23,8 @@ import { gatherWallItems, fadeWallItems } from './wallItems.js';
 import { setQuality, DEFAULT_QUALITY, highQuality, qualityPR, frameMs } from './quality.js';
 import { disposePortraits } from './portrait.js';
 import { updateRoach, tvPaused, disposeRoach, releaseRoach, raiseAlarm } from './roach.js';
+import { releaseDrunk, updateDrunk, disposeDrunk } from './drunk.js';
+export { releaseDrunk };
 import { buildPhoneProp, updatePhoneProp, disposePhoneProp } from './phone.js';
 import { holdMusic } from './music.js';
 import { updateMoods, resolveBattle } from './mood.js';
@@ -84,6 +86,7 @@ async function build(root, content) {
     updateMoods();
     if (!tvPaused()) updateTV(sdt);   // (held while there's a cockroach to watch being dealt with)
     updateRoach(sdt);
+    updateDrunk(sdt);
     updatePhoneProp(dt);   // (its sparkle, and the jump into the bag, go by real time)
     updateSteam(sdt);
     updateSmoke(sdt);
@@ -206,7 +209,7 @@ async function build(root, content) {
   raf = requestAnimationFrame(frame);
   // development only: step the simulation from the console without rendering, e.g. await __cafe.step(60)
   if (process.env.NODE_ENV !== 'production') window.__cafe = {
-    S, ctx, releaseRoach, raiseAlarm, inviteTops, SMOKE_POSE, DRINK_POSE, buildBody, makeDog, makeCorgi, animateDog, followDog, THREE, step: async (secs, dt = 0.05) => {
+    S, ctx, releaseRoach, raiseAlarm, releaseDrunk, inviteTops, SMOKE_POSE, DRINK_POSE, buildBody, makeDog, makeCorgi, animateDog, followDog, THREE, step: async (secs, dt = 0.05) => {
       for (let t = 0; t < secs && !S.stopped; t += dt) { simulate(dt, dt); for (let k = 0; k < 12; k++) await null; }
       drawTV(); updateHUD();
     },
@@ -223,6 +226,7 @@ async function build(root, content) {
     pauseHook = null;
     disposePortraits();
     disposeRoach();
+    disposeDrunk();
     disposePhoneProp();
     INPUTS.forEach(e => window.removeEventListener(e, poke));
     cancelAnimationFrame(raf);

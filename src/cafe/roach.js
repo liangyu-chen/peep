@@ -74,6 +74,7 @@ export function tvPaused() {
 // ---------------------------------------------------------------- letting one go
 export function releaseRoach() {
   if (S.roach) return '店裡已經有一隻蟑螂在亂跑了……';
+  if (S.drunk) return '店裡有醉漢在鬧，先等警察處理完……';
   if (S.closing) return '店要打烊了，現在放也沒人看得到。';
   // inside or out on the porch, even odds (the porch's seats each have a long way of their own to the door, much of
   // it over the same floor, so by length alone it'd be out there more often than not); then somewhere along any

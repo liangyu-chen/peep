@@ -31,6 +31,7 @@ html:has(.cafe-root),body:has(.cafe-root){margin:0;overflow:hidden;background:#1
 .cafe-root #labels{position:absolute;inset:0;pointer-events:none;overflow:hidden}
 .cafe-root .tag{position:absolute;transform:translate(-50%,-100%);font-size:12px;padding:1px 6px;background:rgba(20,18,24,.85);white-space:nowrap;box-shadow:0 0 0 2px rgba(0,0,0,.6)}
 .cafe-root .tag.reg{color:var(--regular)} .cafe-root .tag.new{color:var(--newbie)} .cafe-root .tag.boss{color:var(--boss)}
+.cafe-root .tag.drunk{color:#ff9a3c} .cafe-root .tag.police{color:#8de2ff}
 .cafe-root .tag i{font-style:normal;opacity:.75;margin-left:4px;font-size:11px}
 .cafe-root .moodIcon{position:absolute;left:50%;bottom:100%;transform:translate(-50%,-2px);font-size:32px;line-height:1;pointer-events:none;z-index:5;text-shadow:2px 2px 0 #000;animation:moodBob 1.2s ease-in-out infinite}
 .cafe-root .moodIcon svg{display:block;width:1em;height:1em;image-rendering:pixelated}

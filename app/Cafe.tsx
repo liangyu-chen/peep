@@ -52,6 +52,8 @@ const ICON_ROACH = ['.LL......LL.', 'L..L....L..L', 'L...kkkk...L', '...kBBBBk..
   'LLkbbkkbbkLL', '..kbbkkbbk..', '.LkbbkkbbkL.', 'L..kbkkbk..L', '....kkkk....'];
 const ICON_SPIDER = ['............', '..k......k..', '...k....k...', '..k.kkkk.k..', '.k.kbbbbk.k.', '..kbrbbrbk..',
   '.k.kbbbbk.k.', '..kbbbbbbk..', '..k.kkkk.k..', '...k....k...', '..k......k..', '............'];
+const ICON_DRUNK = ['....kkkk....', '....kwwk....', '....kbbk....', '...kbbbbk...', '...kbbbbk...', '..kbbbbbbk..',
+  '..kbyyyybk..', '..kbyyyybk..', '..kbbbbbbk..', '...kkkkkk...', '............', '............'];
 // 冷氣遙控: the white remote, its red lamp up top, the green LCD, two grey keys either side of the yellow power key
 const ICON_REMOTE = ['....kkkk....', '...kwwwwk...', '..kwwwrwwk..', '..kwnnnnwk..', '..kwnnnnwk..', '..kwwwwwwk..', '..kwGwwGwk..',
   '..kwwyywwk..', '..kwGwwGwk..', '..kwwwwwwk..', '...kwwwwk...', '....kkkk....'];
@@ -216,6 +218,10 @@ export default function Cafe({ content }: { content: CafeContent }) {
     cafe.current?.setCafePaused(true);
     enterBattle(ownerNow());
   }, [enterBattle, ownerNow]);
+  const openDrunk = useCallback(() => {
+    root.current?.querySelector<HTMLButtonElement>('[data-cmd="close"]')?.click();
+    cafe.current?.releaseDrunk();
+  }, []);
   const openCustomerBattle = useCallback((person: CafePerson) => {
     if (!person?.mood || person.gone || !person.look) return;
     root.current?.querySelector<HTMLButtonElement>('[data-cmd="close"]')?.click();
@@ -314,6 +320,7 @@ export default function Cafe({ content }: { content: CafeContent }) {
             {/* 畫質, one line that flips between 高 and 低 (hud.js) */}
             <button type="button" id="qualityToggle" className="opt"><PixelArt rows={ICON_BATT} />畫質<span className="qval" id="qualityVal">高</span></button>
             <button type="button" className="opt battleOpt" onClick={openBattle}><PixelArt rows={ICON_SPIDER} />蜘蛛驚魂<span className="devTag">規劃中</span></button>
+            <button type="button" className="opt battleOpt" onClick={openDrunk}><PixelArt rows={ICON_DRUNK} />醉漢鬧店<span className="devTag">規劃中</span></button>
             <a href="/admin" className="opt"><PixelArt rows={ICON_KEY} />後台登入</a>
           </div>
         </section>

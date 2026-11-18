@@ -412,6 +412,22 @@ export class Person {
     if (this.act === 'pour') { armLx = -1.1; armRx = -1.2 + Math.sin(this.walkPhase * 5) * 0.12; elL = -0.5; elR = -0.55; armLz = 0.3; armRz = -0.3; }
     if (this.act === 'serve') { armRx = -1.3; elR = -0.3; armRz = -0.1; }   // reaching a cup over onto the bar
     if (this.act === 'facepalm') { armRx = -0.9; elR = -2.0; armRz = -0.45; }
+    if (this.act === 'drunk') {
+      const sway = Math.sin(this.walkPhase * 3.1);
+      y = -0.05 + Math.abs(sway) * 0.02;
+      hipL = sway * 0.12; hipR = -sway * 0.12;
+      armLx = -0.4 + sway * 0.28; armRx = -0.5 - sway * 0.24;
+      elL = -0.55; elR = -0.8; armLz = 0.3; armRz = -0.3;
+      bob = Math.abs(sway) * 0.03;
+    }
+    if (this.act === 'drunkSit') {
+      const sway = Math.sin(this.walkPhase * 2.6);
+      y += sway * 0.012;
+      armLx = -0.25 + sway * 0.16; armRx = -0.25 - sway * 0.14;
+      elL = -0.7; elR = -0.7 + Math.abs(sway) * 0.08;
+      bob = Math.abs(sway) * 0.012;
+    }
+
     let pitch = 0;
     const ph = !moving && !this.act && this.smk ? this.smk.phase : null;
     let turn = 0;

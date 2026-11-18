@@ -269,7 +269,7 @@ function freeTableSeat(preferPorch) {
 export function trySpawn(force, who) {
   if ((!S.open || S.closing) && !force) return false;
   // nobody comes in while there's a cockroach being chased round the shop, or the ones who ran from it aren't back yet
-  if (S.roach?.alarm || S.customers.some(c => c.frozen)) { if (force) log('店裡正在抓蟑螂，客人不敢進來。'); return false; }
+  if (S.drunk || S.roach?.alarm || S.customers.some(c => c.frozen)) { if (force) log('店裡正在處理事件，客人不敢進來。'); return false; }
   if (S.closing && force) { log('打烊了，明天請早。'); return false; }
   if (S.customers.length >= 14) { if (force) log('店裡坐滿了，晚點再來。'); return false; }
   const spot = S.seats.counterSpots.find(s => !s.occ);
@@ -338,6 +338,7 @@ async function customerLife(c) {
   c.status = '走進店裡';
   log(p.regular ? `熟客 ${p.name} 來了（第 ${p.visits} 次）` : `新客人 ${p.name} 進入店裡`);
   if (c.fromLane) await walk(c, [[-1.75, WALK_Z]]);   // along the lane to the door
+  c.fromLane = false;
   floatText('bang', '!', new THREE.Vector3(c.g.position.x / K, 2.1, c.g.position.z), 1);
   await walk(c, route(DOOR, zoneSpot(c.spot)));
   c.face(Math.PI / 2);

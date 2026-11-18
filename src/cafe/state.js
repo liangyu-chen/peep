@@ -29,6 +29,7 @@ export function resetState(content) {
     ac: { on: false, spin: 0, temp: 26, fan: 'auto', mode: 'cool', swingH: 'auto', swingV: 'auto' },
     // whether the remote is equipped (the 冷氣遙控 item, rpgMenu.js): not to start with, so it's off screen until then
     acGear: false,
+    drunk: null,
     timeStop: false,   // 時間停止器 (timeStop.js): everything in the shop holds still, the camera still moves
     paused: false,     // a battle laid over the café (index.js setCafePaused): nothing runs or draws until it ends
 
