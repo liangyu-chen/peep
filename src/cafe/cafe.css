@@ -32,10 +32,10 @@ html:has(.cafe-root),body:has(.cafe-root){margin:0;overflow:hidden;background:#1
 .cafe-root .tag{position:absolute;transform:translate(-50%,-100%);font-size:12px;padding:1px 6px;background:rgba(20,18,24,.85);white-space:nowrap;box-shadow:0 0 0 2px rgba(0,0,0,.6)}
 .cafe-root .tag.reg{color:var(--regular)} .cafe-root .tag.new{color:var(--newbie)} .cafe-root .tag.boss{color:var(--boss)}
 .cafe-root .tag i{font-style:normal;opacity:.75;margin-left:4px;font-size:11px}
-.cafe-root .moodIcon{position:absolute;left:50%;bottom:100%;transform:translate(-50%,-2px);font-size:24px;line-height:1;pointer-events:none;z-index:5;text-shadow:2px 2px 0 #000;animation:moodBob 1.2s ease-in-out infinite}
+.cafe-root .moodIcon{position:absolute;left:50%;bottom:100%;transform:translate(-50%,-2px);font-size:32px;line-height:1;pointer-events:none;z-index:5;text-shadow:2px 2px 0 #000;animation:moodBob 1.2s ease-in-out infinite}
 .cafe-root .moodIcon svg{display:block;width:1em;height:1em;image-rendering:pixelated}
 .cafe-root #cMood{display:inline-flex;align-items:center;gap:5px;white-space:nowrap;max-width:100%}
-.cafe-root #cMood svg{display:block;width:14px;height:16px;flex:none;image-rendering:pixelated}
+.cafe-root #cMood svg{display:block;width:20px;height:22px;flex:none;image-rendering:pixelated}
 .cafe-root .moodIcon.rude{filter:drop-shadow(0 0 4px rgba(255,79,123,.8))}
 .cafe-root .moodIcon.kind{filter:drop-shadow(0 0 4px rgba(141,226,255,.8))}
 @keyframes moodBob{0%,100%{margin-bottom:0}50%{margin-bottom:4px}}
@@ -534,10 +534,10 @@ html:has(.cafe-root),body:has(.cafe-root){margin:0;overflow:hidden;background:#1
   .cafe-root #card dl{grid-template-columns:auto 1fr auto 1fr;gap:3px 8px;font-size:12px}
   .cafe-root #card dt{font-size:11px}
   .cafe-root #card .status{font-size:12px;padding:4px 6px}
-  .cafe-root #card button#cInvite,.cafe-root #card button#cMood,.cafe-root #card button#cSmoke{font-size:12px;padding:5px 6px;justify-self:start;max-width:100%}
-  .cafe-root #card button#cInvite[hidden]+button#cSmoke,.cafe-root #card button#cInvite:has(+ button#cSmoke[hidden]){grid-column:1 / -1}   /* one button on its own: full width */
-  .cafe-root #card:has(> button#cMood:not([hidden])):not(:has(> button#cInvite:not([hidden]))):not(:has(> button#cSmoke:not([hidden])))>button#cMood{grid-column:1 / -1}
-  .cafe-root .moodIcon{font-size:28px}
+  .cafe-root #card button#cInvite,.cafe-root #card button#cMood,.cafe-root #card button#cSmoke{display:inline-flex;align-items:center;justify-content:center;gap:5px;min-height:32px;font-size:12px;padding:5px 6px;max-width:100%}
+  /* one button on its own: full width, like the card used to do */
+  .cafe-root #card:has(> button:not([hidden])):not(:has(> button:not([hidden]) ~ button:not([hidden])))>button:not([hidden]){grid-column:1 / -1;justify-self:stretch}
+  .cafe-root .moodIcon{font-size:36px}
 }
 @media (prefers-reduced-motion:reduce){.cafe-root .bubble{transition:none}}
 

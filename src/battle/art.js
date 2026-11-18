@@ -822,10 +822,10 @@ function getSpiderSprites() {
   return spiderSprites;
 }
 
-function layout(w, h) {
-  const compact = w < 820;
-  const dock = compact ? h * 0.47 : h * 0.34;
-  const bottom = h - dock;
+function layout(w, h, dockPx = 0) {
+  const compact = w < 860;
+  const dock = dockPx > 0 ? dockPx : compact ? Math.min(h * 0.3, 240) : h * 0.34;   // the floor ends where the dock starts
+  const bottom = Math.max(h * 0.3, h - dock);
   const scale = Math.max(0.62, Math.min(2.2, Math.min(w, bottom) / 470));
   return {
     w,
@@ -2509,7 +2509,7 @@ function renderRoomPixels(w, h, t, L, P) {
 
 function drawRoomPixel(ctx, w, h, t, L) {
   const P = Math.max(2, Math.round(L.scale * 4));
-  if (!roomPix || roomPix.key !== `${w}x${h}x${P}`) roomPix = renderRoomPixels(w, h, t, L, P);
+  if (!roomPix || roomPix.key !== `${w}x${h}x${P}x${L.bottom}`) roomPix = renderRoomPixels(w, h, t, L, P);
   const { buf, neon } = roomPix;
   ctx.save();
   ctx.imageSmoothingEnabled = false;
@@ -2533,9 +2533,9 @@ export function createScene({ owner, customer, mode } = {}) {
     ownerWhite: ownerArt.white,
   };
   return {
-    draw(ctx, w, h, st) {
+    draw(ctx, w, h, st, dockPx = 0) {
       const now = performance.now();
-      const L = layout(w, h);
+      const L = layout(w, h, dockPx);
       const px = fxPixel(L);
 
       // shake the whole picture on a hit: harder for crits and super-effective

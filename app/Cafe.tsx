@@ -199,11 +199,13 @@ export default function Cafe({ content }: { content: CafeContent }) {
     if (entry !== 'cover') return;
     if (entryTimer.current !== null) window.clearTimeout(entryTimer.current);
     const quick = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-    setEntry('open');
     entryTimer.current = window.setTimeout(() => {
-      setEntry(null);
-      entryTimer.current = null;
-    }, quick ? 320 : ENTRY_OPEN_MS);
+      setEntry('open');
+      entryTimer.current = window.setTimeout(() => {
+        setEntry(null);
+        entryTimer.current = null;
+      }, quick ? 380 : ENTRY_OPEN_MS);
+    }, quick ? 120 : 220);   // a moment of fully covered screen, even on a fast phone
   }, [entry]);
   const ownerNow = useCallback((): BattleOwner => {
     const seen = cafe.current?.cafeOwner();

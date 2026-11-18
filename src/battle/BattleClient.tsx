@@ -173,7 +173,7 @@ export default function BattleClient({
   const phase = snap?.phase || 'intro';
 
   useEffect(() => {
-    setCursor(phase === 'moves' || phase === 'bag' ? -1 : 0);
+    setCursor(-1);   // nothing highlighted until the player actually moves or taps
     setArmed(null);
   }, [phase]);
 
@@ -229,8 +229,9 @@ export default function BattleClient({
         if (key === 'Enter' || key === ' ' || lower === 'z') {
           event.preventDefault();
           if (snap.phase === 'command') {
-            if (cursor === 0 || cursor === 1) setCursor(-1);
-            api.command(cursor);
+            const index = cursor < 0 ? 0 : cursor;
+            setCursor(-1);
+            api.command(index);
           } else {
             const index = cursor < 0 ? 0 : cursor;
             if (armed === index) {
@@ -342,7 +343,8 @@ export default function BattleClient({
             </p>
           </section>
 
-          <aside className="battleMenu battleBox" aria-label="戰鬥指令">
+          {(phase === 'command' || phase === 'moves' || phase === 'bag') && (
+            <aside className="battleMenu battleBox" aria-label="戰鬥指令">
             {phase === 'command' && (
               <div className="commandGrid">
                 {(mode === 'kind' ? ['關心', ...COMMANDS.slice(1)] : COMMANDS).map((label, index) => (
@@ -390,7 +392,7 @@ export default function BattleClient({
                 </div>
                 <button type="button" className="backBtn" onClick={() => {
                   setArmed(null);
-                  setCursor(0);
+                  setCursor(-1);
                   apiRef.current?.back();
                 }}>
                   ◀ 返回
@@ -427,7 +429,7 @@ export default function BattleClient({
                 </div>
                 <button type="button" className="backBtn" onClick={() => {
                   setArmed(null);
-                  setCursor(0);
+                  setCursor(-1);
                   apiRef.current?.back();
                 }}>
                   ◀ 返回
@@ -435,9 +437,8 @@ export default function BattleClient({
               </>
             )}
 
-            {(phase === 'busy' || phase === 'intro') && <p className="battleWait">……</p>}
-            {phase === 'result' && <p className="battleWait">戰鬥結束</p>}
           </aside>
+          )}
         </div>
       </div>
 

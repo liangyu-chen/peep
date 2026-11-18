@@ -76,6 +76,7 @@ export function createBattle(canvas, { onState, onExit, onResult, owner, custome
   const scene = createScene({ owner, customer, mode: battleMode });
   let w = 1;
   let h = 1;
+  let dockPx = 0;
   let dpr = 1;
   let raf = 0;
   let last = performance.now();
@@ -421,6 +422,8 @@ export function createBattle(canvas, { onState, onExit, onResult, owner, custome
     const rect = canvas.getBoundingClientRect();
     w = Math.max(1, rect.width || canvas.clientWidth || window.innerWidth);
     h = Math.max(1, rect.height || canvas.clientHeight || window.innerHeight);
+    const dock = canvas.parentElement?.querySelector?.('.battleDock');
+    dockPx = dock ? Math.max(0, rect.bottom - dock.getBoundingClientRect().top) : 0;
     dpr = Math.min(2, window.devicePixelRatio || 1);
     const nextW = Math.round(w * dpr);
     const nextH = Math.round(h * dpr);
@@ -442,7 +445,7 @@ export function createBattle(canvas, { onState, onExit, onResult, owner, custome
     const now = performance.now();
     st.fx = st.fx.filter((fx) => now - fx.t0 < fx.dur);
     ctx.clearRect(0, 0, w, h);
-    scene.draw(ctx, w, h, st);
+    scene.draw(ctx, w, h, st, dockPx);
     raf = requestAnimationFrame(frame);
   };
 

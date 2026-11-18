@@ -312,14 +312,12 @@ body:has(.battle-root) {
   opacity: 0;
 }
 
-.battleBtn:hover,
 .battleBtn.sel {
   background: #3b3450;
   color: #fff7e0;
   box-shadow: inset -3px -3px 0 #191520, inset 3px 3px 0 #574e70, 0 0 0 2px #ffd23f;
 }
 
-.battleBtn:hover::before,
 .battleBtn.sel::before {
   opacity: 1;
 }
@@ -613,9 +611,9 @@ body:has(.battle-root) {
 
 @media (max-width: 860px) {
   .battleHud {
-    gap: 6px;
-    padding: 10px;
-    padding-bottom: max(10px, env(safe-area-inset-bottom));
+    gap: 5px;
+    padding: 8px;
+    padding-bottom: max(8px, env(safe-area-inset-bottom));
   }
 
   .battleTop {
@@ -648,41 +646,41 @@ body:has(.battle-root) {
 
   .battleDock {
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
   }
 
   .battleDialogue {
     flex: 1 1 auto;
-    min-height: 82px;
-    padding: 10px 14px;
+    min-height: 56px;
+    padding: 8px 12px;
   }
 
   .battleDialogue p {
-    font-size: 14px;
-    line-height: 1.6;
+    font-size: 13px;
+    line-height: 1.5;
   }
 
   .battleMenu {
     flex: 0 0 auto;
     width: 100%;
-    padding: 8px;
-    gap: 6px;
+    padding: 6px;
+    gap: 5px;
   }
 
   .battleBtn {
-    min-height: 46px;
-    padding: 6px 10px 6px 24px;
+    min-height: 42px;
+    padding: 5px 10px 5px 24px;
     font-size: 15px;
   }
 
   .commandGrid .battleBtn {
-    min-height: 50px;
+    min-height: 44px;
     font-size: 16px;
   }
 
   .moveBtn,
   .bagBtn {
-    min-height: 50px;
+    min-height: 44px;
   }
 
   .moveName,
