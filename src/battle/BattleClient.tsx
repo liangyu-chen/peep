@@ -113,6 +113,7 @@ export default function BattleClient({
   owner,
   onExit,
   onResult,
+  onReady,
   mode,
   type,
   customer,
@@ -120,6 +121,7 @@ export default function BattleClient({
   owner: OwnerInfo;
   onExit?: () => void;
   onResult?: (kind: 'win' | 'lose' | 'flee') => void;
+  onReady?: () => void;
   mode?: BattleMode;
   type?: string;
   customer?: OwnerInfo;
@@ -127,6 +129,8 @@ export default function BattleClient({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const exitRef = useRef(onExit);
   exitRef.current = onExit;
+  const readyRef = useRef(onReady);
+  readyRef.current = onReady;
   const resultRef = useRef(onResult);
   resultRef.current = onResult;
   const apiRef = useRef<BattleApi | null>(null);
@@ -158,6 +162,7 @@ export default function BattleClient({
     });
     apiRef.current = api;
     rootRef.current?.focus();
+    requestAnimationFrame(() => readyRef.current?.());   // hold the entry wipe until the first battle frame is drawn
     return () => {
       active = false;
       api.destroy();

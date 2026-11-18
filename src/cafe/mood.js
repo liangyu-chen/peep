@@ -3,7 +3,7 @@ import { log } from './feed.js';
 import { RUDE_TYPES, KIND_TYPES } from '../battle/data.js';
 
 const pick = (list) => list[Math.floor(Math.random() * list.length)];
-export const CLOUD_SVG = '<svg viewBox="0 0 10 11" aria-hidden="true" shape-rendering="crispEdges"><title>🌧</title><path fill="#14121a" d="M3 0h4v1h1v1h1v3h-1v1H2V6H1V3h1V2h1z"/><path fill="#8de2ff" d="M3 1h4v1h1v3H2V3h1z"/><path fill="#14121a" d="M2 7h1v3H2zM5 7h1v3H5zM8 7h1v3H8z"/><path fill="#8de2ff" d="M2 8h1v2H2zM5 8h1v2H5zM8 8h1v2H8z"/></svg>';
+export const CLOUD_SVG = '<svg viewBox="0 0 10 11" width="10" height="11" aria-hidden="true" shape-rendering="crispEdges"><title>🌧</title><path fill="#14121a" d="M3 0h4v1h1v1h1v3h-1v1H2V6H1V3h1V2h1z"/><path fill="#8de2ff" d="M3 1h4v1h1v3H2V3h1z"/><path fill="#14121a" d="M2 7h1v3H2zM5 7h1v3H5zM8 7h1v3H8z"/><path fill="#8de2ff" d="M2 8h1v2H2zM5 8h1v2H5zM8 8h1v2H8z"/></svg>';
 const moodText = (mode) => (mode === 'rude' ? '感到不開心' : '有心事');
 const rudePicked = new WeakSet();
 

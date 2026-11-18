@@ -24,9 +24,9 @@ type CustomerBattle = {
   type: string;
   person: CafePerson;
 };
-type BattleEntry = 'close' | 'open';
-const ENTRY_CLOSE_MS = 960;   // flashes, then the bars closing in (cafe.css .battleEntry)
-const ENTRY_OPEN_MS = 520;    // the bars sweeping off the fight
+type BattleEntry = 'close' | 'cover' | 'open';
+const ENTRY_CLOSE_MS = 1100;  // flashes, then the bars closing in (cafe.css .battleEntry)
+const ENTRY_OPEN_MS = 620;    // the bars sweeping off the fight
 
 // the RPG menu's item icons, in colour: each letter a pixel of that palette colour, '.' see-through
 const ITEM_PAL: Record<string, string> = { k: '#14121a', w: '#f4efe3', G: '#9a98a6', g: '#55535f', r: '#ff4f7b', y: '#ffd23f',
@@ -187,16 +187,24 @@ export default function Cafe({ content }: { content: CafeContent }) {
   // underneath, and the bars sweep off again to show it
   const enterBattle = useCallback((next: BattleOwner | CustomerBattle) => {
     if (entryTimer.current !== null) window.clearTimeout(entryTimer.current);
+    const quick = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;   // a short wipe, never no wipe
     setEntry('close');
     entryTimer.current = window.setTimeout(() => {
       setBattle(next);
-      setEntry('open');
-      entryTimer.current = window.setTimeout(() => {
-        setEntry(null);
-        entryTimer.current = null;
-      }, ENTRY_OPEN_MS);
-    }, ENTRY_CLOSE_MS);
+      setEntry('cover');   // hold the bars shut until BattleClient has drawn its first frame
+      entryTimer.current = window.setTimeout(() => setEntry('open'), quick ? 2000 : 3000);
+    }, quick ? 520 : ENTRY_CLOSE_MS);
   }, []);
+  const battleReady = useCallback(() => {
+    if (entry !== 'cover') return;
+    if (entryTimer.current !== null) window.clearTimeout(entryTimer.current);
+    const quick = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    setEntry('open');
+    entryTimer.current = window.setTimeout(() => {
+      setEntry(null);
+      entryTimer.current = null;
+    }, quick ? 320 : ENTRY_OPEN_MS);
+  }, [entry]);
   const ownerNow = useCallback((): BattleOwner => {
     const seen = cafe.current?.cafeOwner();
     return { name: seen?.name || content.owner.name, look: (seen?.look as Look | undefined) || content.owner.look };
@@ -447,6 +455,7 @@ export default function Cafe({ content }: { content: CafeContent }) {
     {battleOwner && (
       <BattleClient
         owner={battleOwner}
+        onReady={battleReady}
         onExit={closeBattle}
         mode={customerBattle?.mode}
         type={customerBattle?.type}

@@ -32,9 +32,10 @@ html:has(.cafe-root),body:has(.cafe-root){margin:0;overflow:hidden;background:#1
 .cafe-root .tag{position:absolute;transform:translate(-50%,-100%);font-size:12px;padding:1px 6px;background:rgba(20,18,24,.85);white-space:nowrap;box-shadow:0 0 0 2px rgba(0,0,0,.6)}
 .cafe-root .tag.reg{color:var(--regular)} .cafe-root .tag.new{color:var(--newbie)} .cafe-root .tag.boss{color:var(--boss)}
 .cafe-root .tag i{font-style:normal;opacity:.75;margin-left:4px;font-size:11px}
-.cafe-root .moodIcon{position:absolute;left:50%;bottom:100%;transform:translate(-50%,-2px);font-size:24px;line-height:1;text-shadow:2px 2px 0 #000;animation:moodBob 1.2s ease-in-out infinite}
+.cafe-root .moodIcon{position:absolute;left:50%;bottom:100%;transform:translate(-50%,-2px);font-size:24px;line-height:1;pointer-events:none;z-index:5;text-shadow:2px 2px 0 #000;animation:moodBob 1.2s ease-in-out infinite}
 .cafe-root .moodIcon svg{display:block;width:1em;height:1em;image-rendering:pixelated}
-.cafe-root #cMood svg{display:inline-block;width:1.1em;height:1.1em;vertical-align:-.15em;margin-right:5px;image-rendering:pixelated}
+.cafe-root #cMood{display:inline-flex;align-items:center;gap:5px;white-space:nowrap;max-width:100%}
+.cafe-root #cMood svg{display:block;width:14px;height:16px;flex:none;image-rendering:pixelated}
 .cafe-root .moodIcon.rude{filter:drop-shadow(0 0 4px rgba(255,79,123,.8))}
 .cafe-root .moodIcon.kind{filter:drop-shadow(0 0 4px rgba(141,226,255,.8))}
 @keyframes moodBob{0%,100%{margin-bottom:0}50%{margin-bottom:4px}}
@@ -533,30 +534,37 @@ html:has(.cafe-root),body:has(.cafe-root){margin:0;overflow:hidden;background:#1
   .cafe-root #card dl{grid-template-columns:auto 1fr auto 1fr;gap:3px 8px;font-size:12px}
   .cafe-root #card dt{font-size:11px}
   .cafe-root #card .status{font-size:12px;padding:4px 6px}
-  .cafe-root #card button#cInvite,.cafe-root #card button#cSmoke{font-size:12px;padding:5px 6px}
+  .cafe-root #card button#cInvite,.cafe-root #card button#cMood,.cafe-root #card button#cSmoke{font-size:12px;padding:5px 6px;justify-self:start;max-width:100%}
   .cafe-root #card button#cInvite[hidden]+button#cSmoke,.cafe-root #card button#cInvite:has(+ button#cSmoke[hidden]){grid-column:1 / -1}   /* one button on its own: full width */
+  .cafe-root #card:has(> button#cMood:not([hidden])):not(:has(> button#cInvite:not([hidden]))):not(:has(> button#cSmoke:not([hidden])))>button#cMood{grid-column:1 / -1}
+  .cafe-root .moodIcon{font-size:28px}
 }
 @media (prefers-reduced-motion:reduce){.cafe-root .bubble{transition:none}}
 
 /* the way into every fight (Cafe.tsx enterBattle): two white flashes over the café, then ten bars of black sweep in
    from alternate sides in chunky steps, each with a gold leading edge; once the fight is up beneath them they sweep
    on across and off the other side */
-.battleEntry{position:fixed;inset:0;z-index:110;overflow:hidden;pointer-events:none}
+.battleEntry{position:fixed;inset:0;height:100vh;height:100dvh;z-index:120;overflow:hidden;pointer-events:none}
 .battleEntry.close{pointer-events:auto}
 .entryFlash{position:absolute;inset:0;background:#fff7e0;opacity:0}
-.battleEntry.close .entryFlash{animation:entryFlash .34s steps(1,end) both}
+.battleEntry.close .entryFlash{animation:entryFlash .5s linear both}
 .entryBars{position:absolute;inset:0;display:flex;flex-direction:column}
 .entryBars i{--d:-1;position:relative;flex:1;margin:-1px 0;background:#0b0910;transform:translateX(calc(var(--d) * 104%))}
 .entryBars i:nth-child(even){--d:1}
 .entryBars i::after{content:"";position:absolute;top:0;bottom:0;width:8px;background:#ffd23f;box-shadow:0 0 0 2px #0b0910}
 .entryBars i:nth-child(odd)::after{right:-8px}
 .entryBars i:nth-child(even)::after{left:-8px}
-.battleEntry.close .entryBars i{animation:entryBarIn .42s steps(7,end) both;animation-delay:calc(.34s + var(--i) * 20ms)}
+.battleEntry.close .entryBars i{animation:entryBarIn .42s steps(7,end) both;animation-delay:calc(.38s + var(--i) * 20ms)}
+.battleEntry.cover .entryBars i{transform:none}
 .battleEntry.open .entryBars i{transform:none;animation:entryBarOut .4s steps(7,end) both;animation-delay:calc(var(--i) * 12ms)}
-@keyframes entryFlash{0%{opacity:0}15%{opacity:.92}35%{opacity:0}55%{opacity:.92}75%,100%{opacity:0}}
+@keyframes entryFlash{0%,8%{opacity:0}18%,28%{opacity:.95}38%{opacity:0}54%,64%{opacity:.95}74%,100%{opacity:0}}
 @keyframes entryBarIn{from{transform:translateX(calc(var(--d) * 104%))}to{transform:translateX(0)}}
 @keyframes entryBarOut{from{transform:translateX(0)}to{transform:translateX(calc(var(--d) * -104%))}}
-@media (prefers-reduced-motion:reduce){.battleEntry .entryFlash{animation:none}.battleEntry.close .entryBars i{animation-duration:.01s;animation-delay:.2s}.battleEntry.open .entryBars i{animation-duration:.01s}}
+@media (prefers-reduced-motion:reduce){
+  .battleEntry.close .entryFlash{animation:entryFlash .28s linear both}
+  .battleEntry.close .entryBars i{animation-duration:.16s;animation-delay:calc(var(--i) * 8ms)}
+  .battleEntry.open .entryBars i{animation-duration:.16s;animation-delay:calc(var(--i) * 6ms)}
+}
 
 /* loading screen: the two hands from the drawing closing in, inverted to white lines on black */
 .loading-hands{position:absolute;top:0;left:0;width:100%;height:100vh;height:100lvh;z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;
