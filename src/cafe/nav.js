@@ -51,15 +51,16 @@ export function nearestNode(x, z) {
   return best;
 }
 // from one node, how far to every other along the graph, and which way each was reached
-export function spread(from) {
+export function spread(from, blocked) {
   const { nodes } = graph(), d = nodes.map(() => Infinity), prev = nodes.map(() => -1), done = nodes.map(() => false);
+  const skip = typeof blocked === 'function' ? blocked : (blocked ? i => blocked.has(i) : null);
   d[from] = 0;
   for (;;) {
     let u = -1;
     for (let i = 0; i < nodes.length; i++) if (!done[i] && d[i] < Infinity && (u < 0 || d[i] < d[u])) u = i;
     if (u < 0) break;
     done[u] = true;
-    nodes[u].links.forEach(({ to, d: w }) => { if (d[u] + w < d[to]) { d[to] = d[u] + w; prev[to] = u; } });
+    nodes[u].links.forEach(({ to, d: w }) => { if (skip?.(to, nodes[to])) return; if (d[u] + w < d[to]) { d[to] = d[u] + w; prev[to] = u; } });
   }
   return { d, prev };
 }
@@ -70,10 +71,22 @@ export const nodeCount = () => graph().nodes.length;
 export const allEdges = () => graph().nodes.flatMap((n, i) => n.links.filter(l => l.to > i).map(l => [i, l.to, l.d]));
 
 // the way from (x, z) to (tx, tz): onto the graph at its nearest point, along it, and off it to the spot itself
-export function navPath(x, z, tx, tz) {
+export function navPath(x, z, tx, tz, blocked) {
   const a = nearestNode(x, z), b = nearestNode(tx, tz);
-  const { prev } = spread(a);
-  return pathAlong(backTo(prev, b), tx, tz);
+  const { d, prev } = spread(a, blocked);
+  let goal = b, exact = tx !== undefined ? [tx, tz] : null;
+  if (prev[b] === -1 && b !== a) {
+    // unreachable target node (e.g. blocked): go to reachable node closest to target
+    let best = a, bd = Infinity;
+    for (let i = 0; i < prev.length; i++) {
+      if (d[i] === Infinity) continue;
+      const n = nodeAt(i), dd = Math.hypot((n.x - tx) * K, n.z - tz);
+      if (dd < bd) { bd = dd; best = i; }
+    }
+    goal = best;
+    exact = null; // avoid clipping straight-line to unreachable point
+  }
+  return pathAlong(backTo(prev, goal), exact ? exact[0] : undefined, exact ? exact[1] : undefined);
 }
 // the way along the given nodes (from spread's prev) to node i, ending at (tx, tz) if given
 export const wayTo = (prev, i, tx, tz) => pathAlong(backTo(prev, i), tx, tz);
