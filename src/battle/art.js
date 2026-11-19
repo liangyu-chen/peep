@@ -2463,12 +2463,23 @@ function speechBubble(ctx, text, x, y, tip, size, color, alpha = 1, scale = 1) {
   ctx.font = `bold ${Math.max(11, Math.round(size))}px "DotGothic16", monospace`;
   const w = Math.max(ctx.measureText(text).width, size) + size * 1.2;
   const h = size * 1.9;
+  if (!pixBusy) {
+    // pin the bubble to the fx pixel grid: drifting by a fraction of a cell (a shake, the scene's hit shake) makes
+    // pix() sample its outline differently every frame, and the edge pixels blink on and off
+    const m = ctx.getTransform();
+    const cell = FX_PX * FX_DPR;
+    if (m.a && m.d) {
+      x = (Math.round((m.a * x + m.e) / cell) * cell - m.e) / m.a;
+      y = (Math.round((m.d * y + m.f) / cell) * cell - m.f) / m.d;
+    }
+  }
   ctx.translate(x, y);
   ctx.scale(scale, scale);
   const r = size * 0.4;
   const tx = (tip.x - x) / scale;
   const ty = (tip.y - y) / scale;
-  const lw = Math.max(2, size * 0.16);
+  // an outline thinner than a pixel cell comes and goes in pix(): keep it at least one cell (plus a little) wide
+  const lw = Math.max(2, size * 0.16, (FX_PX * 1.25) / scale);
   const bx0 = Math.min(-w / 2, tx * 0.55) - lw;
   const bx1 = Math.max(w / 2, tx * 0.55) + lw;
   const by0 = Math.min(-h / 2, ty * 0.55) - lw;
@@ -3020,7 +3031,7 @@ function fxRage(ctx, from, to, p, s, px) {
     if (q <= 0 || q >= 1) continue;
     const pop = q < 0.12 ? 0.5 + (q / 0.12) * 0.6 : q < 0.2 ? 1.1 - ((q - 0.12) / 0.08) * 0.1 : 1;
     const al = q > 0.8 ? (1 - q) / 0.2 : 1;
-    const shake = Math.sin(p * 120) * 1.5 * s;
+    const shake = Math.round(Math.sin(p * 60)) * px;   // whole pixel cells, so the bubble hops instead of shimmering
     if (ln.who === 'owner') {
       speechBubble(ctx, ln.text, from.x + 60 * s + shake, from.y - 104 * s, { x: from.x + 10 * s, y: from.y - 60 * s }, 18 * s, '#d0503e', al, pop);
     } else {
