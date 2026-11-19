@@ -22,7 +22,7 @@ const plan = w => w / K;
 // the way out: through the door, down past the camping chair onto the lane, along it to the crossroads
 const STREET_Z = 11.2, STOP_X = plan(14.4);
 const OWNER_ON = 8.05, OWNER_SPOT = [-1.05, 8.2];   // where the owner steps off the line: beside the kerb camping chair
-const GAP = 0.8, CONVOY_V = 1.5;                   // the walk out: this far apart, this fast
+const GAP = 0.8, CONVOY_V = 2.0;                  // the walk out: this far apart, this fast
 const SHOP_X0 = -3.1, SHOP_X1 = 3.1, SHOP_Z0 = -4.4, SHOP_Z1 = 9.2;
 // while he's about, the customers all keep to the back of the shop round the TV and watch from there, and he (with the
 // owner after him) keeps to the front part of the room, from the purple wall's back seat out to the door

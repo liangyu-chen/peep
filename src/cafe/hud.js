@@ -22,7 +22,7 @@ import { startMusic, stopMusic, toggleMusic, musicOn } from './music.js';
 import { TVX, TVY, TVZ } from './layout.js';
 import { bindMenu } from './rpgMenu.js';
 import { setTimeStop } from './timeStop.js';
-import { bindPhone, phoneTargets, pickUpPhone, setPhoneHover } from './phone.js';
+import { bindPhone, phoneTargets, phoneNear, pickUpPhone, setPhoneHover } from './phone.js';
 import { CLOUD_SVG } from './mood.js';
 
 export function updateHUD() {
@@ -419,6 +419,7 @@ export function bindHUD(root, stage) {
   const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
   const hit = e => {
     const r = canvas.getBoundingClientRect();
+    if (phoneNear(e.clientX, e.clientY, r)) return 'phone';   // (the owner's phone: anywhere close to it on screen counts)
     ndc.set((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1);
     ray.setFromCamera(ndc, ctx.camera);
     const stadium = [], menu = [], fans = [];

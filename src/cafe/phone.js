@@ -11,7 +11,7 @@ import { S, sleep } from './state.js';
 import { pick, rand, fill, K } from './util.js';
 import { log } from './feed.js';
 import { sfx } from './sfx.js';
-import { trySpawn } from './sim.js';
+import { trySpawn, shopBusy } from './sim.js';
 import { DEFAULT_LINES } from '../content/catalog';
 import { portraitOf } from './portrait.js';
 
@@ -55,13 +55,29 @@ export function buildPhoneProp() {
     m.rotation.x = -Math.PI / 2; m.position.y = y; g.add(m); return m;
   };
   const glow = [rim(0.107, 0.187, 0xffd23f, -0.0004), rim(0.089, 0.169, 0xffffff, -0.0002)];
-  S.phoneProp = { outer, g, screen, spark, glow, t: 0, hover: false, hv: 0, lift: -1, done: null };
+  // an unseen block round it, well bigger than the phone and up to the sparkle, so it's easy to hover and click
+  // (drawn with no colour or depth rather than hidden, so the pointer's ray still hits it)
+  const hit = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.3, 0.32), new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: false }));
+  hit.position.y = 0.15; g.add(hit);
+  S.phoneProp = { outer, g, screen, spark, glow, hit, t: 0, hover: false, hv: 0, lift: -1, done: null };
 }
 // everything clickable on it (hud.js); the glow isn't, or the rim would widen what counts as the phone
 export function phoneTargets() {
   const p = S.phoneProp, out = [];
   p?.g.traverse(o => { if ((o.isMesh || o.isSprite) && !p.glow.includes(o)) out.push(o); });
   return out;
+}
+// whether the pointer is near enough to it on screen to count (hud.js): within NEAR_PX of the phone or of its sparkle,
+// so it's easy to get even with the camera far off (where it's only a few pixels) or someone standing in front of it
+const NEAR_PX = 18, _v = new THREE.Vector3();
+export function phoneNear(x, y, rect) {
+  const p = S.phoneProp, cam = ctx.camera; if (!p || p.lift >= 0 || !cam) return false;
+  return [p.g, p.spark].some(o => {
+    o.getWorldPosition(_v).project(cam);
+    if (_v.z > 1) return false;   // (behind the camera)
+    const sx = rect.left + (_v.x + 1) / 2 * rect.width, sy = rect.top + (1 - _v.y) / 2 * rect.height;
+    return Math.hypot(sx - x, sy - y) < NEAR_PX;
+  });
 }
 // the mouse on it or off it (hud.js): it lifts a little off the wood and its rim lights up
 export function setPhoneHover(on) { if (S.phoneProp) S.phoneProp.hover = on; }
@@ -481,14 +497,16 @@ export function bindPhone(root, on, off) {
     log(`有人用老闆的手機傳了訊息……${r.name} 說要過來`);
     await sleep(5);   // (out the door five seconds after the message, then along the lane from either end)
     for (let tries = 0; tries < 8 && !S.stopped; tries++) {
-      if (inShop(r)) break;
+      // while an event's on they hold off and wait it out, and none of that counts against the eight tries
+      while (shopBusy() && !S.stopped) await sleep(2);
+      if (S.stopped || inShop(r)) break;
       if (trySpawn(true, r)) {
         await sleep(9);
         const line = say('phone.ownerHuh', varsOf(r));
         if (line && S.owner && !S.owner.hunting) S.owner.say(line, 3.2);
         break;
       }
-      await sleep(12);   // full up, or a cockroach about: try again in a bit
+      await sleep(12);   // no room at the bar, or closing: try again in a bit
     }
     coming.delete(r.name);
     refresh();

@@ -268,11 +268,13 @@ function freeTableSeat(preferPorch) {
 
 // the most customers in at once, counting those still walking up the lane or off down it (20 table seats inside and out)
 const MAX_CUSTOMERS = 18;
+// an event on in the shop, so nobody comes in: a drunk being dealt with, a cockroach being chased round, or the ones
+// who ran from it not back yet
+export const shopBusy = () => !!(S.drunk || S.roach?.alarm || S.customers.some(c => c.frozen));
 // who: a given regular (called in from the owner's phone, phone.js); otherwise a regular or a first-timer at random
 export function trySpawn(force, who) {
   if ((!S.open || S.closing) && !force) return false;
-  // nobody comes in while there's a cockroach being chased round the shop, or the ones who ran from it aren't back yet
-  if (S.drunk || S.roach?.alarm || S.customers.some(c => c.frozen)) { if (force) log('店裡正在處理事件，客人不敢進來。'); return false; }
+  if (shopBusy()) { if (force) log('店裡正在處理事件，客人不敢進來。'); return false; }
   if (S.closing && force) { log('打烊了，明天請早。'); return false; }
   // (a regular called in from the phone comes whatever the head count: they were asked, so the shop makes room)
   if (!who && S.customers.length >= MAX_CUSTOMERS) { if (force) log('店裡坐滿了，晚點再來。'); return false; }
