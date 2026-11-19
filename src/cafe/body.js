@@ -3284,7 +3284,7 @@ function buildBodyAt(look, seed) {
     torso.geometry = tg;   // (its normals kept: near enough, and its seam's normals stay matched)
     torsoSkin.geometry = tg;   // (the same surface's skin, the neck itself, drawn from it)
   }
-  return { g, legs, arms, elbows, head, hand, handL, cupHand, pad, eyes, mouth, skirt, heightK, skinM: skin, strip: { bare, bunch, cover, pants, skin } };
+  return { g, legs, arms, elbows, head, torso, hand, handL, cupHand, pad, eyes, mouth, skirt, heightK, skinM: skin, strip: { bare, bunch, cover, pants, skin } };
 }
 
 // hats, each a shell round its own tipped crown down to a front edge `elev` above the eyes; own is the hat's own thickness

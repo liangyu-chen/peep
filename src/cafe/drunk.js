@@ -8,14 +8,16 @@ import { log, floatText } from './feed.js';
 import { interruptOwner, resumeOwner } from './sim.js';
 import { navPath, nearestNode, spread, nodeAt, nodeCount, wayTo } from './nav.js';
 import { DOOR, HUBX, LANE, KERB, RISE, route } from './layout.js';
-import { riderModel } from './world/surroundings.js';
 import { sfx } from './sfx.js';
+import { dressOfficer, OFFICER_LOOKS } from './police.js';
+import { policeBike } from './policeBike.js';
+import { moverShadows } from './quality.js';
 import { closeGame } from './games.js';
 import { closeCard } from './hud.js';
 
 // the police bikes: one behind the other (front, rear) along the lane's shop-side edge, parked past the shop toward the
 // crossroads, clear of the kerb seats and the scooters parked along the frontage (world x, plan z)
-const BIKE_Z = 10.25, BIKE_W = [6.4, 4.6], BIKE_IN = -15, BIKE_GAP = 1.8, RIDE_W = 34, MOUNT_Z = 10.95;
+const BIKE_Z = 10.25, BIKE_W = [6.9, 4.3], BIKE_IN = -15, BIKE_GAP = 2.6, RIDE_W = 34, MOUNT_Z = 10.95;
 const plan = w => w / K;
 // the way out: through the door, down past the camping chair onto the lane, along it to the crossroads
 const STREET_Z = 11.2, STOP_X = plan(14.4);
@@ -52,9 +54,6 @@ const GAWK = ['他是不是喝很多啊…', '好可怕，離遠一點', '老闆
 const GAWK_POLICE = ['警察來了！', '終於…', '被帶走了', '好險有警察', '老闆好帥'];
 const RELIEF = ['嚇死我了…', '終於走了', '老闆辛苦了！', '好險好險', '可以繼續喝咖啡了'];
 const bottleM = mat(0x6d8f42, { roughness: 0.35 }), capM = mat(0xc8a24a, { roughness: 0.5 });
-const panelM = mat(0xeef2f7, { roughness: 0.35 }), stripeM = mat(0x173b73, { roughness: 0.4 });
-const glassM = mat(0x9dc8e8, { transparent: true, opacity: 0.45 }), lampM = mat(0xfff3d2, { emissive: new THREE.Color(0xfff0c8), emissiveIntensity: 0.6 });
-const redM = new THREE.MeshBasicMaterial({ color: 0xff4f7b }), blueM = new THREE.MeshBasicMaterial({ color: 0x8de2ff });
 
 const posOf = p => [p.g.position.x / K, p.g.position.z];
 const metres = (ax, az, bx, bz) => Math.hypot((ax - bx) * K, az - bz);
@@ -88,11 +87,6 @@ function safePathPrefer(from, to, preferredBlocked) {
   return safePath(from, to);
 }
 
-function disposeParts(root) {
-  const seen = new Set();
-  root.traverse(o => { if (o.geometry && !seen.has(o.geometry)) { seen.add(o.geometry); o.geometry.dispose(); } });
-}
-
 function makeBottle() {
   const g = new THREE.Group();
   const body = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.05, 0.18, 10), bottleM); body.position.y = 0.09; g.add(body);
@@ -101,26 +95,6 @@ function makeBottle() {
   g.position.set(0, -0.05, 0.02); g.rotation.set(0.45, 0, 0.18);
   g.traverse(o => { if (o.isMesh) o.castShadow = true; });
   return g;
-}
-
-function makeBike() {
-  const v = riderModel({ body: 0x223a63, shirt: 0x244a8a, helmet: 0x101820, face: 0xd9a77e });
-  const box = (w, h, d, m, x, y, z) => { const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); mesh.position.set(x, y, z); v.g.add(mesh); return mesh; };
-  box(0.38, 0.34, 0.12, panelM, 0, 0.74, 0.5);
-  box(0.42, 0.32, 0.02, glassM, 0, 1.04, 0.55).rotation.x = -0.2;
-  const head = new THREE.Mesh(new THREE.SphereGeometry(0.075, 12, 10), lampM); head.position.set(0, 0.79, 0.61); v.g.add(head);
-  [-1, 1].forEach(s => {
-    box(0.05, 0.2, 0.5, panelM, s * 0.19, 0.56, -0.12);
-    box(0.055, 0.055, 0.38, stripeM, s * 0.22, 0.56, -0.12);
-    box(0.08, 0.04, 0.11, stripeM, s * 0.3, 1.02, 0.45);
-  });
-  box(0.42, 0.34, 0.3, panelM, 0, 0.84, -0.62);
-  box(0.44, 0.07, 0.32, stripeM, 0, 0.71, -0.62);
-  box(0.38, 0.06, 0.14, panelM, 0, 1.02, -0.62);
-  const red = box(0.13, 0.08, 0.1, redM, 0.1, 1.07, -0.63);
-  const blue = box(0.13, 0.08, 0.1, blueM, -0.1, 1.07, -0.63);
-  v.g.traverse(o => { if (o.isMesh) o.castShadow = true; });
-  return { g: v.g, rider: v.rider, red, blue, blink: 0 };
 }
 
 // (x in world metres here: the bikes are out on the lane, built in plain world metres like the rest of it)
@@ -134,8 +108,8 @@ function updateDrive(d, dt) {
     const top = q.stop ? Math.min(5.2, Math.sqrt(2 * 3.5 * dist) + 0.3) : 5.2;
     q.speed += (top - q.speed) * Math.min(1, dt * (q.speed > top ? 6 : 1.5));
     const step = q.speed * dt;
-    if (dist <= step || dist < 0.01) { p.x = q.x; p.z = q.z; b.drive = null; q.r(); }
-    else { p.x += dx / dist * step; p.z += dz / dist * step; }
+    if (dist <= step || dist < 0.01) { b.spin(dist); p.x = q.x; p.z = q.z; b.drive = null; q.r(); }
+    else { b.spin(step); p.x += dx / dist * step; p.z += dz / dist * step; }
     p.y = p.z > KERB ? -RISE : 0;
   });
 }
@@ -145,8 +119,11 @@ function makeDrunk() {
   p.tag.className = 'tag drunk'; p.tag.querySelector('i').textContent = '醉漢'; p.speed = 1.05; p.status = '醉醺醺';
   const bottle = makeBottle(); p.hand.add(bottle); p.bottle = bottle; return p;
 }
-function makeOfficer(name) {
-  const p = new Person({ name, regular: false, look: L(0xd9a77e, 0x15120f, 'short', 0x244a8a, 0x202632, { body: 'male', height: 'regular', bottom: 'pants', topStyle: 'jacket', topPattern: 'none' }) }, 'police');
+// an ordinary body in the uniform's shirt and trousers, with the cap, vest and duty belt put on over it (police.js)
+function makeOfficer(name, i) {
+  const p = new Person({ name, regular: false, look: OFFICER_LOOKS[i % OFFICER_LOOKS.length] }, 'police');
+  dressOfficer(p).forEach(o => o.traverse(m => { if (m.isMesh) m.userData.person = p; }));
+  moverShadows(p.g);
   p.tag.className = 'tag police'; p.tag.querySelector('i').textContent = '警察'; p.speed = 1.7; return p;
 }
 
@@ -320,7 +297,7 @@ function updateOwnerTail(d, dt) {
 export function updateDrunk(dt) {
   const d = S.drunk; if (!d) return;
   d.t += dt; updateDrive(d, dt);
-  d.bikes.forEach(b => { b.blink += dt; const on = Math.sin(b.blink * 10) > 0; b.red.visible = on; b.blue.visible = !on; });
+  d.bikes.forEach(b => { b.flash(dt); b.tick(dt); });
   if (!d.drunk) return;
   if (d.convoy) updateConvoy(d.convoy, dt);
   keepClear(d, dt);
@@ -400,13 +377,13 @@ async function police(d) {
   d.phase = 'police';
   log('兩位警察騎車從外面過來，停在店外。'); sfx('siren');
   // in along the lane one behind the other, at its shop-side edge, and parked past the shop the same way
-  d.bikes = [makeBike(), makeBike()];
+  d.bikes = [policeBike(0), policeBike(1)];
   d.bikes.forEach((b, i) => { setBike(b, BIKE_IN - i * BIKE_GAP, BIKE_Z, Math.PI / 2); ctx.scene.add(b.g); });
   await Promise.all(d.bikes.map((b, i) => driveTo(b, BIKE_W[i], BIKE_Z, true)));
   if (S.drunk !== d || !d.drunk) return;
   d.ownerPolicing = true; d.arrest = true;
-  d.bikes.forEach(b => { b.rider.visible = false; });
-  d.police = [makeOfficer('警察A'), makeOfficer('警察B')];
+  d.bikes.forEach(b => { b.rider.visible = false; b.park(true); });
+  d.police = [makeOfficer('警察A', 0), makeOfficer('警察B', 1)];
   d.police.forEach((p, i) => { p.setPos(plan(BIKE_W[i]), MOUNT_Z); p.face(-Math.PI / 2); });
 
   // the arrest, laid out for the narrow front aisle (purple-wall seats on one side, the bar on the other, about 1.3 m
@@ -493,7 +470,7 @@ async function police(d) {
     p.speed = 1.7;
     await walk(p, [posOf(p), [plan(BIKE_W[i]), MOUNT_Z]]);
     if (S.drunk !== d) return;
-    p.remove(); b.rider.visible = true;
+    p.remove(); b.rider.visible = true; b.park(false);
     await driveTo(b, RIDE_W - i * BIKE_GAP, BIKE_Z);
   };
   p2.say('好，收工。', 1.6);
@@ -561,6 +538,6 @@ export function disposeDrunk() {
   S.customers.slice().forEach(c => { if (c.frozen?.by === 'drunk' && !c.frozen.home) goBack(c); });
   if (d.drunk && !d.drunk.gone) { releaseSeat(d.drunk); d.drunk.remove(); }
   d.police.forEach(p => { if (!p.gone) p.remove(); });
-  d.bikes.forEach(b => { ctx.scene.remove(b.g); disposeParts(b.g); });
+  d.bikes.forEach(b => { ctx.scene.remove(b.g); b.dispose(); });
   if (!d.ownerResumed && !S.stopped && S.owner?.hunting) resumeOwner();
 }
