@@ -631,16 +631,16 @@ body:has(.battle-root) {
     gap: 6px;
   }
 
-  /* the customer's card sits over the top of the room, where a lot of the moves play out: kept as short as it can
-     be — the type tag goes up beside the name, and the padding and gaps are tightened */
+  /* the customer's card sits over the top of the room, where a lot of the moves play out: the type tag goes up beside
+     the name to save its row; the rest keeps the usual spacing */
   .battleEnemy {
     width: min(210px, 52vw);
-    padding: 5px 9px 7px;
+    padding: 8px 10px 10px;
   }
 
   .battleEnemy .battleCardHead {
     align-items: center;
-    margin-bottom: 4px;
+    margin-bottom: 7px;
   }
 
   .battleEnemy .battleNameRow {
@@ -649,19 +649,8 @@ body:has(.battle-root) {
     gap: 6px;
   }
 
-  .battleEnemy .battleName {
-    font-size: 14px;
-    letter-spacing: 0.08em;
-  }
-
   .battleEnemy .battleNameRow .battleType {
     margin: 0;
-    padding: 0 4px;
-    font-size: 9px;
-  }
-
-  .battleEnemy .hpTrack {
-    height: 8px;
   }
 
   .battlePlayer {
