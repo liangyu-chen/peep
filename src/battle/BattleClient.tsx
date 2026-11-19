@@ -94,8 +94,35 @@ function listCursor(current: number, key: string, length: number) {
 function HpBar({ hp, max, showNum }: { hp: number; max: number; showNum?: boolean }) {
   const pct = Math.max(0, Math.min(100, (hp / max) * 100));
   const tone = pct > 50 ? 'ok' : pct > 25 ? 'warn' : 'low';
+  // a jolt when it goes down, a glow when it goes up, played straight on the elements so it restarts on every change
+  // without remounting the bar (which would lose the red trail's slide)
+  const prev = useRef(hp);
+  const wrapRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (hp === prev.current) return;
+    const hurt = hp < prev.current;
+    prev.current = hp;
+    const wrap = wrapRef.current;
+    if (!wrap || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const track = wrap.querySelector('.hpTrack');
+    const num = wrap.querySelector('.hpNum');
+    const steps = { easing: 'steps(1, end)' };
+    if (hurt) {
+      track?.animate(
+        [-4, 4, -3, 3, -2, 0].map((x, i) => ({ transform: `translateX(${x}px)`, borderColor: i % 2 || i === 5 ? '#0b0910' : '#ff4f7b' })),
+        { duration: 480, ...steps }
+      );
+      num?.animate([{ color: '#ff4f7b' }, { color: '#fff7e0' }, { color: '#ff4f7b' }, { color: '#fff7e0' }], { duration: 600, ...steps });
+    } else {
+      track?.animate(
+        [0, 1, 0, 1, 2].map((k) => ({ boxShadow: k === 2 ? 'none' : `0 0 0 2px ${k ? '#3f9a52' : '#7ce38b'}`, borderColor: k ? '#0b0910' : '#7ce38b' })),
+        { duration: 700, ...steps }
+      );
+      num?.animate([{ color: '#7ce38b' }, { color: '#d8ffe0' }, { color: '#7ce38b' }, { color: '#d8ffe0' }], { duration: 700, ...steps });
+    }
+  }, [hp]);
   return (
-    <div className={`hpWrap ${tone}`}>
+    <div ref={wrapRef} className={`hpWrap ${tone}`}>
       <div className="hpTrack">
         <i className="hpGhost" style={{ width: `${pct}%` }} />
         <i className="hpFill" style={{ width: `${pct}%` }} />

@@ -18,6 +18,7 @@ const FX_TIMING = {
   slam: [820, 480],
   shout: [1150, 715],
   boss: [1400, 900],
+  bossReflect: [2100, 1640],   // the words bounce back into the customer at art.js's BOSS_BOUNCE_LAND
   review: [1250, 830],
   sigh: [1300, 840],
   grumble: [1400, 920],
@@ -127,7 +128,8 @@ export function createBattle(canvas, { onState, onExit, onResult, owner, custome
   };
 
   const push = (kind, extra = {}) => {
-    st.fx.push({ kind, t0: performance.now(), dur: 600, ...extra });
+    // a hit's number stays up longer than its burst and shake, so it can be read (art.js drawHitFx)
+    st.fx.push({ kind, t0: performance.now(), dur: 600, ...(kind === 'hit' ? { life: 1400 } : {}), ...extra });
   };
 
   const say = async (text, hold = 650) => {
@@ -241,12 +243,15 @@ export function createBattle(canvas, { onState, onExit, onResult, owner, custome
     if (st.dead) return;
 
     // a multi-hit move (the calculator) lands one hit per line it rings up, all inside one longer animation
+    // a comeback is decided before the move plays, so its animation can show the words being knocked back
+    const reflected = move.effect === 'reflect' && Math.random() < 0.5;
     const hits = move.hits ? move.hits[0] + Math.floor(Math.random() * (move.hits[1] - move.hits[0] + 1)) : 1;
     const multi = move.hits ? MULTI_TIMING : null;
     const [fxDur, fxHit] = multi
       ? [multi.intro + (hits - 1) * multi.gap + multi.fly + multi.outro, multi.intro + multi.fly]
-      : FX_TIMING[move.fx] || DEFAULT_TIMING;
+      : FX_TIMING[reflected ? `${move.fx}Reflect` : move.fx] || FX_TIMING[move.fx] || DEFAULT_TIMING;
     push('move', {
+      reflected,
       fx: move.fx,
       from: isPlayer ? 'player' : 'enemy',
       target: isPlayer ? 'enemy' : 'player',
@@ -262,7 +267,6 @@ export function createBattle(canvas, { onState, onExit, onResult, owner, custome
     const crit = st.mode === 'spider' && Math.random() < 1 / 16;
     const eff = typeEffect(move.type, defender.types);
     const healing = st.mode === 'kind' && isPlayer && !!move.heal;
-    const reflected = move.effect === 'reflect' && Math.random() < 0.3;
     const victim = reflected ? attacker : defender;
     const victimEff = typeEffect(move.type, victim.types);
     // the spider fight's moves carry a power for the stat formula; the customer fights' carry a min..max range
@@ -313,7 +317,7 @@ export function createBattle(canvas, { onState, onExit, onResult, owner, custome
         push('hit', {
           target: victim === player ? 'player' : 'enemy',
           amount: dealt,
-          crit,
+          crit: crit || reflected,   // a knocked-back blow gets the big red number, so it isn't missed
           eff: victimEff,
           dur: 700,
         });
@@ -335,8 +339,8 @@ export function createBattle(canvas, { onState, onExit, onResult, owner, custome
       if (guarded) await say('防禦姿勢擋下了一半的傷害！', 240);
       if (crit) await say('擊中了要害！', 220);
       if (reflected) {
-        push('reflect', { target: victim === player ? 'player' : 'enemy', quote: '我就是老闆！', dur: 1400 });
-        await say('「我就是老闆！」——攻擊被反彈回去！', 320);
+        push('reflect', { target: victim === player ? 'player' : 'enemy', dur: 900 });
+        await say(`「我就是老闆！」——攻擊被反彈回去，${victim.name}受到 ${amount} 點傷害！`, 320);
       }
       if (!isPlayer && victimEff > 1) await say('效果拔群！', 260);
       else if (!isPlayer && victimEff < 1) await say('效果不太好……', 260);
@@ -499,7 +503,7 @@ export function createBattle(canvas, { onState, onExit, onResult, owner, custome
     st.reveal.enemy = Math.min(1, st.reveal.enemy + dt * 2.4);
     st.reveal.player = Math.min(1, st.reveal.player + dt * 2.4);
     const now = performance.now();
-    st.fx = st.fx.filter((fx) => now - fx.t0 < fx.dur);
+    st.fx = st.fx.filter((fx) => now - fx.t0 < (fx.life || fx.dur));
     ctx.clearRect(0, 0, w, h);
     scene.draw(ctx, w, h, st, dockPx);
     raf = requestAnimationFrame(frame);

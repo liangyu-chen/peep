@@ -2623,9 +2623,17 @@ function fxShout(ctx, from, to, p, s, px) {
 }
 
 // 「叫你們老闆出來！」: anger marks throb on them while a speech bubble types out the demand, then the words come
-// loose and pelt the owner one by one. (The 30% comeback, 「我就是老闆！」, is drawn by the reflect fx.)
+// loose and pelt the owner one by one. On the 50% comeback (fx.reflected) the words pile up against an invisible wall
+// in front of the owner, who answers 「我就是老闆！」 with a gold flash, and they are sent flying back into the customer.
+// The timings are in ms of the plain move (1400) so both versions play the same up to the wall; engine.js's
+// bossReflect timing lands the bounce at BOSS_BOUNCE_LAND.
 const BOSS_TEXT = '叫你們老闆出來！';
-function fxBoss(ctx, from, to, p, s, px) {
+const BOSS_BOUNCE_AT = 1150;
+const BOSS_BOUNCE_LAND = 1640;
+function fxBoss(ctx, fx, from, to, p, s, px) {
+  const reflected = !!fx.reflected;
+  const ms = p * fx.dur;
+  if (reflected) p = Math.min(1, ms / 1400);
   const chars = [...BOSS_TEXT];
   const bub = { x: from.x - 100 * s, y: from.y - 112 * s };
   const size = 22 * s;
@@ -2652,20 +2660,63 @@ function fxBoss(ctx, from, to, p, s, px) {
   ctx.font = `bold ${Math.max(11, Math.round(size))}px "DotGothic16", monospace`;
   const w = ctx.measureText(BOSS_TEXT).width;
   ctx.restore();
+  const flyChar = (ch, x, y, rot, cs, color) => {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(rot);
+    pix(ctx, -cs, -cs, cs * 2, cs * 2, (ctx) => fxLabel(ctx, ch, 0, 0, cs, color), 2);
+    ctx.restore();
+  };
+  const STOP = 0.45;   // how far toward the owner the words get before the wall, on a comeback
+  const wall = { x: bub.x + (to.x - bub.x) * STOP, y: bub.y + (to.y - bub.y) * STOP };
   for (let i = 0; i < chars.length; i++) {
-    const q = (p - loose(i)) / 0.22;
-    if (q <= 0 || q >= 1) continue;
+    let q = (p - loose(i)) / 0.22;
+    if (q <= 0) continue;
+    if (!reflected && q >= 1) continue;
+    if (reflected) {
+      if (ms >= BOSS_BOUNCE_AT) continue;
+      q = Math.min(q, STOP);
+    }
     const sx = bub.x - w / 2 + (w * (i + 0.5)) / chars.length;
     const x = sx + (to.x - sx) * q;
     const y = bub.y + (to.y - bub.y) * q - Math.sin(q * Math.PI) * 40 * s;
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.rotate(q * Math.PI * (i % 2 ? 1 : -1));
-    const cs = size * (1 + q * 0.5);
-    pix(ctx, -cs, -cs, cs * 2, cs * 2, (ctx) => fxLabel(ctx, chars[i], 0, 0, cs, '#ff4f7b'), 2);
-    ctx.restore();
+    // on a comeback, the ones stopped at the wall jitter in place
+    const jit = reflected && q >= STOP ? Math.sin(ms * 0.08 + i) * 3 * s : 0;
+    flyChar(chars[i], x + jit, y, reflected && q >= STOP ? 0 : q * Math.PI * (i % 2 ? 1 : -1), size * (1 + q * 0.5), '#ff4f7b');
   }
-  if (p > 0.66) popText(ctx, '囉嗦！', to.x + 48 * s, to.y - 76 * s, (p - 0.66) / 0.34, s, '#ffd23f');
+  if (!reflected) {
+    if (p > 0.66) popText(ctx, '囉嗦！', to.x + 48 * s, to.y - 76 * s, (p - 0.66) / 0.34, s, '#ffd23f');
+    return;
+  }
+  // the owner's comeback: a bubble over them and a gold wall of light flaring where the words stopped
+  const me = to;
+  const said = (ms - 760) / 900;
+  if (said > 0 && said < 1.3) {
+    const pop = said < 0.12 ? 0.5 + (said / 0.12) * 0.7 : said < 0.2 ? 1.2 - ((said - 0.12) / 0.08) * 0.2 : 1;
+    // over their head, clear of the HP card and the dialogue box below them on a phone
+    speechBubble(ctx, '我就是老闆！', me.x + 34 * s, me.y - 96 * s, { x: me.x + 4 * s, y: me.y - 40 * s }, 24 * s, '#d0503e', said > 1.1 ? Math.max(0, (1.3 - said) / 0.2) : 1, pop);
+  }
+  const flare = (ms - 1050) / 450;
+  if (flare > 0 && flare < 1) {
+    ctx.save();
+    ctx.globalAlpha = 1 - flare;
+    for (let k = -4; k <= 4; k++) {
+      block(ctx, wall.x + k * 12 * s, wall.y + Math.abs(k) * 3 * s, px * (k % 2 ? 2 : 3), px, k % 2 ? '#fff7d6' : '#ffd23f');
+    }
+    ctx.restore();
+    burst(ctx, wall.x, wall.y, flare, px, { rays: 10, len: 70 * s, colors: ['#fff7d6', '#ffd23f'], size: 2 });
+  }
+  // the words knocked back, gold now, into the customer
+  for (let i = 0; i < chars.length; i++) {
+    const q = (ms - BOSS_BOUNCE_AT - i * 20) / (BOSS_BOUNCE_LAND - BOSS_BOUNCE_AT - 140);
+    if (q <= 0 || q >= 1) continue;
+    const sx = wall.x + (i - (chars.length - 1) / 2) * 10 * s;
+    const x = sx + (from.x - sx) * q;
+    const y = wall.y + (from.y - 30 * s - wall.y) * q - Math.sin(q * Math.PI) * 50 * s;
+    flyChar(chars[i], x, y, q * Math.PI * 2 * (i % 2 ? 1 : -1), size * (1.3 - q * 0.3), '#ffd23f');
+  }
+  const back = (ms - BOSS_BOUNCE_LAND) / (fx.dur - BOSS_BOUNCE_LAND);
+  if (back > 0) popText(ctx, '反彈！', from.x + 50 * s, from.y - 90 * s, Math.min(1, back), s, '#ffd23f');
 }
 
 // 威脅給一星負評: they hold up a phone, and on its screen a review gets one star out of five. That one star swells,
@@ -3912,7 +3963,7 @@ function drawMoveFx(ctx, fx, p, L) {
       fxShout(ctx, from, to, p, s, fxPixel(L));
       break;
     case 'boss':
-      fxBoss(ctx, from, to, p, s, fxPixel(L));
+      fxBoss(ctx, fx, from, to, p, s, fxPixel(L));
       break;
     case 'review':
       fxReview(ctx, from, to, p, s, fxPixel(L));
@@ -3939,7 +3990,44 @@ function drawMoveFx(ctx, fx, p, L) {
   }
 }
 
-function drawHitFx(ctx, fx, p, L) {
+// ---- damage and healing numbers: a bitmap 3x5 digit font, drawn in blocks -------------------------------------
+const DIGIT_GRID = {
+  0: ['111', '101', '101', '101', '111'],
+  1: ['010', '110', '010', '010', '111'],
+  2: ['111', '001', '111', '100', '111'],
+  3: ['111', '001', '111', '001', '111'],
+  4: ['101', '101', '111', '001', '001'],
+  5: ['111', '100', '111', '001', '111'],
+  6: ['111', '100', '111', '101', '111'],
+  7: ['111', '001', '010', '010', '010'],
+  8: ['111', '101', '111', '101', '111'],
+  9: ['111', '101', '111', '001', '111'],
+  '-': ['000', '000', '111', '000', '000'],
+  '+': ['000', '010', '111', '010', '000'],
+};
+// text centred on (cx, cy), each font pixel `cell` screen pixels (a whole number of fx pixels, so it stays on the
+// grid), with a one-cell dark outline, a lighter top row and a darker bottom row on every glyph
+function pixelNumber(ctx, text, cx, cy, cell, color, light, dark, px) {
+  const chars = [...text].filter((c) => DIGIT_GRID[c]);
+  const cols = chars.length * 4 - 1;
+  const x0 = Math.round((cx - (cols * cell) / 2) / px) * px;
+  const y0 = Math.round((cy - (5 * cell) / 2) / px) * px;
+  const on = [];
+  chars.forEach((ch, i) => {
+    DIGIT_GRID[ch].forEach((row, r) => {
+      for (let c = 0; c < 3; c++) if (row[c] === '1') on.push([i * 4 + c, r]);
+    });
+  });
+  ctx.fillStyle = '#0b0910';
+  for (const [c, r] of on) ctx.fillRect(x0 + (c - 1) * cell, y0 + (r - 1) * cell, cell * 3, cell * 3);
+  for (const [c, r] of on) {
+    ctx.fillStyle = r === 0 ? light : r === 4 ? dark : color;
+    ctx.fillRect(x0 + c * cell, y0 + r * cell, cell, cell);
+  }
+}
+
+// p runs over the hit's own (short) span, for the burst and sparks; pn over its longer life, for the number
+function drawHitFx(ctx, fx, p, L, pn = p) {
   const at = targetPoint(L, fx.target);
   const s = L.scale;
   if (fx.heal) {
@@ -3968,31 +4056,57 @@ function drawHitFx(ctx, fx, p, L) {
       spin: 0.2,
     });
   }
-  ctx.save();
-  ctx.globalAlpha = 1 - Math.max(0, p - 0.65) / 0.35;
-  ctx.font = `bold ${Math.max(18, Math.round(26 * s))}px "DotGothic16", monospace`;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  const grow = 1 + Math.sin(Math.min(1, p * 2) * Math.PI) * 0.25;
-  ctx.translate(at.x, at.y - 28 * s - p * 26 * s);
-  ctx.scale(grow, grow);
-  ctx.lineWidth = 5;
-  ctx.strokeStyle = '#0b0910';
-  ctx.fillStyle = fx.heal ? '#89ffb9' : fx.crit ? '#ff4f7b' : '#fff7d6';
+  const px = fxPixel(L);
+  // damage: chips of red knocked off them, falling away; healing: a green glow rising off them
+  if (!fx.heal && !fx.dust && p < 1) {
+    for (let i = 0; i < 8; i++) {
+      const a = -Math.PI * 0.9 + (i / 7) * Math.PI * 0.8;
+      const v = (40 + (i % 3) * 16) * s;
+      ctx.save();
+      ctx.globalAlpha = 1 - p;
+      block(ctx, at.x + Math.cos(a) * v * p, at.y + Math.sin(a) * v * p + 90 * s * p * p, px * (i % 2 ? 2 : 3), px, i % 2 ? '#ffffff' : '#ff4f7b');
+      ctx.restore();
+    }
+  } else if (fx.heal && pn < 0.7) {
+    ctx.save();
+    ctx.globalAlpha = (1 - pn / 0.7) * 0.5;
+    ctx.fillStyle = '#7ce38b';
+    const top = at.y + 60 * s - pn * 170 * s;
+    for (let y = at.y + 60 * s; y > top; y -= px * 3) ctx.fillRect(Math.round((at.x - 46 * s) / px) * px, Math.round(y / px) * px, Math.round((92 * s) / px) * px, px);
+    ctx.restore();
+  }
+  // the number: pops in big, bounces up and settles, hangs there a moment, then drifts up and fades
+  const big = fx.crit || fx.eff > 1;
+  const cell = px * (big ? 3 : 2);
+  const popCell = pn < 0.06 ? cell + px * 2 : pn < 0.12 ? cell + px : cell;
+  const bounce = pn < 0.18 ? Math.sin((pn / 0.18) * Math.PI * 0.5) * 34 * s : pn < 0.3 ? 34 * s - Math.sin(((pn - 0.18) / 0.12) * Math.PI) * 10 * s : 34 * s;
+  const drift = pn > 0.7 ? (pn - 0.7) / 0.3 * 20 * s : 0;
   const text = `${fx.heal ? '+' : '-'}${fx.amount}`;
-  ctx.strokeText(text, 0, 0);
-  ctx.fillText(text, 0, 0);
+  const pal = fx.heal
+    ? ['#7ce38b', '#d8ffe0', '#3f9a52']
+    : fx.dust
+      ? ['#cfc3ae', '#f4efe3', '#8f8475']
+      : big
+        ? ['#ff4f7b', '#ffd0dc', '#b02a4f']
+        : ['#ff7a5c', '#ffe1d4', '#c0402a'];
+  ctx.save();
+  ctx.globalAlpha = pn > 0.75 ? Math.max(0, (1 - pn) / 0.25) : 1;
+  pixelNumber(ctx, text, at.x, at.y - 30 * s - bounce - drift, popCell, pal[0], pal[1], pal[2], px);
   ctx.restore();
 }
 
-function drawFx(ctx, st, L, now) {
+// the shield's own effects (raising it, a blow on it) go on an under layer, beneath the moves' effects and damage
+// numbers, so the shield never hides their words
+const UNDER_FX = new Set(['guard', 'guardHit']);
+function drawFx(ctx, st, L, now, layer = 'top') {
   const s = L.scale;
   for (const fx of st.fx) {
+    if (UNDER_FX.has(fx.kind) !== (layer === 'under')) continue;
     const p = Math.max(0, Math.min(1, (now - fx.t0) / fx.dur));
     if (fx.kind === 'move') {
       drawMoveFx(ctx, fx, p, L);
     } else if (fx.kind === 'hit') {
-      drawHitFx(ctx, fx, p, L);
+      drawHitFx(ctx, fx, p, L, Math.max(0, Math.min(1, (now - fx.t0) / (fx.life || fx.dur))));
     } else if (fx.kind === 'reflect') {
       const at = targetPoint(L, fx.target);
       ctx.save();
@@ -4285,16 +4399,18 @@ export function createScene({ owner, customer, mode } = {}) {
         const { x, ground } = signSpot(L);
         drawStandSign(ctx, x, ground, px, L.scale);
       }
-      drawFx(ctx, st, L, now);
       // while guarding, the shield stands in front of the owner, bobbing, inside a slowly turning barrier (the raising and
-      // the blows on it are effects of their own); the tissue's softening shows as a warm barrier with no shield
-      const guardFx = st.fx.some((fx) => (fx.kind === 'guard' || fx.kind === 'guardHit') && now - fx.t0 < fx.dur);
+      // the blows on it are effects of their own); the tissue's softening shows as a warm barrier with no shield. All of
+      // it is drawn before the moves' effects, so their words and numbers go over the shield, not under it.
+      const guardFx = st.fx.some((fx) => UNDER_FX.has(fx.kind) && now - fx.t0 < fx.dur);
       if (st.guard && !guardFx) {
         barrierRing(ctx, L, px, now * 0.0012, 0.75 + Math.sin(now * 0.006) * 0.2);
         drawShield(ctx, L, px, { dy: Math.round(Math.sin(now * 0.004) * 2) * px });
       } else if (st.soften) {
         barrierRing(ctx, L, px, now * 0.0009, 0.7 + Math.sin(now * 0.006) * 0.2, '#fff7d6');
       }
+      drawFx(ctx, st, L, now, 'under');
+      drawFx(ctx, st, L, now);
       ctx.restore();
 
       for (const fx of st.fx) {
