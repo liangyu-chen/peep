@@ -7,6 +7,7 @@
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import { buildBody, poseBody, restPose } from './body.js';
+import { mergeParts, bodyKeep } from './people.js';
 import { dressOfficer, OFFICER_LOOKS } from './police.js';
 
 const M = (color, o = {}) => new THREE.MeshStandardMaterial({ color, roughness: 0.6, ...o });
@@ -163,15 +164,23 @@ export function policeBike(i = 0) {
   [-1, 1].forEach(s => box(0.08, 0.02, 0.03, m.black, s * 0.2, 0.33, -0.08));
   const stand = cyl(0.012, 0.012, 0.36, m.black, 0.16, 0.17, -0.05, 6); stand.rotation.z = 0.5; stand.visible = false;
 
-  const own = new Set(); body.traverse(o => { if (o.geometry) own.add(o.geometry); });   // (its own, freed with it; the rider's body shares the café's)
   body.traverse(o => { if (o.isMesh) { o.castShadow = o.material !== m.glass && o.material !== m.decal; o.receiveShadow = true; } });
+  // fewer draws: the pieces that sit still on it merged into a few meshes (each wheel's still turns as one), leaving out
+  // only what changes on its own (the flashing lights swap materials, the stand shows and hides). Every geometry here is
+  // its own: the pieces merged away are let go now, the rest with it (dispose)
+  const built = new Set(); body.traverse(o => { if (o.isMesh) built.add(o.geometry); });   // (meshes only: every sprite shares three's one geometry)
+  mergeParts(body, new Set([red, blue, fR, fB, stand]));
+  const own = new Set(); body.traverse(o => { if (o.isMesh) own.add(o.geometry); });
+  built.forEach(geo => { if (!own.has(geo)) geo.dispose(); });
 
   // the rider: an officer in the uniform, sat astride
   const rb = buildBody(OFFICER_LOOKS[i % OFFICER_LOOKS.length], `警察騎士${i}`, { detail: 0.55 });
   dressOfficer(rb);
   poseBody(rb, { ...restPose(0), ...RIDE_POSE });
-  rb.g.position.set(0, 0.06, -0.24); body.add(rb.g);
   rb.g.traverse(o => { if (o.isMesh) o.castShadow = true; });
+  mergeParts(rb.g, bodyKeep(rb));   // (merged like the café's people; what's merged, and the uniform, is its own)
+  rb.g.traverse(o => { if (o.isMesh && (o.userData.merged || o.userData.own)) own.add(o.geometry); });
+  rb.g.position.set(0, 0.06, -0.24); body.add(rb.g);
 
   let flashT = 0, parked = false, lean = 0;
   return {

@@ -22,7 +22,7 @@ export function moverShadows(root) {
 
 function movers() {
   return [S.frontDoor, S.slideDoor, S.toiletDoor, S.acFan, S.stadium, ...(S.fans || []), ...(S.ashtrays || []).map(a => a.g),
-    ...(S.traffic || []).map(v => v.g), ...(S.people || []).flatMap(p => [p.g, p.bear?.g, p.cup])];
+    ...(S.traffic || []).map(v => v.g), ...(S.drunk?.bikes || []).map(b => b.g), ...(S.people || []).flatMap(p => [p.g, p.bear?.g, p.cup])];
 }
 
 // the sharpness to draw at: the screen's own (up to 2x), or in 一般 no more than about 2 million pixels a frame

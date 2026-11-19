@@ -254,11 +254,12 @@ export function mergeParts(root, keep = new Set()) {
       const m = new THREE.Mesh(merged, tinted ? tintedFor(list[0].material) : list[0].material);
       m.castShadow = list[0].castShadow; m.receiveShadow = list[0].receiveShadow; m.renderOrder = list[0].renderOrder; m.userData.merged = true;
       Object.assign(m.userData, { castWas: list[0].userData.castWas });
-      par.add(m); list.forEach(o => par.remove(o));
+      // (a piece that was its own geometry, not one shared with others, is done with once it's merged)
+      par.add(m); list.forEach(o => { par.remove(o); if (o.userData.own) o.geometry.dispose(); });
     });
   });
 }
-function bodyKeep(b) {
+export function bodyKeep(b) {
   // (each one itself: what's inside one that's a group still merges, as it moves, scales and hides with the group)
   const keep = new Set(), add = o => o && keep.add(o);
   [b.mouth, b.pad, b.skirt].forEach(add); (b.eyes || []).forEach(add);
@@ -270,13 +271,15 @@ function bodyKeep(b) {
 const CAFE_DETAIL = 0.55;
 
 export class Person {
-  constructor(profile, role) {
+  // dress: put on whatever else they wear (police.js's uniform) before the parts are merged, so it merges with them
+  constructor(profile, role, { dress } = {}) {
     this.p = profile; this.role = role;
     this.moodPlan = role === 'customer' ? createMoodPlan(profile) : null;
     // how they look this time: a regular with a second look (第二套捏臉) comes as either one, at random, each visit;
     // the owner, the same, each time the café opens
     this.look = (role === 'customer' || role === 'owner') && profile.look2 && Math.random() < 0.5 ? profile.look2 : profile.look;
     Object.assign(this, buildBody(this.look, profile.name, { detail: CAFE_DETAIL }));
+    dress?.(this);
     mergeParts(this.g, bodyKeep(this));
     this.faceAnim = { blinkT: Math.random() * 4 };
     this.g.traverse(o => { if (o.isMesh) o.userData.person = this; });
@@ -359,7 +362,7 @@ export class Person {
   }
   remove() {
     this.gone = true; removeMood(this); ctx.scene.remove(this.g);
-    [this.g, this.bear?.g].forEach(r => r?.traverse(o => { if (o.userData.merged) o.geometry.dispose(); })); if (this.bear) { ctx.scene.remove(this.bear.g); this.bear.bubble.remove(); } this.dropCup(); this.putOut(); this.tag.remove(); this.bubble.remove();
+    [this.g, this.bear?.g].forEach(r => r?.traverse(o => { if (o.userData.merged || o.userData.own) o.geometry.dispose(); })); if (this.bear) { ctx.scene.remove(this.bear.g); this.bear.bubble.remove(); } this.dropCup(); this.putOut(); this.tag.remove(); this.bubble.remove();
     S.people.splice(S.people.indexOf(this), 1);
   }
   update(dt) {

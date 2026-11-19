@@ -16,6 +16,23 @@ export const OFFICER_LOOKS = [
 
 const M = (color, o = {}) => new THREE.MeshStandardMaterial({ color, roughness: 0.75, ...o });
 const NAVY = 0x1d2a4a, GOLD = 0xd8a93a;
+// one set of the uniform's materials for every officer (the walking ones and the riders): made once, never let go
+let MATS = null;
+const mats = () => MATS || (MATS = {
+  lime: M(0xc4f01c, { roughness: 0.6, emissive: 0x4a6000, emissiveIntensity: 0.45, side: THREE.DoubleSide }),
+  hem: M(NAVY, { side: THREE.DoubleSide }),
+  silver: M(0xdfe4e6, { roughness: 0.3, metalness: 0.4, emissive: 0x777f84, emissiveIntensity: 0.35 }),
+  inkBack: new THREE.MeshStandardMaterial({ map: backTex(), transparent: true, roughness: 0.6, polygonOffset: true, polygonOffsetFactor: -1 }),
+  inkChest: new THREE.MeshStandardMaterial({ map: chestTex(), transparent: true, roughness: 0.6, polygonOffset: true, polygonOffsetFactor: -1 }),
+  gold: M(GOLD, { metalness: 0.8, roughness: 0.3 }),
+  mic: M(0x161616, { roughness: 0.5 }),
+  black: M(0x141414, { roughness: 0.45 }),
+  belt: M(0x111111, { roughness: 0.5, side: THREE.DoubleSide }),
+  buckle: M(0xbfc4c8, { metalness: 0.8, roughness: 0.3 }),
+  cap: new THREE.MeshStandardMaterial({ map: capTex(), transparent: true, roughness: 0.55, metalness: 0.2, polygonOffset: true, polygonOffsetFactor: -2 }),
+});
+// (every piece of the uniform is the officer's own geometry, let go with them: Person.remove, policeBike's dispose)
+const own = me => { me.userData.own = true; return me; };
 
 // a canvas of text, for printing on the vest
 function printed(w, h, draw) {
@@ -91,33 +108,31 @@ const vestSkip = (y, a) => {
 
 function vest(torso) {
   const surf = torsoSurface(torso.geometry), parts = [];
-  const add = (geom, m, shadow = true) => { const me = new THREE.Mesh(geom, m); me.castShadow = shadow; me.receiveShadow = true; torso.add(me); parts.push(me); return me; };
-  const lime = M(0xc4f01c, { roughness: 0.6, emissive: 0x4a6000, emissiveIntensity: 0.45, side: THREE.DoubleSide });
-  add(patch(surf, { y0: VEST.bot, y1: VEST.top, a0: -Math.PI, a1: Math.PI, ny: 36, na: 96, off: 0.009, skip: vestSkip }), lime);
+  const mt = mats();
+  const add = (geom, m, shadow = true) => { const me = own(new THREE.Mesh(geom, m)); me.castShadow = shadow; me.receiveShadow = true; torso.add(me); parts.push(me); return me; };
+  add(patch(surf, { y0: VEST.bot, y1: VEST.top, a0: -Math.PI, a1: Math.PI, ny: 36, na: 96, off: 0.009, skip: vestSkip }), mt.lime);
   // its edge: a navy binding round the hem
-  add(patch(surf, { y0: VEST.bot - 0.004, y1: VEST.bot + 0.014, a0: -Math.PI, a1: Math.PI, ny: 1, na: 96, off: 0.0105 }), M(NAVY, { side: THREE.DoubleSide }), false);
+  add(patch(surf, { y0: VEST.bot - 0.004, y1: VEST.bot + 0.014, a0: -Math.PI, a1: Math.PI, ny: 1, na: 96, off: 0.0105 }), mt.hem, false);
   // two reflective silver bands all the way round
-  const silver = M(0xdfe4e6, { roughness: 0.3, metalness: 0.4, emissive: 0x777f84, emissiveIntensity: 0.35 });
-  [[0.855, 0.885], [0.95, 0.98]].forEach(([y0, y1]) => add(patch(surf, { y0, y1, a0: -Math.PI, a1: Math.PI, ny: 1, na: 96, off: 0.0105 }), silver, false));
+  [[0.855, 0.885], [0.95, 0.98]].forEach(([y0, y1]) => add(patch(surf, { y0, y1, a0: -Math.PI, a1: Math.PI, ny: 1, na: 96, off: 0.0105 }), mt.silver, false));
   // 警察 / POLICE across the back, and 警察 on the right chest
-  const ink = map => new THREE.MeshStandardMaterial({ map, transparent: true, roughness: 0.6, polygonOffset: true, polygonOffsetFactor: -1 });
-  add(patch(surf, { y0: 1.025, y1: 1.165, a0: Math.PI - 0.7, a1: Math.PI + 0.7, ny: 6, na: 28, off: 0.0115 }), ink(backTex()), false);
-  add(patch(surf, { y0: 1.04, y1: 1.085, a0: -0.68, a1: -0.24, ny: 3, na: 12, off: 0.0115 }), ink(chestTex()), false);
+  add(patch(surf, { y0: 1.025, y1: 1.165, a0: Math.PI - 0.7, a1: Math.PI + 0.7, ny: 6, na: 28, off: 0.0115 }), mt.inkBack, false);
+  add(patch(surf, { y0: 1.04, y1: 1.085, a0: -0.68, a1: -0.24, ny: 3, na: 12, off: 0.0115 }), mt.inkChest, false);
   // a badge on the left chest, and the radio on the left shoulder strap
   const at = (y, a, out) => { const r = surf(y, a) + out; return new THREE.Vector3(Math.sin(a) * r, y, Math.cos(a) * r); };
-  const badge = add(new THREE.CylinderGeometry(0.019, 0.019, 0.006, 6).rotateX(Math.PI / 2), M(GOLD, { metalness: 0.8, roughness: 0.3 }), false);
+  const badge = add(new THREE.CylinderGeometry(0.019, 0.019, 0.006, 6).rotateX(Math.PI / 2), mt.gold, false);
   badge.position.copy(at(1.07, 0.45, 0.013)); badge.rotation.y = 0.45;
-  const mic = add(new THREE.BoxGeometry(0.034, 0.05, 0.02), M(0x161616, { roughness: 0.5 }));
+  const mic = add(new THREE.BoxGeometry(0.034, 0.05, 0.02), mt.mic);
   mic.position.copy(at(1.17, 0.78, 0.02)); mic.rotation.y = 0.78;
   return { parts, surf };
 }
 
 function dutyBelt(torso, surf) {
-  const parts = [], add = (geom, m) => { const me = new THREE.Mesh(geom, m); me.castShadow = true; me.receiveShadow = true; torso.add(me); parts.push(me); return me; };
-  const black = M(0x141414, { roughness: 0.45 }), y = 0.745;
-  add(patch(surf, { y0: y - 0.022, y1: y + 0.022, a0: -Math.PI, a1: Math.PI, ny: 1, na: 72, off: 0.014 }), M(0x111111, { roughness: 0.5, side: THREE.DoubleSide }));
+  const mt = mats(), parts = [], add = (geom, m) => { const me = own(new THREE.Mesh(geom, m)); me.castShadow = true; me.receiveShadow = true; torso.add(me); parts.push(me); return me; };
+  const black = mt.black, y = 0.745;
+  add(patch(surf, { y0: y - 0.022, y1: y + 0.022, a0: -Math.PI, a1: Math.PI, ny: 1, na: 72, off: 0.014 }), mt.belt);
   const at = (a, out) => { const r = surf(y, a) + out; return new THREE.Vector3(Math.sin(a) * r, y, Math.cos(a) * r); };
-  const buckle = add(new THREE.BoxGeometry(0.05, 0.036, 0.008), M(0xbfc4c8, { metalness: 0.8, roughness: 0.3 }));
+  const buckle = add(new THREE.BoxGeometry(0.05, 0.036, 0.008), mt.buckle);
   buckle.position.copy(at(0, 0.018));
   // the radio on the left hip (+x), a stubby aerial up out of it
   const radio = add(new THREE.BoxGeometry(0.04, 0.075, 0.028), black);
@@ -169,7 +184,7 @@ function capPrint(head) {
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
   g.setIndex(ix); g.computeVertexNormals();
-  const m = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ map: capTex(), transparent: true, roughness: 0.55, metalness: 0.2, polygonOffset: true, polygonOffsetFactor: -2 }));
+  const m = own(new THREE.Mesh(g, mats().cap));
   head.add(m); return m;
 }
 

@@ -22,7 +22,7 @@ const plan = w => w / K;
 // the way out: through the door, down past the camping chair onto the lane, along it to the crossroads
 const STREET_Z = 11.2, STOP_X = plan(14.4);
 const OWNER_ON = 8.05, OWNER_SPOT = [-1.05, 8.2];   // where the owner steps off the line: beside the kerb camping chair
-const GAP = 0.8, CONVOY_V = 1.1;                    // the walk out: this far apart, this fast
+const GAP = 0.8, CONVOY_V = 1.5;                   // the walk out: this far apart, this fast
 const SHOP_X0 = -3.1, SHOP_X1 = 3.1, SHOP_Z0 = -4.4, SHOP_Z1 = 9.2;
 // while he's about, the customers all keep to the back of the shop round the TV and watch from there, and he (with the
 // owner after him) keeps to the front part of the room, from the purple wall's back seat out to the door
@@ -121,9 +121,7 @@ function makeDrunk() {
 }
 // an ordinary body in the uniform's shirt and trousers, with the cap, vest and duty belt put on over it (police.js)
 function makeOfficer(name, i) {
-  const p = new Person({ name, regular: false, look: OFFICER_LOOKS[i % OFFICER_LOOKS.length] }, 'police');
-  dressOfficer(p).forEach(o => o.traverse(m => { if (m.isMesh) m.userData.person = p; }));
-  moverShadows(p.g);
+  const p = new Person({ name, regular: false, look: OFFICER_LOOKS[i % OFFICER_LOOKS.length] }, 'police', { dress: dressOfficer });
   p.tag.className = 'tag police'; p.tag.querySelector('i').textContent = '警察'; p.speed = 1.7; return p;
 }
 
@@ -245,7 +243,10 @@ function talk(d, [line, reply], delay = 1.4) {
 // the next of his lines, each once before any comes round again
 function nextLine(d, list = BANTER) {
   const key = list === BANTER ? 'lines' : 'sitLines';
-  if (!d[key]?.length) d[key] = list.slice().sort(() => Math.random() - 0.5);
+  if (!d[key]?.length) {
+    const a = d[key] = list.slice();
+    for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  }
   return d[key].pop();
 }
 // everyone who stood back goes back to what they were doing, a few at a time, some glad it's over
@@ -287,9 +288,12 @@ function updateOwnerTail(d, dt) {
   if (o.path.length && goal && metres(dx, dz, goal.x, goal.z) < 2.4) return;
   const needMove = m < 1.15 || m > 2.1 || (drunk.path.length && m > 1.65);
   if (!needMove) { if (!o.path.length || (goal && metres(ox, oz, goal.x, goal.z) < 0.3)) { o.path = []; d._ownerGoal = null; } return; }
+  // (the search for a spot goes over the whole walking graph: when it last found nowhere better to be, it waits a
+  // moment before looking again rather than every frame)
+  if ((d._ownerWait = (d._ownerWait ?? 0) - dt) > 0) return;
   const spot = ownerStandSpot(d);
   const tx = spot ? spot.x : dx + (ox < dx ? -1.4 : 1.4), tz = spot ? spot.z : dz;
-  if (metres(ox, oz, tx, tz) < 0.2) return;
+  if (metres(ox, oz, tx, tz) < 0.2) { d._ownerWait = 0.35; return; }
   d._ownerGoal = { x: tx, z: tz };
   walk(o, safePath([ox, oz], [tx, tz]));
 }
@@ -376,9 +380,9 @@ async function police(d) {
   if (S.drunk !== d || !d.drunk) return;
   d.phase = 'police';
   log('兩位警察騎車從外面過來，停在店外。'); sfx('siren');
-  // in along the lane one behind the other, at its shop-side edge, and parked past the shop the same way
-  d.bikes = [policeBike(0), policeBike(1)];
-  d.bikes.forEach((b, i) => { setBike(b, BIKE_IN - i * BIKE_GAP, BIKE_Z, Math.PI / 2); ctx.scene.add(b.g); });
+  // in along the lane one behind the other, at its shop-side edge, and parked past the shop the same way (built back
+  // when he turned up: prepBikes)
+  d.bikes.forEach((b, i) => { setBike(b, BIKE_IN - i * BIKE_GAP, BIKE_Z, Math.PI / 2); b.g.visible = true; });
   await Promise.all(d.bikes.map((b, i) => driveTo(b, BIKE_W[i], BIKE_Z, true)));
   if (S.drunk !== d || !d.drunk) return;
   d.ownerPolicing = true; d.arrest = true;
@@ -394,23 +398,29 @@ async function police(d) {
   d.drunk.path = []; d.drunk.onArrive = null;
   const drunk = d.drunk;
   const [dx0, dz0] = posOf(drunk), DZ = Math.min(2.2, Math.max(-0.1, dz0)), D = [HUBX, DZ];
-  // (the owner over to the bar's front first, out of the way he'll take: across to it, then along it)
+  // (the owner over to the bar's front first, out of the way he'll take: across to it, then along it; and him out into
+  // the aisle. All while the officers are already on their way in from the bikes)
   const o = S.owner, OWN = [-0.55, DZ - 1.45];
-  { const [ox, oz] = posOf(o); o.speed = 1.5; await walk(o, [[ox, oz], [-0.6, Math.min(3.3, Math.max(-1.5, oz))], OWN]); }
-  if (S.drunk !== d || !drunk) return;
-  if (metres(dx0, dz0, D[0], D[1]) > 0.05) { drunk.speed = 1.2; await walk(drunk, safePath([dx0, dz0], D)); }
-  drunk.speed = 0; drunk.path = []; drunk.onArrive = null;
-  if (S.drunk !== d || !drunk) return;
-  o.face(Math.atan2((D[0] - OWN[0]) * K, D[1] - OWN[1])); o.say('警察來了，就是他。', 3);
+  const ready = (async () => {
+    { const [ox, oz] = posOf(o); o.speed = 1.5; await walk(o, [[ox, oz], [-0.6, Math.min(3.3, Math.max(-1.5, oz))], OWN]); }
+    if (S.drunk !== d || !drunk) return;
+    if (metres(dx0, dz0, D[0], D[1]) > 0.05) { drunk.speed = 1.2; await walk(drunk, safePath([dx0, dz0], D)); }
+    drunk.speed = 0; drunk.path = []; drunk.onArrive = null;
+    if (S.drunk !== d || !drunk) return;
+    o.face(Math.atan2((D[0] - OWN[0]) * K, D[1] - OWN[1])); o.say('警察來了，就是他。', 3);
+  })();
 
   const [p1, p2] = d.police;
   const sayAtDrunk = (p, text) => { p.face(Math.atan2((D[0] - p.g.position.x / K) * K, D[1] - p.g.position.z)); p.say(text, 3); };
-  // (quietly up the lane; each says his piece only once he's through the door, then goes on to his place)
+  // (quietly up the lane; each says his piece only once he's through the door, then, once he's stood out in the aisle,
+  // goes on to his place)
   const enter = async (p, line, rest) => {
     p.speed = 1.6;
     await walk(p, [posOf(p), DOOR[0], DOOR[1], DOOR[2]]);
     if (S.drunk !== d) return;
     sayAtDrunk(p, line);
+    await ready;
+    if (S.drunk !== d) return;
     await walk(p, [DOOR[2], DOOR[3], ...rest]);
   };
   const a1 = enter(p1, '那邊那位先生，別動！', [[HUBX, DZ + 0.95]]);
@@ -432,9 +442,9 @@ async function police(d) {
   // (everyone's already strung out along the aisle in the right order: each just steps on up it to their place in the
   // line, once whoever was there has moved on; the owner comes over from the bar's front to where he stood)
   const goTo = (p, s) => { const [x, z] = posOf(p), from = Math.min(s, Math.max(0, z - DZ)); return walk(p, [[x, z], ...trackSlice(track, from, s)]); };
-  drunk.speed = 1.0; o.speed = 1.5; p1.speed = 1.5; p2.speed = 1.5;
+  drunk.speed = 1.3; o.speed = 1.8; p1.speed = 1.8; p2.speed = 1.8;
   const lineUp = [walk(drunk, trackSlice(track, 0, 2 * GAP)), goTo(p1, 3 * GAP)];
-  await sleep(0.9); if (S.drunk !== d) return;
+  await sleep(0.6); if (S.drunk !== d) return;
   const b2 = goTo(p2, GAP); lineUp.push(b2);
   await b2; if (S.drunk !== d) return;
   lineUp.push(goTo(o, 0));
@@ -516,6 +526,15 @@ async function run(d) {
   await police(d);
 }
 
+// the bikes and their riders, built as soon as he turns up and kept out of sight until they're called, their shaders
+// compiled there and then: none of it all at once in the moment they ride in
+function prepBikes(d) {
+  d.bikes = [policeBike(0), policeBike(1)];
+  d.bikes.forEach((b, i) => { setBike(b, BIKE_IN - i * BIKE_GAP, BIKE_Z, Math.PI / 2); ctx.scene.add(b.g); moverShadows(b.g); });
+  try { ctx.renderer?.compile(ctx.scene, ctx.camera); } catch (err) { console.warn(err); }
+  d.bikes.forEach(b => { b.g.visible = false; });
+}
+
 export function releaseDrunk() {
   if (S.stopped) return '還沒營業。';
   if (S.drunk) return '店裡已經有醉漢了…';
@@ -525,6 +544,7 @@ export function releaseDrunk() {
   drunk.setPos(DOOR[0][0], DOOR[0][1]); drunk.face(Math.PI);
   const d = { drunk, phase: 'wander', t: 0, mumble: 6, seat: null, police: [], bikes: [], convoy: null, escort: false, arrest: false, ownerPolicing: false, ownerResumed: false };
   S.drunk = d;
+  prepBikes(d);
   log('一個醉漢出現在店外…');
   void run(d).catch(err => { console.error(err); if (S.drunk === d) disposeDrunk(); });
   return d;

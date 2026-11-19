@@ -4292,7 +4292,7 @@ function renderRoomPixels(w, h, t, L, P) {
     }
   }
   g.putImageData(img, 0, 0);
-  return { key: `${w}x${h}x${P}`, buf, neon, P };
+  return { key: `${w}x${h}x${P}x${L.bottom}`, buf, neon, P };
 }
 
 function drawRoomPixel(ctx, w, h, t, L) {
