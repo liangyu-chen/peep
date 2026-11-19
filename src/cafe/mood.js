@@ -7,13 +7,34 @@ export const CLOUD_SVG = '<svg viewBox="0 0 10 11" width="10" height="11" aria-h
 const moodText = (mode) => (mode === 'rude' ? '感到不開心' : '有心事');
 const rudePicked = new WeakSet();
 
+// ---- how often a rude customer turns up: by real time, battles and hidden tabs included
+// Right after one, a new customer is rarely rude; the chance climbs with every second since, reaching certain after
+// RUDE_RAMP seconds, and drops back to RUDE_BASE as soon as one is rolled. There's no cap on how many can be in.
+const RUDE_BASE = 0.05;   // the chance just after one
+const RUDE_RAMP = 60;     // seconds from RUDE_BASE to certain
+let lastRudeAt = performance.now();   // opening counts as just having had one, so the first minute is quiet
+
+export function rudeChance() {
+  const sec = (performance.now() - lastRudeAt) / 1000;
+  return Math.min(1, RUDE_BASE + (1 - RUDE_BASE) * (sec / RUDE_RAMP));
+}
+
+// one is due: the next customer through the door is brought in new (sim.js), and so is sure to be rude
+export function rudeDue() {
+  return rudeChance() >= 1;
+}
+
+const rudePlan = () => {
+  lastRudeAt = performance.now();
+  return { mode: 'rude', type: pick(RUDE_TYPES), icon: '❗' };
+};
+
 export function createMoodPlan(profile = {}) {
-  // the dice is rolled once, as the customer comes in: 80% of new customers have a mood, split evenly between the two
+  // the dice is rolled once, as the customer comes in. Regulars are never rude: half of them have something on their
+  // mind. A new customer is rude by the climbing chance above; failing that, 40% of them have something on their mind
   if (profile.regular) return Math.random() < 0.5 ? { mode: 'kind', type: pick(KIND_TYPES), icon: '☁' } : null;
-  if (Math.random() >= 0.8) return null;
-  return Math.random() < 0.5
-    ? { mode: 'rude', type: pick(RUDE_TYPES), icon: '❗' }
-    : { mode: 'kind', type: pick(KIND_TYPES), icon: '☁' };
+  if (Math.random() < rudeChance()) return rudePlan();
+  return Math.random() < 0.4 ? { mode: 'kind', type: pick(KIND_TYPES), icon: '☁' } : null;
 }
 
 function ensureIcon(p) {
@@ -45,7 +66,7 @@ export function makeRude(p) {
   if (!p || p.p?.regular || rudePicked.has(p)) return;
   rudePicked.add(p);
   removeMood(p);
-  p.moodPlan = { mode: 'rude', type: pick(RUDE_TYPES), icon: '❗' };
+  p.moodPlan = rudePlan();
   showMood(p);
 }
 

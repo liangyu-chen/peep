@@ -10,6 +10,7 @@ import { doTops } from './tops.js';
 import { sayLine, priceOf, drinkFor, pickVariant, orderName, menuNames } from './content.js';
 import { log, floatText } from './feed.js';
 import { closeCard } from './hud.js';
+import { rudeDue } from './mood.js';
 import { setStoreLight, setToiletLight } from './world/lights.js';
 export const DAYS = ['週日', '週一', '週二', '週三', '週四', '週五', '週六'];
 // open 15:00; closes 22:00 Fri/Sat, 20:00 other days
@@ -265,18 +266,22 @@ function freeTableSeat(preferPorch) {
   return pick(pref.length ? pref : f);
 }
 
+// the most customers in at once, counting those still walking up the lane or off down it (20 table seats inside and out)
+const MAX_CUSTOMERS = 18;
 // who: a given regular (called in from the owner's phone, phone.js); otherwise a regular or a first-timer at random
 export function trySpawn(force, who) {
   if ((!S.open || S.closing) && !force) return false;
   // nobody comes in while there's a cockroach being chased round the shop, or the ones who ran from it aren't back yet
   if (S.drunk || S.roach?.alarm || S.customers.some(c => c.frozen)) { if (force) log('店裡正在處理事件，客人不敢進來。'); return false; }
   if (S.closing && force) { log('打烊了，明天請早。'); return false; }
-  if (S.customers.length >= 14) { if (force) log('店裡坐滿了，晚點再來。'); return false; }
+  // (a regular called in from the phone comes whatever the head count: they were asked, so the shop makes room)
+  if (!who && S.customers.length >= MAX_CUSTOMERS) { if (force) log('店裡坐滿了，晚點再來。'); return false; }
   const spot = S.seats.counterSpots.find(s => !s.occ);
   if (!spot) { if (force) log('吧台前排滿了，等一下。'); return false; }
   if (who && present(who.name)) return false;
   const pool = S.regulars.filter(r => !present(r.name));
-  const prof = who ?? (pool.length && Math.random() < 0.75 ? pick(pool) : newProfile());
+  // a rude customer due (mood.js) means this one comes in new, as only new customers are ever rude
+  const prof = who ?? (!rudeDue() && pool.length && Math.random() < 0.75 ? pick(pool) : newProfile());
   const c = new Person(prof, 'customer');
   S.customers.push(c);
   spot.occ = c; c.spot = spot;
