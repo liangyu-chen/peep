@@ -107,6 +107,17 @@ body:has(.battle-root) {
   color: #b8aecb;
 }
 
+.battleNameRow {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.battleNameRow .battleType {
+  margin-top: 6px;
+}
+
 .battleType {
   display: inline-block;
   margin: -2px 0 6px;
@@ -620,9 +631,37 @@ body:has(.battle-root) {
     gap: 6px;
   }
 
+  /* the customer's card sits over the top of the room, where a lot of the moves play out: kept as short as it can
+     be — the type tag goes up beside the name, and the padding and gaps are tightened */
   .battleEnemy {
     width: min(210px, 52vw);
-    padding: 8px 10px 10px;
+    padding: 5px 9px 7px;
+  }
+
+  .battleEnemy .battleCardHead {
+    align-items: center;
+    margin-bottom: 4px;
+  }
+
+  .battleEnemy .battleNameRow {
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .battleEnemy .battleName {
+    font-size: 14px;
+    letter-spacing: 0.08em;
+  }
+
+  .battleEnemy .battleNameRow .battleType {
+    margin: 0;
+    padding: 0 4px;
+    font-size: 9px;
+  }
+
+  .battleEnemy .hpTrack {
+    height: 8px;
   }
 
   .battlePlayer {

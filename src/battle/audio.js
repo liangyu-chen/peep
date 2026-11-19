@@ -56,13 +56,21 @@ const bank = {
   select: () => tone([740, 990], 0.08, 'square', 0.024),
   back: () => tone([520, 360], 0.08, 'square', 0.022),
   coffee: () => {
-    noise(0.3, 0.028, 800, 'lowpass');
-    tone([300, 420], 0.24, 'sawtooth', 0.018);
-    window.setTimeout(() => noise(0.4, 0.045, 700, 'lowpass'), 600);
+    // the fling and the slosh of the stream, the splash as it lands, then a hiss of steam
+    window.setTimeout(() => {
+      noise(0.3, 0.03, 800, 'lowpass');
+      tone([300, 420], 0.22, 'sawtooth', 0.016);
+    }, 240);
+    window.setTimeout(() => {
+      noise(0.35, 0.05, 650, 'lowpass');
+      noise(0.7, 0.02, 5200, 'highpass');
+    }, 700);
   },
   latte: () => {
-    tone([523, 659, 784, 1047], 0.5, 'triangle', 0.026);
-    window.setTimeout(() => tone([1319, 1568], 0.25, 'square', 0.014), 620);
+    // the milk pouring in, the cup sliding over, the heart lifting out
+    noise(0.5, 0.012, 2600, 'bandpass');
+    window.setTimeout(() => noise(0.25, 0.02, 900, 'lowpass'), 560);
+    window.setTimeout(() => tone([1047, 1319, 1568], 0.36, 'triangle', 0.024), 900);
   },
   slipper: () => {
     // a whoosh on the wind-up, then the slap when it lands
@@ -91,23 +99,66 @@ const bank = {
     tone([240, 160], 0.18, 'square', 0.03);
   },
   broom: () => {
-    noise(0.28, 0.05, 1000, 'bandpass');
+    // a creak as it's raised, the whoosh of the swing, then the smack and the bristles scattering dust
+    tone([300, 360], 0.12, 'triangle', 0.014);
+    window.setTimeout(() => noise(0.26, 0.055, 900, 'bandpass'), 300);
     window.setTimeout(() => {
-      noise(0.18, 0.07, 1600, 'bandpass');
-      tone([180, 100], 0.2, 'square', 0.04);
-    }, 480);
+      noise(0.16, 0.08, 1700, 'bandpass');
+      tone([190, 110, 70], 0.24, 'square', 0.044);
+      noise(0.45, 0.022, 500, 'lowpass');
+    }, 590);
+  },
+  broomWhiff: () => {
+    tone([300, 360], 0.12, 'triangle', 0.014);
+    window.setTimeout(() => noise(0.34, 0.05, 700, 'bandpass'), 300);
+    window.setTimeout(() => noise(0.55, 0.03, 420, 'lowpass'), 620);
+  },
+  dust: () => {
+    noise(0.3, 0.03, 600, 'lowpass');
+    window.setTimeout(() => tone([330, 260], 0.1, 'square', 0.02), 120);
+    window.setTimeout(() => tone([300, 240], 0.1, 'square', 0.018), 300);
   },
   calc: () => {
-    tone([880, 880], 0.12, 'square', 0.026);
-    window.setTimeout(() => tone([1180, 880], 0.18, 'square', 0.026), 420);
+    // keys tapped in, then the = key
+    [0, 110, 220, 330, 440, 550].forEach((t, i) =>
+      window.setTimeout(() => tone([1046 + (i % 3) * 120], 0.05, 'square', 0.02), t)
+    );
+    window.setTimeout(() => tone([1568, 1318], 0.12, 'square', 0.024), 680);
   },
-  chant: () => tone([523, 659, 784, 659], 0.6, 'square', 0.022),
+  // one line of the bill landing: the till's bell
+  ring: () => {
+    noise(0.08, 0.04, 1300, 'bandpass');
+    tone([1760, 2349], 0.16, 'triangle', 0.03);
+  },
+  chant: () => {
+    // a temple bell, then a slow chanted phrase over a drone
+    tone([392, 392], 0.9, 'triangle', 0.03);
+    tone([98], 1.4, 'sawtooth', 0.01);
+    [523, 523, 587, 523, 440, 523].forEach((f, i) =>
+      window.setTimeout(() => tone([f, f], 0.2, 'square', 0.02), 220 + i * 170)
+    );
+    window.setTimeout(() => tone([784, 1046], 0.4, 'triangle', 0.026), 940);
+  },
   cake: () => {
-    tone([659, 784, 1047], 0.36, 'triangle', 0.026);
-    window.setTimeout(() => tone([1319, 1568], 0.28, 'square', 0.014), 520);
+    // a little chime as it floats over, three bites, then something sweet
+    tone([784, 988], 0.2, 'triangle', 0.02);
+    [770, 910, 1050].forEach((t) => window.setTimeout(() => noise(0.06, 0.03, 1800, 'bandpass'), t));
+    window.setTimeout(() => tone([659, 784, 1047, 1319], 0.5, 'triangle', 0.024), 880);
   },
-  listen: () => tone([440, 523, 659], 0.5, 'triangle', 0.022),
-  rage: () => tone([220, 330, 440, 330], 0.34, 'square', 0.03),
+  listen: () => {
+    // soft blips for each worry drifting over, two nods, then the cloud clearing
+    [100, 300, 500].forEach((t) => window.setTimeout(() => tone([330, 300], 0.1, 'triangle', 0.016), t));
+    [420, 660].forEach((t) => window.setTimeout(() => tone([523, 440], 0.12, 'square', 0.016), t));
+    window.setTimeout(() => tone([440, 554, 659, 880], 0.5, 'triangle', 0.022), 940);
+  },
+  rage: () => {
+    // two voices trading complaints, then the steam going out with a whoosh
+    [0, 300, 570, 750].forEach((t, i) => window.setTimeout(() => tone(i % 2 ? [300, 360] : [420, 520], 0.16, 'square', 0.022), t));
+    window.setTimeout(() => {
+      noise(0.5, 0.025, 3000, 'highpass');
+      tone([523, 659, 784], 0.4, 'triangle', 0.022);
+    }, 960);
+  },
   slam: () => {
     noise(0.12, 0.07, 700, 'lowpass');
     tone([130, 70], 0.2, 'square', 0.045);
@@ -118,10 +169,26 @@ const bank = {
   },
   boss: () => tone([330, 440, 660, 880], 0.42, 'square', 0.03),
   review: () => tone([880, 660, 440, 220], 0.42, 'square', 0.026),
-  sigh: () => tone([440, 330, 220], 0.5, 'triangle', 0.02),
-  grumble: () => tone([260, 240, 280, 220], 0.46, 'sawtooth', 0.02),
-  cry: () => tone([660, 590, 520, 440], 0.56, 'triangle', 0.024),
-  remember: () => tone([330, 280, 220, 165], 0.6, 'sawtooth', 0.022),
+  sigh: () => {
+    // a long breath out, falling
+    noise(0.9, 0.02, 700, 'lowpass');
+    tone([392, 349, 294, 247], 0.9, 'triangle', 0.018);
+  },
+  grumble: () => {
+    // a muttered blip for each complaint popping up, then them landing
+    for (let i = 0; i < 6; i++) window.setTimeout(() => tone([240 + (i % 3) * 30, 210], 0.07, 'sawtooth', 0.016), 60 + i * 98);
+    window.setTimeout(() => tone([300, 260, 220], 0.3, 'square', 0.02), 900);
+  },
+  cry: () => {
+    // a wobbling wail, then the splash of the big tear
+    tone([660, 620, 660, 590, 620, 520], 0.8, 'triangle', 0.022);
+    window.setTimeout(() => noise(0.3, 0.035, 1400, 'bandpass'), 880);
+  },
+  remember: () => {
+    // a hazy, sinking phrase and a little rain
+    tone([440, 415, 370, 330, 277], 0.9, 'sawtooth', 0.016);
+    window.setTimeout(() => noise(0.8, 0.012, 4200, 'highpass'), 520);
+  },
   hit: () => {
     noise(0.1, 0.048, 1100, 'bandpass');
     tone([160, 100], 0.12, 'square', 0.034);
@@ -134,8 +201,33 @@ const bank = {
     noise(0.18, 0.028, 2200, 'highpass');
     tone([420, 300], 0.12, 'triangle', 0.018);
   },
+  // the coffee item: three gulps
+  drink: () => {
+    [180, 420, 640].forEach((t) => window.setTimeout(() => tone([220, 150], 0.12, 'triangle', 0.03), t));
+  },
+  // the tissue item: the toss, the box landing, the sheet flicked out, then soft dabs
+  tissue: () => {
+    noise(0.25, 0.02, 1800, 'bandpass');
+    window.setTimeout(() => noise(0.08, 0.04, 500, 'lowpass'), 620);
+    window.setTimeout(() => noise(0.18, 0.03, 4200, 'highpass'), 760);
+    [1140, 1290, 1440].forEach((t) => window.setTimeout(() => noise(0.06, 0.015, 2600, 'bandpass'), t));
+    window.setTimeout(() => tone([523, 659, 784], 0.4, 'triangle', 0.018), 1200);
+  },
   heal: () => tone([520, 660, 780, 1040], 0.5, 'triangle', 0.028),
-  guard: () => tone([320, 380, 520], 0.22, 'triangle', 0.026),
+  // raising the guard: the whoosh of the shield coming down, its clang as it lands, and the barrier humming up
+  guard: () => {
+    noise(0.2, 0.02, 1400, 'bandpass');
+    window.setTimeout(() => {
+      noise(0.12, 0.05, 3200, 'bandpass');
+      tone([880, 1320], 0.18, 'square', 0.022);
+    }, 300);
+    window.setTimeout(() => tone([392, 523, 659, 784], 0.4, 'triangle', 0.02), 420);
+  },
+  // a blow glancing off the guard: a high clang
+  guardHit: () => {
+    noise(0.1, 0.05, 4000, 'highpass');
+    tone([1568, 1175], 0.22, 'square', 0.024);
+  },
   roach: () => {
     noise(0.06, 0.026, 5000, 'highpass');
     window.setTimeout(() => noise(0.06, 0.026, 4200, 'highpass'), 90);

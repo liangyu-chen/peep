@@ -313,10 +313,12 @@ export default function BattleClient({
         <div className="battleTop">
           <section className="battleCard battleEnemy" aria-label="對手">
             <div className="battleCardHead">
-              <span className="battleName">{enemy?.name || '蜘蛛'}</span>
+              <span className="battleNameRow">
+                <span className="battleName">{enemy?.name || '蜘蛛'}</span>
+                {enemy?.type && <span className="battleType" data-type={enemy.type}>{enemy.type}</span>}
+              </span>
               <span className="battleLv">Lv.{enemy?.level ?? 5}</span>
             </div>
-            {enemy?.type && <span className="battleType" data-type={enemy.type}>{enemy.type}</span>}
             <HpBar hp={enemy?.hp ?? 22} max={enemy?.maxHp ?? 22} />
           </section>
 

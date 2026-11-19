@@ -99,8 +99,8 @@ const BASE_ITEMS = {
 
 const OWNER_MOVES = {
   rude: [
-    { id: 'broom', name: '掃把橫掃', type: '蠻橫', min: 26, max: 34, acc: 75, maxPp: 5, fx: 'broom', desc: '威力很大，偶爾還是會揮空。' },
-    { id: 'calc', name: '亮出計算器', type: '小氣', min: 14, max: 20, acc: 95, maxPp: 12, fx: 'calc', desc: '算清楚他到底欠了多少錢。' },
+    { id: 'broom', name: '掃把橫掃', type: '蠻橫', min: 26, max: 34, acc: 60, maxPp: 5, fx: 'broom', whiff: { min: 3, max: 5 }, desc: '威力很大，偶爾會揮空——但揚起的灰塵還是會嗆到他。' },
+    { id: 'calc', name: '亮出計算器', type: '小氣', min: 5, max: 8, hits: [2, 3], acc: 95, maxPp: 12, fx: 'calc', desc: '一筆一筆算清楚他欠多少，連打 2～3 下。' },
     { id: 'chant', name: '播放大悲咒', type: '吵鬧', min: 14, max: 20, acc: 95, maxPp: 12, fx: 'chant', desc: '店裡的音量突然大了起來。' },
     { id: 'coffee', name: '灑熱咖啡', type: '一般', min: 10, max: 14, acc: 95, maxPp: 15, fx: 'coffee', desc: '把剛煮好的熱咖啡潑過去。' },
   ],

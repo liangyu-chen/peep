@@ -7,24 +7,27 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const FX_TIMING = {
   slipper: [900, 560],
   spray: [1150, 760],
-  coffee: [1000, 660],
-  latte: [1050, 700],
-  broom: [980, 600],
-  calc: [1700, 1050],
-  chant: [1100, 720],
-  cake: [1050, 680],
-  listen: [1000, 620],
-  rage: [1000, 620],
+  coffee: [1200, 700],
+  latte: [1300, 900],
+  broom: [1080, 620], // the straw reaches them at art.js's BROOM_IMPACT
+  broomWhiff: [1080, 640],
+  chant: [1500, 960],
+  cake: [1400, 860],
+  listen: [1500, 940],
+  rage: [1500, 960],
   slam: [820, 480],
-  shout: [960, 560],
-  boss: [980, 600],
-  review: [900, 560],
-  sigh: [860, 520],
-  grumble: [920, 540],
-  cry: [1020, 640],
-  remember: [1040, 620],
+  shout: [1150, 715],
+  boss: [1400, 900],
+  review: [1250, 830],
+  sigh: [1300, 840],
+  grumble: [1400, 920],
+  cry: [1400, 900],
+  remember: [1500, 1000],
 };
 const DEFAULT_TIMING = [750, 460];
+// multi-hit moves: the wind-up before the first line flies, the time between lines, each line's flight, and the
+// closing flourish after the last one lands (art.js reads the same numbers off the fx)
+const MULTI_TIMING = { intro: 820, gap: 340, fly: 280, outro: 760 };
 
 function damage(attacker, defender, move, crit) {
   const eff = typeEffect(move.type, defender.types);
@@ -212,20 +215,45 @@ export function createBattle(canvas, { onState, onExit, onResult, owner, custome
       st.accDown = false;
     }
     if (Math.random() * 100 > acc) {
+      // a move with a whiff (the broom) still swings, over their head, and kicks up dust that lands a little damage
+      if (move.whiff) {
+        const [whiffDur, whiffAt] = FX_TIMING[`${move.fx}Whiff`] || DEFAULT_TIMING;
+        push('move', { fx: move.fx, whiff: true, from: isPlayer ? 'player' : 'enemy', target: isPlayer ? 'enemy' : 'player', dur: whiffDur });
+        play(`${move.fx}Whiff`);
+        await sleep(whiffAt);
+        if (st.dead) return;
+      }
       play('miss');
       push('miss', { target: isPlayer ? 'enemy' : 'player', dur: 900 });
       await say('但是沒有命中！', 420);
+      if (move.whiff && !st.dead) {
+        const dust = Math.max(1, rollRange(move.whiff));
+        defender.hp = Math.max(0, defender.hp - dust);
+        push('hit', { target: isPlayer ? 'enemy' : 'player', amount: dust, dust: true, dur: 800 });
+        play('dust');
+        notify();
+        await sleep(430);
+        await say(`揚起的灰塵嗆得${defender.name}直咳嗽！`, 320);
+      }
       return;
     }
     if (blurred) await say('被吵得有點恍神，差點揮空……', 260);
     if (st.dead) return;
 
-    const [fxDur, fxHit] = FX_TIMING[move.fx] || DEFAULT_TIMING;
+    // a multi-hit move (the calculator) lands one hit per line it rings up, all inside one longer animation
+    const hits = move.hits ? move.hits[0] + Math.floor(Math.random() * (move.hits[1] - move.hits[0] + 1)) : 1;
+    const multi = move.hits ? MULTI_TIMING : null;
+    const [fxDur, fxHit] = multi
+      ? [multi.intro + (hits - 1) * multi.gap + multi.fly + multi.outro, multi.intro + multi.fly]
+      : FX_TIMING[move.fx] || DEFAULT_TIMING;
     push('move', {
       fx: move.fx,
       from: isPlayer ? 'player' : 'enemy',
       target: isPlayer ? 'enemy' : 'player',
       dur: fxDur,
+      heal: st.mode === 'kind' && isPlayer && !!move.heal,
+      hits,
+      ...(multi || {}),
     });
     play(move.fx);
     await sleep(fxHit);
@@ -237,9 +265,12 @@ export function createBattle(canvas, { onState, onExit, onResult, owner, custome
     const reflected = move.effect === 'reflect' && Math.random() < 0.3;
     const victim = reflected ? attacker : defender;
     const victimEff = typeEffect(move.type, victim.types);
-    let amount = crit
-      ? damage(attacker, victim, move, crit)
-      : Math.max(1, Math.round(rollRange(move) * victimEff));
+    // the spider fight's moves carry a power for the stat formula; the customer fights' carry a min..max range
+    const roll = () =>
+      move.min == null ? damage(attacker, victim, move, crit) : Math.max(1, Math.round(rollRange(move) * victimEff));
+    let amount = roll();
+    const guarded = !isPlayer && st.guard && !reflected && !st.itemGuard;
+    if (guarded) amount = Math.max(1, Math.floor(amount / 2));
 
     if (!isPlayer && st.itemGuard && !reflected) {
       amount = 0;
@@ -272,23 +303,39 @@ export function createBattle(canvas, { onState, onExit, onResult, owner, custome
       else if (eff < 1) await say('效果不太好……', 260);
     } else {
       const floor = st.mode === 'kind' && victim === enemy ? 1 : 0;
-      victim.hp = Math.max(floor, victim.hp - amount);
-      push('hit', {
-        target: victim === player ? 'player' : 'enemy',
-        amount,
-        crit,
-        eff: victimEff,
-        dur: 700,
-      });
-      play(crit ? 'crit' : 'hit');
-      notify();
+      let landed = 0;
+      let total = 0;
+      for (let i = 0; i < hits; i++) {
+        const dealt = i === 0 ? amount : roll();
+        victim.hp = Math.max(floor, victim.hp - dealt);
+        landed += 1;
+        total += dealt;
+        push('hit', {
+          target: victim === player ? 'player' : 'enemy',
+          amount: dealt,
+          crit,
+          eff: victimEff,
+          dur: 700,
+        });
+        play(crit ? 'crit' : multi ? 'ring' : 'hit');
+        // the blow lands on the raised guard
+        if (guarded && i === 0) {
+          push('guardHit', { dur: 800 });
+          play('guardHit');
+        }
+        notify();
+        if (i === hits - 1 || victim.hp <= floor) break;
+        await sleep(multi.gap);
+        if (st.dead) return;
+      }
       await sleep(430);
       if (st.dead) return;
+      if (landed > 1) await say(`一共算了 ${landed} 筆，總共 ${total} 點！`, 320);
 
-      if (!isPlayer && st.guard && !reflected) await say('防禦姿勢擋下了部分傷害！', 240);
+      if (guarded) await say('防禦姿勢擋下了一半的傷害！', 240);
       if (crit) await say('擊中了要害！', 220);
       if (reflected) {
-        push('reflect', { target: victim === player ? 'player' : 'enemy', dur: 700 });
+        push('reflect', { target: victim === player ? 'player' : 'enemy', quote: '我就是老闆！', dur: 1400 });
         await say('「我就是老闆！」——攻擊被反彈回去！', 320);
       }
       if (!isPlayer && victimEff > 1) await say('效果拔群！', 260);
@@ -355,7 +402,7 @@ export function createBattle(canvas, { onState, onExit, onResult, owner, custome
     } else if (action.kind === 'defend') {
       st.guard = true;
       play('guard');
-      push('guard', { dur: 650 });
+      push('guard', { dur: 1100 });
       await say(`${player.name}擺出了防禦姿勢！`, 480);
     } else if (action.kind === 'item') {
       const item = player.items[action.index];
@@ -374,21 +421,30 @@ export function createBattle(canvas, { onState, onExit, onResult, owner, custome
 
       if (item.id === 'coffee') {
         const heal = Math.min(rollRange({ min: 20, max: 30 }), player.maxHp - player.hp);
+        // the mug comes up and they drink; the HP goes in as the warmth spreads (art.js fxDrink, halfway through)
+        play('drink');
+        push('heal', { dur: 1500 });
+        await sleep(760);
+        if (st.dead) return;
         player.hp += heal;
+        push('hit', { target: 'player', amount: heal, heal: true, dur: 800 });
         play('heal');
-        push('heal', { dur: 900 });
+        notify();
+        await sleep(300);
         await say(`${player.name}喝了一口咖啡，回復了 ${heal} HP！`, 600);
       } else if (item.id === 'sign') {
         st.itemGuard = true;
         play('select');
-        push('sign', { target: 'player', dur: 1000 });
+        push('sign', { target: 'player', dur: 1400 });
         // the thud of its stake going into the floor, as it lands (art.js fxSign: 28% of the way through)
-        setTimeout(() => { if (!st.dead) play('slam'); }, 280);
+        setTimeout(() => { if (!st.dead) play('slam'); }, 392);
         await say(`${player.name}立起了店規立牌！`, 500);
       } else if (item.id === 'tissue') {
         st.soften = true;
-        play('guard');
-        push('tissue', { from: 'player', target: 'enemy', dur: 1300 });
+        play('tissue');
+        push('tissue', { from: 'player', target: 'enemy', dur: 1700 });
+        await sleep(1100);
+        if (st.dead) return;
         await say(`${player.name}遞過一盒面紙，對方的火氣小了一點。`, 560);
       }
       notify();
