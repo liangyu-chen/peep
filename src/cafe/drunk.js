@@ -428,13 +428,17 @@ async function police(d) {
 
   const [p1, p2] = d.police;
   const sayAtDrunk = (p, text) => { p.face(Math.atan2((D[0] - p.g.position.x / K) * K, D[1] - p.g.position.z)); p.say(text, 3); };
-  const inDoor = [DOOR[0], DOOR[1], DOOR[2], DOOR[3]];
-  sayAtDrunk(p1, '那邊那位先生，別動！');
-  p1.speed = 1.6; const a1 = walk(p1, [posOf(p1), ...inDoor, [HUBX, DZ + 0.95]]);
+  // (quietly up the lane; each says his piece only once he's through the door, then goes on to his place)
+  const enter = async (p, line, rest) => {
+    p.speed = 1.6;
+    await walk(p, [posOf(p), DOOR[0], DOOR[1], DOOR[2]]);
+    if (S.drunk !== d) return;
+    sayAtDrunk(p, line);
+    await walk(p, [DOOR[2], DOOR[3], ...rest]);
+  };
+  const a1 = enter(p1, '那邊那位先生，別動！', [[HUBX, DZ + 0.95]]);
   await sleep(0.35); if (S.drunk !== d) return;
-  sayAtDrunk(p2, '先生，請配合一下。');
-  p2.speed = 1.6;
-  const a2 = walk(p2, [posOf(p2), ...inDoor, [-0.65, Math.min(3.3, DZ + 1.35)], [-0.65, DZ + 0.5], [-0.65, DZ - 0.5], [-1.05, DZ - 0.85], [HUBX, DZ - 0.95]]);
+  const a2 = enter(p2, '先生，請配合一下。', [[-0.65, Math.min(3.3, DZ + 1.35)], [-0.65, DZ + 0.5], [-0.65, DZ - 0.5], [-1.05, DZ - 0.85], [HUBX, DZ - 0.95]]);
   await Promise.all([a1, a2]);
   if (S.drunk !== d) return;
 
