@@ -2157,7 +2157,9 @@ function fxCalc(ctx, fx, from, to, p, s, px) {
     const stamp = q < 0.15 ? 1.8 - (q / 0.15) * 0.8 : 1;
     ctx.save();
     ctx.globalAlpha = q > 0.75 ? (1 - q) / 0.25 : 1;
-    ctx.translate(to.x + 30 * s, to.y - 86 * s);
+    // set well above the damage numbers (drawHitFx bounces them up to about 106 above `to`, and the hits are drawn
+    // over the move), so the last hit's number never covers it; kept clear of the top edge on short screens
+    ctx.translate(to.x + 30 * s, Math.max(to.y - 158 * s, 60 * s));
     ctx.rotate(-0.18);
     ctx.scale(stamp, stamp);
     ctx.strokeStyle = '#ff4f7b';
