@@ -600,7 +600,7 @@ export function createBattle(canvas, { onState, onExit, onResult, owner, custome
       st.phase = 'command';
       st.message = `${enemy.name}擋在${player.name}面前。要做什麼？`;
     } else if (st.mode === 'kind') {
-      await say(`${enemy.name}看起來心情不太好……`, 620);
+      await say(`${enemy.name}看起來心情不太好……幫他補滿血吧`, 620);
       if (st.dead) return;
       await say(`${player.name}拉了張椅子坐下來。`, 500);
       if (st.dead) return;

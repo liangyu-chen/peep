@@ -424,3 +424,75 @@ function jingle(song) {
     } catch {}
   }, (t - ac.currentTime + 0.5) * 1000);
 }
+
+// ---- Entry sting: an original 8-bit flourish timed to the café's entry wipe (cafe.css .battleEntry) -------------
+// Two stabs on the two white flashes, a fast climbing run while the black bars sweep in, and a low hit with a held
+// chord as they meet, which the battle loop then picks up from. `quick` squeezes it to the short wipe.
+const ENCOUNTER = {
+  rude: {
+    stab: [N.A5, N.E5],
+    run: [N.A4, N.E5, N.B4, N.F5, N.C5, N.G5, N.D5, N.A5, N.E5, 987.77, N.F5, 1046.5],
+    bass: [N.A2, 220],
+    chord: [N.A4, N.E5, N.A5],
+  },
+  kind: {
+    stab: [1046.5, N.G5],
+    run: [N.C5, N.G5, N.D5, N.A5, N.E5, 987.77, N.F5, 1046.5, N.G5, 1174.66, N.A5, 1318.51],
+    bass: [N.C3, 261.63],
+    chord: [N.C5, N.G5, 1046.5],
+  },
+};
+
+function burst(ac, out, t, dur, vol, freq, type) {
+  const src = ac.createBufferSource();
+  const filter = ac.createBiquadFilter();
+  const gain = ac.createGain();
+  src.buffer = getNoise(ac);
+  filter.type = type;
+  filter.frequency.value = freq;
+  gain.gain.setValueAtTime(vol, t);
+  gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  src.connect(filter);
+  filter.connect(gain);
+  gain.connect(out);
+  src.start(t, Math.random() * 0.4);
+  src.stop(t + dur + 0.02);
+}
+
+export function playEncounter(mode = 'rude', quick = false) {
+  if (sfxMuted()) return;
+  const ac = audio();
+  if (!ac) return;
+  try {
+    const song = ENCOUNTER[mode] || ENCOUNTER.rude;
+    const k = quick ? 0.47 : 1;   // the short wipe is 520 ms against 1100
+    const out = ac.createGain();
+    out.gain.value = 0.5;
+    out.connect(ac.destination);
+    const t0 = ac.currentTime + 0.02;
+    // the two flashes peak at 18% and 54% of their .5 s
+    [0.09, 0.27].forEach((at) => {
+      const t = t0 + at * k;
+      song.stab.forEach((f) => voice(ac, out, 'square', f, f, t, 0.12 * k, 0.05));
+      burst(ac, out, t, 0.08 * k, 0.12, 3200, 'highpass');
+    });
+    // the bars sweeping in from .38 s: a climbing run over a rising bass and a whoosh
+    const runStart = t0 + 0.38 * k;
+    const step = 0.04 * k;
+    song.run.forEach((f, i) => voice(ac, out, 'square', f, f, runStart + i * step, step * 0.9, 0.045));
+    const runLen = song.run.length * step;
+    voice(ac, out, 'triangle', song.bass[0], song.bass[1], runStart, runLen, 0.12);
+    burst(ac, out, runStart, runLen, 0.05, 1400, 'bandpass');
+    // the bars meet: a low boom and a held chord
+    const hit = runStart + runLen;
+    voice(ac, out, 'sine', 140, 40, hit, 0.25, 0.22);
+    burst(ac, out, hit, 0.18, 0.1, 600, 'lowpass');
+    song.chord.forEach((f) => voice(ac, out, 'square', f, f, hit, 0.45 * k + 0.1, 0.035));
+    voice(ac, out, 'triangle', song.bass[0], song.bass[0], hit, 0.5 * k + 0.1, 0.14);
+    window.setTimeout(() => {
+      try {
+        out.disconnect();
+      } catch {}
+    }, (hit - ac.currentTime + 1.2) * 1000);
+  } catch {}
+}

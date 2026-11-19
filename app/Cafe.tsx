@@ -6,6 +6,7 @@ import type { CafeContent } from '@/src/content/catalog';
 import type { Look } from '@/src/content/look';
 import '@/src/cafe/cafe.css';
 import LoadingHands from './LoadingHands';
+import { playEncounter } from '@/src/battle/audio.js';
 
 // 蜘蛛驚魂, fetched only the first time it is opened
 const BattleClient = dynamic(() => import('@/src/battle/BattleClient'), { ssr: false });
@@ -191,6 +192,7 @@ export default function Cafe({ content }: { content: CafeContent }) {
     if (entryTimer.current !== null) window.clearTimeout(entryTimer.current);
     const quick = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;   // a short wipe, never no wipe
     setEntry('close');
+    playEncounter('mode' in next && next.mode === 'kind' ? 'kind' : 'rude', !!quick);
     entryTimer.current = window.setTimeout(() => {
       setBattle(next);
       setEntry('cover');   // hold the bars shut until BattleClient has drawn its first frame
