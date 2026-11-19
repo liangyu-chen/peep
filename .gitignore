@@ -7,7 +7,5 @@ out
 next-env.d.ts
 .vercel
 
-# Claude Code local settings
-.claude/settings.local.json
-.claude/launch.json
-.claude/battle-preview/
+# Claude Code local files (settings, launch config, previews)
+.claude/
