@@ -59,7 +59,7 @@ function ownerInfo(look = {}, name = '') {
       pants: toHex(pants), pantsL: tint(pants, 1.16), pantsD: tint(pants, 0.7),
       shoe: toHex(shoeColor), shoeL: tint(shoeColor, 1.2), shoeD: tint(shoeColor, 0.7),
       hat: toHex(hatColor), hatL: tint(hatColor, 1.18), hatD: tint(hatColor, 0.72),
-      frame: toHex(frameColor), eye: toHex(eyeColor), lens: toHex(lens.color),
+      frame: toHex(frameColor), eye: toHex(eyeColor), lens: toHex(lens.color), white: '#f6f1e8',
       sock: toHex(sockColor), sockD: tint(sockColor, 0.8),
       metal: toHex(earColor), phone: toHex(phoneColor),
       watch: toHex(watchColor), dial: toHex(dialColor),
@@ -181,6 +181,12 @@ function drawOwner(g, P, O) {
   const headX = cx - (headW >> 1);
   const headBottom = torsoTop - 2;
   const headTop = headBottom - headH + 1;
+  // the face is laid out from headTop down; the skull rises a couple of rows above it so a bare head reads
+  // as a round head rather than a wide, flat one (a hat sits over these rows)
+  const crown = 2;
+  const skullTop = headTop - crown;
+  const skullH = headH + crown;
+  const hatted = O.hat.hat !== 'none';
   const torsoW = { thin: 15, slim: 16, regular: 18, stocky: 20, heavy: 22 }[O.build] ?? 18;
   const tx = cx - (torsoW >> 1);
   const bottom = O.clothes.style === 'dress' ? 'dress' : O.clothes.bottom;
@@ -201,8 +207,7 @@ function drawOwner(g, P, O) {
   const tiedUp = hairLen > 1 && ['bun', 'ponytail', 'lowpony', 'twintails', 'lowtwintails'].includes(O.hair.tie);
 
   if (hairLen >= 0) {
-    box(g, headX - 1, headTop + 1, headW + 2, 4, P.hairD);
-    box(g, headX, headTop, headW, 3, P.hair);
+    box(g, headX - 1, headTop, headW + 2, 4, P.hairD);
   }
   if (hairLen > 1 && !tiedUp) {
     const hairBottom = Math.min(torsoTop + hairLen + 2, legTop - 2);
@@ -232,7 +237,7 @@ function drawOwner(g, P, O) {
     }
   } else if ((O.hair.tie === 'bun' || O.hair.tie === 'halfup') && !back) {
     const bx = O.hair.tie === 'bun' ? cx - 3 : cx - 2;
-    const by = O.hair.tie === 'bun' ? headTop - 3 : headTop - 2;
+    const by = O.hair.tie === 'bun' ? skullTop - 3 : skullTop - 2;
     box(g, bx, by, 6, 4, P.k);
     box(g, bx + 1, by + 1, 4, 2, P.hair);
     box(g, bx + 1, by, 4, 1, P.hairL);
@@ -452,113 +457,178 @@ function drawOwner(g, P, O) {
 
   box(g, headX - 2, headTop + 6, 2, 3, P.skin);
   box(g, headX + headW, headTop + 6, 2, 3, P.skin);
-  for (let i = 0; i < headH; i++) {
-    const [a, b] = faceRow(O.face.faceShape, i, headH, headW);
-    box(g, headX + a - 1, headTop + i, headW - a - b + 2, 1, P.k);
-    box(g, headX + a, headTop + i, headW - a - b, 1, P.skinF);
+  for (let i = 0; i < skullH; i++) {
+    const [a, b] = faceRow(O.face.faceShape, i, skullH, headW);
+    box(g, headX + a - 1, skullTop + i, headW - a - b + 2, 1, P.k);
+    box(g, headX + a, skullTop + i, headW - a - b, 1, P.skinF);
+  }
+  {
+    const [a, b] = faceRow(O.face.faceShape, 0, skullH, headW);
+    box(g, headX + a, skullTop - 1, headW - a - b, 1, P.k);
   }
   if (back) {
     drawBackHead();
     return;
   }
-  box(g, headX + 1, headTop + 8, 1, 3, P.skinD);
-  box(g, headX + headW - 2, headTop + 8, 1, 3, P.skinD);
 
+  // the hair over the crown, following the skull's outline; rows skullTop .. headTop + 1
+  const capRows = (rows, colorAt) => {
+    for (let i = 0; i < rows; i++) {
+      const [a, b] = faceRow(O.face.faceShape, i, skullH, headW);
+      box(g, headX + a, skullTop + i, headW - a - b, 1, colorAt(i));
+    }
+  };
   if (hairLen >= 0) {
-    if (O.hair.length === 'buzz') {
-      box(g, headX + 2, headTop + 1, headW - 4, 1, P.hair);
-    } else if (O.hair.length === 'mushroom') {
-      box(g, headX, headTop, headW, 3, P.hair);
-      box(g, headX - 1, headTop + 2, headW + 2, 1, P.hairD);
-    } else if (O.hair.length === 'spiky') {
-      for (let x = 0; x < 5; x++) {
-        box(g, headX + 1 + x * 3, headTop - 1 + (x % 2), 2, 3, P.hair);
-      }
-    } else if (O.hair.length === 'pompadour') {
-      box(g, headX + 1, headTop - 2, headW - 2, 3, P.hair);
-      box(g, headX + 3, headTop - 3, headW - 6, 1, P.hairL);
-    } else if (O.hair.length === 'azhi') {
-      box(g, headX + 1, headTop, headW - 2, 2, P.hair);
-      box(g, headX + 4, headTop - 1, headW - 6, 1, P.hair);
+    const L = O.hair.length;
+    if (L === 'buzz') {
+      capRows(3, () => P.hairD);
+    } else if (L === 'mushroom') {
+      capRows(4, (i) => (i === 0 ? P.hairL : P.hair));
+      box(g, headX - 1, headTop + 1, headW + 2, 1, P.hairD);
     } else {
-      for (let i = 0; i < 3; i++) {
-        const [a, b] = faceRow(O.face.faceShape, i, headH, headW);
-        const l = Math.max(a, 1), r = Math.max(b, 1);
-        box(g, headX + l, headTop + i, headW - l - r, 1, i === 2 ? P.hairD : P.hair);
+      capRows(3, (i) => (i === 2 ? P.hairD : P.hair));
+      box(g, headX + 3, skullTop, headW - 6, 1, P.hairL);
+      // what rises above the skull; a hat flattens it
+      if (!hatted && L === 'spiky') {
+        for (let x = 0; x < 5; x++) box(g, headX + 1 + x * 3, skullTop - 2 + (x % 2), 2, 3, P.hair);
+      } else if (!hatted && L === 'pompadour') {
+        box(g, headX + 2, skullTop - 2, headW - 4, 3, P.hair);
+        box(g, headX + 4, skullTop - 3, headW - 7, 1, P.hairL);
+      } else if (!hatted && L === 'azhi') {
+        box(g, headX + 4, skullTop - 1, headW - 7, 1, P.hair);
       }
     }
     if (O.hair.front === 'bangs') {
-      box(g, headX + 1, headTop + 2, headW - 2, 1, P.hair);
-      for (let x = 0; x < 5; x++) box(g, headX + 2 + x * 3, headTop + 3, 2, 1, P.hair);
+      box(g, headX + 1, headTop + 1, headW - 2, 1, P.hair);
+      for (let x = 0; x < 5; x++) box(g, headX + 2 + x * 3, headTop + 2, 2, 1, P.hair);
     } else if (O.hair.front === 'center') {
-      box(g, headX + 1, headTop + 2, 3, 2, P.hair);
-      box(g, headX + headW - 4, headTop + 2, 3, 2, P.hair);
+      box(g, headX + 1, headTop + 1, 4, 2, P.hair);
+      box(g, headX + headW - 5, headTop + 1, 4, 2, P.hair);
+      box(g, headX + 1, headTop + 3, 2, 1, P.hair);
+      box(g, headX + headW - 3, headTop + 3, 2, 1, P.hair);
     } else if (O.hair.front === 'side') {
-      box(g, headX + 1, headTop + 2, headW - 5, 2, P.hair);
+      box(g, headX + 1, headTop + 1, headW - 5, 2, P.hair);
+      box(g, headX + 1, headTop + 3, 3, 1, P.hair);
     }
   }
 
-  const browY = headTop + 3;
+  // eyes: two 4-px cells either side of the centre line, white with the pupil in the middle and a dark lid on top
+  const eyeY = headTop + 4;
+  // (behind glasses they sit a pixel further apart, so the two lenses have a gap and a bridge between them)
+  const eyeXs = O.face.glasses !== 'none' ? [cx - 6, cx + 2] : [cx - 5, cx + 1];
+
   const brows = O.face.brows;
   if (brows !== 'none') {
-    const thick = brows === 'thick' || brows === 'bushy' ? 2 : 1;
+    // one row, with skin both above (the hairline) and below (the lid); a thick brow is a wider one
+    const browY = headTop + 2;
+    const thick = 1;
+    const heavy = brows === 'thick' || brows === 'bushy';
+    const bw = brows === 'short' ? 2 : heavy ? 4 : 3;
+    const lb = eyeXs[0] + (brows === 'short' ? 1 : 0);
+    const rb = eyeXs[1] + (heavy ? 0 : 1);
     if (brows === 'unibrow') {
-      box(g, cx - 6, browY, 12, thick, P.hairD);
+      box(g, eyeXs[0], browY, eyeXs[1] + 4 - eyeXs[0], thick, P.hairD);
     } else {
-      box(g, cx - 6, browY, 3, thick, P.hairD);
-      box(g, cx + 4, browY, 3, thick, P.hairD);
-      if (brows === 'angry') {
-        box(g, cx - 5, browY + 1, 2, 1, P.hairD);
-        box(g, cx + 4, browY + 1, 2, 1, P.hairD);
+      box(g, lb, browY, bw, thick, P.hairD);
+      box(g, rb, browY, bw, thick, P.hairD);
+      if (brows === 'bushy') {
+        box(g, lb - 1, browY, 1, 1, P.hairD);
+        box(g, rb + bw, browY, 1, 1, P.hairD);
+      } else if (brows === 'angry') {
+        // the inner ends pulled down
+        box(g, lb + bw - 1, browY + 1, 1, 1, P.hairD);
+        box(g, rb, browY + 1, 1, 1, P.hairD);
       } else if (brows === 'worried') {
-        box(g, cx - 6, browY + 1, 1, 1, P.hairD);
-        box(g, cx + 6, browY + 1, 1, 1, P.hairD);
+        box(g, lb, browY + 1, 1, 1, P.hairD);
+        box(g, rb + bw - 1, browY + 1, 1, 1, P.hairD);
+      } else if (brows === 'arched' || brows === 'raised') {
+        box(g, rb + 1, browY - 1, 1, 1, P.hairD);
+        if (brows === 'arched') box(g, lb + 1, browY - 1, 1, 1, P.hairD);
       }
     }
   }
 
-  const eyeY = headTop + 5;
-  const eyeXs = [cx - 5, cx + 2];
-  if (!O.lensSolid) {
-    const eyes = O.face.eyes;
-    const slim = ['narrow', 'sleepy', 'deadpan', 'smile'].includes(eyes);
-    for (const x of eyeXs) {
-      if (slim) box(g, x, eyeY + 1, 3, 1, P.eye);
-      else if (eyes === 'dot') box(g, x, eyeY + 1, 2, 2, P.eye);
-      else {
-        box(g, x, eyeY, 3, 2, P.eye);
-        box(g, x, eyeY, 1, 1, P.skinL);
+  // one eye, drawn as the viewer's left one; the right is its mirror. Rows: lid, then two rows of eye.
+  // k lid / w white / p pupil / s glint / . skin
+  const EYE = {
+    round: ['.kk.', 'wppw', 'wppw'],
+    big: ['kkkk', 'wspw', 'wppw'],
+    sparkle: ['kkkk', 'wspw', 'wpsw'],
+    dot: ['....', '.pp.', '.pp.'],
+    almond: ['.kkk', 'kppw', '.pp.'],
+    phoenix: ['..kk', 'kkpp', '.wpw'],
+    droopy: ['kkk.', 'wppk', 'wpp.'],
+    sleepy: ['....', 'kkkk', '.pp.'],
+    deadpan: ['....', 'kkkk', 'wppw'],
+    narrow: ['....', '....', 'kkkk'],
+    smile: ['....', '.kk.', 'k..k'],
+  };
+  const eyeInk = { k: P.k, w: P.white, p: P.eye, s: P.white };
+  const drawEye = (x, kind, mirror) => {
+    const rows = EYE[kind] ?? EYE.round;
+    rows.forEach((row, y) => {
+      for (let i = 0; i < 4; i++) {
+        const ch = row[mirror ? 3 - i : i];
+        if (ch !== '.') box(g, x + i, eyeY + y, 1, 1, eyeInk[ch]);
       }
-    }
-    if (eyes === 'wink') box(g, eyeXs[1], eyeY + 1, 3, 1, P.eye);
-  }
+    });
+  };
 
   const glasses = O.face.glasses;
+  const shape = O.face.glassesShape;
+  const frame = glasses === 'rimless' ? P.skinD : P.frame;
+  // a lens: 6 wide and 5 tall around each eye cell; its top rim sits on the row above the lid, so inside it the eye
+  // keeps a row of lens over it (where the glint goes) instead of the frame pressing on the pupils
+  const lensY = eyeY - 1;
+  const lensCell = (x, mirror) => {
+    const at = (i, y, w, h, c) => box(g, mirror ? x + 6 - i - w : x + i, lensY + y, w, h, c);
+    const rounded = shape === 'round' || shape === 'oval';
+    if (O.lensSolid) {
+      at(1, 1, 4, 3, P.lens);
+      at(1, 1, 2, 1, P.white);
+    } else {
+      at(1, 1, 1, 1, P.white);
+    }
+    if (glasses === 'browline') {
+      // a heavy brow bar, and a thin wire below it
+      at(0, 0, 6, 1, frame);
+      at(0, 1, 1, 1, frame);
+      at(5, 1, 1, 1, frame);
+      at(0, 2, 1, 2, P.skinD);
+      at(5, 2, 1, 2, P.skinD);
+      at(1, 4, 4, 1, P.skinD);
+      return;
+    }
+    at(rounded ? 1 : 0, 0, rounded ? 4 : 6, 1, frame);
+    at(rounded || shape === 'aviator' ? 1 : 0, 4, rounded || shape === 'aviator' ? 4 : 6, 1, frame);
+    at(0, 1, 1, 3, frame);
+    at(5, 1, 1, 3, frame);
+    if (shape === 'catEye') at(0, -1, 2, 1, frame);
+    else if (shape === 'wayfarer') at(0, 1, 2, 1, frame);
+  };
+
+  if (!O.lensSolid) {
+    const kind = O.face.eyes;
+    if (kind === 'wink') {
+      drawEye(eyeXs[0], 'round', false);
+      drawEye(eyeXs[1], 'smile', true);
+    } else {
+      drawEye(eyeXs[0], kind, false);
+      drawEye(eyeXs[1], kind, true);
+    }
+    // behind glasses the rim is the lid: leave the row under it to the lens
+    if (glasses !== 'none') {
+      box(g, eyeXs[0], eyeY, 4, 1, P.skinF);
+      box(g, eyeXs[1], eyeY, 4, 1, P.skinF);
+    }
+  }
   if (glasses !== 'none') {
-    const lensY = headTop + 4;
-    const lLens = eyeXs[0] - 1;
-    const rLens = eyeXs[1] - 1;
-    const shape = O.face.glassesShape;
-    const frame = glasses === 'rimless' ? P.skinD : P.frame;
-    const drawLens = (x) => {
-      if (O.lensSolid) box(g, x + 1, lensY + 1, 3, 2, P.lens);
-      if (shape === 'round' || shape === 'oval') {
-        box(g, x + 1, lensY, 3, 1, frame);
-        box(g, x + 1, lensY + 3, 3, 1, frame);
-        box(g, x, lensY + 1, 1, 2, frame);
-        box(g, x + 4, lensY + 1, 1, 2, frame);
-      } else {
-        box(g, x, lensY, 5, 1, frame);
-        box(g, x, lensY + 3, 5, 1, frame);
-        box(g, x, lensY + 1, 1, 2, frame);
-        box(g, x + 4, lensY + 1, 1, 2, frame);
-      }
-    };
-    drawLens(lLens);
-    drawLens(rLens);
-    box(g, lLens + 5, lensY + 1, 2, 1, frame);
-    box(g, headX + 1, lensY + 1, 1, 1, frame);
-    box(g, headX + headW, lensY + 1, 1, 1, frame);
+    lensCell(eyeXs[0] - 1, false);
+    lensCell(eyeXs[1] - 1, true);
+    box(g, eyeXs[0] + 4, lensY + 1, eyeXs[1] - eyeXs[0] - 4, 1, frame);
+    // the arms, out to the ears
+    box(g, headX - 1, lensY + 2, eyeXs[0] - headX, 1, frame);
+    box(g, eyeXs[1] + 5, lensY + 2, headX + headW + 1 - (eyeXs[1] + 5), 1, frame);
   }
 
   box(g, cx, headTop + 8, 1, 1, P.skinD);
@@ -593,15 +663,9 @@ function drawOwner(g, P, O) {
     if (kind === 'none') return;
     const ex = side < 0 ? headX - 2 : headX + headW + 1;
     const ey = headTop + 9;
-    if (kind === 'stud') {
-      box(g, ex, ey, 1, 1, P.metal);
-    } else if (kind === 'hoop') {
-      box(g, ex, ey, 1, 2, P.metal);
-      box(g, ex, ey, 2, 1, P.metal);
-    } else {
-      box(g, ex, ey, 1, 3, P.metal);
-      box(g, ex, ey + 2, 2, 1, P.metal);
-    }
+    // a single pixel: on a 16-px head anything bigger reads as a stripe down the hair. A stud sits on the lobe,
+    // a hoop or a drop just under it
+    box(g, ex, kind === 'stud' ? ey - 1 : ey, 1, 1, P.metal);
   }
   earring(-1, O.ears.left);
   earring(1, O.ears.right);
@@ -643,7 +707,7 @@ function drawOwner(g, P, O) {
   }
 
   if (O.phones.wear === 'head') {
-    box(g, headX - 2, headTop - 2, headW + 4, 1, P.phone);
+    box(g, headX - 2, skullTop - 1, headW + 4, 1, P.phone);
     box(g, headX - 3, headTop + 2, 2, 6, P.phone);
     box(g, headX + headW + 1, headTop + 2, 2, 6, P.phone);
   } else if (O.phones.wear === 'neck') {
@@ -695,30 +759,32 @@ function drawOwner(g, P, O) {
     if (hairLen >= 0) {
       const napeRows = hairLen === 0 ? 3 : hairLen === 1 || tiedUp ? 2 : 0;
       const hairColor = O.hair.length === 'buzz' ? P.hairD : P.hair;
-      for (let i = 0; i < headH - napeRows; i++) {
-        const [a, b] = faceRow(O.face.faceShape, i, headH, headW);
-        box(g, headX + a, headTop + i, headW - a - b, 1, hairColor);
+      for (let i = 0; i < skullH - napeRows; i++) {
+        const [a, b] = faceRow(O.face.faceShape, i, skullH, headW);
+        box(g, headX + a, skullTop + i, headW - a - b, 1, hairColor);
       }
       if (O.hair.length !== 'buzz') {
-        box(g, headX + 2, headTop, headW - 4, 1, P.hairL);
-        if (napeRows) box(g, headX + 1, headTop + headH - napeRows - 1, headW - 2, 1, P.hairD);
+        box(g, headX + 3, skullTop, headW - 6, 1, P.hairL);
+        if (napeRows) box(g, headX + 1, skullTop + skullH - napeRows - 1, headW - 2, 1, P.hairD);
       }
-      if (O.hair.length === 'spiky') {
-        for (let x = 0; x < 5; x++) box(g, headX + 1 + x * 3, headTop - 1 + (x % 2), 2, 3, P.hair);
+      if (hatted) {
+        // (a hat flattens whatever rises above the crown)
+      } else if (O.hair.length === 'spiky') {
+        for (let x = 0; x < 5; x++) box(g, headX + 1 + x * 3, skullTop - 2 + (x % 2), 2, 3, P.hair);
       } else if (O.hair.length === 'pompadour') {
-        box(g, headX + 1, headTop - 2, headW - 2, 3, P.hair);
+        box(g, headX + 2, skullTop - 2, headW - 4, 3, P.hair);
       } else if (O.hair.length === 'azhi') {
-        box(g, headX + 4, headTop - 1, headW - 6, 1, P.hair);
+        box(g, headX + 4, skullTop - 1, headW - 7, 1, P.hair);
       } else if (O.hair.length === 'mushroom') {
         box(g, headX - 1, headTop + 2, headW + 2, 1, P.hairD);
       }
       if (O.hair.curl === 'curly') {
-        for (let y = headTop + 2; y < headTop + headH - napeRows - 1; y += 3) {
+        for (let y = skullTop + 2; y < skullTop + skullH - napeRows - 1; y += 3) {
           for (let x = headX + 2 + (y % 2) * 2; x < headX + headW - 2; x += 4) box(g, x, y, 1, 1, P.hairD);
         }
       }
     } else {
-      box(g, headX + 3, headTop + 1, headW - 6, 1, P.skinL);
+      box(g, headX + 4, skullTop + 1, headW - 8, 1, P.skinL);
     }
     // long hair hangs down over the back, unless it is tied up
     if (hairLen > 1 && !tiedUp) {
@@ -742,8 +808,8 @@ function drawOwner(g, P, O) {
     // glasses: only the arms show, running back over the ears
     if (O.face.glasses !== 'none') {
       const frame = O.face.glasses === 'rimless' ? P.skinD : P.frame;
-      box(g, headX - 1, headTop + 5, 2, 1, frame);
-      box(g, headX + headW - 1, headTop + 5, 2, 1, frame);
+      box(g, headX - 1, headTop + 4, 2, 1, frame);
+      box(g, headX + headW - 1, headTop + 4, 2, 1, frame);
     }
     // from behind, the wearer's left ear is on the viewer's left
     earring(-1, O.ears.left);
@@ -788,7 +854,7 @@ function drawOwner(g, P, O) {
       const big = O.hair.tie === 'bun';
       const bw = big ? 8 : 6;
       const bh = big ? 7 : 5;
-      const by = hat !== 'none' ? headTop + 3 : headTop - (big ? 3 : 2);
+      const by = hat !== 'none' ? headTop + 3 : skullTop - (big ? 3 : 2);
       const bx = cx - (bw >> 1);
       box(g, bx + 1, by, bw - 2, bh, P.k);
       box(g, bx, by + 1, bw, bh - 2, P.k);
@@ -801,7 +867,7 @@ function drawOwner(g, P, O) {
       if (big) box(g, cx - 1, by + bh, 2, 2, P.hairD);
     }
     if (O.phones.wear === 'head') {
-      box(g, headX - 2, headTop - 2, headW + 4, 1, P.phone);
+      box(g, headX - 2, skullTop - 1, headW + 4, 1, P.phone);
       box(g, headX - 3, headTop + 2, 2, 6, P.phone);
       box(g, headX + headW + 1, headTop + 2, 2, 6, P.phone);
     } else if (O.phones.wear === 'neck') {
