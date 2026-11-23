@@ -6,7 +6,7 @@
 // looks at fade away, the way the shop's own outer walls do.
 import * as THREE from 'three';
 import { ctx, mat as rawMat, canvasTex } from '../engine.js';
-import { S } from '../state.js';
+import { S, frozen } from '../state.js';
 import { rand, randi, pick, K as SQ } from '../util.js';
 import { KERB, RISE, BACK_HALL } from '../layout.js';
 import { moverShadows } from '../quality.js';
@@ -331,7 +331,7 @@ function updateFade(dt) {
 
 export function updateSurroundings(dt) {
   if (!env) return;
-  updateTraffic(S.timeStop ? 0 : dt * S.speed);
+  updateTraffic(frozen() ? 0 : dt * S.speed);
   updateFade(dt);
 }
 

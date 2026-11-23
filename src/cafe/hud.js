@@ -24,6 +24,7 @@ import { bindMenu } from './rpgMenu.js';
 import { setTimeStop } from './timeStop.js';
 import { bindPhone, phoneTargets, phoneNear, pickUpPhone, setPhoneHover } from './phone.js';
 import { CLOUD_SVG } from './mood.js';
+import { bindBoard, setBoardHover, pickNote, hasNoteAt, closeZoom } from './board.js';
 
 export function updateHUD() {
   $('clock').textContent = fmtTime(S.minutes); $('day').textContent = DAYS[S.dow];
@@ -171,11 +172,17 @@ const CAMS = {
   // from just outside the door, high under the balcony, looking down over the crate table to the chairs along the wall
   porch: { pos: [1.6, 2.6, 4.7], target: [-1.4, 0.3, 6.2], phone: { pos: [1.3, 3.0, 4.3], target: [-0.8, 0.3, 6.3] } },
   // from over the back corridor: the stadium on its crates, the toilet door, the storeroom through its doorway
-  back: { pos: [-2.8, 4.4, -4.1], target: [-0.4, 0.2, -6.6], phone: { pos: [-2.6, 4.8, -4.1], target: [-1.0, 0.25, -7.3] } }
+  back: { pos: [-2.8, 4.4, -4.1], target: [-0.4, 0.2, -6.6], phone: { pos: [-2.6, 4.8, -4.1], target: [-1.0, 0.25, -7.3] } },
+  // the sticky-note patch on the pegboard, square-on from across the shop and looking a little below it, so the patch
+  // sits in the top part of the screen with the panel under it (the camera must be well enough above its target not to
+  // be pushed up by the orbit controls' polar limit); the phone's further off, the patch in the top half
+  board: { pos: [0.1, 1.85, 1.25], target: [3.0, 1.62, 1.68], phone: { pos: [-0.5, 2.4, 1.45], target: [3.0, 1.5, 1.68] } }
 };
 let camTween = null;
+export const camMoving = () => !!camTween;
 let menu = null;   // the RPG menu's handles, while the HUD is bound
 function setCam(name) {
+  if (boardFrom) return;   // (the sticky-note board holds the camera while it's open)
   stopFollow();
   const rec = $('camRec'); if (rec) rec.hidden = true;
   const { camera, controls } = ctx, c = (camera.aspect < 0.8 && CAMS[name].phone) || CAMS[name];
@@ -283,11 +290,43 @@ function playAt(kind, root) {
   camTween = { fp: from.p.clone(), ft: from.t.clone(), tp, tt, t: 0, dur: 0.6, done: () => (kind === 'darts' ? playWallDarts(root, back) : openGame(kind, root, back)) };
 }
 
+// ---------------------------------------------------------------- the sticky-note board (board.js): the camera flies in
+// square-on and the panel opens at once; closing flies back to where the camera was
+let board = null, boardRoot = null, boardFrom = null;   // (the panel's handles; the root; the camera before it opened)
+let boardHome = null;   // while the camera is still flying back: where it's going, so opening again mid-flight still goes home from there
+export function openBoard() {
+  const { camera, controls } = ctx, r = boardRoot;
+  if (!board || !r || boardFrom || S.paused || S.darting || camTween?.done || r.classList.contains('playing') || r.classList.contains('phoneOpen')) return;   // (not while the camera is flying in to a game: it would be left unopened)
+  const c = (camera.aspect < 0.8 && CAMS.board.phone) || CAMS.board;
+  boardFrom = boardHome && camTween === boardHome.tw ? { p: boardHome.p, t: boardHome.t } : { p: camera.position.clone(), t: controls.target.clone() };
+  boardHome = null;
+  stopFollow(); closeCard(); setAcOpen(false, true); menu?.closeMenu(); menu?.hideRec();
+  document.querySelectorAll('[data-cam]').forEach(b => b.classList.remove('on'));
+  // the neon, mid-flicker from its switch: settled as it will end up, so it doesn't go on flickering through the freeze
+  neonTimers.forEach(clearTimeout); neonTimers = []; if (S.neon) lightNeon(!!S.neon.lit);
+  controls.enabled = false;   // (held still until it's closed)
+  camTween = { fp: camera.position.clone(), ft: controls.target.clone(), tp: new THREE.Vector3(c.pos[0] * K, c.pos[1], c.pos[2]), tt: new THREE.Vector3(c.target[0] * K, c.target[1], c.target[2]), t: 0, dur: 0.9 };
+  sfx('swoosh');
+  board.open();
+  S.boardHold = true;   // (the music plays on)
+}
+// snap: straight back (a battle laid over the café: nothing is drawn meanwhile)
+export function closeBoard(snap) {
+  if (!boardFrom) return;
+  const { camera, controls } = ctx, { p, t } = boardFrom;
+  boardFrom = null;
+  S.boardHold = false;
+  board?.close(); controls.enabled = true;
+  boardHome = null;
+  if (snap) { camTween = null; camera.position.copy(p); controls.target.copy(t); }
+  else { const tw = { fp: camera.position.clone(), ft: controls.target.clone(), tp: p, tt: t, t: 0, dur: 0.7 }; camTween = tw; boardHome = { p, t, tw }; sfx('swoosh'); }
+}
+
 // ---------------------------------------------------------------- wiring the buttons and the canvas; returns an unbind function
 export function bindHUD(root, stage) {
   const off = [];
   const on = (el, ev, fn) => { if (!el) return; el.addEventListener(ev, fn); off.push(() => el.removeEventListener(ev, fn)); };
-  camTween = null;
+  camTween = null; boardFrom = null; boardHome = null; boardRoot = root;
 
   on($('closeCard'), 'click', closeCard);
   on($('cSmoke'), 'click', () => { const sel = S.selected; if (sel) { sendOutToSmoke(sel); fillCard(); } });
@@ -400,6 +439,8 @@ export function bindHUD(root, stage) {
   showMusic(); on(musicBtn, 'click', () => { toggleMusic(); showMusic(); });
   // the RPG menu (rpgMenu.js)
   const phone = bindPhone(root, on, off);   // 老闆的手機, once it's been picked up (phone.js)
+  board = bindBoard(root, on, off, { requestClose: () => closeBoard() });   // 便利貼留言板 (board.js)
+  off.push(() => { board = null; boardRoot = null; boardFrom = null; S.boardHold = false; });   // (the café let go with the board open: the hold isn't left on for the next one)
   menu = bindMenu(root, on, off, { setCam, focusPerson, followThing: startFollow, setAcOpen, openPhone: phone.open });
   off.push(() => { menu = null; });
   // every touch, click or key wakes the sound: a finger's pointerdown doesn't count as a gesture on phones (only its
@@ -417,7 +458,9 @@ export function bindHUD(root, stage) {
 
   const canvas = ctx.renderer.domElement;
   const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
+  let lastHitUv = null;   // (where on the sticky-note patch the last 'board' hit landed)
   const hit = e => {
+    lastHitUv = null;
     const r = canvas.getBoundingClientRect();
     if (phoneNear(e.clientX, e.clientY, r)) return 'phone';   // (the owner's phone: anywhere close to it on screen counts)
     ndc.set((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1);
@@ -429,8 +472,10 @@ export function bindHUD(root, stage) {
     const laptop = []; S.laptop?.traverse(o => { if (o.isMesh) laptop.push(o); });
     const phone = phoneTargets();
     const targets = []; S.people.forEach(p => { p.g.traverse(o => { if (o.isMesh) targets.push(o); }); p.bear?.g.traverse(o => { if (o.isMesh) targets.push(o); }); }); targets.push(S.tvScreen, S.tvFrame, S.dartboard, S.neonSwitch?.hit, S.storeLight?.hit, S.toiletLight?.hit, ...stadium, ...menu, ...fans, ...laptop, ...phone);
+    if (S.board?.active) targets.push(S.board.hit);   // (not while the camera's round behind the wall it hangs on)
     const h = ray.intersectObjects(targets.filter(Boolean), false)[0];
     if (!h) return null;
+    if (h.object === S.board?.hit) { lastHitUv = h.uv || null; return 'board'; }
     if (h.object === S.neonSwitch?.hit) return 'neon';
     if (h.object === S.storeLight?.hit) return 'storeLight';
     if (h.object === S.toiletLight?.hit) return 'toiletLight';
@@ -449,6 +494,11 @@ export function bindHUD(root, stage) {
   on(canvas, 'pointerup', e => {
     if (!downAt || Math.hypot(e.clientX - downAt[0], e.clientY - downAt[1]) > 6) return;
     if (root.classList.contains('phoneCam')) return;   // (through the phone's camera, a tap is just framing the shot)
+    if (root.classList.contains('boardOpen')) {   // (the café behind the board's panel: a tap on a note blows it up; a tap elsewhere puts away the note, then the board)
+      if (closeZoom()) return;
+      if (hit(e) === 'board' && lastHitUv) pickNote(lastHitUv); else closeBoard();
+      return;
+    }
     const h = hit(e);
     if (h === 'menu') setCam('menu');   // the clipboard on the bar: lean over and read it
     else if (h === 'laptop') { sfx('pop'); window.location.href = '/admin'; }   // the owner's laptop: into the back office
@@ -462,16 +512,18 @@ export function bindHUD(root, stage) {
     }
     else if (h && h.fan) { h.fan.userData.fan.on = !h.fan.userData.fan.on; sfx('flick'); }   // a ceiling fan: on, or coasting off
     else if (h && h.bearOf) { h.bearOf.bearSay(h.bearOf.bear.line); openPetCard(h.bearOf); startFollow(h.bearOf.bear.g, h.bearOf.bear.name); }   // a companion says its piece (路易斯 愛老公, 夜叉丸 汪！), its card opens and the camera follows it
+    else if (h === 'board') openBoard();
     else if (typeof h === 'string') playAt(h, root); else if (h) focusPerson(h); else closeCard();
   });
   on(canvas, 'pointermove', e => {
     if (e.pointerType !== 'mouse' || performance.now() - hoverT < 80) return;
     hoverT = performance.now();
     const h = hit(e);
-    canvas.style.cursor = h ? 'pointer' : '';
+    canvas.style.cursor = (h === 'board' && root.classList.contains('boardOpen') ? hasNoteAt(lastHitUv) : h) ? 'pointer' : '';
     setPhoneHover(h === 'phone');   // (the owner's phone lifts and glows under the mouse)
+    setBoardHover(h === 'board');   // (and the sticky-note board glows)
   });
-  on(canvas, 'pointerleave', () => setPhoneHover(false));
+  on(canvas, 'pointerleave', () => { setPhoneHover(false); setBoardHover(false); });
   const resize = () => {
     const w = stage.clientWidth || window.innerWidth, h = stage.clientHeight || window.innerHeight;
     ctx.camera.aspect = w / h; ctx.camera.updateProjectionMatrix();

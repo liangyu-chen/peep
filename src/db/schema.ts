@@ -62,3 +62,17 @@ export const settings = pgTable('settings', {
   value: jsonb('value').$type<Owner>().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
+
+// the bulletin board's notes; ip_hash is a keyed hash (never the address), used only to rate-limit
+export const boardPosts = pgTable('board_posts', {
+  id: serial('id').primaryKey(),
+  nickname: text('nickname').notNull(),
+  message: text('message').notNull(),
+  ipHash: text('ip_hash').notNull().default(''),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  reply: text('reply').notNull().default(''),
+  repliedAt: timestamp('replied_at', { withTimezone: true }),
+}, t => [
+  index('board_posts_ip_created_idx').on(t.ipHash, t.createdAt),
+  index('board_posts_created_idx').on(t.createdAt),
+]);

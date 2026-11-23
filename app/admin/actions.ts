@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 import { eq, inArray } from 'drizzle-orm';
 import { getDb, schema } from '@/src/lib/db';
 import { checkPassword, createSession, destroySession, requireAdmin } from '@/src/lib/auth';
+import { REPLY_MAX, cleanText, tooLong } from '@/src/content/board';
 import { LINE_KEYS, LINE_GROUPS, POOL_KEYS, TEAM_NAMES, DEFAULT_OWNER, MENU_SECTIONS, parseLook, prefixed, LOOK2, type Look } from '@/src/content/catalog';
 
 // ---------------------------------------------------------------- login
@@ -217,4 +218,31 @@ export async function updateOwner(f: FormData) {
     ...queries,
   ]);
   done('/admin/owner', `已儲存老闆「${name}」和老闆的台詞`);
+}
+
+// ---------------------------------------------------------------- the bulletin board
+export async function deleteBoardPost(f: FormData) {
+  await requireAdmin();
+  const id = Number(f.get('id'));
+  if (!Number.isInteger(id)) done('/admin/board', '找不到這則留言');
+  await db().delete(schema.boardPosts).where(eq(schema.boardPosts.id, id));
+  done('/admin/board', '已刪除這則留言');
+}
+
+export async function saveBoardReply(f: FormData) {
+  await requireAdmin();
+  const id = Number(f.get('id'));
+  if (!Number.isInteger(id)) done('/admin/board', '找不到這則留言');
+  if (tooLong(f.get('reply'), REPLY_MAX)) done('/admin/board', `回覆最多 ${REPLY_MAX} 個字`);
+  const reply = cleanText(f.get('reply'), REPLY_MAX);
+  await db().update(schema.boardPosts).set({ reply, repliedAt: reply ? new Date() : null }).where(eq(schema.boardPosts.id, id));
+  done('/admin/board', reply ? '已回覆' : '已清除回覆');
+}
+
+export async function clearBoardReply(f: FormData) {
+  await requireAdmin();
+  const id = Number(f.get('id'));
+  if (!Number.isInteger(id)) done('/admin/board', '找不到這則留言');
+  await db().update(schema.boardPosts).set({ reply: '', repliedAt: null }).where(eq(schema.boardPosts.id, id));
+  done('/admin/board', '已清除回覆');
 }

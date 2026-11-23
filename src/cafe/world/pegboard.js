@@ -192,9 +192,11 @@ export function buildPegboard() {
   [[0.58, clearGlass, 0.08], [0.64, brownGlass, 0.08]].forEach(([z, m, h]) => bottle(z, 1.526, m, h));
   luckyCat(0.82, 1.526);
   roadSign(1.12, 2.22);
-  // the mugs on the right, steel and one blue
-  [[1.55, 1.42, steel], [1.68, 1.52, steel], [1.82, 1.44, blueEnamel], [1.95, 1.56, steel], [1.6, 1.66, steel], [1.78, 1.74, steel],
-    [1.92, 1.88, blueEnamel], [1.48, 1.86, steel], [2.02, 2.04, steel], [1.7, 1.98, steel]].forEach(([z, y, m]) => mug(z, y, m));
+  // the mugs under the toy shelf: two columns of four, and two more further along (the patch above y 1.45 on the right is
+  // left clear for the sticky notes, board.js, and the syrup bottles' tops are at y 1.2-1.45 around z 1.43-1.82)
+  [[0.99, 1.30, steel], [1.14, 1.30, steel], [0.99, 1.42, steel], [1.14, 1.42, blueEnamel],
+    [0.99, 1.54, blueEnamel], [1.14, 1.54, steel], [0.99, 1.66, steel], [1.14, 1.66, steel],
+    [1.87, 1.30, steel], [1.99, 1.30, blueEnamel]].forEach(([z, y, m]) => mug(z, y, m));
   // another shelf of little toys, and a couple of plush and toy heads on pegs
   shelf(1.08, 1.86, 0.3);
   [0.98, 1.06, 1.14, 1.2].forEach(z => toy(z, 1.866));

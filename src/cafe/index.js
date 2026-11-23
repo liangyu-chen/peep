@@ -2,7 +2,7 @@
 // keeps moving, calls onReady once it's drawing, and returns a function that tears it down.
 // root must contain the HUD markup (see app/Cafe.tsx); content is { menu, lines } from the back office.
 import { ctx, createEngine, disposeEngine } from './engine.js';
-import { S, resetState } from './state.js';
+import { S, resetState, frozen } from './state.js';
 import { K, PIX } from './util.js';
 import { createSeats } from './layout.js';
 import { createRegulars } from './profiles.js';
@@ -10,7 +10,8 @@ import { buildWorld } from './world/index.js';
 import { updateLighting } from './world/lights.js';
 import { updateTV, drawTV } from './tv.js';
 import { createOwner, createSteam, createSmoke, seedOpeningScene, tickShop, kickOut, updateSteam, updateSmoke } from './sim.js';
-import { bindHUD, updateHUD, fillCard, updateCamera, updateLabels } from './hud.js';
+import { bindHUD, updateHUD, fillCard, updateCamera, updateLabels, closeBoard, camMoving } from './hud.js';
+import { buildBoard, updateBoard, layoutBoard, disposeBoard } from './board.js';
 import { renderResults } from './feed.js';
 import { createStadium, updateTops, inviteTops } from './tops.js';
 import { SMOKE_POSE, DRINK_POSE } from './people.js';
@@ -68,7 +69,7 @@ async function build(root, content) {
   gatherWallItems();                 // (what hangs on the outer walls, so it can fade with them)
   mergeStatic(); await breathe();   // the set's still parts drawn in far fewer calls
   buildPhoneProp();   // the owner's phone by his laptop, there to be picked up (after the merge, so it stays its own)
-  createStadium();
+  buildBoard();       // the sticky notes on the pegboard (likewise after the merge)  createStadium();
   createSteam();
   createSmoke();
   createOwner();
@@ -88,13 +89,14 @@ async function build(root, content) {
     updateRoach(sdt);
     updateDrunk(sdt);
     updatePhoneProp(dt);   // (its sparkle, and the jump into the bag, go by real time)
+    updateBoard(dt);       // (the sticky-note board's glow and fade, likewise)
     updateSteam(sdt);
     updateSmoke(sdt);
     updateTops(sdt);
     updateSurroundings(dt);
-    if (S.ledClock && !S.timeStop) S.ledClock();   // the corner's LED clock (redraws only when the minute changes; held while time is stopped)
+    if (S.ledClock && !frozen()) S.ledClock();   // the corner's LED clock (redraws only when the minute changes; held while time is stopped)
     // what goes by real time below holds still too while time is stopped (時間停止器; the camera and the walls fading don't)
-    const wdt = S.timeStop ? 0 : dt;
+    const wdt = frozen() ? 0 : dt;
     // the outdoor unit's fan spins up when the AC comes on and coasts to a stop when it goes off
     S.ac.spin += ((S.ac.on ? 12 : 0) - S.ac.spin) * Math.min(1, wdt * 1.5);
     S.acFan.rotation.x += S.ac.spin * wdt;
@@ -160,7 +162,11 @@ async function build(root, content) {
   // Meanwhile it's drawn as in 畫質 一般 (shadows drawn once, people with a round blob under them) and at 0.6 of the
   // sharpness, whichever 畫質 was picked; closing the phone (or turning to its camera) puts that 畫質 back as it was.
   const covered = () => { const c = root.classList; return c.contains('phoneOpen') && !c.contains('phoneCam') && !c.contains('playing'); };
-  let heldQuality = null;   // the 畫質 to go back to, while the phone has the café turned down
+  // With the sticky-note board open the shop holds still (S.boardHold) and is drawn 15 times a second (the camera's
+  // flight at the usual rate), shadows frozen as they stand and the TV not redrawn; the sharpness stays, for the notes' writing. The music plays on as usual.
+  const BOARD_MS = 1000 / 15;
+  let boardLow = false;
+  let heldQuality = null;  // the 畫質 to go back to, while the phone has the café turned down
   function frame(now) {
     if (S.stopped || S.paused) return;
     const cov = covered();
@@ -168,27 +174,38 @@ async function build(root, content) {
       heldQuality = S.quality || DEFAULT_QUALITY;
       setQuality('normal'); ctx.renderer.setPixelRatio(Math.max(0.5, qualityPR() * 0.6));
     } else if (!cov && heldQuality !== null) { setQuality(heldQuality); heldQuality = null; res.sum = res.n = 0; }
-    if (now - last < (cov ? COVERED_MS : idle(now) ? 1000 / 30 : target()) - 4) { raf = requestAnimationFrame(frame); return; }
-    if (!cov) adapt(now - last);
-    const dt = Math.min(cov ? 0.25 : 0.05, (now - last) / 1000); last = now;
-    for (let left = dt; left > 1e-6; left -= 0.05) { const d = Math.min(0.05, left); simulate(d, S.timeStop ? 0 : d * S.speed); }
-    if ((tvFrameN = (tvFrameN + 1) % 2) === 0) drawTV();
+    const hold = S.boardHold && !cov;
+    if (hold !== boardLow) {
+      boardLow = hold;
+      const sm = ctx.renderer.shadowMap;
+      if (hold) {
+        sm.autoUpdate = false; sm.needsUpdate = true;
+        const pr = qualityPR(); if (!S.darting && pr !== ctx.renderer.getPixelRatio()) ctx.renderer.setPixelRatio(pr);
+      } else { sm.autoUpdate = highQuality(); sm.needsUpdate = true; res.sum = res.n = 0; }
+    }
+    if (hold) ctx.renderer.shadowMap.autoUpdate = false;
+    if (now - last < (cov ? COVERED_MS : hold && !camMoving() ? BOARD_MS : idle(now) ? 1000 / 30 : target()) - 4) { raf = requestAnimationFrame(frame); return; }
+    if (!cov && !hold) adapt(now - last);
+    const dt = Math.min(cov || hold ? 0.25 : 0.05, (now - last) / 1000); last = now;
+    for (let left = dt; left > 1e-6; left -= 0.05) { const d = Math.min(0.05, left); simulate(d, frozen() ? 0 : d * S.speed); }
+    if ((tvFrameN = (tvFrameN + 1) % 2) === 0 && !S.boardHold) drawTV();
 
     updateCamera(dt);
     ctx.controls.update();
+    layoutBoard();   // (the dark round the sticky-note board follows the camera in)
     if (S.shadowDirty) { S.shadowDirty = false; ctx.renderer.shadowMap.needsUpdate = true; }
     ctx.renderer.render(ctx.scene, ctx.camera);
     updateLabels(dt, stage.clientWidth || window.innerWidth, stage.clientHeight || window.innerHeight);
     raf = requestAnimationFrame(frame);
   }
 
-  const hudTimer = setInterval(() => { if (S.paused) return; updateHUD(); updateLighting(); if (S.selected) fillCard(); }, 100);
+  const hudTimer = setInterval(() => { if (S.paused || S.boardHold) return; updateHUD(); updateLighting(); if (S.selected) fillCard(); }, 100);
   pauseHook = on => {
     on = !!on;
     if (S.stopped || !!S.paused === on) return;
     S.paused = on;
     root.classList.toggle('paused', on);
-    if (on) { cancelAnimationFrame(raf); holdMusic(true); }
+    if (on) { closeBoard(true); cancelAnimationFrame(raf); holdMusic(true); }   // (a board panel left open would sit over the battle)
     else {
       last = performance.now();   // (no catching up on the time spent away)
       raf = requestAnimationFrame(frame);
@@ -228,6 +245,7 @@ async function build(root, content) {
     disposeRoach();
     disposeDrunk();
     disposePhoneProp();
+    disposeBoard();
     INPUTS.forEach(e => window.removeEventListener(e, poke));
     cancelAnimationFrame(raf);
     clearInterval(hudTimer);

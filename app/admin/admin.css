@@ -283,3 +283,14 @@ body:has(.admin){margin:0;background:#141218}
 /* 熟客的第二套捏臉: the preview's 第一套 / 第二套 picks which set of fields shows (the form's data-look-set) */
 form:not([data-look-set="2"]) .look-set-2, form[data-look-set="2"] .look-set-1 { display: none; }
 .look-set { display: contents; }
+
+/* the bulletin board's notes */
+.admin .board-list{display:grid;gap:8px;margin:12px 0 16px}
+.admin .board-item{display:grid;gap:8px;background:var(--panel);padding:10px 14px}
+.admin .board-item .what{display:grid;gap:2px;min-width:0}
+.admin .board-item textarea{resize:vertical;overflow:auto}
+.admin .board-actions{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
+.admin .board-actions .when{margin-left:auto}
+.admin .board-item .what b{font-weight:500}
+.admin .board-item .what span{overflow-wrap:anywhere}
+.admin .board-item .when{color:var(--muted);font-size:13px}

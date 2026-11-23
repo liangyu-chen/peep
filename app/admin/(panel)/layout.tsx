@@ -17,6 +17,7 @@ export default async function PanelLayout({ children }: { children: React.ReactN
           <Link href="/admin/owner">老闆</Link>
           <Link href="/admin/regulars">熟客</Link>
           <Link href="/admin/random">新客隨機值</Link>
+          <Link href="/admin/board">留言板</Link>
           {LINE_GROUPS.map(g => <Link key={g.slug} href={`/admin/lines/${g.slug}`}>{g.group}台詞</Link>)}
         </nav>
         {/* outside the nav, so on a phone it isn't scrolled off the end of the tab row */}

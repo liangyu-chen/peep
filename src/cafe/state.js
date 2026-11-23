@@ -1,5 +1,6 @@
 // Shared, mutable state of the running café. One café runs per page; startCafe() resets it.
 export const S = {};
+export const frozen = () => S.timeStop || S.boardHold;
 
 export function resetState(content) {
   for (const k of Object.keys(S)) delete S[k];
@@ -31,7 +32,9 @@ export function resetState(content) {
     acGear: false,
     drunk: null,
     timeStop: false,   // 時間停止器 (timeStop.js): everything in the shop holds still, the camera still moves
+    boardHold: false,  // the sticky-note board is open (hud.js): the shop holds still like under timeStop and is drawn at a low rate (the music plays on)
     paused: false,     // a battle laid over the café (index.js setCafePaused): nothing runs or draws until it ends
+    board: null,       // the sticky-note board on the pegboard (board.js): its layer, hit plane, glow and the notes fetched
 
     // filled in by the world builders and createSeats()
     seats: null,
