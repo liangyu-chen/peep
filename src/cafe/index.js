@@ -69,7 +69,8 @@ async function build(root, content) {
   gatherWallItems();                 // (what hangs on the outer walls, so it can fade with them)
   mergeStatic(); await breathe();   // the set's still parts drawn in far fewer calls
   buildPhoneProp();   // the owner's phone by his laptop, there to be picked up (after the merge, so it stays its own)
-  buildBoard();       // the sticky notes on the pegboard (likewise after the merge)  createStadium();
+  buildBoard();       // the sticky notes on the pegboard (likewise after the merge)
+  createStadium();
   createSteam();
   createSmoke();
   createOwner();
