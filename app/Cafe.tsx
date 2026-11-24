@@ -220,10 +220,6 @@ export default function Cafe({ content }: { content: CafeContent }) {
     cafe.current?.setCafePaused(true);
     enterBattle(ownerNow());
   }, [enterBattle, ownerNow]);
-  const openDrunk = useCallback(() => {
-    root.current?.querySelector<HTMLButtonElement>('[data-cmd="close"]')?.click();
-    cafe.current?.releaseDrunk();
-  }, []);
   const openCustomerBattle = useCallback((person: CafePerson) => {
     if (!person?.mood || person.gone || !person.look) return;
     root.current?.querySelector<HTMLButtonElement>('[data-cmd="close"]')?.click();
@@ -293,10 +289,11 @@ export default function Cafe({ content }: { content: CafeContent }) {
               <button type="button" className="slot" data-item="speed" data-desc="裝著金色細沙的沙漏。翻轉之後，店裡的時間流速會跟著改變。"><PixelArt rows={ICON_GLASS} /><span>沙漏</span><span className="badge" id="speedBadge">1x</span></button>
               <button type="button" className="slot" id="stopSlot" data-item="stop" data-desc="紅色外殼的神祕碼錶，小小的螢幕上只寫著 STOP。按下之後，店裡的一切都會靜止，只有你能自由行動。再按一次，時間才會繼續流動。"><PixelArt rows={ICON_STOP} /><span>時間停止器</span></button>
               <button type="button" className="slot" data-item="roach" data-desc="一隻油亮的大蟑螂，裝在小紙盒裡。使用後會偷偷放到店裡的地上，看看誰先發現牠……"><PixelArt rows={ICON_ROACH} /><span>小強</span></button>
+              <button type="button" className="slot" data-item="drunk" data-desc="一瓶喝剩一半的烈酒。使用後，有個醉漢會晃進店裡……"><PixelArt rows={ICON_DRUNK} /><span>酒瓶</span></button>
               {/* 老闆的手機: picked up off the 工作台, it takes the ？？？ slot (rpgMenu.js) */}
               <button type="button" className="slot" id="phoneSlot" data-item="phone" hidden data-desc="老闆隨手擱在筆電旁的手機，螢幕居然沒鎖。用他的名義傳個私訊，就能把熟客召喚到店裡……在他發現之前。"><PixelArt rows={ICON_PHONE} /><span>老闆的手機</span><span className="badge">NEW</span></button>
-              {/* four ？？？ slots, for the items not found yet: each one found takes the first of them (rpgMenu.js) */}
-              {[0, 1, 2, 3].map(n => (
+              {/* three ？？？ slots, for the items not found yet: each one found takes the first of them (rpgMenu.js) */}
+              {[0, 1, 2].map(n => (
                 <button type="button" key={n} className="slot" data-item="none" aria-disabled="true" data-desc="還沒有取得的道具。說不定哪天會在店裡撿到……"><span className="q" aria-hidden="true">?</span><span>？？？</span></button>
               ))}
             </div>
@@ -322,7 +319,6 @@ export default function Cafe({ content }: { content: CafeContent }) {
             {/* 畫質, one line that flips between 高 and 低 (hud.js) */}
             <button type="button" id="qualityToggle" className="opt"><PixelArt rows={ICON_BATT} />畫質<span className="qval" id="qualityVal">高</span></button>
             <button type="button" className="opt battleOpt" onClick={openBattle}><PixelArt rows={ICON_SPIDER} />蜘蛛驚魂<span className="devTag">規劃中</span></button>
-            <button type="button" className="opt battleOpt" onClick={openDrunk}><PixelArt rows={ICON_DRUNK} />醉漢鬧店<span className="devTag">規劃中</span></button>
             <a href="/admin" className="opt"><PixelArt rows={ICON_KEY} />後台登入</a>
           </div>
         </section>

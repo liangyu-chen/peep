@@ -537,8 +537,8 @@ function prepBikes(d) {
 
 export function releaseDrunk() {
   if (S.stopped) return '還沒營業。';
-  if (S.drunk) return '店裡已經有醉漢了…';
-  if (S.roach) return '蟑螂事件處理中…';
+  if (S.drunk) return '店裡已經有醉漢了……';
+  if (S.roach) return '蟑螂事件處理中……';
   if (S.closing) return '快打烊了，改天再來。';
   const drunk = makeDrunk();
   drunk.setPos(DOOR[0][0], DOOR[0][1]); drunk.face(Math.PI);

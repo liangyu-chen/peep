@@ -7,6 +7,7 @@ import { $ } from './util.js';
 import { log } from './feed.js';
 import { CLOUD_SVG } from './mood.js';
 import { releaseRoach } from './roach.js';
+import { releaseDrunk } from './drunk.js';
 import { sfx } from './sfx.js';
 import { setTimeStop, clearTimeStop } from './timeStop.js';
 
@@ -118,6 +119,13 @@ export function bindMenu(root, on, off, { setCam, focusPerson, followThing, setA
       if (typeof r === 'string') { report(r); return; }
       closeMenu(); followThing(r.g, '蟑螂', true);
       report('你偷偷把一隻蟑螂放到店裡的地上……');
+    }
+    else if (name === 'drunk') {
+      // 酒瓶: left at the door, a drunk wanders in (drunk.js); the camera goes over to him
+      const d = releaseDrunk();
+      if (typeof d === 'string') { report(d); return; }
+      closeMenu(); followThing(d.drunk.g, '醉漢');
+      report('你把酒瓶擱在店門口……');
     }
     else if (name === 'phone') { closeMenu(); openPhone?.(); }   // 老闆的手機: out of the bag and onto the screen (phone.js)
     else if (name === 'menu') { closeMenu(); setCam('menu'); report('你湊近吧台，讀起那張邊角燒焦的菜單。'); }   // lean over the bar and read the clipboard
